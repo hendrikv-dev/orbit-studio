@@ -1,0 +1,13 @@
+export const EARTH_MU_KM3_S2 = 398600.4418;
+export const EARTH_RADIUS_KM = 6378.137;
+export const EARTH_POLAR_RADIUS_KM = 6356.752314245;
+export const EARTH_MU = EARTH_MU_KM3_S2 * 1_000_000_000;
+export const EARTH_RADIUS = EARTH_RADIUS_KM * 1000;
+export const EARTH_POLAR_RADIUS = EARTH_POLAR_RADIUS_KM * 1000;
+export const EARTH_FLATTENING = 1 / 298.257223563;
+export const EARTH_ROTATION_RATE_RAD_S = 7.2921150e-5;
+export const EARTH_ROTATION_RATE = EARTH_ROTATION_RATE_RAD_S;
+export const J2000_UNIX_MS = Date.UTC(2000, 0, 1, 11, 58, 55, 816);
+export const SECONDS_PER_DAY = 86400;
+export const TWO_PI = Math.PI * 2;
+export const DEFAULT_SUN_DIRECTION = [0.72, 0.31, 0.62] as const;

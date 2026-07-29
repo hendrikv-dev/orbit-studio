@@ -1,0 +1,244 @@
+{
+  "generatedAtUtc": "2026-07-18T00:18:06.342Z",
+  "sources": {
+    "vectors": "NASA/JPL Horizons DE441, geocentric ICRF, light-time and stellar-aberration corrected (LT+S)",
+    "apparentCoordinates": "NASA/JPL Horizons DE441, geocentric airless apparent RA/Dec of date",
+    "earthRotation": "U.S. Naval Observatory Astronomical Applications sidereal-time API, longitude 0, UT1 input",
+    "seasons": "U.S. Naval Observatory 2026 equinox and solstice table",
+    "lunarPhases": "U.S. Naval Observatory 2026 phases of the Moon table"
+  },
+  "earthSun": [
+    {
+      "timestampUtc": "2026-01-01T13:18:20.000Z",
+      "jplIcrfApparentVectorKm": [
+        27485207.53428887,
+        -132590415.5191377,
+        -57475313.53989206
+      ],
+      "jplApparentRaDegOfDate": 282.1062787,
+      "jplApparentDecDegOfDate": -22.971296125,
+      "usno": {
+        "gast": "20:03:10.0865",
+        "gastDeg": 300.7920270833334,
+        "gmst": "20:03:09.7481",
+        "gmstDeg": 300.79061708333336,
+        "equationOfEquinoxesSeconds": 0.3384
+      },
+      "subsolarLatitudeDeg": -22.971296125,
+      "subsolarLongitudeDeg": -18.68574838333336
+    },
+    {
+      "timestampUtc": "2026-07-17T23:53:42.000Z",
+      "jplIcrfApparentVectorKm": [
+        -64348626.25951289,
+        126383322.002282,
+        54785175.95660271
+      ],
+      "jplApparentRaDegOfDate": 117.376938409,
+      "jplApparentDecDegOfDate": 21.055274688,
+      "usno": {
+        "gast": "19:36:58.0920",
+        "gastDeg": 294.24205000000006,
+        "gmst": "19:36:57.5303",
+        "gmstDeg": 294.2397095833333,
+        "equationOfEquinoxesSeconds": 0.5617
+      },
+      "subsolarLatitudeDeg": 21.055274688,
+      "subsolarLongitudeDeg": -176.86511159100007
+    },
+    {
+      "timestampUtc": "2026-03-20T14:46:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        148984073.2337348,
+        -877557.5504500582,
+        -381010.8605728437
+      ],
+      "jplApparentRaDegOfDate": 359.999976875,
+      "jplApparentDecDegOfDate": 0.00009446,
+      "usno": {
+        "gast": "02:38:35.8488",
+        "gastDeg": 39.649370000000005,
+        "gmst": "02:38:35.4683",
+        "gmstDeg": 39.64778458333333,
+        "equationOfEquinoxesSeconds": 0.3805
+      },
+      "subsolarLatitudeDeg": 0.00009446,
+      "subsolarLongitudeDeg": -39.64939312499996
+    },
+    {
+      "timestampUtc": "2026-06-21T08:24:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        987723.2865968276,
+        139476767.6547634,
+        60460470.36705468
+      ],
+      "jplApparentRaDegOfDate": 89.999620604,
+      "jplApparentDecDegOfDate": 23.437933384,
+      "usno": {
+        "gast": "02:22:12.8420",
+        "gastDeg": 35.55350833333333,
+        "gmst": "02:22:12.3647",
+        "gmstDeg": 35.55151958333333,
+        "equationOfEquinoxesSeconds": 0.4773
+      },
+      "subsolarLatitudeDeg": 23.437933384,
+      "subsolarLongitudeDeg": 54.44611227066662
+    },
+    {
+      "timestampUtc": "2026-09-23T00:05:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        -150129732.6034501,
+        903594.4759267775,
+        392567.5653105412
+      ],
+      "jplApparentRaDegOfDate": 179.999847918,
+      "jplApparentDecDegOfDate": 0.000056603,
+      "usno": {
+        "gast": "00:12:27.1432",
+        "gastDeg": 3.113096666666667,
+        "gmst": "00:12:26.5963",
+        "gmstDeg": 3.110817916666667,
+        "equationOfEquinoxesSeconds": 0.5469
+      },
+      "subsolarLatitudeDeg": 0.000056603,
+      "subsolarLongitudeDeg": 176.8867512513333
+    },
+    {
+      "timestampUtc": "2026-12-21T20:50:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        -975144.5617895252,
+        -135021294.4955605,
+        -58528425.69257136
+      ],
+      "jplApparentRaDegOfDate": 269.999802071,
+      "jplApparentDecDegOfDate": -23.437414883,
+      "usno": {
+        "gast": "02:51:45.1413",
+        "gastDeg": 42.938088750000006,
+        "gmst": "02:51:44.5460",
+        "gmstDeg": 42.935608333333334,
+        "equationOfEquinoxesSeconds": 0.5954
+      },
+      "subsolarLatitudeDeg": -23.437414883,
+      "subsolarLongitudeDeg": -132.93828667900004
+    },
+    {
+      "timestampUtc": "1998-11-20T12:26:40.000Z",
+      "jplIcrfApparentVectorKm": [
+        -78346906.88708122,
+        -115003644.4383352,
+        -49860104.03721946
+      ],
+      "jplApparentRaDegOfDate": 235.716248267,
+      "jplApparentDecDegOfDate": -19.706901015,
+      "usno": {
+        "gast": "16:23:56.2146",
+        "gastDeg": 245.9842275,
+        "gmst": "16:23:56.8955",
+        "gmstDeg": 245.98706458333334,
+        "equationOfEquinoxesSeconds": -0.6809
+      },
+      "subsolarLatitudeDeg": -19.706901015,
+      "subsolarLongitudeDeg": -10.267979233000005
+    },
+    {
+      "timestampUtc": "2030-01-01T12:00:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        27282928.27294346,
+        -132630159.1138359,
+        -57491794.86692119
+      ],
+      "jplApparentRaDegOfDate": 282.082949981,
+      "jplApparentDecDegOfDate": -22.970239936,
+      "usno": {
+        "gast": "18:44:45.3456",
+        "gastDeg": 281.18894,
+        "gmst": "18:44:44.2738",
+        "gmstDeg": 281.1844741666667,
+        "equationOfEquinoxesSeconds": 1.0718
+      },
+      "subsolarLatitudeDeg": -22.970239936,
+      "subsolarLongitudeDeg": 0.8940099809999538
+    }
+  ],
+  "moon": [
+    {
+      "timestampUtc": "2026-07-14T09:43:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        -132411.9360099405,
+        298716.7829673802,
+        151469.5701645005
+      ],
+      "jplApparentRaDegOfDate": 114.311706556,
+      "jplApparentDecDegOfDate": 24.81201641,
+      "jplIlluminatedFraction": 0.0007882,
+      "jplDistanceKm": 360149.50772,
+      "jplSunTargetObserverAngleDeg": 176.7824
+    },
+    {
+      "timestampUtc": "2026-07-21T11:05:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        -347353.1868443785,
+        -159718.2588031184,
+        -102655.4429464571
+      ],
+      "jplApparentRaDegOfDate": 205.052506111,
+      "jplApparentDecDegOfDate": -15.165916347,
+      "jplIlluminatedFraction": 0.5012608000000001,
+      "jplDistanceKm": 395856.41156,
+      "jplSunTargetObserverAngleDeg": 89.8556
+    },
+    {
+      "timestampUtc": "2026-07-29T14:36:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        235471.8667277785,
+        -290174.3827995261,
+        -141583.0866113939
+      ],
+      "jplApparentRaDegOfDate": 309.445793633,
+      "jplApparentDecDegOfDate": -20.657759216,
+      "jplIlluminatedFraction": 0.9996728,
+      "jplDistanceKm": 399617.24546,
+      "jplSunTargetObserverAngleDeg": 2.073
+    },
+    {
+      "timestampUtc": "2026-08-06T02:21:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        270676.6248855949,
+        220864.528807645,
+        131586.649412015
+      ],
+      "jplApparentRaDegOfDate": 39.591640296,
+      "jplApparentDecDegOfDate": 20.755908994,
+      "jplIlluminatedFraction": 0.5012687,
+      "jplDistanceKm": 373312.23078,
+      "jplSunTargetObserverAngleDeg": 89.8547
+    },
+    {
+      "timestampUtc": "1998-11-20T12:26:40.000Z",
+      "jplIcrfApparentVectorKm": [
+        -119729.8771473714,
+        -365150.3268895522,
+        -121598.6394671227
+      ],
+      "jplApparentRaDegOfDate": 251.826956564,
+      "jplApparentDecDegOfDate": -17.554678477,
+      "jplIlluminatedFraction": 0.018086599999999998,
+      "jplDistanceKm": 403058.59851,
+      "jplSunTargetObserverAngleDeg": 164.5474
+    },
+    {
+      "timestampUtc": "2030-01-01T12:00:00.000Z",
+      "jplIcrfApparentVectorKm": [
+        -152099.337066694,
+        -298959.1993948699,
+        -141997.5256868937
+      ],
+      "jplApparentRaDegOfDate": 243.487617915,
+      "jplApparentDecDegOfDate": -23.02028397,
+      "jplIlluminatedFraction": 0.09294129999999999,
+      "jplDistanceKm": 364244.57242,
+      "jplSunTargetObserverAngleDeg": 144.4955
+    }
+  ]
+}

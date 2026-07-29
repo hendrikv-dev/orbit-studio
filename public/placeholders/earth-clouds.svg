@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 512" role="img" aria-label="Generated cloud reference">
+  <rect width="1024" height="512" fill="#07121c"/>
+  <g fill="#1f3947" opacity="0.85">
+    <path d="M118 168c39-45 104-55 155-31 30 14 59 9 88 22 30 14 37 49 12 69-29 24-67-2-94 21-27 22-5 54-31 76-25 21-65 1-80-26-21-39-87-42-92-86-2-16 18-25 42-45z"/>
+    <path d="M665 132c52-31 134-28 188 5 39 24 74 66 59 99-14 31-66 29-101 45-38 17-52 58-92 55-37-3-50-41-38-73 10-27-44-39-47-73-2-22 11-45 31-58z"/>
+  </g>
+  <g fill="#d8e8ef" opacity="0.5">
+    <ellipse cx="240" cy="150" rx="120" ry="18" transform="rotate(8 240 150)"/>
+    <ellipse cx="572" cy="250" rx="160" ry="22" transform="rotate(-12 572 250)"/>
+    <ellipse cx="784" cy="142" rx="110" ry="16" transform="rotate(16 784 142)"/>
+    <ellipse cx="430" cy="365" rx="150" ry="20" transform="rotate(5 430 365)"/>
+  </g>
+</svg>

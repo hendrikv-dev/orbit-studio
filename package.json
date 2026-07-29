@@ -1,0 +1,72 @@
+{
+  "name": "orbit-studio",
+  "version": "0.1.0",
+  "description": "Interactive Earth-orbit catalog explorer and orbital sandbox built with React and Three.js.",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "npm@11.16.0",
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hendrikv-dev/orbit-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hendrikv-dev/orbit-studio/issues"
+  },
+  "homepage": "https://github.com/hendrikv-dev/orbit-studio#readme",
+  "keywords": [
+    "orbit",
+    "satellite",
+    "space",
+    "threejs",
+    "react",
+    "visualization"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.apsis.json && vite build",
+    "preview": "vite preview",
+    "review": "node scripts/review/run-review.mjs",
+    "release:verify": "npm run provenance:validate && npm run licenses:validate && npm run history:validate && node scripts/release/verify-release-source.mjs",
+    "history:validate": "node scripts/release/reachable-history.mjs",
+    "source:archive": "node scripts/release/source-archive.mjs",
+    "provenance:generate": "node scripts/provenance/render-attribution.mjs && node scripts/provenance/dependency-licenses.mjs",
+    "provenance:validate": "node scripts/provenance/validate-provenance.mjs",
+    "licenses:validate": "node scripts/provenance/dependency-licenses.mjs --check",
+    "test": "vitest run",
+    "catalog:sync": "node scripts/build-explorer-celestrak-catalog.mjs",
+    "catalog:historical": "node scripts/import-explorer-historical-catalog.mjs",
+    "data:download": "node scripts/download-explorer-historical-data.mjs",
+    "data:import": "node scripts/import-explorer-historical-catalog.mjs",
+    "data:validate": "node scripts/validate-explorer-historical-data.mjs",
+    "data:coverage": "node scripts/report-explorer-historical-coverage.mjs",
+    "stars:build": "node scripts/build-hyg-bright-stars.mjs",
+    "science:references": "node scripts/fetch-celestial-reference.mjs",
+    "science:report": "node scripts/report-celestial-validation.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "astronomy-engine": "^2.1.19",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "satellite.js": "^5.0.0",
+    "three": "^0.171.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.30",
+    "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.171.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "playwright": "^1.60.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "vitest": "^2.1.9"
+  }
+}

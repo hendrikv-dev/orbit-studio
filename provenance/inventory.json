@@ -1,0 +1,920 @@
+{
+  "schemaVersion": 1,
+  "inventoryId": "orbit-studio-release-1-provenance",
+  "auditedAt": "2026-07-25",
+  "statusVocabulary": {
+    "verified": "Authoritative rights evidence supports the recorded use.",
+    "unresolved": "Authoritative evidence does not establish the recorded use.",
+    "source-safe": "May be included in the public source repository under the recorded terms.",
+    "deployment-safe": "May be included in the public production deployment under the recorded terms.",
+    "local-only": "May be acquired for private local use but must not be committed or deployed.",
+    "excluded": "Must not appear in tracked release source or a production bundle."
+  },
+  "controls": {
+    "prohibitedTrackedPrefixes": [
+      "data/generated/",
+      "data/local-only/"
+    ],
+    "prohibitedTrackedNames": [
+      ".DS_Store",
+      "Thumbs.db"
+    ],
+    "prohibitedBundleNames": [
+      ".DS_Store",
+      "Thumbs.db"
+    ],
+    "prohibitedBundleText": [
+      "celestrak-gp-snapshot"
+    ],
+    "documentedExternalHosts": [
+      "127.0.0.1",
+      "aa.usno.navy.mil",
+      "assets.science.nasa.gov",
+      "cdsarc.cds.unistra.fr",
+      "celestrak.org",
+      "creativecommons.org",
+      "docs.pmnd.rs",
+      "example.invalid",
+      "gibs.earthdata.nasa.gov",
+      "github.com",
+      "images-assets.nasa.gov",
+      "images.nasa.gov",
+      "localhost",
+      "openweathermap.org",
+      "planet4589.org",
+      "piotrwitek.github.io",
+      "raw.githubusercontent.com",
+      "reactjs.org",
+      "registry.npmjs.org",
+      "robertpenner.com",
+      "science.data.nasa.gov",
+      "science.nasa.gov",
+      "ssd-api.jpl.nasa.gov",
+      "ssd.jpl.nasa.gov",
+      "svs.gsfc.nasa.gov",
+      "www.apache.org",
+      "www.dailymotion.com",
+      "www.earthdata.nasa.gov",
+      "www.esa.int",
+      "www.gps.gov",
+      "www.nasa.gov",
+      "www.naturalearthdata.com",
+      "www.nesdis.noaa.gov",
+      "www.space-track.org",
+      "www.w3.org"
+    ],
+    "prohibitedHistoricalChecksums": [
+      {
+        "sha256": "d42f791d45c9e4496de1fb6a1ff5c3f368d24c7eed312258c1ca375db06287f9",
+        "description": "Independently verified SHA-256 of the former 14,898-record CelesTrak-derived current GP snapshot"
+      }
+    ],
+    "prohibitedReachableHistoryPathPrefixes": [
+      "data/generated/",
+      "data/historical-catalog/raw/",
+      "data/local-only/",
+      "evidence/",
+      "review/",
+      "screenshots/"
+    ],
+    "allowedReachableHistoryPaths": [
+      "data/historical-catalog/raw/.gitkeep"
+    ],
+    "sourceArchive": {
+      "outputDirectory": "release-artifacts",
+      "filenamePrefix": "orbit-studio-source",
+      "prohibitedPaths": [
+        ".git",
+        ".env"
+      ],
+      "prohibitedPathPrefixes": [
+        ".git/",
+        ".cache/",
+        ".vite/",
+        "coverage/",
+        "data/generated/",
+        "data/historical-catalog/cache/",
+        "data/historical-catalog/raw/",
+        "data/local-only/",
+        "dist/",
+        "evidence/",
+        "logs/",
+        "node_modules/",
+        "playwright-report/",
+        "release-artifacts/",
+        "review/",
+        "screenshots/",
+        "temp/",
+        "test-results/",
+        "tmp/"
+      ],
+      "allowedPaths": [
+        ".env.example",
+        "data/historical-catalog/raw/",
+        "data/historical-catalog/raw/.gitkeep"
+      ],
+      "prohibitedBasenames": [
+        ".DS_Store",
+        "Thumbs.db",
+        "credentials.json",
+        "id_ed25519",
+        "id_rsa"
+      ],
+      "prohibitedExtensions": [
+        ".key",
+        ".p12",
+        ".pem",
+        ".pfx"
+      ]
+    },
+    "releaseBuildMetadata": {
+      "path": "orbit-release.json",
+      "schemaVersion": 1,
+      "currentCatalogMode": "release"
+    },
+    "trackedArtifactExtensionsRequiringClassification": [
+      ".csv",
+      ".geojson",
+      ".glb",
+      ".gltf",
+      ".jpeg",
+      ".jpg",
+      ".json",
+      ".obj",
+      ".png",
+      ".svg",
+      ".txt",
+      ".tsv",
+      ".ttf",
+      ".webp",
+      ".woff",
+      ".woff2"
+    ],
+    "projectMetadataPaths": [
+      "package.json",
+      "provenance/inventory.json",
+      "tsconfig.app.json",
+      "tsconfig.apsis.json",
+      "tsconfig.json",
+      "tsconfig.node.json"
+    ],
+    "firstPartyArtifacts": [
+      {
+        "id": "release-safe-current-catalog-guard",
+        "paths": [
+          "src/data/explorerCelestrakCatalog.records.json"
+        ],
+        "sha256": {
+          "src/data/explorerCelestrakCatalog.records.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        "basis": "Project-authored empty JSON guard. It contains no third-party records."
+      },
+      {
+        "id": "generated-earth-placeholders",
+        "paths": [
+          "public/placeholders/earth-clouds.svg",
+          "public/placeholders/earth-night.svg",
+          "public/placeholders/earth-reference.svg"
+        ],
+        "sha256": {
+          "public/placeholders/earth-clouds.svg": "15c328215a33e879ca7597f689600c3d8f19f852dca65a56bf5ce27b0742128d",
+          "public/placeholders/earth-night.svg": "15651f818f78f6ee51cec71af22be665f0ff67f1f26feeb6f1edd305cb784453",
+          "public/placeholders/earth-reference.svg": "6357defdfbed68125604ccb4d46dbfa5e79d4e3ad96c8944060e20efe389befe"
+        },
+        "basis": "Project-authored SVG placeholders generated for Orbit Studio."
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "nasa-blue-marble-january-2004",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/earth/nasa-blue-marble-january-5400.jpg"
+      ],
+      "productionBundlePaths": [
+        "earth/nasa-blue-marble-january-5400.jpg"
+      ],
+      "originalSource": {
+        "title": "Blue Marble: Next Generation with Topography and Bathymetry, January",
+        "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/january/world.topo.bathy.200401.3x5400x2700.jpg",
+        "publicationUrl": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/",
+        "publisher": "NASA Earth Observatory",
+        "version": "January 2004, 5400 x 2700 JPEG",
+        "retrievedAt": "2026-07-04",
+        "originalSha256": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
+      },
+      "localSha256": {
+        "public/earth/nasa-blue-marble-january-5400.jpg": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
+      },
+      "processing": [
+        "Downloaded from the official NASA asset URL.",
+        "No resizing, cropping, color editing, or recompression."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines; unmarked NASA content may be used factually for educational or informational computer simulations and web pages.",
+        "evidenceUrls": [
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+        ],
+        "attribution": "NASA Blue Marble: Next Generation. NASA is acknowledged as the source; no endorsement is implied.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-for-factual-educational-or-informational-use"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Do not imply NASA endorsement; re-check if a future replacement carries a third-party copyright notice, logo, or identifiable-person restriction."
+      }
+    },
+    {
+      "id": "nasa-svs-lroc-color-moon-1k",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/moon/nasa-lroc-color-1k.jpg"
+      ],
+      "productionBundlePaths": [
+        "moon/nasa-lroc-color-1k.jpg"
+      ],
+      "originalSource": {
+        "title": "CGI Moon Kit: LROC WAC Color Mosaic",
+        "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_1k.jpg",
+        "publicationUrl": "https://svs.gsfc.nasa.gov/4720/",
+        "publisher": "NASA Scientific Visualization Studio",
+        "contributors": [
+          "Ernie Wright (USRA), visualizer",
+          "Noah Petro (NASA/GSFC), scientist",
+          "LROC WAC data collected by Arizona State University"
+        ],
+        "version": "SVS visualization 4720, 1K color texture, published 2019-09-06",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+      },
+      "localSha256": {
+        "public/moon/nasa-lroc-color-1k.jpg": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+      },
+      "processing": [
+        "Downloaded from the official NASA SVS asset URL.",
+        "No resizing, cropping, color editing, or recompression."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines; NASA SVS supplies an explicit credit request and identifies the contributing data.",
+        "evidenceUrls": [
+          "https://svs.gsfc.nasa.gov/4720/",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "NASA's Scientific Visualization Studio; visualization by Ernie Wright (USRA), science by Noah Petro (NASA/GSFC), using LROC WAC data collected by Arizona State University.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-for-factual-educational-or-informational-use"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Display-optimized texture, not a precision lunar cartography product; no NASA endorsement implied."
+      }
+    },
+    {
+      "id": "natural-earth-110m-land",
+      "category": "geographic-boundary-data",
+      "repositoryPaths": [
+        "src/data/natural-earth/ne_110m_land.geojson.json"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "Natural Earth 1:110m Land GeoJSON",
+        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/693f11422f4e08d2da4566b854dda53eb7c39fb3/geojson/ne_110m_land.geojson",
+        "publicationUrl": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/110m-land/",
+        "publisher": "Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors",
+        "version": "natural-earth-vector commit 693f11422f4e08d2da4566b854dda53eb7c39fb3 (2018-06-01)",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+      },
+      "localSha256": {
+        "src/data/natural-earth/ne_110m_land.geojson.json": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+      },
+      "processing": [
+        "No byte-level transformation; local file matches the immutable upstream GeoJSON."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.",
+        "evidenceUrls": [
+          "https://www.naturalearthdata.com/about/terms-of-use/"
+        ],
+        "attribution": "Made with Natural Earth.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
+      }
+    },
+    {
+      "id": "hyg-database-v4-1-bright-stars",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "src/data/stars/hygBrightStars.v41.json",
+        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "HYG Database v4.1",
+        "url": "https://raw.githubusercontent.com/astronexus/HYG-Database/3bf37f4b2d5460e1278286320d1d62fab9b493c1/hyg/CURRENT/hygdata_v41.csv",
+        "publicationUrl": "https://github.com/astronexus/HYG-Database",
+        "publisher": "David Nash / Astronomy Nexus",
+        "version": "v4.1 at commit 3bf37f4b2d5460e1278286320d1d62fab9b493c1 (2024-08-17)",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "d9f69fd8ed39072a9562d54c89ff0747728817dc2f1242c2062704ec52f4ad0a"
+      },
+      "localSha256": {
+        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937",
+        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f"
+      },
+      "processing": [
+        "scripts/build-hyg-bright-stars.mjs selects nonzero HYG identifiers with apparent magnitude <= 5.1.",
+        "The generator preserves identifiers, names, coordinates, magnitudes, color index, Cartesian values, velocities, and constellation codes.",
+        "Records are sorted deterministically by magnitude and HYG identifier."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "evidenceUrls": [
+          "https://github.com/astronexus/HYG-Database/blob/3bf37f4b2d5460e1278286320d1d62fab9b493c1/LICENSE",
+          "https://creativecommons.org/licenses/by-sa/4.0/"
+        ],
+        "attribution": "HYG Database v4.1 by David Nash / Astronomy Nexus, licensed CC BY-SA 4.0; Orbit Studio magnitude-limited transformed subset.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-share-alike"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description."
+      }
+    },
+    {
+      "id": "gcat-public-historical-sample-2026-06-27",
+      "category": "historical-space-object-data",
+      "repositoryPaths": [
+        "src/data/historical/explorerHistoricalCatalog.normalized.json"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "General Catalog of Artificial Space Objects (GCAT), satcat table",
+        "url": "https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+        "publicationUrl": "https://planet4589.org/space/gcat/",
+        "publisher": "Jonathan C. McDowell",
+        "version": "satcat source header updated 2026-06-27 22:13:02; release number was not retained in the raw table",
+        "retrievedAt": "2026-06-30",
+        "originalSha256": "15fab511f91d485d5c441091c98a6d03074343c12350fe3cac6a251d7f799956"
+      },
+      "localSha256": {
+        "src/data/historical/explorerHistoricalCatalog.normalized.json": "7601f3f13e87dc1f5e28b1c5c0e32be7a1eee69aba635acf77a033b276401d73"
+      },
+      "processing": [
+        "scripts/build-public-gcat-historical-sample.mjs selects Earth-primary rows, all early catalog numbers through 1200, every twelfth later catalog number, and named milestone records.",
+        "The generator normalizes identity, lifecycle dates, names, ownership, status, and source orbital summaries.",
+        "Orbit Studio reconstructs deterministic educational states from GCAT perigee, apogee, and inclination; those reconstructions are original Orbit Studio outputs and are not observational historical fixes."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0); GCAT expressly permits reproduction with citation.",
+        "evidenceUrls": [
+          "https://planet4589.org/space/gcat/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "Data from GCAT (J. McDowell, planet4589.org/space/gcat).",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "This is a bounded sample. Licensing provenance does not imply complete historical coverage or observational position accuracy."
+      }
+    },
+    {
+      "id": "orbit-studio-curated-explorer-reference-data",
+      "category": "project-authored-curated-reference-data",
+      "repositoryPaths": [
+        "src/data/explorerCatalog.ts",
+        "src/data/explorerConstellationArchitecture.ts",
+        "src/data/explorerEducation.ts",
+        "src/lib/scenario.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio curated Explorer educational reference compilation",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio",
+        "version": "Release 1.0 curated reference definitions audited 2026-07-25",
+        "retrievedAt": "2026-07-25"
+      },
+      "localSha256": {
+        "src/data/explorerCatalog.ts": "cf120765b467c2638561d79319117c4e2e5e9f953f58ae602e78a1825b8991ce",
+        "src/data/explorerConstellationArchitecture.ts": "4c133d532fb0c25a74642384d1b5aacb208478c71152aaf84713a141fef310b1",
+        "src/data/explorerEducation.ts": "ee5882b8957d52c3f8ee3154acfe8cf8578fc1c057bec6d787ab460a10e291d2",
+        "src/lib/scenario.ts": "4e79ddd4f46749deb91b2c0eab3e39c51ac5810759f3c13312f6f98377e9abb3"
+      },
+      "processing": [
+        "Orbit Studio authors wrote the catalog selection, educational summaries, semantic search terms, simplified regions, representative orbit elements, and display geometry.",
+        "Official publisher pages were used to verify mission identities, nominal constellation architecture, orbit-family context, and the existence and geographic arrangement of NASA Deep Space Network complexes.",
+        "The representative plane samples, display colors, tolerances, synthetic orbital angles, approximate populations, and simplified geographic boundaries are Orbit Studio presentation data rather than copied operational ephemerides, boundary datasets, or live catalog records."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "First-party Orbit Studio-authored compilation and expression; no third-party file, image, passage, catalog snapshot, or operational ephemeris is incorporated.",
+        "evidenceUrls": [
+          "https://www.gps.gov/systems/gps/space/",
+          "https://www.esa.int/Applications/Satellite_navigation/Galileo/Galileo_satellites",
+          "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/dsn-complexes/",
+          "https://www.nesdis.noaa.gov/our-satellites/currently-flying",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "Orbit Studio-authored educational compilation. NASA/JPL, GPS.gov, ESA, NOAA NESDIS, and the linked mission publishers are acknowledged as factual reference publishers; no endorsement is implied.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive."
+      }
+    },
+    {
+      "id": "nasa-images-explorer-remote-media",
+      "category": "runtime-external-images",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "NASA Image and Video Library mission media",
+        "publicationUrl": "https://images.nasa.gov/",
+        "publisher": "NASA",
+        "version": "Four immutable NASA Image Library identifiers",
+        "retrievedAt": "2026-07-25",
+        "assets": [
+          {
+            "id": "jsc2007e034221",
+            "url": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~medium.jpg",
+            "metadataUrl": "https://images.nasa.gov/details/jsc2007e034221",
+            "publisher": "NASA/JSC",
+            "sha256": "b3d0fdad720608cc9cacd467d63c2c6a758174e6bcc3a7413f8bbfc32dc258d5"
+          },
+          {
+            "id": "GSFC_20171208_Archive_e002151",
+            "url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002151/GSFC_20171208_Archive_e002151~medium.jpg",
+            "metadataUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e002151",
+            "publisher": "NASA/GSFC",
+            "sha256": "cf34b8997136880569084780f932bf491ece6b3eae9386dc68cd777508a9972d"
+          },
+          {
+            "id": "PIA14111",
+            "url": "https://images-assets.nasa.gov/image/PIA14111/PIA14111~small.jpg",
+            "metadataUrl": "https://images.nasa.gov/details/PIA14111",
+            "publisher": "NASA/JPL-Caltech",
+            "sha256": "b4ee9891db06a58b1d4ded2baff292faaf4ead09cd8ef213552f2a2793769762"
+          },
+          {
+            "id": "GSFC_20171208_Archive_e000356",
+            "url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000356/GSFC_20171208_Archive_e000356~medium.jpg",
+            "metadataUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000356",
+            "publisher": "NASA/GSFC",
+            "sha256": "d39bbf1d70f817bdff94b2c37d9cd427b63265742ed16280a7b0d99ed1cc98f0"
+          }
+        ]
+      },
+      "localSha256": {},
+      "processing": [
+        "Images are requested directly from NASA when a matching details panel is opened.",
+        "No image bytes are committed to source or copied into the Vite production output.",
+        "The UI provides the authoritative NASA detail-page link and falls back explicitly when unavailable."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines for factual educational or informational web use; identifiers were checked against official NASA Image Library metadata.",
+        "evidenceUrls": [
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+          "https://images.nasa.gov/"
+        ],
+        "attribution": "NASA/JSC; NASA/GSFC; NASA/JPL-Caltech, as identified per image.",
+        "sourceRedistribution": "not-applicable-external-acquisition",
+        "deployedRedistribution": "not-bundled-runtime-fetch-permitted",
+        "modification": "not-modified"
+      },
+      "release": {
+        "inclusionStatus": "external-acquisition",
+        "release1Included": true,
+        "restrictions": "No NASA logos or identifiable-person promotional use; no endorsement. Remote availability is not guaranteed."
+      }
+    },
+    {
+      "id": "jpl-horizons-usno-validation-fixture",
+      "category": "scientific-reference-fixture",
+      "repositoryPaths": [
+        "src/astronomy/reference/jplHorizonsUsnoReference.json"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications API reference results",
+        "publicationUrl": "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
+        "publisher": "NASA/JPL Solar System Dynamics and U.S. Naval Observatory",
+        "version": "Horizons API 1.3 / DE441; USNO Astronomical Applications API 4.0.1",
+        "retrievedAt": "2026-07-18"
+      },
+      "localSha256": {
+        "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7"
+      },
+      "processing": [
+        "scripts/fetch-celestial-reference.mjs records fixed-timestamp Horizons vectors and apparent coordinates plus USNO sidereal-time results.",
+        "The fixture retains numeric API results and exact query semantics; it is test input and is not included in the production bundle."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA science data is reusable under NASA science-data policy unless marked otherwise; the USNO API expressly supports results embedded in web and mobile applications. No restrictive marking appeared in the returned factual results.",
+        "evidenceUrls": [
+          "https://science.data.nasa.gov/about/license",
+          "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
+          "https://aa.usno.navy.mil/data/api.html"
+        ],
+        "attribution": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications Department.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "factual-output-transformation-permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained-test-only",
+        "release1Included": true,
+        "restrictions": "The fixture verifies model agreement at declared instants; it does not transfer JPL or USNO endorsement."
+      }
+    },
+    {
+      "id": "vallado-python-sgp4-reference-vector",
+      "category": "adapted-code-and-verification-vector",
+      "repositoryPaths": [
+        "scripts/report-orbital-population-validation.ts",
+        "src/rendering/catalogPopulationValidation.test.ts",
+        "src/rendering/catalogMotion.test.ts",
+        "src/rendering/orbitPathSampling.test.ts"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Vanguard 1 example from Python-SGP4 package metadata, based on Vallado et al. AIAA-2006-6753",
+        "publicationUrl": "https://github.com/brandon-rhodes/python-sgp4",
+        "publisher": "Brandon Rhodes; reference implementation lineage credited to David A. Vallado and coauthors",
+        "version": "Example reproduced in satellite.js 5.0.0 ORIGINAL-PKG-INFO from Python-SGP4 1.1",
+        "retrievedAt": "2026-07-18"
+      },
+      "localSha256": {
+        "scripts/report-orbital-population-validation.ts": "24e4ecbba0bb138a02661348ae234da8ae76812d29bafdec18afd00ffed44fda",
+        "src/rendering/catalogPopulationValidation.test.ts": "42a2bd02eea74fc0f873abf1f34e04548ea1c70f43d315c23e198e2f6cbc16e2",
+        "src/rendering/catalogMotion.test.ts": "c126f9ed3c82d8bf1fa97db3b48d229e657d6d4d7cc1bf0dbb533e8aff155cf8",
+        "src/rendering/orbitPathSampling.test.ts": "4a8ebf6106f94ce24355697d331a12157d2cd9a0b72379564ac1fe7bc71d1268"
+      },
+      "processing": [
+        "Copied the published Vanguard 1 TLE and expected position/velocity values into an independent conformance test and report generator.",
+        "Converted the Python-SGP4 example's stated meter and meter-per-second outputs to kilometer and kilometer-per-second test units."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Python-SGP4 and satellite.js publish the relevant package material under the MIT License.",
+        "evidenceUrls": [
+          "https://github.com/brandon-rhodes/python-sgp4/blob/master/LICENSE",
+          "https://github.com/shashwatak/satellite-js/blob/v5.0.0/LICENSE.md"
+        ],
+        "attribution": "Vallado et al., AIAA-2006-6753; example reproduced by Python-SGP4 and satellite.js under MIT terms.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained-test-only",
+        "release1Included": true,
+        "restrictions": "Retain attribution and dependency MIT notices."
+      }
+    },
+    {
+      "id": "celestrak-current-gp-local-acquisition",
+      "category": "current-orbital-data",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "CelesTrak current General Perturbations data",
+        "url": "https://celestrak.org/NORAD/elements/gp.php",
+        "publicationUrl": "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
+        "publisher": "CelesTrak / Dr. T.S. Kelso",
+        "version": "Live service; no release snapshot retained in public source",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "scripts/build-explorer-celestrak-catalog.mjs may acquire documented groups into data/local-only/celestrak.",
+        "The local generator deduplicates records, derives display metadata, and writes an acquisition receipt.",
+        "The public release mode imports an empty first-party guard and cannot bundle local data unless ORBIT_CURRENT_CATALOG_MODE=local is explicit."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "CelesTrak's official usage policy permits documented consumer acquisition and requires rate-conscious caching behavior, but no authoritative grant was found for committing, deploying, or redistributing snapshots or transformed records.",
+        "evidenceUrls": [
+          "https://celestrak.org/usage-policy.php",
+          "https://celestrak.org/NORAD/documentation/gp-data-formats.php"
+        ],
+        "attribution": "CelesTrak / Dr. T.S. Kelso.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "unresolved-for-redistribution"
+      },
+      "release": {
+        "inclusionStatus": "local-only",
+        "release1Included": false,
+        "restrictions": "Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission."
+      }
+    },
+    {
+      "id": "nasa-gibs-external-provider",
+      "category": "runtime-external-service",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "NASA Global Imagery Browse Services",
+        "publicationUrl": "https://www.earthdata.nasa.gov/about/esdis/eosdis/gibs",
+        "publisher": "NASA Earthdata / ESDIS",
+        "version": "WMS and WMTS service descriptors; disabled by default",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "Orbit Studio contains URL-construction code but does not commit or production-bundle GIBS response imagery.",
+        "The provider is disabled by default and labels true-color imagery as an overlay rather than a cloud mask."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Earthdata policy states that unmarked NASA-led mission data are CC0 and that ESDIS content may be used factually with NASA acknowledgment.",
+        "evidenceUrls": [
+          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+        ],
+        "attribution": "NASA Global Imagery Browse Services (GIBS), Earthdata.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "service-output-subject-to-layer-metadata"
+      },
+      "release": {
+        "inclusionStatus": "external-acquisition-disabled",
+        "release1Included": true,
+        "restrictions": "Future enabled layers must preserve product-specific metadata, attribution, and any marked restriction."
+      }
+    },
+    {
+      "id": "space-track-authenticated-local-acquisition",
+      "category": "historical-and-current-orbital-data",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Space-Track.org authenticated catalog and GP history services",
+        "publicationUrl": "https://www.space-track.org/documentation",
+        "publisher": "United States Space Force / Space-Track.org",
+        "version": "Authenticated live service; no response data retained in public source",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "Orbit Studio acquisition scripts can download authenticated files into ignored raw-data directories.",
+        "No Space-Track response file, transformed record, fixture, screenshot derived from a response, or credential is included in public source or production output."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Use is governed by the authenticated Space-Track user agreement and source-specific terms. This audit does not infer public redistribution permission.",
+        "evidenceUrls": [
+          "https://www.space-track.org/documentation"
+        ],
+        "attribution": "Space-Track.org / United States Space Force.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "unresolved-for-redistribution"
+      },
+      "release": {
+        "inclusionStatus": "local-only",
+        "release1Included": false,
+        "restrictions": "Authenticated acquisitions and credentials remain ignored and local only. Public inclusion requires a separate evidence-backed decision."
+      }
+    },
+    {
+      "id": "openweather-placeholder-no-data",
+      "category": "disabled-external-service-placeholder",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "OpenWeather API placeholder",
+        "publicationUrl": "https://openweathermap.org/api",
+        "publisher": "OpenWeather Ltd.",
+        "version": "No API product, key, response, icon, or map tile acquired",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "The project contains a disabled provider descriptor and explicit requires-key state only."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "No third-party material is included. Future acquisition or activation requires review of the selected OpenWeather product terms.",
+        "evidenceUrls": [
+          "https://openweathermap.org/api"
+        ],
+        "attribution": "OpenWeather, if a future user configures the service.",
+        "sourceRedistribution": "not-applicable-no-material",
+        "deployedRedistribution": "not-applicable-no-material",
+        "modification": "not-applicable"
+      },
+      "release": {
+        "inclusionStatus": "placeholder-only",
+        "release1Included": false,
+        "restrictions": "No key, data, image, icon, or tile may be committed or deployed without a new provenance entry and rights review."
+      }
+    },
+    {
+      "id": "legacy-hipparcos-derived-star-file",
+      "category": "excluded-astronomical-catalog-data",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Former Hipparcos-derived TypeScript star subset",
+        "publicationUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239",
+        "publisher": "ESA Hipparcos mission / CDS VizieR",
+        "version": "Former local adapted file; exact source query and redistribution evidence were not retained",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "The former derived TypeScript subset was removed before this checkpoint.",
+        "The production star layer uses the separately verified HYG v4.1 subset."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Exact provenance and redistribution permission for the former adapted file were not established.",
+        "evidenceUrls": [
+          "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239"
+        ],
+        "attribution": "Not applicable because the material is excluded.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "unresolved"
+      },
+      "release": {
+        "inclusionStatus": "excluded",
+        "release1Included": false,
+        "restrictions": "Do not restore the former derived file without exact source, license, checksum, and processing evidence."
+      }
+    },
+    {
+      "id": "github-actions-release-validation-dependencies",
+      "category": "ci-action-dependencies",
+      "repositoryPaths": [
+        ".github/workflows/release-validation.yml"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "GitHub-authored Actions used by release validation",
+        "publicationUrl": "https://github.com/actions",
+        "publisher": "GitHub, Inc. and contributors",
+        "version": "checkout 11d5960a326750d5838078e36cf38b85af677262; setup-node 49933ea5288caeca8642d1e84afbd3f7d6820020; upload-artifact ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "retrievedAt": "2026-07-25",
+        "components": [
+          {
+            "id": "actions/checkout",
+            "url": "https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262",
+            "commit": "11d5960a326750d5838078e36cf38b85af677262",
+            "licenseUrl": "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE"
+          },
+          {
+            "id": "actions/setup-node",
+            "url": "https://github.com/actions/setup-node/commit/49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "commit": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "licenseUrl": "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE"
+          },
+          {
+            "id": "actions/upload-artifact",
+            "url": "https://github.com/actions/upload-artifact/commit/ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "licenseUrl": "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
+          }
+        ]
+      },
+      "localSha256": {
+        ".github/workflows/release-validation.yml": "17eb78967e7fb9a0c8d4061c2d20ce118ea44bd45fb056da1dc55e7bb519b821"
+      },
+      "processing": [
+        "Resolved each mutable v4 reference through the official GitHub API on 2026-07-25.",
+        "Pinned the workflow to the exact commit currently addressed by each reviewed v4 reference.",
+        "No GitHub Action implementation code is copied into the repository or production deployment."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Each referenced GitHub-maintained Action is published under the MIT License at the pinned commit.",
+        "evidenceUrls": [
+          "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE",
+          "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE",
+          "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
+        ],
+        "attribution": "GitHub Actions: checkout, setup-node, and upload-artifact; each MIT-licensed by GitHub, Inc. and contributors.",
+        "sourceRedistribution": "source-safe-reference-only",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "not-modified"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Action revisions must remain commit-pinned. Updating a commit requires an intentional inventory checksum, version, and rights-evidence update."
+      }
+    },
+    {
+      "id": "npm-lockfile-dependencies",
+      "category": "software-dependencies",
+      "repositoryPaths": [
+        "package-lock.json"
+      ],
+      "productionBundlePaths": [
+        "assets/*.js",
+        "assets/*.css"
+      ],
+      "originalSource": {
+        "title": "npm dependency graph",
+        "publicationUrl": "https://registry.npmjs.org/",
+        "publisher": "Individual package authors and rights holders",
+        "version": "package-lock.json lockfileVersion 3, 281 package entries",
+        "retrievedAt": "2026-07-25"
+      },
+      "localSha256": {
+        "package-lock.json": "b3cf83c5902f735fe58ea85052b4b6be3f7a34202561f6326cc8416bc52a4a9d"
+      },
+      "processing": [
+        "package-lock.json is the source of truth.",
+        "scripts/provenance/dependency-licenses.mjs checks every locked package license expression and renders THIRD_PARTY_NOTICES.md.",
+        "The only lockfile entry lacking a license field is webgl-constants@1.1.1; official npm metadata identifies published git head 3ed05e37a29cc15cc1f612913723a4c39f808d9d, whose immutable MIT LICENSE has SHA-256 0969fa65680b694452c2c65981df14af5c192da24f2b1f87bdd51d8ed24efcfa."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Locked packages declare MIT, ISC, BSD-3-Clause, Apache-2.0, or CC-BY-4.0; webgl-constants@1.1.1 is MIT per its upstream LICENSE.",
+        "evidenceUrls": [
+          "https://github.com/TimvanScherpenzeel/webgl-constants/blob/3ed05e37a29cc15cc1f612913723a4c39f808d9d/LICENSE"
+        ],
+        "attribution": "See THIRD_PARTY_NOTICES.md for the lockfile-derived package inventory and notices.",
+        "sourceRedistribution": "source-safe-lockfile-only",
+        "deployedRedistribution": "deployment-safe-with-notices",
+        "modification": "per-package-license"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "node_modules is excluded. Dependency changes require an intentional lockfile and notice update."
+      }
+    },
+    {
+      "id": "legacy-review-evidence-with-unresolved-current-data",
+      "category": "generated-review-evidence",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Previously tracked screenshots and evidence generated from the unresolved CelesTrak snapshot",
+        "publicationUrl": null,
+        "publisher": "Orbit Studio",
+        "version": "Pre-provenance Release 1 review artifacts",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "Generated by earlier Orbit Studio review and manual capture workflows."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The images are project-generated but visually derive from an orbital dataset whose public redistribution basis was not verified.",
+        "evidenceUrls": [],
+        "attribution": "Not applicable because the artifacts are excluded.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "not-applicable"
+      },
+      "release": {
+        "inclusionStatus": "excluded",
+        "release1Included": false,
+        "restrictions": "Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices."
+      }
+    }
+  ]
+}

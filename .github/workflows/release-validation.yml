@@ -1,0 +1,68 @@
+name: Release validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # releases/v4, 2026-07-16
+
+      - name: Use the pinned Node.js runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install review browser and system dependencies
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Install timeline encoder
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+
+      - name: Run the complete test suite
+        run: npm test
+
+      - name: Build the production application
+        run: npm run build
+
+      - name: Validate provenance and dependency licenses
+        run: |
+          npm run provenance:validate
+          npm run licenses:validate
+
+      - name: Generate the deterministic review package
+        run: npm run review
+
+      - name: Verify the release source and review package
+        run: npm run release:verify
+
+      - name: Create and verify the tracked source archive
+        run: npm run source:archive
+
+      - name: Upload the verified review package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: orbit-studio-review-${{ github.sha }}
+          path: review/
+          if-no-files-found: error
+          retention-days: 14
