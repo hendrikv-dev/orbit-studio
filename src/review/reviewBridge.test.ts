@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   explorerHistoricalWarningState,
   isOrbitStudioReviewMode,
+  reviewInstantsEqual,
 } from "./reviewBridge";
 
 describe("Orbit Studio review mode", () => {
@@ -16,15 +17,31 @@ describe("Orbit Studio review mode", () => {
     expect(isOrbitStudioReviewMode("?review=true")).toBe(false);
   });
 
-  it("preserves the release-reference disclosure in review evidence", () => {
+  it("preserves the reconstructed latest-public disclosure in review evidence", () => {
     expect(explorerHistoricalWarningState({
-      catalogObjectCount: 20,
-      renderableOrbitStateCount: 6,
+      catalogObjectCount: 33_489,
+      renderableOrbitStateCount: 33_468,
       dataCoverage: {
-        status: "current-reference-only",
-        label: "Current records are not bundled",
-        sourceLabels: ["Orbit Studio representative reference orbits"],
+        status: "latest-public-catalog",
+        label: "GCAT membership · reconstructed positions",
+        sourceLabels: ["GCAT public catalog snapshot"],
       },
-    })).toBe("current-reference-only");
+    })).toBe("latest-public-catalog");
+  });
+
+  it("treats equivalent ISO serializations as the same review instant", () => {
+    expect(
+      reviewInstantsEqual(
+        "2026-06-27T22:13:02Z",
+        "2026-06-27T22:13:02.000Z",
+      ),
+    ).toBe(true);
+    expect(
+      reviewInstantsEqual(
+        "2026-06-27T22:13:02.001Z",
+        "2026-06-27T22:13:02.000Z",
+      ),
+    ).toBe(false);
+    expect(reviewInstantsEqual("not-a-time", "not-a-time")).toBe(false);
   });
 });

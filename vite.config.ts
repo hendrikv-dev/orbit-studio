@@ -1,49 +1,9 @@
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from '@vitejs/plugin-react';
 
-const releaseCatalogPath = resolve("src/data/explorerCelestrakCatalog.records.json");
-const localCatalogPath = resolve(
-  "data/local-only/celestrak/explorerCelestrakCatalog.records.json",
-);
-const currentCatalogBuildMode = process.env.ORBIT_CURRENT_CATALOG_MODE ?? "release";
-
-function localCurrentCatalogPlugin(mode: string): Plugin {
-  if (!["release", "local"].includes(mode)) {
-    throw new Error(
-      `Unsupported ORBIT_CURRENT_CATALOG_MODE=${mode}; expected "release" or "local".`,
-    );
-  }
-
-  if (mode === "release") {
-    return { name: "orbit-current-catalog-release-mode" };
-  }
-
-  if (!existsSync(localCatalogPath)) {
-    throw new Error(
-      "ORBIT_CURRENT_CATALOG_MODE=local requires " +
-        "data/local-only/celestrak/explorerCelestrakCatalog.records.json. " +
-        "Run npm run catalog:sync first.",
-    );
-  }
-
-  return {
-    name: "orbit-current-catalog-local-mode",
-    enforce: "pre",
-    resolveId(source, importer) {
-      if (
-        importer?.endsWith("/src/data/explorerCelestrakCatalog.ts") &&
-        resolve(importer, "..", source) === releaseCatalogPath
-      ) {
-        return localCatalogPath;
-      }
-      return null;
-    },
-  };
-}
-
-function releaseNoticesPlugin(mode: string): Plugin {
+function releaseNoticesPlugin(): Plugin {
   return {
     name: "orbit-release-notices",
     writeBundle(options) {
@@ -63,7 +23,9 @@ function releaseNoticesPlugin(mode: string): Plugin {
         resolve(outputDirectory, "orbit-release.json"),
         `${JSON.stringify({
           schemaVersion: 1,
-          currentCatalogMode: mode,
+          currentCatalogMode: "release-public-gcat",
+          satelliteAuthority:
+            "data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite",
         }, null, 2)}\n`,
         "utf8",
       );
@@ -73,8 +35,7 @@ function releaseNoticesPlugin(mode: string): Plugin {
 
 export default defineConfig({
   plugins: [
-    localCurrentCatalogPlugin(currentCatalogBuildMode),
     react(),
-    releaseNoticesPlugin(currentCatalogBuildMode),
+    releaseNoticesPlugin(),
   ],
 });

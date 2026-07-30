@@ -2,11 +2,36 @@ import { describe, expect, it } from "vitest";
 import {
   explorerReviewScenario,
   historicalMilestoneValidation,
+  latestPublicCatalogValidation,
   playbackDeterminismSignature,
   playbackMotionValidation,
 } from "./explorer.mjs";
 
 describe("Explorer review scenario", () => {
+  it("records the timeline from discrete annual snapshots", async () => {
+    const requestedYears = [];
+    const capturedFrames = [];
+    await explorerReviewScenario.recordTimeline({
+      clearReviewContext: async () => {},
+      setRegimeFilter: async () => {},
+      setTimelineYear: async (year) => requestedYears.push(year),
+      captureTimelineFrame: async (index, timeSeconds) => {
+        capturedFrames.push({ index, timeSeconds });
+      },
+    });
+
+    expect(requestedYears).toHaveLength(49);
+    expect(requestedYears[0]).toBe(1957);
+    expect(requestedYears.at(-1)).toBe("current");
+    expect(
+      requestedYears
+        .slice(0, -1)
+        .every((year) => Number.isInteger(year) && year >= 1957 && year <= 2025),
+    ).toBe(true);
+    expect(capturedFrames).toHaveLength(49);
+    expect(capturedFrames.at(-1)).toEqual({ index: 48, timeSeconds: 12 });
+  });
+
   it("clears search and selection before every historical capture", async () => {
     let query = "";
     let selectedObject = null;
@@ -17,16 +42,17 @@ describe("Explorer review scenario", () => {
     const events = [];
     const milestoneValidations = [];
     const speedValidations = [];
+    const populationValidations = [];
     const times = {
-      "snapshot-1957": "1957-10-04T19:28:34.000Z",
-      "snapshot-1961": "1961-04-12T06:07:00.000Z",
-      "snapshot-1969": "1969-07-16T13:32:00.000Z",
-      "snapshot-1978": "1978-02-22T12:00:00.000Z",
-      "snapshot-1990": "1990-04-25T12:49:00.000Z",
-      "snapshot-1998": "1998-11-20T12:00:00.000Z",
-      "snapshot-2015": "2015-06-01T12:00:00.000Z",
-      "snapshot-2019": "2019-05-24T12:00:00.000Z",
-      "snapshot-2026": "2026-07-18T12:00:00.000Z",
+      "snapshot-1957": "1957-12-31T12:00:00.000Z",
+      "snapshot-1961": "1961-12-31T12:00:00.000Z",
+      "snapshot-1969": "1969-12-31T12:00:00.000Z",
+      "snapshot-1978": "1978-12-31T12:00:00.000Z",
+      "snapshot-1990": "1990-12-31T12:00:00.000Z",
+      "snapshot-1998": "1998-12-31T12:00:00.000Z",
+      "snapshot-2015": "2015-12-31T12:00:00.000Z",
+      "snapshot-2019": "2019-12-31T12:00:00.000Z",
+      "snapshot-2026": "2026-06-27T22:13:02Z",
     };
     const state = () => {
       const historical = snapshotId !== "snapshot-2026";
@@ -44,19 +70,39 @@ describe("Explorer review scenario", () => {
           speed,
           timeScale: { "1x": 1, "10x": 10, "100x": 100, "1000x": 1_000, max: 2_500 }[speed],
         },
-        catalogObjectCount: historical ? 2 : 10,
+        visibleObjectCount: historical ? 2 : 33_474,
+        catalogObjectCount: historical ? 2 : 33_489,
+        renderableOrbitStateCount: historical ? 2 : 33_468,
         resolvedExactOrbitStateCount: 0,
-        resolvedReconstructedOrbitStateCount: historical ? 2 : 0,
-        catalogOnlyObjectCount: 0,
-        warningState: "none",
+        resolvedReconstructedOrbitStateCount: historical ? 2 : 33_468,
+        catalogOnlyObjectCount: historical ? 0 : 21,
+        categoryCounts: {
+          payloads: historical ? 2 : 18_842,
+          "rocket-bodies": historical ? 0 : 2_025,
+          components: historical ? 0 : 1_345,
+          debris: historical ? 0 : 11_277,
+        },
+        dataCoverage: {
+          status: historical ? "historical-loaded" : "latest-public-catalog",
+        },
+        datasets: {
+          currentCatalogRecordCount: 0,
+          latestPublicCatalogMembershipCount: historical ? 0 : 33_489,
+        },
+        visualEvidence: {
+          markerPixelCount: historical ? 12 : 4_000,
+          markerComponentCount: historical ? 4 : 700,
+        },
+        warningState: historical ? "none" : "latest-public-catalog",
         renderer: {
-          renderQueueSize: historical ? 2 : 10,
-          gpuInstanceCount: historical ? 2 : 10,
-          renderedInstanceCount: historical ? 2 : 10,
-          visibleInstanceCount: historical ? 1 : 8,
+          renderQueueSize: historical ? 2 : 33_474,
+          gpuInstanceCount: historical ? 2 : 33_474,
+          renderedInstanceCount: historical ? 2 : 33_474,
+          visibleInstanceCount: historical ? 1 : 1_500,
           exactHistoricalRenderedCount: 0,
           nearestHistoricalRenderedCount: 0,
-          reconstructedHistoricalRenderedCount: historical ? 2 : 0,
+          reconstructedHistoricalRenderedCount: historical ? 2 : 33_468,
+          curatedReferenceRenderedCount: historical ? 0 : 6,
           positionDigest: historical ? `digest-${snapshotId}` : "digest-current",
           camera: { position: [1, 2, 3], quaternion: [0, 0, 0, 1], fov: 45 },
         },
@@ -160,6 +206,7 @@ describe("Explorer review scenario", () => {
       readReviewState: async () => state(),
       recordMilestoneValidation: (value) => milestoneValidations.push(value),
       recordPlaybackDeterminism: (value) => speedValidations.push(value),
+      recordPopulationValidation: (value) => populationValidations.push(value),
       samplePlaybackMotion: async () => {
         const timeScale = state().playback.timeScale;
         return Array.from({ length: 6 }, (_, index) => ({
@@ -196,6 +243,8 @@ describe("Explorer review scenario", () => {
     expect(milestoneValidations).toHaveLength(8);
     expect(milestoneValidations.every((validation) => validation.pass)).toBe(true);
     expect(speedValidations).toHaveLength(9);
+    expect(populationValidations).toHaveLength(2);
+    expect(populationValidations.every((validation) => validation.pass)).toBe(true);
   });
 
   it("fails a milestone when resolver and renderer counts disagree", () => {
@@ -247,6 +296,50 @@ describe("Explorer review scenario", () => {
   });
 });
 
+describe("latest public catalog population validation", () => {
+  it("rejects the former six-object visually empty release state", () => {
+    const validation = latestPublicCatalogValidation({
+      snapshotId: "snapshot-2026",
+      visibleObjectCount: 6,
+      catalogObjectCount: 29,
+      renderableOrbitStateCount: 6,
+      resolvedExactOrbitStateCount: 0,
+      resolvedReconstructedOrbitStateCount: 0,
+      catalogOnlyObjectCount: 23,
+      categoryCounts: {
+        payloads: 6,
+        "rocket-bodies": 0,
+        debris: 0,
+      },
+      dataCoverage: { status: "latest-public-catalog" },
+      datasets: {
+        currentCatalogRecordCount: 0,
+        latestPublicCatalogMembershipCount: 29,
+      },
+      renderer: {
+        renderQueueSize: 6,
+        gpuInstanceCount: 6,
+        renderedInstanceCount: 6,
+        visibleInstanceCount: 1,
+        reconstructedHistoricalRenderedCount: 0,
+      },
+      visualEvidence: {
+        markerPixelCount: 12,
+        markerComponentCount: 1,
+      },
+      warningState: "latest-public-catalog",
+    });
+
+    expect(validation.pass).toBe(false);
+    expect(validation.failures).toContain("catalog-population-too-small");
+    expect(validation.failures).toContain("rocket-bodies-missing");
+    expect(validation.failures).toContain("debris-missing");
+    expect(validation.failures).toContain("screen-visible-population-too-small");
+    expect(validation.failures).toContain("screenshot-population-not-legible");
+    expect(validation.failures).toContain("screenshot-marker-components-too-small");
+  });
+});
+
 describe("moving playback validation", () => {
   const samples = Array.from({ length: 6 }, (_, index) => ({
     wallTimeMs: index * 100,
@@ -270,12 +363,32 @@ describe("moving playback validation", () => {
     const frozen = samples.map((sample, index) => ({
       ...sample,
       rendererSimulationTime: samples[0].rendererSimulationTime,
-      bufferLagMs: index * 100_000,
+      bufferLagMs: (index + 1) * 100_000,
       positionDigest: samples[0].positionDigest,
     }));
     const result = playbackMotionValidation("1000x", 1_000, frozen);
     expect(result.pass).toBe(false);
     expect(result.failures).toContain("frozen-position-buffer");
     expect(result.failures).toContain("stale-render-buffer");
+  });
+
+  it("uses the renderer diagnostics observation interval without accepting a frozen buffer", () => {
+    const oneIntervalLag = samples.map((sample) => ({
+      ...sample,
+      bufferLagMs: 500_000,
+    }));
+    expect(playbackMotionValidation("1000x", 1_000, oneIntervalLag)).toMatchObject({
+      pass: true,
+      allowedBufferLagMs: 500_000,
+    });
+
+    const stale = oneIntervalLag.map((sample) => ({
+      ...sample,
+      bufferLagMs: 500_001,
+    }));
+    expect(playbackMotionValidation("1000x", 1_000, stale)).toMatchObject({
+      pass: false,
+      failures: ["stale-render-buffer"],
+    });
   });
 });

@@ -25,11 +25,12 @@ separate source and deployment status. `npm run provenance:validate` checks that
 byte-for-byte against `provenance/inventory.json`; this document intentionally does not duplicate
 the table as a second hand-maintained inventory.
 
-The inventory also checksum-classifies project-authored JSON and SVG release guards and the
+The inventory also checksum-classifies every file in the verified satellite source-of-truth
+package, its generated browser derivative, project-authored SVG placeholders, and the
 source-embedded Explorer reference compilation. The latter includes curated educational summaries,
 representative display geometry, simplified regions, and approximate DSN locations. Its official
-fact references and non-operational limitations are recorded without treating it as current
-catalog, ephemeris, or boundary data.
+fact references and non-operational limitations are recorded without treating it as membership or
+ephemeris authority.
 
 ## Rights Evidence
 
@@ -42,7 +43,8 @@ The inventory cites the authoritative publisher or upstream license for each ret
 - Natural Earth's official terms, which expressly permit modification and electronic
   dissemination of its public-domain map data;
 - the HYG Database repository's CC BY-SA 4.0 license at the recorded immutable commit;
-- GCAT's official publication page and CC BY 4.0 statement;
+- GCAT's official publication page and CC BY 4.0 statement, together with the exact package,
+  immutable raw, SQLite, generated browser-artifact, and transformation checksums;
 - NASA/JPL Horizons and U.S. Naval Observatory API documentation for the scientific fixture;
 - the upstream Python-SGP4/satellite.js license chain for the adapted Vallado validation vector;
 - Orbit Studio authorship plus official NASA/JPL, GPS.gov, ESA, NOAA, and mission references for
@@ -50,39 +52,40 @@ The inventory cites the authoritative publisher or upstream license for each ret
 - each locked npm package's metadata and installed license or notice text, with a documented
   immutable upstream-license override for the one lock entry that omits its SPDX field.
 
-CelesTrak's official usage policy is evidence for direct acquisition, caching discipline, and
-service-use constraints. It does not state a public snapshot or derived-record redistribution
-grant. The release decision is therefore an evidence-conservative technical inference: rights are
-unresolved, so the records are excluded. It is not a claim that redistribution is prohibited.
+CelesTrak's official usage policy does not establish a public snapshot or derived-record
+redistribution grant. The release decision remains evidence-conservative: rights are unresolved,
+so no CelesTrak data, acquisition script, runtime override, fixture, or generated record is included.
+This is not a claim that redistribution is prohibited.
 
 Space-Track data is similarly local-only unless an explicit grant covering the intended artifact
 and publication mode is supplied. No account terms, credentials, source archives, or generated
 private artifacts are redistributed.
 
-## Public and Local Current-Catalog Modes
+## Public Satellite Authority
 
-The default release mode imports `src/data/explorerCelestrakCatalog.records.json`, a checked
-project-authored empty array. Explorer shows a small project-authored representative orbit scenario,
-labels Current as reference-only, records zero current catalog records in review metadata, and does
-not imply current membership or measured position.
-
-`npm run catalog:sync` directly acquires current data into:
+The release uses one verified package:
 
 ```text
-data/local-only/celestrak/
-  explorerCelestrakCatalog.records.json
-  acquisition.provenance.json
+data/satellite-source-of-truth/
 ```
 
-The receipt records source URLs, source-response or local-input checksums, HTTP metadata or an
-identified cache reuse, retrieval time, processing, snapshot date, record count, and transformed
-local checksum. Set `ORBIT_CURRENT_CATALOG_MODE=local` to inject those records into a private
-development or build session. The path is ignored by Git, `--write-runtime` is disabled, release
-review runs only in release mode, and production-bundle validation rejects CelesTrak markers or
-unclassified data.
+Its canonical SQLite database, immutable GCAT raw snapshot, normalized products, annual history,
+quality ledger, deterministic reconstruction candidates, package scripts, schemas, manifest,
+provenance, and checksums are all classified under one inventory item. The package verifier proves
+the internal artifact checksums and database/count contracts. The repository exporter verifies the
+package again and generates `src/data/generated/satelliteCatalog.web.json`; the inventory records
+that derivative's checksum and processing separately from the upstream checksum.
 
-This fallback preserves an understandable first run without fabricating catalog data or presenting
-representative elements as equivalent to live records.
+The public latest view contains 33,489 source-backed GCAT members. Of these, 33,468 have a
+physically valid deterministic educational reconstruction and 21 remain catalog-only. Review
+metadata records zero live/current GP records and separately reports six project-authored curated
+reference markers. The interface does not imply live tracking, operational status, exhaustive
+real-world membership, or exact measured positions.
+
+The former bounded GCAT sample, empty CelesTrak guard, CelesTrak acquisition path, optional local
+Vite override, and generic Space-Track/GCAT historical import authority are removed. Ignored
+developer acquisitions may still exist in a private working directory, but production code cannot
+load them and they are excluded from tracked source, archives, and bundles.
 
 ## Automated Safeguards
 
@@ -115,7 +118,8 @@ are neither tracked source nor approved archive inputs. The current-tree audit f
 - an external hostname present only in the production bundle that is not acknowledged by the
   inventory controls;
 - a prohibited filename or CelesTrak snapshot marker in the bundle;
-- a production `orbit-release.json` that does not explicitly identify release catalog mode;
+- a production `orbit-release.json` that does not explicitly identify
+  `release-public-gcat` mode and the canonical satellite authority;
 - a missing or checksum-mismatched bundled asset or notice.
 
 `licenses:validate` traverses every package entry in `package-lock.json`, rejects missing or
@@ -179,7 +183,8 @@ Never hand-edit generated notices, commit `node_modules`, or commit files under 
 
 This provenance pass establishes an evidence-backed redistribution basis for the tracked Release
 1.0 source and built application at the recorded inventory versions. It does not establish
-scientific completeness of the GCAT sample, observational accuracy of reconstructed history,
-permission for a future replacement asset, permission for privately acquired CelesTrak or
-Space-Track data, or rights outside the documented uses and restrictions. Those boundaries require
-new evidence and an intentional inventory update.
+exhaustive real-world completeness beyond the supported records in the packaged GCAT snapshot,
+operational status, observational accuracy of reconstructed history, permission for a future
+replacement asset, permission for privately acquired CelesTrak or Space-Track data, or rights
+outside the documented uses and restrictions. Those boundaries require new evidence and an
+intentional inventory update.

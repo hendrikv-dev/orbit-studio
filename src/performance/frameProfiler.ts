@@ -88,6 +88,11 @@ export function startFrameProfiler(): void {
   const collect = async () => {
     sample += 1;
     const profile = await collectFrameProfile(sample);
+    window.__ORBIT_STUDIO_FRAME_PROFILES__ ??= [];
+    window.__ORBIT_STUDIO_FRAME_PROFILES__.push(profile);
+    document.documentElement.dataset.orbitFrameProfiles = JSON.stringify(
+      window.__ORBIT_STUDIO_FRAME_PROFILES__,
+    );
     console.info(`ORBIT_FRAME_PROFILE ${JSON.stringify(profile)}`);
     window.setTimeout(collect, SAMPLE_GAP_MS);
   };

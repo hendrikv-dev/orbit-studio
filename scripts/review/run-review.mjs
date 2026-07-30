@@ -23,6 +23,7 @@ const browserDiagnostics = [];
 const timelineSamples = [];
 const milestoneValidations = [];
 const playbackDeterminismValidations = [];
+const populationValidations = [];
 let datasetVersions = null;
 
 function runCommand(command, args) {
@@ -112,7 +113,116 @@ async function captureWebp(page, outputPath) {
     captureBeyondViewport: false,
   });
   await session.detach();
-  await writeFile(outputPath, Buffer.from(data, "base64"));
+  const screenshotBuffer = Buffer.from(data, "base64");
+  await writeFile(outputPath, screenshotBuffer);
+  return screenshotBuffer;
+}
+
+async function readScreenshotPopulationEvidence(page, screenshotBuffer) {
+  return page.evaluate(async (screenshotDataUrl) => {
+    const image = new Image();
+    image.src = screenshotDataUrl;
+    await image.decode();
+    const readback = document.createElement("canvas");
+    readback.width = image.naturalWidth;
+    readback.height = image.naturalHeight;
+    const context = readback.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Screenshot population evidence could not create a 2D context.");
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, readback.width, readback.height).data;
+    const mask = new Uint8Array(readback.width * readback.height);
+    const palettes = [
+      [159, 199, 223],
+      [185, 169, 142],
+      [194, 143, 129],
+    ];
+    const centerX = readback.width / 2;
+    const centerY = readback.height / 2;
+    const earthExclusionRadius = Math.min(readback.width, readback.height) * 0.24;
+    const orbitalEvidenceRadius = Math.min(readback.width, readback.height) * 0.48;
+    let candidatePixelCount = 0;
+
+    for (let y = 0; y < readback.height; y += 1) {
+      for (let x = 0; x < readback.width; x += 1) {
+        const distanceFromEarth = Math.hypot(x - centerX, y - centerY);
+        if (
+          distanceFromEarth <= earthExclusionRadius ||
+          distanceFromEarth >= orbitalEvidenceRadius
+        ) {
+          continue;
+        }
+        const pixelIndex = y * readback.width + x;
+        const offset = pixelIndex * 4;
+        const red = pixels[offset];
+        const green = pixels[offset + 1];
+        const blue = pixels[offset + 2];
+        const alpha = pixels[offset + 3];
+        const maximum = Math.max(red, green, blue);
+        if (alpha < 220 || maximum < 48) continue;
+
+        const matchesPalette = palettes.some(([paletteRed, paletteGreen, paletteBlue]) => {
+          const paletteMaximum = Math.max(paletteRed, paletteGreen, paletteBlue);
+          const chromaDistance = Math.hypot(
+            red / maximum - paletteRed / paletteMaximum,
+            green / maximum - paletteGreen / paletteMaximum,
+            blue / maximum - paletteBlue / paletteMaximum,
+          );
+          return chromaDistance <= 0.16;
+        });
+        if (!matchesPalette) continue;
+        mask[pixelIndex] = 1;
+        candidatePixelCount += 1;
+      }
+    }
+
+    const queue = new Int32Array(mask.length);
+    let markerPixelCount = 0;
+    let markerComponentCount = 0;
+    for (let start = 0; start < mask.length; start += 1) {
+      if (mask[start] !== 1) continue;
+      let head = 0;
+      let tail = 0;
+      queue[tail++] = start;
+      mask[start] = 2;
+      while (head < tail) {
+        const current = queue[head++];
+        const x = current % readback.width;
+        const y = Math.floor(current / readback.width);
+        for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+          for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+            if (offsetX === 0 && offsetY === 0) continue;
+            const nextX = x + offsetX;
+            const nextY = y + offsetY;
+            if (
+              nextX < 0 ||
+              nextX >= readback.width ||
+              nextY < 0 ||
+              nextY >= readback.height
+            ) continue;
+            const next = nextY * readback.width + nextX;
+            if (mask[next] !== 1) continue;
+            mask[next] = 2;
+            queue[tail++] = next;
+          }
+        }
+      }
+      if (tail >= 3 && tail <= 160) {
+        markerComponentCount += 1;
+        markerPixelCount += tail;
+      }
+    }
+
+    return {
+      canvasWidth: readback.width,
+      canvasHeight: readback.height,
+      earthExclusionRadius,
+      orbitalEvidenceRadius,
+      candidatePixelCount,
+      markerComponentCount,
+      markerPixelCount,
+      method: "captured-screenshot-orbital-annulus-category-chroma-components-v2",
+    };
+  }, `data:image/webp;base64,${screenshotBuffer.toString("base64")}`);
 }
 
 function createScenarioTools(page, scenarioId, extras = {}) {
@@ -216,7 +326,9 @@ function createScenarioTools(page, scenarioId, extras = {}) {
     const state = await readReviewState(page);
     datasetVersions ??= state.datasets;
     const screenshot = `screenshots/${id}.webp`;
-    await captureWebp(page, path.join(outputRoot, screenshot));
+    const screenshotBuffer = await captureWebp(page, path.join(outputRoot, screenshot));
+    const visualEvidence = await readScreenshotPopulationEvidence(page, screenshotBuffer);
+    const capturedState = { ...state, visualEvidence };
     artifactStates.push({
       id,
       scenario: scenarioId,
@@ -247,6 +359,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
       datasets: state.datasets,
       warningState: state.warningState,
       renderer: state.renderer,
+      visualEvidence,
       screenshot,
     });
     console.log(
@@ -261,10 +374,12 @@ function createScenarioTools(page, scenarioId, extras = {}) {
         gpuInstanceCount: state.renderer.gpuInstanceCount,
         renderedInstanceCount: state.renderer.renderedInstanceCount,
         visibleInstanceCount: state.renderer.visibleInstanceCount,
+        markerPixelCount: visualEvidence.markerPixelCount,
+        markerComponentCount: visualEvidence.markerComponentCount,
         warningState: state.warningState,
       })}`,
     );
-    return state;
+    return capturedState;
   };
 
   const clearReviewContext = async () => {
@@ -280,6 +395,8 @@ function createScenarioTools(page, scenarioId, extras = {}) {
     recordMilestoneValidation: (validation) => milestoneValidations.push(validation),
     recordPlaybackDeterminism: (validation) =>
       playbackDeterminismValidations.push(validation),
+    recordPopulationValidation: (validation) =>
+      populationValidations.push(validation),
     samplePlaybackMotion,
     setRegimeFilter,
     setPlaybackSpeed,
@@ -419,14 +536,6 @@ function reviewNotesMarkdown() {
 }
 
 async function main() {
-  const currentCatalogBuildMode =
-    process.env.ORBIT_CURRENT_CATALOG_MODE ?? "release";
-  if (currentCatalogBuildMode !== "release") {
-    throw new Error(
-      "Deterministic release review requires ORBIT_CURRENT_CATALOG_MODE=release. " +
-        "Locally acquired current records are private inputs and cannot enter release evidence.",
-    );
-  }
   const packageJson = JSON.parse(
     await readFile(path.join(projectRoot, "package.json"), "utf8"),
   );
@@ -470,7 +579,7 @@ async function main() {
 
       const source = await readSourceIdentity(projectRoot);
       const reviewDocument = {
-        schemaVersion: 5,
+        schemaVersion: 6,
         build: `${packageJson.name}@${packageJson.version}`,
         gitCommit: source.gitCommit,
         gitDirty: source.gitDirty,
@@ -480,6 +589,8 @@ async function main() {
         currentCatalogMode: datasetVersions?.currentCatalogMode ?? "unavailable",
         currentCatalogRecordCount:
           datasetVersions?.currentCatalogRecordCount ?? "unavailable",
+        latestPublicCatalogMembershipCount:
+          datasetVersions?.latestPublicCatalogMembershipCount ?? "unavailable",
         historicalDatasetVersion:
           datasetVersions?.historicalDatasetVersion ?? "unavailable",
         viewport,
@@ -493,6 +604,7 @@ async function main() {
         states: artifactStates,
         milestoneValidations,
         playbackDeterminismValidations,
+        populationValidations,
         browserDiagnostics,
       };
 

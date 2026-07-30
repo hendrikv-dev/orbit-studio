@@ -65,6 +65,19 @@ describe("Explorer renderer diagnostics", () => {
     expect(new Set(digests).size).toBe(1);
   });
 
+  it("exposes a substantial screen-visible latest population with separated provenance", () => {
+    const snapshot = explorerTimelineSnapshots[explorerTimelineSnapshots.length - 1];
+    const camera = explorerCamera();
+    const { positions, scales, scenario } = milestoneBuffers(snapshot);
+    const provenance = renderedProvenanceCounts(scenario.satellites, scales);
+
+    expect(scenario.satellites).toHaveLength(33_474);
+    expect(provenance.reconstructedHistoricalRenderedCount).toBe(33_468);
+    expect(provenance.curatedReferenceRenderedCount).toBe(6);
+    expect(countScreenVisiblePointInstances(positions, scales, camera))
+      .toBeGreaterThan(250);
+  });
+
   it("aggregates the GPU-facing batches rather than resolver metadata", () => {
     const camera = explorerCamera();
     publishExplorerRendererBatch({
@@ -77,6 +90,7 @@ describe("Explorer renderer diagnostics", () => {
       renderedInstanceCount: 9,
       visibleInstanceCount: 4,
       currentSourceRenderedCount: 0,
+      curatedReferenceRenderedCount: 0,
       exactHistoricalRenderedCount: 0,
       nearestHistoricalRenderedCount: 0,
       reconstructedHistoricalRenderedCount: 9,
@@ -98,6 +112,7 @@ describe("Explorer renderer diagnostics", () => {
       renderedInstanceCount: 2,
       visibleInstanceCount: 1,
       currentSourceRenderedCount: 0,
+      curatedReferenceRenderedCount: 0,
       exactHistoricalRenderedCount: 0,
       nearestHistoricalRenderedCount: 0,
       reconstructedHistoricalRenderedCount: 2,

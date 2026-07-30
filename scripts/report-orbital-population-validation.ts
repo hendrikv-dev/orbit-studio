@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
 import type { SatelliteModel } from "../src/lib/scenario";
 import { propagateSatellite } from "../src/lib/propagation";
+import { EARTH_RADIUS_KM } from "../src/physics/constants";
 import { tleToCartesian, type TleData } from "../src/physics/tle";
 import {
   createExplorerScenario,
@@ -29,15 +30,43 @@ function distance(left: ArrayLike<number>, right: ArrayLike<number>): number {
 }
 
 function sampleRecords(satellites: SatelliteModel[]) {
-  const byId = (id: string) =>
-    satellites.find((satellite) => satellite.id === id)!;
+  const selected = new Set<string>();
+  const take = (
+    label: string,
+    predicate: (satellite: SatelliteModel) => boolean,
+  ): readonly [string, SatelliteModel] => {
+    const satellite = satellites.find(
+      (candidate) => !selected.has(candidate.id) && predicate(candidate),
+    );
+    if (!satellite) {
+      throw new Error(`Release population validation could not select ${label}.`);
+    }
+    selected.add(satellite.id);
+    return [label, satellite] as const;
+  };
+
   return [
-    ["ISS representative LEO", byId("explorer-iss")],
-    ["Hubble representative LEO", byId("explorer-hubble")],
-    ["GPS representative MEO", byId("explorer-gps")],
-    ["GOES representative GEO", byId("explorer-goes")],
-    ["Molniya representative HEO", byId("explorer-molniya-reference")],
-    ["Sentinel representative SSO", byId("explorer-sentinel")],
+    take("ISS reconstructed state", (satellite) => satellite.id === "explorer-iss"),
+    take("Hubble reconstructed state", (satellite) => satellite.id === "explorer-hubble"),
+    take(
+      "payload reconstructed state",
+      (satellite) => satellite.catalogMetadata?.categoryId === "payloads",
+    ),
+    take(
+      "rocket-body reconstructed state",
+      (satellite) => satellite.catalogMetadata?.categoryId === "rocket-bodies",
+    ),
+    take(
+      "debris reconstructed state",
+      (satellite) => satellite.catalogMetadata?.categoryId === "debris",
+    ),
+    take(
+      "medium-Earth-orbit reconstructed state",
+      (satellite) => {
+        const altitudeKm = satellite.keplerian.semiMajorAxisKm - EARTH_RADIUS_KM;
+        return altitudeKm > 15_000 && altitudeKm < 30_000;
+      },
+    ),
   ] as const;
 }
 
@@ -71,7 +100,9 @@ const comparisons = samples.map(([label, satellite]) => {
     category: satellite.catalogMetadata?.categoryId,
     sourceEpoch: satellite.keplerian.epoch,
     testTimestamp: new Date(targetMs).toISOString(),
-    sourceFrame: "project-authored inertial representative elements",
+    sourceFrame:
+      "GCAT orbital-envelope constraints with deterministic educational orientation and phase",
+    orbitStateProvenance: satellite.catalogMetadata?.orbitStateProvenance,
     applicationPositionKm: exact.positionKm,
     applicationVelocityKmS: exact.velocityKmS,
     batchInterpolationScenePositionKm: [...interpolatedScene],
@@ -131,13 +162,14 @@ const report = {
     velocityErrorKmS: distance(vanguardReferenceVelocityKmS, vanguardComputed.velocityKmS),
     acceptedVelocityToleranceKmS: 0.00001,
   },
-  releaseReferencePathComparisons: comparisons,
+  releasePopulationPathComparisons: comparisons,
   performance: {
-    execution: "single-threaded Node reference for two exact two-body samples per release-reference object; browser uses up to six workers",
+    execution:
+      "single-threaded Node reference for two exact two-body samples per release-safe reconstructed catalog object; browser uses up to eight workers",
     objectCount: scenario.satellites.length,
     durationMs: performanceDurationsMs,
     averageDurationMs: performanceDurationsMs.reduce((sum, value) => sum + value, 0) / performanceDurationsMs.length,
-    configuredWorkerCountMaximum: 6,
+    configuredWorkerCountMaximum: 8,
     configuredCadenceBySpeed: {
       "1x": 80,
       "10x": 80,
@@ -145,11 +177,11 @@ const report = {
       "1000x": 40,
       "2500x": 16,
     },
-    maximumInterpolationWindowSimulationSeconds: 160,
+    comparisonInterpolationWindowSimulationSeconds: 160,
   },
   limitations: [
-    "Release-reference comparisons prove worker/selected/orbit-path implementation agreement, not independent measured ephemerides.",
-    "The public release does not bundle a current catalog and makes no current membership or position claim.",
+    "Release-population comparisons prove worker/selected/orbit-path implementation agreement, not independent measured ephemerides.",
+    "The public release membership is the complete supported-class Earth population in the dated GCAT package snapshot; reconstructed positions are neither live nor exact.",
     "The independent Vanguard vector proves named-model SGP4 conformance only.",
   ],
 };

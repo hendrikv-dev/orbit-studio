@@ -1488,6 +1488,7 @@ export function SimulationScene({
                 : null
           }
           focusFrame={activeFocusFrame}
+          selectedOrbitDistanceScale={playgroundPresentation ? 1.5 : 1}
           defaultFrame={initialCameraFrame}
           simulationTime={scenario.simulationTimeUtc}
           viewportMode={viewportMode}

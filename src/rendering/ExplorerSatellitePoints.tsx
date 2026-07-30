@@ -13,17 +13,24 @@ import type { ExplorerMarkerStyle } from "../data/explorerVisuals";
 import type { SatelliteModel } from "../lib/scenario";
 import { isRenderableCartesianState, propagateSatellite } from "../lib/propagation";
 import { EARTH_RADIUS_KM } from "../physics/constants";
+import {
+  prepareTwoBodyPropagation,
+  propagatePreparedTwoBodyAtMs,
+  type PreparedTwoBodyPropagation,
+} from "../physics/kepler";
 import { readScenePlaybackTimeMs } from "./sceneMotion";
 import type { CatalogPropagationResultMessage } from "./catalogPropagationMessages";
 import { writeInterpolatedThreePositions } from "./catalogMotion";
 import { cachePopulationScenePosition } from "./populationMotion";
 import {
   CATALOG_INITIAL_WORKER_LATENCY_MS,
+  CATALOG_SUPPORTED_MAX_TIME_SCALE,
   catalogPropagationHorizonDisposition,
   catalogPropagationHorizonCovers,
   catalogPropagationHorizonNeedsRefresh,
   catalogPropagationHorizonTimestamps,
   catalogPropagationInputsEqual,
+  catalogPropagationWorkerCount,
 } from "./catalogPropagation";
 import {
   countScreenVisiblePointInstances,
@@ -56,11 +63,9 @@ interface ExplorerSatellitePointsProps {
 
 const DEFAULT_UPDATE_INTERVAL_MS = 80;
 const WORKER_SATELLITE_THRESHOLD = 512;
-// Reserve CPU capacity for React, Three.js, and GPU uploads. Saturating every logical core with
-// propagation workers creates visible main-thread stalls even though aggregate propagation
-// throughput increases.
-const MAX_WORKER_COUNT = 8;
 const MIN_WORKER_INTERVAL_MS = 16;
+const WORKER_FALLBACK_INTERVAL_MS = 250;
+const WORKER_FALLBACK_MIN_TIME_SCALE = 1_000;
 // Full-population projection and digest checks are intentionally slower than the lightweight
 // per-frame UTC bridge. Four checks per second measurably contend with propagation workers at
 // 2,500×; two still provide multiple independent observations in the review window.
@@ -264,6 +269,44 @@ function writeExactPositionRange(
   return written;
 }
 
+function writePreparedPositionRange(
+  target: Float32Array,
+  satellites: SatelliteModel[],
+  preparedStates: readonly (PreparedTwoBodyPropagation | null)[],
+  targetTimestampMs: number,
+  pointScales: Float32Array,
+  basePointScales: Float32Array,
+): number {
+  const targetDate = new Date(targetTimestampMs);
+  let written = 0;
+  for (let index = 0; index < satellites.length; index += 1) {
+    const prepared = preparedStates[index];
+    if (!prepared) {
+      const valid = writePosition(target, index, satellites[index], targetDate);
+      pointScales[index] = valid ? basePointScales[index] : 0;
+      if (valid) written += 1;
+      continue;
+    }
+    try {
+      const state = propagatePreparedTwoBodyAtMs(prepared, targetTimestampMs);
+      if (
+        state.positionKm.some((value) => !Number.isFinite(value)) ||
+        state.velocityKmS.some((value) => !Number.isFinite(value))
+      ) {
+        throw new Error("Invalid prepared state");
+      }
+      target[index * 3] = state.positionKm[0];
+      target[index * 3 + 1] = state.positionKm[2];
+      target[index * 3 + 2] = -state.positionKm[1];
+      pointScales[index] = basePointScales[index];
+      written += 1;
+    } catch {
+      pointScales[index] = 0;
+    }
+  }
+  return written;
+}
+
 function writeColors(
   target: Float32Array,
   satellites: SatelliteModel[],
@@ -303,7 +346,14 @@ function writePointScales(
           : altitudeKm > 30_000
             ? 1.1
             : 1.02;
-    const categoryScale = category === "debris" ? 0.72 : category === "rocket-bodies" ? 0.84 : 1;
+    const categoryScale =
+      category === "debris"
+        ? 0.72
+        : category === "components"
+          ? 0.78
+          : category === "rocket-bodies"
+            ? 0.84
+            : 1;
 
     target[index] = hiddenSatelliteIds?.has(satellite.id) ? 0 : regimeScale * categoryScale;
   });
@@ -335,6 +385,7 @@ export function ExplorerSatellitePoints({
   const workerShardsRef = useRef<PropagationWorkerShard[]>([]);
   const profiledFrameCountRef = useRef(0);
   const renderedPlaybackTimeRef = useRef(Date.parse(simulationTime));
+  const lastWorkerFallbackAtRef = useRef(Number.NEGATIVE_INFINITY);
   const lastDiagnosticsPublishedAtRef = useRef(Number.NEGATIVE_INFINITY);
   const playbackTimeScaleRef = useRef(playbackTimeScale);
   const animateRef = useRef(animate);
@@ -365,6 +416,18 @@ export function ExplorerSatellitePoints({
     writePointScales(scales, stableSatellites, hiddenSatelliteIds);
     return scales;
   }, [hiddenSatelliteIds, stableSatellites]);
+  const preparedWorkerFallbackStates = useMemo(
+    () =>
+      stableSatellites.map((satellite) => {
+        if (satellite.propagationMode === "sgp4" && satellite.tle) return null;
+        try {
+          return prepareTwoBodyPropagation(satellite.keplerian);
+        } catch {
+          return null;
+        }
+      }),
+    [stableSatellites],
+  );
   const geometry = useMemo(() => {
     const nextGeometry = new BufferGeometry();
     const positions = new Float32Array(stableSatellites.length * 3);
@@ -502,10 +565,12 @@ export function ExplorerSatellitePoints({
       Math.min(updateIntervalMs, 1_000),
     );
     const hardwareConcurrency = navigator.hardwareConcurrency || 4;
-    const workerCount = Math.min(
-      MAX_WORKER_COUNT,
-      Math.max(1, hardwareConcurrency),
-      Math.ceil(stableSatellites.length / WORKER_SATELLITE_THRESHOLD),
+    // Reserve half of the browser's reported concurrency for interpolation, React, Three.js,
+    // diagnostics, and GPU uploads. Worker throughput is useful only while the authoritative
+    // position buffer can still be committed smoothly on the main thread.
+    const workerCount = catalogPropagationWorkerCount(
+      stableSatellites.length,
+      hardwareConcurrency,
     );
     const shardSize = Math.ceil(stableSatellites.length / workerCount);
     const shards: PropagationWorkerShard[] = [];
@@ -526,39 +591,38 @@ export function ExplorerSatellitePoints({
     const requestNextSample = (shard: PropagationWorkerShard) => {
       if (disposed) return;
       const playbackTimeMs = readScenePlaybackTimeMs();
-      if (
-        shard.pendingSampleTimestampsMs &&
-        catalogPropagationHorizonCovers(
+      if (shard.pendingSampleTimestampsMs) {
+        const pendingDisposition = catalogPropagationHorizonDisposition(
+          shard.sampleTimestampsMs,
           shard.pendingSampleTimestampsMs,
           playbackTimeMs,
-        )
-      ) {
-        shard.sampleTimestampsMs = shard.pendingSampleTimestampsMs;
-        shard.positions = shard.pendingPositions;
-        shard.velocities = shard.pendingVelocities;
-        shard.valid = shard.pendingValid;
-        shard.pendingSampleTimestampsMs = null;
-        shard.pendingPositions = null;
-        shard.pendingVelocities = null;
-        shard.pendingValid = null;
-      } else if (
-        shard.pendingSampleTimestampsMs &&
-        playbackTimeMs < shard.pendingSampleTimestampsMs[0]
-      ) {
-        shard.timer = window.setTimeout(
-          () => requestNextSample(shard),
-          effectiveUpdateIntervalMs,
         );
-        return;
-      } else if (shard.pendingSampleTimestampsMs) {
+        if (pendingDisposition === "activate") {
+          shard.sampleTimestampsMs = shard.pendingSampleTimestampsMs;
+          shard.positions = shard.pendingPositions;
+          shard.velocities = shard.pendingVelocities;
+          shard.valid = shard.pendingValid;
+        } else if (pendingDisposition === "stage") {
+          shard.timer = window.setTimeout(
+            () => requestNextSample(shard),
+            effectiveUpdateIntervalMs,
+          );
+          return;
+        }
+        // A backward timeline reset can put both the active and staged horizons in the future.
+        // Discard that stale staging state so the request below targets the authoritative UTC.
         shard.pendingSampleTimestampsMs = null;
         shard.pendingPositions = null;
         shard.pendingVelocities = null;
         shard.pendingValid = null;
       }
-      const currentTimeScale = animateRef.current
-        ? playbackTimeScaleRef.current
-        : 1;
+      // Build every horizon for the maximum supported Explorer speed. A paused or low-speed
+      // horizon can otherwise expire while an in-flight worker request catches up after the user
+      // switches directly to 1,000× or 2,500×, leaving a scientifically stale position buffer.
+      const currentTimeScale = Math.max(
+        CATALOG_SUPPORTED_MAX_TIME_SCALE,
+        animateRef.current ? Math.abs(playbackTimeScaleRef.current) : 1,
+      );
       if (
         !catalogPropagationHorizonNeedsRefresh(
           shard.sampleTimestampsMs,
@@ -781,10 +845,48 @@ export function ExplorerSatellitePoints({
         ),
       );
       if (!allShardsCoverPlaybackTime) {
+        const nowMs = performance.now();
+        if (
+          Math.abs(playbackTimeScaleRef.current) >=
+            WORKER_FALLBACK_MIN_TIME_SCALE &&
+          nowMs - lastWorkerFallbackAtRef.current >=
+          WORKER_FALLBACK_INTERVAL_MS
+        ) {
+          validPositionCount = writePreparedPositionRange(
+            positions,
+            stableSatellites,
+            preparedWorkerFallbackStates,
+            playbackTimeMs,
+            pointScales,
+            basePointScales,
+          );
+          if (cacheSatelliteIds?.size) {
+            stableSatellites.forEach((satellite, index) => {
+              if (
+                pointScales[index] <= 0 ||
+                !cacheSatelliteIds.has(satellite.id)
+              ) {
+                return;
+              }
+              cachePopulationScenePosition(
+                satellite,
+                playbackTimeMs,
+                positions[index * 3],
+                positions[index * 3 + 1],
+                positions[index * 3 + 2],
+              );
+            });
+          }
+          renderedPlaybackTimeRef.current = playbackTimeMs;
+          lastWorkerFallbackAtRef.current = nowMs;
+          attribute.needsUpdate = true;
+          scaleAttribute.needsUpdate = true;
+        }
         publishBufferTiming(playbackTimeMs);
         publishDiagnostics(playbackTimeMs);
         return;
       }
+      lastWorkerFallbackAtRef.current = performance.now();
 
       workerShards.forEach((shard) => {
         const shardSatelliteCount = shard.valid?.length

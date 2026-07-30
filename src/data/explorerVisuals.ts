@@ -9,7 +9,12 @@ export type ExplorerFocusPreset =
   | "meo"
   | "geo"
   | "earth-orbit";
-export type ExplorerMarkerKind = "satellite" | "debris" | "rocket-body" | "ground-station";
+export type ExplorerMarkerKind =
+  | "satellite"
+  | "debris"
+  | "rocket-body"
+  | "component"
+  | "ground-station";
 
 export interface ExplorerMarkerStyle {
   color: string;
@@ -20,6 +25,7 @@ export interface ExplorerMarkerStyle {
 export const explorerTypeColors: Record<ExplorerCategoryId, string> = {
   payloads: "#68c9ff",
   "rocket-bodies": "#f1b45f",
+  components: "#d59be7",
   debris: "#ff7d72",
   "ground-stations": "#77e0a2",
   constellations: "#b39cff",
@@ -30,6 +36,7 @@ export const explorerTypeColors: Record<ExplorerCategoryId, string> = {
 export function explorerMarkerKind(entry: ExplorerCatalogEntry): ExplorerMarkerKind {
   if (entry.categoryId === "debris") return "debris";
   if (entry.categoryId === "rocket-bodies") return "rocket-body";
+  if (entry.categoryId === "components") return "component";
   if (entry.categoryId === "ground-stations") return "ground-station";
   return "satellite";
 }

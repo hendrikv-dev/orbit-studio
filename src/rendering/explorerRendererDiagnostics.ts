@@ -4,6 +4,7 @@ import { EARTH_RADIUS_KM } from "../physics/constants";
 
 export type ExplorerRenderedProvenance =
   | "current-source"
+  | "curated-reference"
   | "exact-historical"
   | "nearest-historical"
   | "reconstructed-historical";
@@ -24,6 +25,7 @@ export interface ExplorerRendererBatchStats {
   renderedInstanceCount: number;
   visibleInstanceCount: number;
   currentSourceRenderedCount: number;
+  curatedReferenceRenderedCount: number;
   exactHistoricalRenderedCount: number;
   nearestHistoricalRenderedCount: number;
   reconstructedHistoricalRenderedCount: number;
@@ -41,6 +43,7 @@ export interface ExplorerRendererStats {
   renderedInstanceCount: number;
   visibleInstanceCount: number;
   currentSourceRenderedCount: number;
+  curatedReferenceRenderedCount: number;
   exactHistoricalRenderedCount: number;
   nearestHistoricalRenderedCount: number;
   reconstructedHistoricalRenderedCount: number;
@@ -134,11 +137,13 @@ export function renderedProvenanceCounts(
 ): Pick<
   ExplorerRendererBatchStats,
   | "currentSourceRenderedCount"
+  | "curatedReferenceRenderedCount"
   | "exactHistoricalRenderedCount"
   | "nearestHistoricalRenderedCount"
   | "reconstructedHistoricalRenderedCount"
 > {
   let currentSourceRenderedCount = 0;
+  let curatedReferenceRenderedCount = 0;
   let exactHistoricalRenderedCount = 0;
   let nearestHistoricalRenderedCount = 0;
   let reconstructedHistoricalRenderedCount = 0;
@@ -155,6 +160,9 @@ export function renderedProvenanceCounts(
       case "reconstructed-historical":
         reconstructedHistoricalRenderedCount += 1;
         break;
+      case "curated-reference":
+        curatedReferenceRenderedCount += 1;
+        break;
       default:
         currentSourceRenderedCount += 1;
     }
@@ -162,6 +170,7 @@ export function renderedProvenanceCounts(
 
   return {
     currentSourceRenderedCount,
+    curatedReferenceRenderedCount,
     exactHistoricalRenderedCount,
     nearestHistoricalRenderedCount,
     reconstructedHistoricalRenderedCount,
@@ -220,6 +229,8 @@ export function readExplorerRendererStats(): ExplorerRendererStats {
       visibleInstanceCount: aggregate.visibleInstanceCount + batch.visibleInstanceCount,
       currentSourceRenderedCount:
         aggregate.currentSourceRenderedCount + batch.currentSourceRenderedCount,
+      curatedReferenceRenderedCount:
+        aggregate.curatedReferenceRenderedCount + batch.curatedReferenceRenderedCount,
       exactHistoricalRenderedCount:
         aggregate.exactHistoricalRenderedCount + batch.exactHistoricalRenderedCount,
       nearestHistoricalRenderedCount:
@@ -240,6 +251,7 @@ export function readExplorerRendererStats(): ExplorerRendererStats {
       renderedInstanceCount: 0,
       visibleInstanceCount: 0,
       currentSourceRenderedCount: 0,
+      curatedReferenceRenderedCount: 0,
       exactHistoricalRenderedCount: 0,
       nearestHistoricalRenderedCount: 0,
       reconstructedHistoricalRenderedCount: 0,

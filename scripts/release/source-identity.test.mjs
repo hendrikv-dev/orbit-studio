@@ -13,23 +13,35 @@ const identity = {
 };
 
 const validReview = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   build: "orbit-studio@0.1.0",
   gitCommit: identity.gitCommit,
   gitDirty: false,
-  currentCatalogMode: "release-reference-only",
+  currentCatalogMode: "release-public-gcat",
   currentCatalogRecordCount: 0,
+  latestPublicCatalogMembershipCount: 33_489,
   source: { ...identity },
   scenarios: [{ id: "explorer" }],
   states: [{
     id: "startup",
+    dataCoverage: { status: "latest-public-catalog" },
     datasets: {
-      currentCatalogMode: "release-reference-only",
+      currentCatalogMode: "release-public-gcat",
       currentCatalogRecordCount: 0,
+      latestPublicCatalogMembershipCount: 33_489,
+    },
+  }, {
+    id: "historical",
+    dataCoverage: { status: "historical-loaded" },
+    datasets: {
+      currentCatalogMode: "release-public-gcat",
+      currentCatalogRecordCount: 0,
+      latestPublicCatalogMembershipCount: 0,
     },
   }],
   milestoneValidations: [{ pass: true }],
   playbackDeterminismValidations: [{ pass: true }],
+  populationValidations: [{ pass: true }, { pass: true }],
   browserDiagnostics: [],
 };
 
@@ -94,6 +106,7 @@ describe("release source validation", () => {
     expect(failures).toContain("review-current-catalog-mode-unsafe");
     expect(failures).toContain("review-current-catalog-records-present");
     expect(failures).toContain("review-state-current-catalog-unsafe");
+    expect(failures).toContain("review-state-latest-public-catalog-too-small");
     expect(failures).toContain("browser-diagnostics-present");
     expect(failures).toContain("artifact-missing:timeline.mp4");
   });

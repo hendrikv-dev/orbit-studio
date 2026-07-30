@@ -94,19 +94,31 @@ Schema 5 adds the current-catalog mode and record count and copies the exact aut
 provenance inventory, project attribution, and locked-dependency notices used by the production
 build into the review package.
 
+Schema 6 adds latest-public GCAT membership and explicit population validations. The default and
+latest-public captures must contain at least 33,000 source-backed members, all available object
+classes, at least 250 geometrically screen-visible point instances, and at least 300 category-color
+marker pixels grouped into at least 250 marker-sized components in the Earth-centered orbital
+annulus of the actual captured WebP. Restricting the evidence to this annulus prevents the star field
+or interface chrome from satisfying the orbital-population gate. Screenshot pixels are
+visual-legibility evidence only;
+catalog, provenance, and renderer counts continue to come from authoritative runtime diagnostics.
+
 `timeline.csv` is sampled at four states per second from the same deterministic frame sequence used
-to encode `timeline.mp4`. Its first row is the first video frame and its last row is the final frame.
-It records simulation time, selected year, catalog membership, visible population, source-record
-coverage, reconstructed states, catalog-only members, GPU/rendered/visible counts, warning state, and
-the position-buffer digest without inspecting pixels. The schema field
+to encode `timeline.mp4`. Each frame selects a discrete annual period-end snapshot; the first row is
+1957 and the last row is the latest public catalog snapshot. It records simulation time, selected
+year, catalog membership, visible population, source-record coverage, reconstructed states,
+catalog-only members, GPU/rendered/visible counts, warning state, and the position-buffer digest
+without inspecting pixels. The schema field
 `exactOrbitStateCount` retains its legacy name for compatibility; it counts non-reconstructed source
 records and is not a claim of exact physical position.
 
-Review mode is enabled only by `?review=1`. Public release mode pins Current to the documented
-2026-07-18 representative-orbit reference date and pauses playback before the scenario loads, which
-makes screenshots and state metadata reproducible. It explicitly records zero locally acquired
-current catalog records. Normal Explorer startup and playback behavior are unchanged. A release
-review must not use `ORBIT_CURRENT_CATALOG_MODE=local`.
+Review mode is enabled only by `?review=1`. It pins the latest-public catalog to the canonical GCAT
+package snapshot at `2026-06-27T22:13:02Z` and pauses playback before the scenario loads, which makes
+screenshots and state metadata reproducible. It records 33,489 source-backed latest members,
+33,468 reconstructed renderable states, 21 catalog-only members, and zero local/current GP records.
+The renderer separately identifies six curated-reference markers, so they cannot be mistaken for
+GCAT membership or reconstructed source states. Normal Explorer startup and playback behavior are
+unchanged.
 
 ## Scenario architecture
 
@@ -124,9 +136,11 @@ A scenario exports:
 Scenario tools include `capture`, `captureTimelineFrame`, `clearReviewContext`, `setTimelineYear`,
 `setTimelineSnapshot`, `setPlaybackSpeed`, `samplePlaybackMotion`, `setRegimeFilter`, `waitForState`, `readReviewState`, and
 the Playwright `page`. Prefer application-bridge actions for exact temporal
-states and product locators for the interaction being reviewed. Never derive metadata from pixels.
+states and product locators for the interaction being reviewed. Never derive catalog or simulation
+metadata from pixels; screenshot analysis is a separate visible-output cross-check.
 
-The Explorer scenario visits every declared historical milestone. It fails when resolver counts do
+The Explorer scenario visits every declared historical milestone. Its default-population gate
+explicitly rejects the former six-object visually empty state. It fails when resolver counts do
 not match the point-renderer queue, GPU buffer, or provenance counts; when a populated milestone has
 no camera-visible instance; when warning state disagrees; or when 1×, 10×, 100×, 1000×, and 2500×
 produce different scene signatures at the same UTC. It also plays the production clock at every
@@ -134,8 +148,10 @@ supported speed and samples the actual GPU-facing position digest and buffer UTC
 clock-rate disagreement, population loss, or a stale buffer beyond the declared wall-time allowance
 fails review. Because the renderer publishes diagnostics every 500 ms, the 4-second moving interval
 requires at least four samples and three distinct coherent GPU-buffer digests; the initial sample is
-expected to precede the first diagnostic refresh. This moving test covers failures that fixed-time
-determinism cannot detect.
+expected to precede the first diagnostic refresh. Buffer age may not exceed one declared 500 ms
+diagnostics observation interval in wall time at any speed; this keeps the gate aligned with the
+observer's production cadence while still rejecting a frozen or persistently stale renderer. This
+moving test covers failures that fixed-time determinism cannot detect.
 
 The Explorer interaction scenario also opens Featured Objects and Major Constellations, selects
 Starlink as a system, exercises both detail tabs, opens the reorganized Display panel, and repeats

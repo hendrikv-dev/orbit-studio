@@ -49,12 +49,12 @@ describe("Explorer constellation geometry fidelity", () => {
         (sum, geometry) => sum + geometry.validation.displayedMatchCount,
         0,
       ),
-    ).toBe(0);
+    ).toBeGreaterThan(0);
     expect(
-      geometries.every(
+      geometries.some(
         (geometry) =>
-          geometry.validation.altitudeRangeKm === null &&
-          geometry.validation.inclinationRangeDeg === null,
+          geometry.validation.altitudeRangeKm !== null &&
+          geometry.validation.inclinationRangeDeg !== null,
       ),
     ).toBe(true);
 
@@ -168,10 +168,10 @@ describe("Explorer constellation geometry fidelity", () => {
       iridium.scenario.satellites,
     )[0];
 
-    expect(galileoGeometry.validation.displayedMatchCount).toBe(0);
+    expect(galileoGeometry.validation.displayedMatchCount).toBeGreaterThan(0);
     expect(galileoGeometry.altitudeKm).toBe(23_222);
     expect(galileoGeometry.inclinationDeg).toBe(56);
-    expect(iridiumGeometry.validation.displayedMatchCount).toBe(0);
+    expect(iridiumGeometry.validation.displayedMatchCount).toBeGreaterThan(0);
     expect(iridiumGeometry.altitudeKm).toBe(780);
     expect(iridiumGeometry.inclinationDeg).toBe(86.4);
   });

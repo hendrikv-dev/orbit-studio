@@ -33,7 +33,7 @@ describe("Explorer scene presentation", () => {
   });
 
   it("renders constrained reconstructions while keeping current GP records out", () => {
-    const historical = getHistoricalCatalog("2015-06-01T12:00:00.000Z");
+    const historical = getHistoricalCatalog("2020-06-01T12:00:00.000Z");
     const scenario = createExplorerScenario(historical.snapshot);
 
     expect(historical.records.length).toBeGreaterThan(1_500);
@@ -47,16 +47,27 @@ describe("Explorer scene presentation", () => {
     )).toBe(false);
   });
 
-  it("keeps current Explorer scenes useful without bundling current GP records", () => {
+  it("keeps the latest public Explorer scene dense without bundling current GP records", () => {
     const scenario = createExplorerScenario(currentExplorerSnapshot);
 
-    expect(scenario.satellites.length).toBeGreaterThanOrEqual(4);
+    expect(scenario.satellites).toHaveLength(33_474);
     expect(isCatalogOnlyExplorerScene({
       scaleCatalogRendering: true,
       satelliteCount: scenario.satellites.length,
     })).toBe(false);
-    expect(scenario.satellites.every((satellite) =>
-      satellite.catalogMetadata?.sourceId === "curated-reference",
+    const gcatSatellites = scenario.satellites.filter(
+      (satellite) => satellite.catalogMetadata?.sourceId === "gcat-public-catalog",
+    );
+    const curatedReferences = scenario.satellites.filter(
+      (satellite) => satellite.catalogMetadata?.sourceId === "curated-reference",
+    );
+    expect(gcatSatellites).toHaveLength(33_468);
+    expect(gcatSatellites.every((satellite) =>
+      satellite.catalogMetadata?.orbitStateProvenance === "reconstructed-historical",
+    )).toBe(true);
+    expect(curatedReferences).toHaveLength(6);
+    expect(curatedReferences.every((satellite) =>
+      satellite.catalogMetadata?.orbitStateProvenance === "curated-reference",
     )).toBe(true);
     expect(scenario.satellites.every((satellite) => satellite.tle === undefined)).toBe(true);
   });

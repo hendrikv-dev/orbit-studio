@@ -88,6 +88,11 @@ const fixture: ExplorerHistoricalCatalogDataset = {
         regime: "LEO",
         sourceId: source.sourceId,
         sourceFile: source.sourceFile,
+        recordId: "S65002",
+        reconstructionVersion: "orbit-studio-gcat-reconstruction-v1",
+        raanDegReconstructed: 118,
+        argumentOfPeriapsisDegReconstructed: 58,
+        meanAnomalyDegReconstructed: 42,
       },
     }),
     object({

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Compass, Eye, EyeOff, List, Menu, Pause, Play, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { List, Menu, Pause, Play, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ExplorerView } from "./components/explorer/ExplorerView";
+import { OrbitStudioHome } from "./components/home/OrbitStudioHome";
+import { OrbitAppMenu, ShowInterfaceButton } from "./components/layout/OrbitAppMenu";
 import { OrbitControlsPanel } from "./components/OrbitControlsPanel";
 import { PlaygroundSatelliteColumn } from "./components/PlaygroundSatelliteColumn";
 import {
   createExplorerCurrentSnapshot,
   createExplorerScenario,
   currentExplorerSnapshot,
+  explorerCurrentCatalogMode,
   explorerSnapshotForDateIso,
   type ExplorerSnapshot,
 } from "./data/explorerCatalog";
@@ -17,7 +20,7 @@ import { useSimulationStore } from "./state/useSimulationStore";
 import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
 
-type ProductMode = "explorer" | "playground";
+type ProductMode = "home" | "explorer" | "playground";
 type PlaygroundMobileSurface = "objects" | "orbit" | "playback" | null;
 const playgroundMobileTimeScales = [1, 10, 100, 1000, 2500];
 const KONAMI_SEQUENCE = [
@@ -76,7 +79,12 @@ function AuroraToast({ message }: { message: string | null }) {
 }
 
 function initialExplorerSnapshot(): ExplorerSnapshot {
-  if (isOrbitStudioReviewMode()) return currentExplorerSnapshot;
+  if (
+    isOrbitStudioReviewMode() ||
+    explorerCurrentCatalogMode === "release-public-gcat"
+  ) {
+    return currentExplorerSnapshot;
+  }
 
   if (import.meta.env.DEV && typeof window !== "undefined") {
     const diagnosticTime = new URLSearchParams(window.location.search).get("simulationTime");
@@ -88,6 +96,23 @@ function initialExplorerSnapshot(): ExplorerSnapshot {
   );
 }
 
+function readInitialProductMode(): ProductMode {
+  if (isOrbitStudioReviewMode()) return "explorer";
+  if (typeof window === "undefined") return "home";
+
+  const requestedApp = new URLSearchParams(window.location.search).get("app");
+  if (requestedApp === "explorer" || requestedApp === "playground") return requestedApp;
+  return "home";
+}
+
+function replaceAppQuery(mode: ProductMode): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (mode === "home") url.searchParams.delete("app");
+  else url.searchParams.set("app", mode);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function developmentCelestialPlaybackPaused(): boolean {
   return isOrbitStudioReviewMode() || (
     import.meta.env.DEV &&
@@ -97,15 +122,16 @@ function developmentCelestialPlaybackPaused(): boolean {
 }
 
 export function App() {
-  const [productMode, setProductMode] = useState<ProductMode>("explorer");
+  const [productMode, setProductMode] = useState<ProductMode>(readInitialProductMode);
   const [activeSnapshot, setActiveSnapshot] = useState<ExplorerSnapshot>(
     initialExplorerSnapshot,
   );
   const explorerScenario = useMemo(
-    () => createExplorerScenario(activeSnapshot),
-    [activeSnapshot],
+    () => (productMode === "explorer" ? createExplorerScenario(activeSnapshot) : null),
+    [activeSnapshot, productMode],
   );
-  const [playgroundUiVisible, setPlaygroundUiVisible] = useState(true);
+  const [interfaceVisible, setInterfaceVisible] = useState(true);
+  const [playgroundSceneSession, setPlaygroundSceneSession] = useState(0);
   const [playgroundMobileSurface, setPlaygroundMobileSurface] =
     useState<PlaygroundMobileSurface>(null);
   const [playgroundMobileMenuOpen, setPlaygroundMobileMenuOpen] = useState(false);
@@ -194,6 +220,8 @@ export function App() {
   ]);
 
   useLayoutEffect(() => {
+    if (productMode !== "explorer" || explorerScenario === null) return;
+
     const playbackPaused = developmentCelestialPlaybackPaused();
 
     if (explorerScenarioInitializedRef.current) {
@@ -208,7 +236,17 @@ export function App() {
     if (playbackPaused) configureExplorer(1, false);
     loadScenario(explorerScenario);
     if (!playbackPaused) configureExplorer(1, true);
-  }, [configureExplorer, explorerScenario, loadScenario, setPlaying]);
+  }, [configureExplorer, explorerScenario, loadScenario, productMode, setPlaying]);
+
+  useLayoutEffect(() => {
+    if (productMode !== "playground") return;
+
+    // Playground always starts from a neutral authored sample. It must not inherit
+    // an arbitrary catalog selection such as Vanguard 1 from Explorer.
+    loadScenario(createPlaygroundScenario(new Date(readStudioPlaybackTimeIso())));
+    configurePlayground();
+    setPlaygroundSceneSession((session) => session + 1);
+  }, [configurePlayground, loadScenario, productMode]);
 
   const selectExplorerSnapshot = useCallback((snapshot: ExplorerSnapshot) => {
     // Re-selecting the active milestone must still reset playback to its canonical UTC.
@@ -217,22 +255,29 @@ export function App() {
   }, []);
 
   const openExplorer = useCallback(() => {
-    loadScenario(explorerScenario);
+    replaceAppQuery("explorer");
     setProductMode("explorer");
-    setPlaygroundUiVisible(true);
+    setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
     setPlaygroundMobileMenuOpen(false);
     configureExplorer(1);
-  }, [configureExplorer, explorerScenario, loadScenario]);
+  }, [configureExplorer]);
 
   const openStudio = useCallback(() => {
-    loadScenario(createPlaygroundScenario(new Date(readStudioPlaybackTimeIso())));
+    replaceAppQuery("playground");
     setProductMode("playground");
-    setPlaygroundUiVisible(true);
+    setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
     setPlaygroundMobileMenuOpen(false);
-    configurePlayground();
-  }, [configurePlayground, loadScenario]);
+  }, []);
+
+  const openHome = useCallback(() => {
+    replaceAppQuery("home");
+    setProductMode("home");
+    setInterfaceVisible(true);
+    setPlaygroundMobileSurface(null);
+    setPlaygroundMobileMenuOpen(false);
+  }, []);
 
   const openPlaygroundMobileSurface = useCallback((surface: Exclude<PlaygroundMobileSurface, null>) => {
     setPlaygroundMobileSurface(surface);
@@ -314,7 +359,28 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleAuroraMode]);
 
+  useEffect(() => {
+    if (interfaceVisible || productMode === "home") return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInterfaceVisible(true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [interfaceVisible, productMode]);
+
   const auroraToastElement = <AuroraToast message={auroraToast} />;
+
+  if (productMode === "home") {
+    return (
+      <OrbitStudioHome
+        onOpenExplorer={openExplorer}
+        onOpenPlayground={openStudio}
+        supportUrl={import.meta.env.VITE_SUPPORT_URL}
+      />
+    );
+  }
 
   if (productMode === "explorer") {
     return (
@@ -322,7 +388,12 @@ export function App() {
         <ExplorerView
           activeSnapshot={activeSnapshot}
           auroraModeEnabled={auroraModeEnabled}
+          interfaceVisible={interfaceVisible}
+          onHideInterface={() => setInterfaceVisible(false)}
+          onShowInterface={() => setInterfaceVisible(true)}
           onSelectSnapshot={selectExplorerSnapshot}
+          onOpenHome={openHome}
+          onOpenExplorer={openExplorer}
           onOpenPlayground={openStudio}
         />
         {auroraToastElement}
@@ -334,7 +405,7 @@ export function App() {
     <>
       <main
       className={`app-shell studio-mode-shell playground-shell ${
-        playgroundUiVisible ? "" : "playground-ui-hidden"
+        interfaceVisible ? "" : "playground-ui-hidden"
       } playground-mobile-surface-${playgroundMobileSurface ?? "none"} ${
         playgroundMobileMenuOpen ? "playground-mobile-menu-open" : ""
       }`}
@@ -345,31 +416,40 @@ export function App() {
         fallbackMessage="Playground controls remain available, but the shared Earth renderer failed to initialize."
       >
         <SimulationScene
+          key={`playground-scene-${playgroundSceneSession}`}
           playgroundPresentation
           autoFrameSelections
           auroraModeEnabled={auroraModeEnabled}
         />
       </AppErrorBoundary>
-      {playgroundUiVisible ? (
+      {interfaceVisible ? (
         <>
           <div className="playground-topline">
-            <div className="playground-title">
-              <span>OS</span>
-              <div>
-                <strong>Orbit Studio</strong>
-                <small>Playground</small>
-              </div>
-            </div>
-            <div className="playground-global-actions">
-              <button type="button" title="Open Explorer" onClick={openExplorer}>
-                <Compass size={15} />
-                <span>Explorer</span>
-              </button>
-              <button type="button" onClick={() => setPlaygroundUiVisible(false)}>
-                <EyeOff size={15} />
-                <span>Hide UI</span>
-              </button>
-            </div>
+            <button
+              aria-label="Open Orbit Studio home"
+              className="playground-title playground-brand-button"
+              type="button"
+              onClick={openHome}
+            >
+              <img
+                alt="Orbit Studio Playground"
+                className="playground-brand-logo playground-brand-logo-full"
+                src="/brand/orbit-studio-playground-logo.png"
+              />
+              <img
+                alt=""
+                aria-hidden="true"
+                className="playground-brand-logo playground-brand-logo-icon"
+                src="/brand/orbit-studio-playground-icon.png"
+              />
+            </button>
+            <OrbitAppMenu
+              activeApp="playground"
+              onHideInterface={() => setInterfaceVisible(false)}
+              onOpenExplorer={openExplorer}
+              onOpenHome={openHome}
+              onOpenPlayground={openStudio}
+            />
           </div>
           <div className="playground-mobile-mode-menu">
             <button
@@ -466,14 +546,7 @@ export function App() {
           />
         </>
       ) : (
-        <button
-          className="playground-show-ui"
-          type="button"
-          onClick={() => setPlaygroundUiVisible(true)}
-        >
-          <Eye size={15} />
-          <span>Show UI</span>
-        </button>
+        <ShowInterfaceButton onShow={() => setInterfaceVisible(true)} />
       )}
       </main>
       {auroraToastElement}

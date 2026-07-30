@@ -66,6 +66,7 @@ export interface ExplorerConstellationSummary {
 export const defaultExplorerLayerVisibility: Record<ExplorerCategoryId, boolean> = {
   payloads: true,
   "rocket-bodies": true,
+  components: true,
   debris: true,
   "ground-stations": false,
   constellations: true,

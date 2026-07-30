@@ -3,7 +3,7 @@ import type { ExplorerRegimeFilter } from "../data/explorerFilters";
 import type { ExplorerDiscoveryCollectionId } from "../data/explorerDiscovery";
 import type { ExplorerRendererStats } from "../rendering/explorerRendererDiagnostics";
 
-export const ORBIT_STUDIO_REVIEW_SCHEMA_VERSION = 4 as const;
+export const ORBIT_STUDIO_REVIEW_SCHEMA_VERSION = 5 as const;
 
 export interface ExplorerReviewSelectedObject {
   id: string;
@@ -46,7 +46,7 @@ export interface ExplorerReviewState {
   dataCoverage: {
     status:
       | "current-loaded"
-      | "current-reference-only"
+      | "latest-public-catalog"
       | "historical-loaded"
       | "historical-not-loaded";
     label: string;
@@ -54,7 +54,7 @@ export interface ExplorerReviewState {
   };
   warningState:
     | "none"
-    | "current-reference-only"
+    | "latest-public-catalog"
     | "historical-catalog-only"
     | "historical-not-loaded";
   renderer: ExplorerRendererStats & {
@@ -63,8 +63,9 @@ export interface ExplorerReviewState {
   };
   datasets: {
     catalogVersion: string;
-    currentCatalogMode: "local-acquired" | "release-reference-only";
+    currentCatalogMode: "local-acquired" | "release-public-gcat";
     currentCatalogRecordCount: number;
+    latestPublicCatalogMembershipCount: number;
     historicalDatasetVersion: string;
     historicalGeneratedAt: string | null;
     historicalSourceFingerprint: string | null;
@@ -77,8 +78,8 @@ export function explorerHistoricalWarningState(
     "catalogObjectCount" | "renderableOrbitStateCount" | "dataCoverage"
   >,
 ): ExplorerReviewState["warningState"] {
-  if (state.dataCoverage.status === "current-reference-only") {
-    return "current-reference-only";
+  if (state.dataCoverage.status === "latest-public-catalog") {
+    return "latest-public-catalog";
   }
   if (state.dataCoverage.status === "historical-not-loaded") {
     return "historical-not-loaded";
@@ -93,12 +94,21 @@ export function explorerHistoricalWarningState(
   return "none";
 }
 
+export function reviewInstantsEqual(left: string | null, right: string | null): boolean {
+  const leftMs = Date.parse(left ?? "");
+  const rightMs = Date.parse(right ?? "");
+  return Number.isFinite(leftMs) && Number.isFinite(rightMs) && leftMs === rightMs;
+}
+
 export function mergeExplorerRendererState(
   baseState: ExplorerReviewState,
   simulationTime: string,
   renderer: ExplorerRendererStats,
 ): ExplorerReviewState {
-  const timelineAndSimulationAligned = baseState.selectedTimelineTime === simulationTime;
+  const timelineAndSimulationAligned = reviewInstantsEqual(
+    baseState.selectedTimelineTime,
+    simulationTime,
+  );
   const simulationMs = Date.parse(simulationTime);
   const rendererSimulationMs = Date.parse(renderer.simulationTime ?? "");
   const currentBufferLagMs =
@@ -113,8 +123,8 @@ export function mergeExplorerRendererState(
   );
   const rendererSettled =
     renderer.batchCount > 0 &&
-    renderer.simulationTime === simulationTime &&
-    renderer.authoritativeSimulationTime === simulationTime &&
+    reviewInstantsEqual(renderer.simulationTime, simulationTime) &&
+    reviewInstantsEqual(renderer.authoritativeSimulationTime, simulationTime) &&
     currentBufferLagMs === 0 &&
     renderer.renderQueueSize === baseState.visibleObjectCount &&
     renderer.gpuInstanceCount === baseState.visibleObjectCount &&

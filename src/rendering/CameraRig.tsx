@@ -53,7 +53,7 @@ export function reframeEarthForViewport(mode: EarthViewportMode): {
 
 export function reframePlaygroundForViewport(mode: EarthViewportMode): CameraHomeFrame {
   const distanceMultiplier =
-    mode === "focus" ? 3.42 : mode === "inspectorCollapsed" ? 3.62 : 3.58;
+    mode === "focus" ? 4.65 : mode === "inspectorCollapsed" ? 4.92 : 4.86;
   const fov = mode === "focus" ? 40 : mode === "inspectorCollapsed" ? 40 : 42;
   const distanceKm = EARTH_RADIUS_KM * distanceMultiplier;
 
@@ -71,6 +71,7 @@ interface CameraRigProps {
   missionFrame?: GuidedMissionFrame;
   selectedSatellite?: SatelliteModel;
   selectedOrbitFrame?: SelectedOrbitFrame | null;
+  selectedOrbitDistanceScale?: number;
   focusFrame?: CameraFocusFrame | null;
   defaultFrame?: CameraHomeFrame;
   simulationTime: string;
@@ -185,6 +186,7 @@ export function CameraRig({
   missionFrame,
   selectedSatellite,
   selectedOrbitFrame,
+  selectedOrbitDistanceScale = 1,
   focusFrame,
   defaultFrame,
   simulationTime,
@@ -239,7 +241,7 @@ export function CameraRig({
           selectedOrbitFrame,
           camera instanceof PerspectiveCamera ? camera.fov : frame.fov,
           camera instanceof PerspectiveCamera ? camera.aspect : 16 / 9,
-        )
+        ) * selectedOrbitDistanceScale
       : null;
     const focusDistance = focusFrame
       ? cameraDistanceForSelectedOrbitFrame(
@@ -411,6 +413,7 @@ export function CameraRig({
     focusFrame,
     focusFramingRadiusKm,
     missionFrame,
+    selectedOrbitDistanceScale,
     selectedOrbitFrame,
     selectedPosition,
     defaultFrame,

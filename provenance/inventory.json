@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "inventoryId": "orbit-studio-release-1-provenance",
-  "auditedAt": "2026-07-25",
+  "auditedAt": "2026-07-29",
   "statusVocabulary": {
     "verified": "Authoritative rights evidence supports the recorded use.",
     "unresolved": "Authoritative evidence does not establish the recorded use.",
@@ -130,7 +130,7 @@
     "releaseBuildMetadata": {
       "path": "orbit-release.json",
       "schemaVersion": 1,
-      "currentCatalogMode": "release"
+      "currentCatalogMode": "release-public-gcat"
     },
     "trackedArtifactExtensionsRequiringClassification": [
       ".csv",
@@ -159,16 +159,6 @@
       "tsconfig.node.json"
     ],
     "firstPartyArtifacts": [
-      {
-        "id": "release-safe-current-catalog-guard",
-        "paths": [
-          "src/data/explorerCelestrakCatalog.records.json"
-        ],
-        "sha256": {
-          "src/data/explorerCelestrakCatalog.records.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
-        },
-        "basis": "Project-authored empty JSON guard. It contains no third-party records."
-      },
       {
         "id": "generated-earth-placeholders",
         "paths": [
@@ -365,30 +355,86 @@
       }
     },
     {
-      "id": "gcat-public-historical-sample-2026-06-27",
-      "category": "historical-space-object-data",
+      "id": "gcat-satellite-source-of-truth-2026-06-27",
+      "category": "current-and-historical-space-object-data",
       "repositoryPaths": [
-        "src/data/historical/explorerHistoricalCatalog.normalized.json"
+        "data/satellite-source-of-truth/CHECKSUMS.sha256",
+        "data/satellite-source-of-truth/CODEX.md",
+        "data/satellite-source-of-truth/README.md",
+        "data/satellite-source-of-truth/data/objects.csv.gz",
+        "data/satellite-source-of-truth/data/objects.ndjson.gz",
+        "data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite",
+        "data/satellite-source-of-truth/data/overview.json",
+        "data/satellite-source-of-truth/data/quality_issues.csv",
+        "data/satellite-source-of-truth/data/reconstruction_candidates.csv.gz",
+        "data/satellite-source-of-truth/data/snapshot_present_earth_objects.csv.gz",
+        "data/satellite-source-of-truth/data/yearly_object_presence.csv.gz",
+        "data/satellite-source-of-truth/data/yearly_summary.csv",
+        "data/satellite-source-of-truth/data/yearly_summary.json",
+        "data/satellite-source-of-truth/docs/DATA_DICTIONARY.md",
+        "data/satellite-source-of-truth/docs/INTEGRATION.md",
+        "data/satellite-source-of-truth/docs/PROVENANCE.md",
+        "data/satellite-source-of-truth/docs/RECONSTRUCTION.md",
+        "data/satellite-source-of-truth/docs/SCHEMA.sql",
+        "data/satellite-source-of-truth/licenses/GCAT-CC-BY-4.0.md",
+        "data/satellite-source-of-truth/manifest.json",
+        "data/satellite-source-of-truth/provenance.json",
+        "data/satellite-source-of-truth/queries/examples.sql",
+        "data/satellite-source-of-truth/raw/gcat-satcat-2026-06-27.tsv",
+        "data/satellite-source-of-truth/scripts/build.py",
+        "data/satellite-source-of-truth/scripts/update_from_gcat.py",
+        "data/satellite-source-of-truth/scripts/verify.py",
+        "src/data/generated/satelliteCatalog.web.json"
       ],
       "productionBundlePaths": [
         "assets/index-*.js"
       ],
       "originalSource": {
-        "title": "General Catalog of Artificial Space Objects (GCAT), satcat table",
+        "title": "Orbit Studio Satellite Source of Truth v1.0.0 from GCAT satcat",
         "url": "https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
         "publicationUrl": "https://planet4589.org/space/gcat/",
         "publisher": "Jonathan C. McDowell",
-        "version": "satcat source header updated 2026-06-27 22:13:02; release number was not retained in the raw table",
-        "retrievedAt": "2026-06-30",
+        "version": "Package 1.0.0; GCAT satcat source header updated 2026-06-27 22:13:02 UTC",
+        "retrievedAt": "2026-07-29",
         "originalSha256": "15fab511f91d485d5c441091c98a6d03074343c12350fe3cac6a251d7f799956"
       },
       "localSha256": {
-        "src/data/historical/explorerHistoricalCatalog.normalized.json": "7601f3f13e87dc1f5e28b1c5c0e32be7a1eee69aba635acf77a033b276401d73"
+        "data/satellite-source-of-truth/CHECKSUMS.sha256": "bf825beae9311c2702c5c6e2c865ebcb8433717075e8c561fcc264d3f8218a4b",
+        "data/satellite-source-of-truth/CODEX.md": "6f4e6c108ad94f9064914247862304149ef8f11c6d081094704ccd30681e47c4",
+        "data/satellite-source-of-truth/README.md": "608e893b3df1481bdbee1be67f9a5fa92bc0d66a11467b23c0a1e0b0eddf4d2c",
+        "data/satellite-source-of-truth/data/objects.csv.gz": "f5ac5497e0bd2fc79ec4f253776514e0d8614350b011947284b51cc82fc95509",
+        "data/satellite-source-of-truth/data/objects.ndjson.gz": "1f2980e1542a5eda698615df9d7d743598df75d133a90279315d8742eec05ee7",
+        "data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite": "70b7e9cbc06180960f931edef7533b2bc04426b7e6a42576d3b5eb3e20ee82e4",
+        "data/satellite-source-of-truth/data/overview.json": "5077b80021ec30a23ae5a380d5dc86e64cb20d2016e3b18f4a8fb39db7c1ab0f",
+        "data/satellite-source-of-truth/data/quality_issues.csv": "8f4da269a39be182a5aee92241a58a89b0ac7726f900af45beb364974fca3da5",
+        "data/satellite-source-of-truth/data/reconstruction_candidates.csv.gz": "27de4ad790323e9ddd26aaf818a6e0542a4d5697c5ba03bae5b1cc043420eda2",
+        "data/satellite-source-of-truth/data/snapshot_present_earth_objects.csv.gz": "77487395334ec467c67091ac5a427c4785bd00b28a5a83574d779d64a289a735",
+        "data/satellite-source-of-truth/data/yearly_object_presence.csv.gz": "175181afce34a696f34e6a6296398bf60d822d0a570da96486c81e29004cb47f",
+        "data/satellite-source-of-truth/data/yearly_summary.csv": "b44b27b60c504958d5225d16794108cbc7a279d297a596773eda663c2a416290",
+        "data/satellite-source-of-truth/data/yearly_summary.json": "33a3575d4c9ef974ff14c450bec8919d994e35303644f861d3fc7f2b254e3f90",
+        "data/satellite-source-of-truth/docs/DATA_DICTIONARY.md": "bbda479b2d9694177eefa074bd24def5c4760555853754cc075131e284f5b886",
+        "data/satellite-source-of-truth/docs/INTEGRATION.md": "0e15c5b860cc0907b2a20c04a1e23854c06e3ab4dbf6b8d74fa35816d7f42cb7",
+        "data/satellite-source-of-truth/docs/PROVENANCE.md": "0bf5bc4ce00e1ee4dc683b6a2da8e44f646b4093268395bafaa2629387b80009",
+        "data/satellite-source-of-truth/docs/RECONSTRUCTION.md": "fa40ddffc9251ffd9560e3b342c870c652ed5c8cf931a2c356a12f8307c4e4ff",
+        "data/satellite-source-of-truth/docs/SCHEMA.sql": "90a70d9b1e3d3183e8f2e2ec9ab45eab82df01a56201f80b07fff56040670ce0",
+        "data/satellite-source-of-truth/licenses/GCAT-CC-BY-4.0.md": "8acbc4c18fd0c9b0d3d49aaf2dd9489ae059564fffcb3fe25000bf176bf1a888",
+        "data/satellite-source-of-truth/manifest.json": "383cca4c37d2e4866b09729daa4a3f39cc178a891334996bb988c662e95f048d",
+        "data/satellite-source-of-truth/provenance.json": "740b038c8db9bf4d29baa09335e1f93f8526a10b0c5ec73d6bb10d8d04799882",
+        "data/satellite-source-of-truth/queries/examples.sql": "a2b92996a6f4a4425da70940ecc7c020d09996a960efcd8212a0fc21b9fc0ebc",
+        "data/satellite-source-of-truth/raw/gcat-satcat-2026-06-27.tsv": "15fab511f91d485d5c441091c98a6d03074343c12350fe3cac6a251d7f799956",
+        "data/satellite-source-of-truth/scripts/build.py": "11fab2676d7fccdf3c54788c3c12766f24e68c3c9c61fb699c1ba5fe0ba06f5b",
+        "data/satellite-source-of-truth/scripts/update_from_gcat.py": "15bfee17f4bfb29009d6775f52dd95022068d56818831ca2634a06f6c88d4d5e",
+        "data/satellite-source-of-truth/scripts/verify.py": "e47ddb7a815f1d66f40f0c406527af6bf83e331e72baea3a176f4da9a2a6d196",
+        "src/data/generated/satelliteCatalog.web.json": "cd718d210d33769657b428c96f4467f243a79055373a77d30180bcc549321880"
       },
       "processing": [
-        "scripts/build-public-gcat-historical-sample.mjs selects Earth-primary rows, all early catalog numbers through 1200, every twelfth later catalog number, and named milestone records.",
-        "The generator normalizes identity, lifecycle dates, names, ownership, status, and source orbital summaries.",
-        "Orbit Studio reconstructs deterministic educational states from GCAT perigee, apogee, and inclination; those reconstructions are original Orbit Studio outputs and are not observational historical fixes."
+        "The verified v1.0.0 package preserves the immutable 2026-06-27 GCAT satcat snapshot, its exact original checksum, normalized 69,703-record products, SQLite query database, 1957-2026 annual presence, reconstruction candidates, quality ledger, schemas, build scripts, and package checksums.",
+        "python3 data/satellite-source-of-truth/scripts/verify.py validates every package artifact checksum, database schema, record and class counts, annual summaries, snapshot membership, and the package-provided deterministic reconstruction angles.",
+        "scripts/build-satellite-web-catalog.py verifies the package first, queries only the canonical SQLite database, and deterministically exports all 69,620 Earth-associated payload, rocket-body, component, and debris rows into src/data/generated/satelliteCatalog.web.json.",
+        "Completed years use GCAT-derived present_at_period_end membership. The partial 2026 view uses the package-required snapshot_present_earth_objects membership and records the two-row reconciliation difference from the generic partial-year period-end flag.",
+        "The web export preserves GCAT JCAT and available SATCAT identities, classification, owner/status, lifecycle bounds, source perigee, source apogee, source inclination, source orbit epoch, and package reconstruction angles.",
+        "For historical rows without package-precomputed angles, the export applies the package-prescribed SHA-256 algorithm keyed by the stable JCAT identifier. Runtime code never creates a second hash or random reconstruction authority.",
+        "Twenty-one latest members and 244 all-history rows with insufficient or physically invalid orbital envelopes remain catalog-only. Displayed reconstructed states are not observed, live, current, or exact positions."
       ],
       "rights": {
         "verification": "verified",
@@ -405,7 +451,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "This is a bounded sample. Licensing provenance does not imply complete historical coverage or observational position accuracy."
+        "restrictions": "This is the complete packaged GCAT Earth-object membership for the supported four classes at the dated snapshot, not proof of operational status or observational completeness. Preserve attribution, source/reconstruction separation, partial-2026 semantics, catalog-only rows, package checksums, and the prohibition on live/exact wording."
       }
     },
     {
@@ -428,13 +474,14 @@
         "retrievedAt": "2026-07-25"
       },
       "localSha256": {
-        "src/data/explorerCatalog.ts": "cf120765b467c2638561d79319117c4e2e5e9f953f58ae602e78a1825b8991ce",
+        "src/data/explorerCatalog.ts": "196b3e5ac6e71ad47324565a359ab0cb262e17cc72af583747647647261e1eb3",
         "src/data/explorerConstellationArchitecture.ts": "4c133d532fb0c25a74642384d1b5aacb208478c71152aaf84713a141fef310b1",
-        "src/data/explorerEducation.ts": "ee5882b8957d52c3f8ee3154acfe8cf8578fc1c057bec6d787ab460a10e291d2",
-        "src/lib/scenario.ts": "4e79ddd4f46749deb91b2c0eab3e39c51ac5810759f3c13312f6f98377e9abb3"
+        "src/data/explorerEducation.ts": "9c730c2e36e561049898787c2364e790326626bdbec1f20b24a2cce2f34d68ca",
+        "src/lib/scenario.ts": "5f40fbe901f13d68e4aab77ef0d7bf9abd5b7248a0459c4c831178bff74454d3"
       },
       "processing": [
         "Orbit Studio authors wrote the catalog selection, educational summaries, semantic search terms, simplified regions, representative orbit elements, and display geometry.",
+        "Curated names, aliases, constellation associations, and educational content are keyed onto matching GCAT catalog numbers as a presentation layer; they do not replace GCAT membership or source orbital constraints.",
         "Official publisher pages were used to verify mission identities, nominal constellation architecture, orbit-family context, and the existence and geographic arrangement of NASA Deep Space Network complexes.",
         "The representative plane samples, display colors, tolerances, synthetic orbital angles, approximate populations, and simplified geographic boundaries are Orbit Studio presentation data rather than copied operational ephemerides, boundary datasets, or live catalog records."
       ],
@@ -583,8 +630,8 @@
         "retrievedAt": "2026-07-18"
       },
       "localSha256": {
-        "scripts/report-orbital-population-validation.ts": "24e4ecbba0bb138a02661348ae234da8ae76812d29bafdec18afd00ffed44fda",
-        "src/rendering/catalogPopulationValidation.test.ts": "42a2bd02eea74fc0f873abf1f34e04548ea1c70f43d315c23e198e2f6cbc16e2",
+        "scripts/report-orbital-population-validation.ts": "66b4e41ee170c394766d96bb3d4c7c28d45ae66d56486c96b7c4d993c40565b6",
+        "src/rendering/catalogPopulationValidation.test.ts": "7efc5acd3a091373f1ec2651c75055c164c1bdb3cd20f24f031a921d1febc1ae",
         "src/rendering/catalogMotion.test.ts": "c126f9ed3c82d8bf1fa97db3b48d229e657d6d4d7cc1bf0dbb533e8aff155cf8",
         "src/rendering/orbitPathSampling.test.ts": "4a8ebf6106f94ce24355697d331a12157d2cd9a0b72379564ac1fe7bc71d1268"
       },
@@ -625,9 +672,9 @@
       },
       "localSha256": {},
       "processing": [
-        "scripts/build-explorer-celestrak-catalog.mjs may acquire documented groups into data/local-only/celestrak.",
-        "The local generator deduplicates records, derives display metadata, and writes an acquisition receipt.",
-        "The public release mode imports an empty first-party guard and cannot bundle local data unless ORBIT_CURRENT_CATALOG_MODE=local is explicit."
+        "No CelesTrak response, transformed record, acquisition script, runtime override, or test fixture is included.",
+        "Production and review have no code path that reads ignored local CelesTrak material.",
+        "Any future acquisition or redistribution path requires a new explicit provenance and architecture decision."
       ],
       "rights": {
         "verification": "unresolved",
@@ -695,8 +742,8 @@
       },
       "localSha256": {},
       "processing": [
-        "Orbit Studio acquisition scripts can download authenticated files into ignored raw-data directories.",
-        "No Space-Track response file, transformed record, fixture, screenshot derived from a response, or credential is included in public source or production output."
+        "No Space-Track response, authenticated acquisition script, transformed record, fixture, screenshot derived from a response, or credential is included in public source or production output.",
+        "Any future authenticated acquisition or redistribution path requires a new explicit provenance and architecture decision."
       ],
       "rights": {
         "verification": "unresolved",

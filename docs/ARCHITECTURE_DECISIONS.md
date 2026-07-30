@@ -27,13 +27,18 @@ attribution, separate source/deployment redistribution decisions, and release in
 are separately generated from `package-lock.json`, the dependency source of truth; no competing
 hand-maintained dependency manifest exists.
 
-The public build contains an empty project-authored current-catalog guard and an honestly labeled
-representative orbit scenario. CelesTrak records may be directly acquired only into ignored local
-storage and injected through the explicit `ORBIT_CURRENT_CATALOG_MODE=local` build boundary. Release
-validation accepts only the default release mode and audits the built output. This keeps locally
-acquired data from becoming a competing public-release authority. Vite writes
-`orbit-release.json` into the bundle, and provenance validation rejects any mode other than
-`release`.
+The public build uses the verified Orbit Studio Satellite Source of Truth v1.0.0 SQLite database as
+its single latest-public and historical membership authority. The database is built from the
+immutable GCAT `satcat` snapshot dated 2026-06-27 under CC BY 4.0. A deterministic generated browser
+artifact contains all supported Earth-associated payload, rocket-body, component, and debris rows;
+it is a derived view, not a second database.
+
+Missing angular elements are generated once by the package/export contract and disclosed; source
+identity, annual/latest membership, lifecycle, orbit epoch, perigee, apogee, and inclination remain
+separate from those generated values. Physically invalid envelopes remain catalog-only. CelesTrak
+and Space-Track runtime/import authorities, the prior bounded GCAT sample, and optional local build
+overrides are removed. Vite writes `orbit-release.json` into the bundle, and provenance validation
+requires `release-public-gcat`.
 
 Reason: public availability and technical access do not prove redistribution permission. Unknown
 rights are resolved by exclusion while preserving an understandable, scientifically honest

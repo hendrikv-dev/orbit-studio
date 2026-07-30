@@ -16,14 +16,12 @@ import {
   ChevronRight,
   Clock,
   CircleDot,
-  Compass,
   Crosshair,
   Eye,
   ExternalLink,
   Filter,
   ImageOff,
   Menu,
-  MoreHorizontal,
   Palette,
   Pause,
   Play,
@@ -43,6 +41,8 @@ import {
   explorerCategoryLabel,
   currentExplorerSnapshot,
   explorerEntryForId,
+  explorerCurrentCatalogMode,
+  explorerLatestPublicCatalogDate,
   filterExplorerCatalogSnapshot,
   prioritizeExplorerSearchResults,
   explorerSnapshotForYear,
@@ -54,11 +54,6 @@ import {
   type ExplorerCategoryId,
   type ExplorerSnapshot,
 } from "../../data/explorerCatalog";
-import {
-  explorerCelestrakSnapshotDate,
-  explorerCurrentCatalogMode,
-  explorerCurrentReferenceDate,
-} from "../../data/explorerCelestrakCatalog";
 import { explorerHistoricalCatalog } from "../../data/explorerHistoricalCatalog";
 import {
   explorerDiscoveryCollections,
@@ -101,6 +96,7 @@ import {
 } from "../../review/reviewBridge";
 import { readExplorerRendererStats } from "../../rendering/explorerRendererDiagnostics";
 import { AppErrorBoundary } from "../AppErrorBoundary";
+import { OrbitAppMenu, ShowInterfaceButton } from "../layout/OrbitAppMenu";
 import {
   explorerMarkerStyle,
   type ExplorerColorMode,
@@ -110,7 +106,12 @@ import {
 interface ExplorerViewProps {
   activeSnapshot: ExplorerSnapshot;
   auroraModeEnabled?: boolean;
+  interfaceVisible: boolean;
+  onHideInterface: () => void;
+  onShowInterface: () => void;
   onSelectSnapshot: (snapshot: ExplorerSnapshot) => void;
+  onOpenHome: () => void;
+  onOpenExplorer: () => void;
   onOpenPlayground: () => void;
 }
 
@@ -127,6 +128,7 @@ const explorerFramePresets: Array<{ id: ExplorerRegimeFilter; label: string; foc
 const explorerObjectTypeFilters = [
   { id: "", label: "All Objects", shortLabel: "All" },
   { id: "payloads", label: "Spacecraft", shortLabel: "Spacecraft" },
+  { id: "components", label: "Components", shortLabel: "Components" },
   { id: "debris", label: "Debris", shortLabel: "Debris" },
   { id: "ground-stations", label: "Ground Stations", shortLabel: "Stations" },
   { id: "rocket-bodies", label: "Launch Vehicles", shortLabel: "Launch" },
@@ -290,9 +292,9 @@ function explorerOrbitVisualizationSummary(
     }`;
   }
 
-  if (coverage.status === "current-reference-only") {
-    return `${renderableOrbitStateCount.toLocaleString()} representative reference ${
-      renderableOrbitStateCount === 1 ? "orbit" : "orbits"
+  if (coverage.status === "latest-public-catalog") {
+    return `${renderableOrbitStateCount.toLocaleString()} reconstructed educational ${
+      renderableOrbitStateCount === 1 ? "position" : "positions"
     }`;
   }
 
@@ -328,6 +330,7 @@ function ExplorerObjectTypeIcon({
   size?: number;
 }) {
   if (id === "payloads") return <Satellite size={size} />;
+  if (id === "components") return <Box size={size} />;
   if (id === "debris") return <Sparkles size={size} />;
   if (id === "ground-stations") return <RadioTower size={size} />;
   if (id === "rocket-bodies") return <Rocket size={size} />;
@@ -1200,8 +1203,8 @@ function ExplorerTimeline({
           ? `${activeCoverage.catalogOnlyObjectCount!.toLocaleString()} unavailable`
           : null,
       ].filter(Boolean).join(" · ")
-    : activeCoverage.status === "current-reference-only"
-      ? `${visibleRenderableOrbitStateCount.toLocaleString()} representative`
+    : activeCoverage.status === "latest-public-catalog"
+      ? `${visibleRenderableOrbitStateCount.toLocaleString()} reconstructed`
       : `${visibleRenderableOrbitStateCount.toLocaleString()} source-backed`;
   const historicalCatalogOnly = activeCoverage.status === "historical-loaded" &&
     activeCoverage.catalogObjectCount > 0 && activeCoverage.renderableOrbitStateCount === 0;
@@ -1211,9 +1214,9 @@ function ExplorerTimeline({
         ? `${activeCoverage.label}; source and reconstructed states are identified separately`
         : activeCoverage.status === "historical-not-loaded"
           ? `No historical catalog loaded for ${activeSnapshot.year}`
-          : activeCoverage.status === "current-reference-only"
-            ? "Current records are not bundled; representative reference orbits are shown"
-            : "Locally acquired current catalog loaded";
+          : activeCoverage.status === "latest-public-catalog"
+            ? "Complete GCAT membership · reconstructed educational positions"
+            : activeCoverage.label;
   const selectFromClientX = useCallback((clientX: number, snap: boolean) => {
     const bounds = controlRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -1388,7 +1391,12 @@ function ExplorerTimeline({
 export function ExplorerView({
   activeSnapshot,
   auroraModeEnabled = false,
+  interfaceVisible,
+  onHideInterface,
+  onShowInterface,
   onSelectSnapshot,
+  onOpenHome,
+  onOpenExplorer,
   onOpenPlayground,
 }: ExplorerViewProps) {
   const [query, setQuery] = useState("");
@@ -1412,7 +1420,6 @@ export function ExplorerView({
   const [playbackSheetOpen, setPlaybackSheetOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [overflowOpen, setOverflowOpen] = useState(false);
   const [contactAnalysisEnabled, setContactAnalysisEnabled] = useState(false);
   const [starFieldVisible, setStarFieldVisible] = useState(true);
   const [sceneVisibility, setSceneVisibility] = useState(createExplorerVisibilityState);
@@ -1420,7 +1427,6 @@ export function ExplorerView({
   const layersPanelRef = useRef<HTMLElement | null>(null);
   const catalogLauncherRef = useRef<HTMLButtonElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
-  const overflowMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const detailsInvokerRef = useRef<{ entryId: string; element: HTMLElement } | null>(null);
   const catalogPanel = useExplorerPanelController(setCatalogOpen);
@@ -1428,7 +1434,6 @@ export function ExplorerView({
   const orbitPanel = useExplorerPanelController(setOrbitSheetOpen);
   const playbackPanel = useExplorerPanelController(setPlaybackSheetOpen);
   const filterMenu = useExplorerPanelController(setFilterMenuOpen);
-  const overflowMenu = useExplorerPanelController(setOverflowOpen);
   const scenario = useSimulationStore((state) => state.scenario);
   const isPlaying = useSimulationStore((state) => state.isPlaying);
   const selectSatellite = useSimulationStore((state) => state.selectSatellite);
@@ -1637,9 +1642,7 @@ export function ExplorerView({
     snapshotView.dataCoverage,
     loadedRenderableOrbitStateCount,
   );
-  const loadedCoverageLabel = snapshotView.dataCoverage.status === "current-loaded"
-      ? "Locally acquired current orbits"
-      : snapshotView.dataCoverage.label;
+  const loadedCoverageLabel = snapshotView.dataCoverage.label;
   const historicalCatalogDate = new Date(activeSnapshot.timestampIso).toISOString().slice(0, 10);
   const sceneSatelliteIds = useMemo(
     () => new Set(scenario.satellites.map((satellite) => satellite.id)),
@@ -1825,15 +1828,13 @@ export function ExplorerView({
         expectedRenderedInstanceCount: resolvedVisibility.satelliteIds.length,
       },
       datasets: {
-        catalogVersion: explorerCelestrakSnapshotDate
-          ? `celestrak-local-gp-${explorerCelestrakSnapshotDate}`
-          : `orbit-reference-${explorerCurrentReferenceDate}`,
+        catalogVersion: `gcat-satcat-${explorerLatestPublicCatalogDate}`,
         currentCatalogMode: explorerCurrentCatalogMode,
-        currentCatalogRecordCount: explorerCelestrakSnapshotDate
-          ? snapshotView.records.filter(
-              (entry) => entry.sourceId === "celestrak-gp-local-acquisition",
-            ).length
-          : 0,
+        currentCatalogRecordCount: 0,
+        latestPublicCatalogMembershipCount:
+          snapshotView.dataCoverage.status === "latest-public-catalog"
+            ? snapshotView.dataCoverage.catalogObjectCount
+            : 0,
         historicalDatasetVersion: historicalVersionParts.join(":"),
         historicalGeneratedAt: explorerHistoricalCatalog.generatedAt,
         historicalSourceFingerprint: explorerHistoricalCatalog.sourceFingerprint ?? null,
@@ -1920,11 +1921,9 @@ export function ExplorerView({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (!interfaceVisible || event.key !== "Escape") return;
       if (filterMenuOpen) {
         filterMenu.close();
-      } else if (overflowOpen) {
-        overflowMenu.close();
       } else if (searchOpen) {
         setSearchOpen(false);
       } else if (catalogOpen) {
@@ -1956,11 +1955,10 @@ export function ExplorerView({
     mobileMenuOpen,
     orbitPanel,
     orbitSheetOpen,
-    overflowMenu,
-    overflowOpen,
     playbackPanel,
     playbackSheetOpen,
     searchOpen,
+    interfaceVisible,
   ]);
 
   useEffect(() => {
@@ -1999,15 +1997,14 @@ export function ExplorerView({
   }, [layersOpen, layersPanel]);
 
   useEffect(() => {
-    if (!filterMenuOpen && !overflowOpen) return;
+    if (!filterMenuOpen) return;
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (filterMenuOpen && !filterMenuRef.current?.contains(target)) filterMenu.close(false);
-      if (overflowOpen && !overflowMenuRef.current?.contains(target)) overflowMenu.close(false);
+      if (!filterMenuRef.current?.contains(target)) filterMenu.close(false);
     };
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [filterMenu, filterMenuOpen, overflowMenu, overflowOpen]);
+  }, [filterMenu, filterMenuOpen]);
 
   useEffect(() => {
     setPlaying(explorerPlaybackRunning);
@@ -2020,15 +2017,26 @@ export function ExplorerView({
     setTimeScale,
   ]);
   return (
-    <main className="explorer-shell">
+    <main className={`explorer-shell ${interfaceVisible ? "" : "interface-hidden"}`}>
       <header className="explorer-header">
-        <div className="explorer-brand">
-          <span>OS</span>
-          <div>
-            <strong>Orbit Studio</strong>
-            <small>Explorer</small>
-          </div>
-        </div>
+        <button
+          aria-label="Open Orbit Studio home"
+          className="explorer-brand explorer-brand-button"
+          type="button"
+          onClick={onOpenHome}
+        >
+          <img
+            alt="Orbit Studio Explorer"
+            className="explorer-brand-logo explorer-brand-logo-full"
+            src="/brand/orbit-studio-explorer-logo.png"
+          />
+          <img
+            alt=""
+            aria-hidden="true"
+            className="explorer-brand-logo explorer-brand-logo-icon"
+            src="/brand/orbit-studio-explorer-icon.png"
+          />
+        </button>
         <div
           className="explorer-global-search"
           data-explorer-catalog-context
@@ -2185,7 +2193,6 @@ export function ExplorerView({
               onClick={(event) => {
                 setSearchOpen(false);
                 filterMenu.toggleFrom(event.currentTarget);
-                overflowMenu.close(false);
               }}
             >
               <ExplorerObjectTypeIcon id={selectedObjectTypeFilter.id} />
@@ -2215,28 +2222,13 @@ export function ExplorerView({
         </div>
         <ExplorerTimeChip activeSnapshot={activeSnapshot} />
         <div className="explorer-header-actions">
-          <div className="explorer-overflow-wrap" ref={overflowMenuRef}>
-            <button
-              aria-label="Open product menu"
-              aria-expanded={overflowOpen}
-              aria-haspopup="menu"
-              className={overflowOpen ? "active" : ""}
-              type="button"
-              onClick={(event) => {
-                setSearchOpen(false);
-                setMobileMenuOpen(false);
-                overflowMenu.toggleFrom(event.currentTarget);
-                filterMenu.close(false);
-                setLayersOpen(false);
-              }}
-            ><MoreHorizontal size={18} /></button>
-            {overflowOpen && (
-              <div className="explorer-product-menu" aria-label="Product menu" role="menu">
-                <button role="menuitem" type="button" onClick={onOpenPlayground}><Compass size={15} />Open Playground</button>
-                <a href="https://github.com/hendrikv-dev/ai-projects" role="menuitem" target="_blank" rel="noreferrer">GitHub</a>
-              </div>
-            )}
-          </div>
+          <OrbitAppMenu
+            activeApp="explorer"
+            onHideInterface={onHideInterface}
+            onOpenExplorer={onOpenExplorer}
+            onOpenHome={onOpenHome}
+            onOpenPlayground={onOpenPlayground}
+          />
         </div>
       </header>
 
@@ -2271,7 +2263,6 @@ export function ExplorerView({
           layersPanel.toggleFrom(event.currentTarget);
           setMobileMenuOpen(false);
           setCatalogOpen(false);
-          setOverflowOpen(false);
         }}
       >
         <Settings size={20} />
@@ -2576,7 +2567,6 @@ export function ExplorerView({
             onClick={() => {
               setSearchOpen(false);
               filterMenu.close(false);
-              overflowMenu.close(false);
               setMobileMenuOpen((current) => !current);
             }}
           >
@@ -2851,6 +2841,7 @@ export function ExplorerView({
         visibleCatalogObjectCount={loadedCatalogObjectCount}
         visibleRenderableOrbitStateCount={loadedRenderableOrbitStateCount}
       />
+      {!interfaceVisible && <ShowInterfaceButton onShow={onShowInterface} />}
     </main>
   );
 }

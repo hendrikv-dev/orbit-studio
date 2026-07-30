@@ -1,4 +1,8 @@
-import { propagateTwoBody } from "../physics/kepler";
+import {
+  prepareTwoBodyPropagation,
+  propagatePreparedTwoBodyAtMs,
+  propagateTwoBody,
+} from "../physics/kepler";
 import { tleToCartesian } from "../physics/tle";
 import { isRenderableCartesianState } from "../lib/propagation";
 import type { CatalogPropagationSatellite } from "./catalogPropagationMessages";
@@ -20,6 +24,30 @@ export const CATALOG_REQUEST_LEAD_SEGMENTS = 1;
 // with the first GPU upload. The predictive horizon must budget for that path rather than using
 // the much lower steady-state propagation duration.
 export const CATALOG_INITIAL_WORKER_LATENCY_MS = 2_000;
+export const CATALOG_MAX_WORKER_COUNT = 3;
+export const CATALOG_SUPPORTED_MAX_TIME_SCALE = 2_500;
+
+export function catalogPropagationWorkerCount(
+  satelliteCount: number,
+  hardwareConcurrency: number,
+): number {
+  const populationWorkerCount = Math.max(
+    1,
+    Math.ceil(Math.max(0, satelliteCount) / 512),
+  );
+  const availableConcurrency = Number.isFinite(hardwareConcurrency)
+    ? Math.max(1, Math.floor(hardwareConcurrency))
+    : 4;
+  const concurrencyWithMainThreadCapacity = Math.max(
+    1,
+    Math.floor(availableConcurrency / 2),
+  );
+  return Math.min(
+    CATALOG_MAX_WORKER_COUNT,
+    concurrencyWithMainThreadCapacity,
+    populationWorkerCount,
+  );
+}
 
 export interface CatalogPropagationHorizon {
   sampleTimestampsMs: Float64Array;
@@ -225,16 +253,30 @@ export function propagateCatalogHorizon(
   const positions = new Float32Array(sampleTimestampsMs.length * sampleStride);
   const velocities = new Float32Array(sampleTimestampsMs.length * sampleStride);
   const valid = new Uint8Array(satellites.length);
+  const preparedTwoBodyStates = satellites.map((satellite) => {
+    if (satellite.propagationMode === "sgp4" && satellite.tle) return null;
+    try {
+      return prepareTwoBodyPropagation(satellite.keplerian);
+    } catch {
+      return null;
+    }
+  });
 
   satellites.forEach((satellite, satelliteIndex) => {
     let satelliteValid = true;
     for (let sampleIndex = 0; sampleIndex < sampleTimestampsMs.length; sampleIndex += 1) {
       try {
-        const state = propagateCatalogSatellite(
-          satellite,
-          new Date(sampleTimestampsMs[sampleIndex]),
-        );
-        if (!isRenderableCartesianState(state)) {
+        const prepared = preparedTwoBodyStates[satelliteIndex];
+        const targetTimestampMs = sampleTimestampsMs[sampleIndex];
+        const state = prepared
+          ? propagatePreparedTwoBodyAtMs(prepared, targetTimestampMs)
+          : propagateCatalogSatellite(satellite, new Date(targetTimestampMs));
+        if (
+          state.positionKm.some((value) => !Number.isFinite(value)) ||
+          state.velocityKmS.some((value) => !Number.isFinite(value)) ||
+          Math.hypot(...state.positionKm) <= 0 ||
+          Math.hypot(...state.velocityKmS) <= 0
+        ) {
           satelliteValid = false;
           break;
         }
