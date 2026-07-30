@@ -12,6 +12,22 @@ import { cross, dot, magnitude, scale, subtract } from "./vector";
 
 const EPSILON = 1e-9;
 
+export interface PreparedTwoBodyPropagation {
+  epochMs: number;
+  eccentricity: number;
+  semiMajorAxisKm: number;
+  semiLatusRectumKm: number;
+  meanMotionRadS: number;
+  meanAnomalyAtEpochRad: number;
+  velocityScaleKmS: number;
+  rotation: readonly [number, number, number, number, number, number];
+}
+
+export interface TwoBodyStateVectors {
+  positionKm: [number, number, number];
+  velocityKmS: [number, number, number];
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -217,12 +233,108 @@ export function propagateKeplerian(
   };
 }
 
+export function prepareTwoBodyPropagation(
+  elements: KeplerianElements,
+  mu = EARTH_MU_KM3_S2,
+): PreparedTwoBodyPropagation {
+  if (!isValidKeplerian(elements)) {
+    throw new Error("Invalid Keplerian elements");
+  }
+  const a = elements.semiMajorAxisKm;
+  const e = elements.eccentricity;
+  const inclination = degreesToRadians(elements.inclinationDeg);
+  const raan = degreesToRadians(elements.raanDeg);
+  const argumentOfPeriapsis = degreesToRadians(elements.argumentOfPeriapsisDeg);
+  const trueAnomalyAtEpoch = degreesToRadians(elements.trueAnomalyDeg);
+  const eccentricAnomalyAtEpoch = trueToEccentricAnomaly(
+    trueAnomalyAtEpoch,
+    e,
+  );
+  const semiLatusRectumKm = a * (1 - e * e);
+  const cosRaan = Math.cos(raan);
+  const sinRaan = Math.sin(raan);
+  const cosArgument = Math.cos(argumentOfPeriapsis);
+  const sinArgument = Math.sin(argumentOfPeriapsis);
+  const cosInclination = Math.cos(inclination);
+  const sinInclination = Math.sin(inclination);
+
+  return {
+    epochMs: Date.parse(elements.epoch),
+    eccentricity: e,
+    semiMajorAxisKm: a,
+    semiLatusRectumKm,
+    meanMotionRadS: Math.sqrt(mu / Math.pow(a, 3)),
+    meanAnomalyAtEpochRad:
+      eccentricAnomalyAtEpoch - e * Math.sin(eccentricAnomalyAtEpoch),
+    velocityScaleKmS: Math.sqrt(mu / semiLatusRectumKm),
+    rotation: [
+      cosRaan * cosArgument - sinRaan * sinArgument * cosInclination,
+      -cosRaan * sinArgument - sinRaan * cosArgument * cosInclination,
+      sinRaan * cosArgument + cosRaan * sinArgument * cosInclination,
+      -sinRaan * sinArgument + cosRaan * cosArgument * cosInclination,
+      sinArgument * sinInclination,
+      cosArgument * sinInclination,
+    ],
+  };
+}
+
+export function propagatePreparedTwoBodyAtMs(
+  prepared: PreparedTwoBodyPropagation,
+  targetTimestampMs: number,
+): TwoBodyStateVectors {
+  if (!Number.isFinite(targetTimestampMs)) {
+    throw new RangeError("Two-body propagation timestamp must be finite.");
+  }
+  const elapsedSeconds = (targetTimestampMs - prepared.epochMs) / 1000;
+  const meanAnomaly =
+    prepared.meanAnomalyAtEpochRad +
+    prepared.meanMotionRadS * elapsedSeconds;
+  const eccentricAnomaly = solveEccentricAnomaly(
+    meanAnomaly,
+    prepared.eccentricity,
+  );
+  const trueAnomaly = normalizeAngleRadians(
+    eccentricToTrueAnomaly(eccentricAnomaly, prepared.eccentricity),
+  );
+  const cosTrueAnomaly = Math.cos(trueAnomaly);
+  const sinTrueAnomaly = Math.sin(trueAnomaly);
+  const radiusKm =
+    prepared.semiLatusRectumKm /
+    (1 + prepared.eccentricity * cosTrueAnomaly);
+  const xPerifocal = radiusKm * cosTrueAnomaly;
+  const yPerifocal = radiusKm * sinTrueAnomaly;
+  const vxPerifocal = -prepared.velocityScaleKmS * sinTrueAnomaly;
+  const vyPerifocal =
+    prepared.velocityScaleKmS *
+    (prepared.eccentricity + cosTrueAnomaly);
+  const [m11, m12, m21, m22, m31, m32] = prepared.rotation;
+
+  return {
+    positionKm: [
+      m11 * xPerifocal + m12 * yPerifocal,
+      m21 * xPerifocal + m22 * yPerifocal,
+      m31 * xPerifocal + m32 * yPerifocal,
+    ],
+    velocityKmS: [
+      m11 * vxPerifocal + m12 * vyPerifocal,
+      m21 * vxPerifocal + m22 * vyPerifocal,
+      m31 * vxPerifocal + m32 * vyPerifocal,
+    ],
+  };
+}
+
 export function propagateTwoBody(
   elements: KeplerianElements,
   targetDate: Date,
   mu = EARTH_MU_KM3_S2,
 ): CartesianState {
-  return keplerianToCartesian(propagateKeplerian(elements, targetDate, mu), mu);
+  return {
+    ...propagatePreparedTwoBodyAtMs(
+      prepareTwoBodyPropagation(elements, mu),
+      targetDate.getTime(),
+    ),
+    epoch: targetDate.toISOString(),
+  };
 }
 
 export function orbitalPeriodSeconds(

@@ -92,15 +92,15 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/index-*.js`
 - Restrictions and notes: The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description.
 
-## General Catalog of Artificial Space Objects (GCAT), satcat table
+## Orbit Studio Satellite Source of Truth v1.0.0 from GCAT satcat
 
-- Inventory ID: `gcat-public-historical-sample-2026-06-27`
-- Category: historical-space-object-data
+- Inventory ID: `gcat-satellite-source-of-truth-2026-06-27`
+- Category: current-and-historical-space-object-data
 - Release status: retained
 - Release 1.0 included: yes
 - Publisher or rights holder: Jonathan C. McDowell
-- Version or snapshot: satcat source header updated 2026-06-27 22:13:02; release number was not retained in the raw table
-- Retrieval date: 2026-06-30
+- Version or snapshot: Package 1.0.0; GCAT satcat source header updated 2026-06-27 22:13:02 UTC
+- Retrieval date: 2026-07-29
 - Authoritative source: https://planet4589.org/space/gcat/
 - Authoritative source: https://planet4589.org/space/gcat/tsv/cat/satcat.tsv
 - Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0); GCAT expressly permits reproduction with citation.
@@ -110,9 +110,9 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `src/data/historical/explorerHistoricalCatalog.normalized.json`
+- Repository paths: `data/satellite-source-of-truth/CHECKSUMS.sha256`, `data/satellite-source-of-truth/CODEX.md`, `data/satellite-source-of-truth/README.md`, `data/satellite-source-of-truth/data/objects.csv.gz`, `data/satellite-source-of-truth/data/objects.ndjson.gz`, `data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite`, `data/satellite-source-of-truth/data/overview.json`, `data/satellite-source-of-truth/data/quality_issues.csv`, `data/satellite-source-of-truth/data/reconstruction_candidates.csv.gz`, `data/satellite-source-of-truth/data/snapshot_present_earth_objects.csv.gz`, `data/satellite-source-of-truth/data/yearly_object_presence.csv.gz`, `data/satellite-source-of-truth/data/yearly_summary.csv`, `data/satellite-source-of-truth/data/yearly_summary.json`, `data/satellite-source-of-truth/docs/DATA_DICTIONARY.md`, `data/satellite-source-of-truth/docs/INTEGRATION.md`, `data/satellite-source-of-truth/docs/PROVENANCE.md`, `data/satellite-source-of-truth/docs/RECONSTRUCTION.md`, `data/satellite-source-of-truth/docs/SCHEMA.sql`, `data/satellite-source-of-truth/licenses/GCAT-CC-BY-4.0.md`, `data/satellite-source-of-truth/manifest.json`, `data/satellite-source-of-truth/provenance.json`, `data/satellite-source-of-truth/queries/examples.sql`, `data/satellite-source-of-truth/raw/gcat-satcat-2026-06-27.tsv`, `data/satellite-source-of-truth/scripts/build.py`, `data/satellite-source-of-truth/scripts/update_from_gcat.py`, `data/satellite-source-of-truth/scripts/verify.py`, `src/data/generated/satelliteCatalog.web.json`
 - Production paths: `assets/index-*.js`
-- Restrictions and notes: This is a bounded sample. Licensing provenance does not imply complete historical coverage or observational position accuracy.
+- Restrictions and notes: This is the complete packaged GCAT Earth-object membership for the supported four classes at the dated snapshot, not proof of operational status or observational completeness. Preserve attribution, source/reconstruction separation, partial-2026 semantics, catalog-only rows, package checksums, and the prohibition on live/exact wording.
 
 ## Orbit Studio curated Explorer educational reference compilation
 

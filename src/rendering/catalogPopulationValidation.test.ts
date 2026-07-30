@@ -1,6 +1,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { SatelliteModel } from "../lib/scenario";
 import { propagateSatellite } from "../lib/propagation";
+import {
+  keplerianToCartesian,
+  prepareTwoBodyPropagation,
+  propagateKeplerian,
+  propagatePreparedTwoBodyAtMs,
+} from "../physics/kepler";
+import { EARTH_RADIUS_KM } from "../physics/constants";
 import { tleToCartesian, type TleData } from "../physics/tle";
 import {
   createExplorerScenario,
@@ -11,12 +18,15 @@ import { writeInterpolatedThreePositions } from "./catalogMotion";
 import {
   CATALOG_INTERPOLATION_SEGMENT_MS,
   CATALOG_INITIAL_WORKER_LATENCY_MS,
+  CATALOG_MAX_WORKER_COUNT,
   CATALOG_REQUEST_LEAD_SEGMENTS,
+  CATALOG_SUPPORTED_MAX_TIME_SCALE,
   catalogPropagationHorizonDisposition,
   catalogPropagationHorizonCovers,
   catalogPropagationHorizonNeedsRefresh,
   catalogPropagationHorizonTimestamps,
   catalogPropagationInputsEqual,
+  catalogPropagationWorkerCount,
   propagateCatalogHorizon,
   propagateCatalogWindow,
 } from "./catalogPropagation";
@@ -46,18 +56,26 @@ describe("catalog population propagation", () => {
 
   beforeAll(() => {
     satellites = createExplorerScenario(currentExplorerSnapshot).satellites;
-    const representativeIds = new Set([
-      "explorer-iss",
-      "explorer-hubble",
-      "explorer-gps",
-      "explorer-goes",
-      "explorer-molniya-reference",
-      "explorer-sentinel",
-    ]);
-    representativeSatellites = satellites.filter((satellite) =>
-      representativeIds.has(satellite.id),
-    );
-    expect(representativeSatellites).toHaveLength(representativeIds.size);
+    const altitudeKm = (satellite: SatelliteModel) =>
+      satellite.keplerian.semiMajorAxisKm - EARTH_RADIUS_KM;
+    representativeSatellites = [
+      satellites.find((satellite) => satellite.id === "explorer-iss"),
+      satellites.find((satellite) => satellite.id === "explorer-hubble"),
+      satellites.find(
+        (satellite) => satellite.catalogMetadata?.categoryId === "rocket-bodies",
+      ),
+      satellites.find(
+        (satellite) => satellite.catalogMetadata?.categoryId === "debris",
+      ),
+      satellites.find(
+        (satellite) => altitudeKm(satellite) > 15_000 && altitudeKm(satellite) < 30_000,
+      ),
+      satellites.find(
+        (satellite) => Math.abs(altitudeKm(satellite) - 35_786) < 2_000,
+      ),
+    ].filter((satellite): satellite is SatelliteModel => Boolean(satellite));
+    expect(satellites).toHaveLength(33_474);
+    expect(representativeSatellites).toHaveLength(6);
   });
 
   it("matches the independently published Vallado/Python-SGP4 Vanguard example", () => {
@@ -80,7 +98,7 @@ describe("catalog population propagation", () => {
     expect(distance(computed.velocityKmS, referenceVelocityKmS)).toBeLessThan(0.00001);
   });
 
-  it("keeps every release reference orbit on the same authoritative batch path", () => {
+  it("keeps a cross-class release population sample on the same authoritative batch path", () => {
     for (const satellite of representativeSatellites) {
       expect(satellite).toBeDefined();
       expect(satellite.propagationMode).toBe("two-body");
@@ -96,6 +114,25 @@ describe("catalog population propagation", () => {
       expect(distance(batch.startVelocities, exactStart.velocityKmS)).toBeLessThan(0.000002);
       expect(distance(batch.endPositions, exactEnd.positionKm)).toBeLessThan(0.002);
       expect(distance(batch.endVelocities, exactEnd.velocityKmS)).toBeLessThan(0.000002);
+    }
+  });
+
+  it("keeps prepared worker propagation equivalent to the unprepared Keplerian composition", () => {
+    for (const satellite of representativeSatellites) {
+      const prepared = prepareTwoBodyPropagation(satellite.keplerian);
+      for (const offsetMs of [0, 240_000, 5_000_000]) {
+        const targetMs = Date.parse(satellite.keplerian.epoch) + offsetMs;
+        const preparedState = propagatePreparedTwoBodyAtMs(prepared, targetMs);
+        const referenceState = keplerianToCartesian(
+          propagateKeplerian(satellite.keplerian, new Date(targetMs)),
+        );
+        expect(
+          distance(preparedState.positionKm, referenceState.positionKm),
+        ).toBeLessThan(1e-9);
+        expect(
+          distance(preparedState.velocityKmS, referenceState.velocityKmS),
+        ).toBeLessThan(1e-12);
+      }
     }
   });
 
@@ -183,6 +220,35 @@ describe("catalog population propagation", () => {
     }
   });
 
+  it("reserves main-thread capacity for full-population interpolation and GPU commits", () => {
+    expect(catalogPropagationWorkerCount(33_474, 8)).toBe(3);
+    expect(catalogPropagationWorkerCount(33_474, 16)).toBe(
+      CATALOG_MAX_WORKER_COUNT,
+    );
+    expect(catalogPropagationWorkerCount(1_024, 8)).toBe(2);
+    expect(catalogPropagationWorkerCount(33_474, 2)).toBe(1);
+    expect(catalogPropagationWorkerCount(33_474, Number.NaN)).toBe(2);
+  });
+
+  it("prewarms one horizon for direct transitions across every Explorer speed", () => {
+    const startMs = Date.parse("2026-07-18T12:00:00.000Z");
+    const timestamps = catalogPropagationHorizonTimestamps(
+      startMs,
+      CATALOG_SUPPORTED_MAX_TIME_SCALE,
+      CATALOG_INITIAL_WORKER_LATENCY_MS,
+    );
+    for (const speed of [1, 10, 100, 1_000, 2_500]) {
+      expect(
+        catalogPropagationHorizonNeedsRefresh(
+          timestamps,
+          startMs,
+          speed,
+          CATALOG_INITIAL_WORKER_LATENCY_MS,
+        ),
+      ).toBe(false);
+    }
+  });
+
   it("expands a cold-start horizon without increasing interpolation segment length", () => {
     const startMs = Date.parse("2026-07-18T12:00:00.000Z");
     const timestamps = catalogPropagationHorizonTimestamps(
@@ -242,6 +308,16 @@ describe("catalog population propagation", () => {
         Float64Array.from([4_000, 5_000]),
         Float64Array.from([3_500, 4_500, 5_500]),
         2_500,
+      ),
+    ).toBe("discard");
+  });
+
+  it("discards a staged future horizon after an authoritative backward reset", () => {
+    expect(
+      catalogPropagationHorizonDisposition(
+        Float64Array.from([10_000, 20_000]),
+        Float64Array.from([18_000, 28_000]),
+        5_000,
       ),
     ).toBe("discard");
   });
@@ -326,7 +402,7 @@ describe("catalog population propagation", () => {
     }
   });
 
-  it("updates the complete representative population for stepping and freezes at a fixed timestamp", () => {
+  it("updates the cross-class population sample for stepping and freezes at a fixed timestamp", () => {
     for (const satellite of representativeSatellites) {
       const startMs = Date.parse(satellite.keplerian.epoch);
       const start = propagateSatellite(satellite, new Date(startMs));

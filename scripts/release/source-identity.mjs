@@ -140,12 +140,18 @@ export function validateReleaseSource({
   if (reviewDocument?.gitCommit !== identity?.gitCommit) failures.push("legacy-commit-mismatch");
   if (reviewDocument?.gitDirty !== false) failures.push("legacy-dirty-state");
   if (reviewDocument?.build !== expectedBuild) failures.push("build-identity-mismatch");
-  if (reviewDocument?.schemaVersion !== 5) failures.push("review-schema-mismatch");
-  if (reviewDocument?.currentCatalogMode !== "release-reference-only") {
+  if (reviewDocument?.schemaVersion !== 6) failures.push("review-schema-mismatch");
+  if (reviewDocument?.currentCatalogMode !== "release-public-gcat") {
     failures.push("review-current-catalog-mode-unsafe");
   }
   if (reviewDocument?.currentCatalogRecordCount !== 0) {
     failures.push("review-current-catalog-records-present");
+  }
+  if (
+    !Number.isInteger(reviewDocument?.latestPublicCatalogMembershipCount) ||
+    reviewDocument.latestPublicCatalogMembershipCount < 33_000
+  ) {
+    failures.push("review-latest-public-catalog-too-small");
   }
   if (!Array.isArray(reviewDocument?.scenarios) || reviewDocument.scenarios.length === 0) {
     failures.push("review-scenarios-missing");
@@ -155,11 +161,24 @@ export function validateReleaseSource({
   } else if (
     reviewDocument.states.some(
       (state) =>
-        state.datasets?.currentCatalogMode !== "release-reference-only" ||
+        state.datasets?.currentCatalogMode !== "release-public-gcat" ||
         state.datasets?.currentCatalogRecordCount !== 0,
     )
   ) {
     failures.push("review-state-current-catalog-unsafe");
+  }
+  const latestPublicStates = reviewDocument?.states?.filter(
+    (state) => state.dataCoverage?.status === "latest-public-catalog",
+  ) ?? [];
+  if (
+    latestPublicStates.length === 0 ||
+    latestPublicStates.some(
+      (state) =>
+        !Number.isInteger(state.datasets?.latestPublicCatalogMembershipCount) ||
+        state.datasets.latestPublicCatalogMembershipCount < 33_000,
+    )
+  ) {
+    failures.push("review-state-latest-public-catalog-too-small");
   }
   if (
     !Array.isArray(reviewDocument?.milestoneValidations) ||
@@ -172,6 +191,13 @@ export function validateReleaseSource({
     reviewDocument.playbackDeterminismValidations.some((validation) => validation.pass !== true)
   ) {
     failures.push("determinism-validation-failed");
+  }
+  if (
+    !Array.isArray(reviewDocument?.populationValidations) ||
+    reviewDocument.populationValidations.length < 2 ||
+    reviewDocument.populationValidations.some((validation) => validation.pass !== true)
+  ) {
+    failures.push("population-validation-failed");
   }
   if (!Array.isArray(reviewDocument?.browserDiagnostics) || reviewDocument.browserDiagnostics.length > 0) {
     failures.push("browser-diagnostics-present");

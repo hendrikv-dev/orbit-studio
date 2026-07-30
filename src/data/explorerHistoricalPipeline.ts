@@ -118,6 +118,16 @@ export function historicalObjectExistsOnDate(
   object: HistoricalCatalogIndexedObject,
   dateIso: string,
 ): boolean {
+  if (object.periodEndPresence) {
+    const selectedMs = dateMs(dateIso);
+    if (selectedMs === null) return false;
+    const selectedYear = new Date(selectedMs).getUTCFullYear();
+    return (
+      selectedYear >= object.periodEndPresence.firstYear &&
+      selectedYear <= object.periodEndPresence.lastYear
+    );
+  }
+
   const selectedMs = dateMs(dateIso);
   const lifecycleStart = object.existenceStartDate ?? object.launchDate;
   if (selectedMs === null || startsAfterSelectedDate(lifecycleStart, dateIso)) return false;
@@ -230,7 +240,7 @@ export function queryHistoricalCatalog(
         stateKind: sourceOrbitState.stateKind ?? "source",
       };
     } else {
-      orbitState = reconstructHistoricalOrbitState(object);
+      orbitState = reconstructHistoricalOrbitState(object, selectedDateIso);
     }
     orbitState?.sources.forEach((source) => labels.add(sourceLabel(source)));
 

@@ -1,0 +1,35 @@
+{
+  "authority": {
+    "annual_membership": "data/yearly_object_presence.csv.gz",
+    "annual_summary": "data/yearly_summary.csv",
+    "normalized_records": "data/objects.csv.gz",
+    "query_database": "data/orbit-studio-satellites.sqlite",
+    "rendering_input": "data/reconstruction_candidates.csv.gz"
+  },
+  "excluded_sources": [
+    "CelesTrak snapshots",
+    "Space-Track responses",
+    "legacy application fixtures",
+    "ad hoc random/generated catalogs"
+  ],
+  "package_name": "Orbit Studio Satellite Source of Truth",
+  "package_version": "1.0.0",
+  "scope": {
+    "final_period_end": "2026-06-27",
+    "final_year_partial": true,
+    "records": 69703,
+    "year_end": 2026,
+    "year_start": 1957
+  },
+  "upstream": {
+    "attribution": "Data from GCAT (J. McDowell, planet4589.org/space/gcat)",
+    "author": "Jonathan C. McDowell",
+    "catalog": "Standard Satellite Catalog (satcat)",
+    "download_url": "https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+    "homepage": "https://planet4589.org/space/gcat/",
+    "license": "CC BY 4.0",
+    "name": "General Catalog of Artificial Space Objects (GCAT)",
+    "raw_file": "raw/gcat-satcat-2026-06-27.tsv",
+    "snapshot_updated_at": "2026-06-27T22:13:02Z"
+  }
+}

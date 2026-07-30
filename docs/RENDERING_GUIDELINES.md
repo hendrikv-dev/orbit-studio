@@ -44,12 +44,17 @@ enlarging every point or adding labels everywhere.
 Worker scheduling must keep a bounded, source-model-derived interpolation segment around the
 authoritative frame time. A retained buffer must keep its actual timestamp in diagnostics; it must
 never be reported as if it represented a newer simulation instant. Catalog propagation may shard
-across the browser's reported hardware concurrency, capped at eight workers so propagation cannot
-saturate the main/render thread. Each predictive horizon begins at or before the authoritative
-request UTC, retains the fixed validated interpolation segment length, and extends through measured
-worker completion plus a forward safety runway. A shard refreshes only when that runway approaches
-its measured latency boundary. A result may become active only when it covers the current UTC;
-future-only work is staged and expired work is discarded.
+across half of the browser's reported hardware concurrency, capped at three workers so propagation
+cannot saturate the main/render thread. Each worker prepares invariant two-body terms once per
+request. Predictive horizons are prewarmed for the maximum supported Explorer time scale, begin at
+or before the authoritative request UTC, retain the fixed validated interpolation segment length,
+and extend through measured worker completion plus a forward safety runway. A shard refreshes only
+when that runway approaches its measured latency boundary. A result may become active only when it
+covers the current UTC; future-only work is staged and expired work is discarded. If no worker
+horizon covers the authoritative UTC during a high-speed asynchronous reset, the renderer
+temporarily evaluates the same prepared two-body model at that UTC on the main thread at a bounded
+cadence; it must not retain or relabel a stale buffer while waiting for the worker. Lower speeds
+remain on the lighter worker/interpolation path.
 
 Semantically identical catalog resets retain worker and geometry state. Any changed object identity,
 propagation mode, TLE, orbital elements, render classification, or relevant point presentation

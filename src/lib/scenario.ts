@@ -32,7 +32,12 @@ export type EarthDebugMode =
   | "base-atmosphere"
   | "night-lights";
 export type RegionType = "country" | "state" | "city" | "custom-circle" | "custom-polygon";
-export type OrbitalObjectCategory = "payloads" | "rocket-bodies" | "debris" | "unknown";
+export type OrbitalObjectCategory =
+  | "payloads"
+  | "rocket-bodies"
+  | "components"
+  | "debris"
+  | "unknown";
 export type CoverageTargetType = "satellite" | "constellation" | "sensor" | "ground-station";
 export type ConstellationGeneratorKind =
   | "manual"
@@ -109,6 +114,7 @@ export interface SatelliteCatalogMetadata {
   sourceId?: string;
   orbitStateProvenance?:
     | "current-source"
+    | "curated-reference"
     | "exact-historical"
     | "nearest-historical"
     | "reconstructed-historical";
@@ -607,7 +613,7 @@ export function createSampleCatalogLayer(epoch: Date): CatalogLayerModel {
 
 export function createDefaultScenario(now = new Date()): Scenario {
   const simulationEpoch = now.toISOString();
-  const demoSatellite = createSatellite("Orbiter-1 Demo", now);
+  const demoSatellite = createSatellite("Satellite 1", now);
   const catalogLayer = createSampleCatalogLayer(now);
   const demoConstellation = createConstellation("Demo Constellation", [demoSatellite.id], {
     id: "demo-constellation",

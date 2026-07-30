@@ -40,42 +40,34 @@ function vectorAngularSeparationDeg(left: [number, number, number], right: [numb
 }
 
 describe("Explorer catalog scenario", () => {
-  it("opens orbital history at Sputnik launch with a non-empty, honest scene", () => {
+  it("opens orbital history at the first supported period end with a non-empty, honest scene", () => {
     const first = explorerTimelineSnapshots[0];
     const view = explorerSnapshotView(first);
     const scenario = createExplorerScenario(first);
     const sputnik = view.records.find((entry) => entry.catalogNumber === "2");
-    const launchStage = view.records.find((entry) => entry.catalogNumber === "1");
+    const sputnik2 = view.records.find((entry) => entry.catalogNumber === "3");
     const sputnikSatellite = scenario.satellites.find(
       (satellite) => satellite.catalogMetadata?.catalogNumber === "2",
     )!;
     const sputnikPosition = propagateSatellite(sputnikSatellite, new Date(first.timestampIso)).positionKm;
-    const scenePosition: [number, number, number] = [
-      sputnikPosition[0],
-      sputnikPosition[2],
-      -sputnikPosition[1],
-    ];
-    const defaultCameraDirection: [number, number, number] = [0.62, 0.42, 0.66];
 
-    expect(first.timestampIso).toBe("1957-10-04T19:28:34.000Z");
+    expect(first.timestampIso).toBe("1957-12-31T12:00:00.000Z");
     expect(sputnik?.name).toBe("Sputnik 1");
     expect(sputnik?.orbitAvailability).toBe("reconstructed-historical-orbit");
-    expect(launchStage?.categoryId).toBe("rocket-bodies");
+    expect(sputnik2?.categoryId).toBe("payloads");
     expect(view.records.length).toBeGreaterThan(0);
     expect(scenario.satellites.map((satellite) => satellite.catalogMetadata?.catalogNumber))
-      .toEqual(expect.arrayContaining(["1", "2"]));
-    expect(
-      scenePosition[0] * defaultCameraDirection[0] +
-      scenePosition[1] * defaultCameraDirection[1] +
-      scenePosition[2] * defaultCameraDirection[2],
-    ).toBeGreaterThan(0);
+      .toEqual(expect.arrayContaining(["2", "3"]));
+    expect(sputnikPosition.every(Number.isFinite)).toBe(true);
+    expect(Math.hypot(...sputnikPosition)).toBeGreaterThan(EARTH_RADIUS_KM);
   });
 
-  it("never renders before launch and removes known decayed objects", () => {
-    const beforeLaunch = getHistoricalCatalog("1957-10-04T19:28:33.000Z");
+  it("uses annual period-end membership without extending ended objects", () => {
+    const firstPeriod = getHistoricalCatalog("1957-10-04T19:28:33.000Z");
     const afterDecay = getHistoricalCatalog("1958-01-05T00:00:00.000Z");
 
-    expect(beforeLaunch.records.some((entry) => entry.catalogNumber === "2")).toBe(false);
+    expect(firstPeriod.snapshot.timestampIso).toBe("1957-12-31T12:00:00.000Z");
+    expect(firstPeriod.records.some((entry) => entry.catalogNumber === "2")).toBe(true);
     expect(afterDecay.records.some((entry) => entry.catalogNumber === "2")).toBe(false);
   });
 
@@ -100,12 +92,12 @@ describe("Explorer catalog scenario", () => {
     expect(regimes.has("heo")).toBe(true);
   });
 
-  it("uses an explicitly supplied canonical timestamp for the initial current catalog", () => {
+  it("maps current requests onto the latest canonical public snapshot", () => {
     const timestampUtc = "2026-07-17T23:53:42.000Z";
     const snapshot = createExplorerCurrentSnapshot(timestampUtc);
-    expect(snapshot.timestampIso).toBe(timestampUtc);
-    expect(snapshot.catalogMode).toBe("current");
-    expect(snapshot.label).toBe("Current catalog");
+    expect(snapshot).toBe(currentExplorerSnapshot);
+    expect(snapshot.timestampIso).toBe("2026-06-27T22:13:02Z");
+    expect(snapshot.label).toBe("Latest public catalog");
     expect(() => createExplorerCurrentSnapshot("invalid")).toThrow(RangeError);
   });
 
@@ -154,7 +146,7 @@ describe("Explorer catalog scenario", () => {
     expect(firstTrackPoint.longitudeDeg).toBeCloseTo(readouts.longitudeDeg, 8);
   });
 
-  it("exposes an explicitly disclosed release reference set without a current-data fallback", () => {
+  it("exposes the complete latest public GCAT snapshot without a current-data fallback", () => {
     const early = explorerSnapshotView(explorerSnapshots[0]);
     const current = explorerSnapshotView(currentExplorerSnapshot);
 
@@ -169,11 +161,14 @@ describe("Explorer catalog scenario", () => {
     expect(early.renderableOrbitStateCount).toBeGreaterThan(0);
     expect(early.byId.has("explorer-iss")).toBe(false);
     expect(current.byId.has("explorer-iss")).toBe(true);
-    expect(current.dataCoverage.status).toBe("current-reference-only");
-    expect(current.dataCoverage.label).toBe("Current records are not bundled");
-    expect(current.dataCoverage.description).toContain("representative reference orbits");
-    expect(current.dataCoverage.description).toContain("not live or current orbital records");
+    expect(current.dataCoverage.status).toBe("latest-public-catalog");
+    expect(current.dataCoverage.label).toBe("GCAT membership · reconstructed positions");
+    expect(current.dataCoverage.description).toContain("complete GCAT Earth-object snapshot");
+    expect(current.dataCoverage.description).toContain("not live tracking or exact observations");
     expect(current.dataCoverage.description).not.toMatch(/renderable orbit states/i);
+    expect(current.catalogObjectCount).toBe(33_489);
+    expect(current.renderableOrbitStateCount).toBe(33_468);
+    expect(current.dataCoverage.catalogOnlyObjectCount).toBe(21);
     expect(current.renderableOrbitStateCount).toBeGreaterThan(early.renderableOrbitStateCount);
     expect(current.records.length).toBeGreaterThan(10);
     expect(current.records.every((entry) => entry.sourceId !== "celestrak-gp-snapshot")).toBe(true);
@@ -217,7 +212,8 @@ describe("Explorer catalog scenario", () => {
       .map((entry) => entry.id)
       .sort();
 
-    expect(earlyWorld.records).toHaveLength(0);
+    expect(earlyWorld.snapshot.year).toBe("1957");
+    expect(earlyWorld.records).toHaveLength(2);
     expect(explorerSnapshotView(explorerSnapshots[0]).records).toEqual(
       getHistoricalCatalog(explorerSnapshots[0]).records,
     );
@@ -246,9 +242,9 @@ describe("Explorer catalog scenario", () => {
     expect(explorerSnapshotTimelinePosition(iss)).toBeCloseTo((1998 - 1957) / (2026 - 1957), 8);
     expect(explorerSnapshotNearestToYear(1968).id).toBe(apollo.id);
     expect(explorerSnapshotNearestToYear(2000).id).toBe(iss.id);
-    expect(midpoint.id).toBe("timeline-2006.50");
-    expect(midpoint.year).toBe("2006.5");
-    expect(currentPreviousYear.id).toBe("timeline-2025.00");
+    expect(midpoint.id).toBe("timeline-2007");
+    expect(midpoint.year).toBe("2007");
+    expect(currentPreviousYear.id).toBe("timeline-2025");
     expect(currentPreviousYear.year).toBe("2025");
     expect("composition" in midpoint).toBe(false);
     expect(explorerHistoricalTimelineAvailable).toBe(true);
@@ -263,23 +259,23 @@ describe("Explorer catalog scenario", () => {
       operator: "all",
       constellationId: "all",
     };
-    const preSputnik = getHistoricalCatalog("1956-01-01T00:00:00.000Z");
+    const earliest = getHistoricalCatalog("1956-01-01T00:00:00.000Z");
     const midSixties = getHistoricalCatalog("1965-01-01T12:00:00.000Z");
     const twentyFifteen = getHistoricalCatalog("2015-06-01T12:00:00.000Z");
     const twentyTwenty = getHistoricalCatalog("2020-01-01T12:00:00.000Z");
     const current = explorerSnapshotView(currentExplorerSnapshot);
-    const preSputnikScenario = createExplorerScenario(preSputnik.snapshot);
+    const earliestScenario = createExplorerScenario(earliest.snapshot);
     const midSixtiesScenario = createExplorerScenario(midSixties.snapshot);
     const twentyFifteenScenario = createExplorerScenario(twentyFifteen.snapshot);
     const twentyTwentyScenario = createExplorerScenario(twentyTwenty.snapshot);
 
-    expect(preSputnik.snapshot.year).toBe("1956");
-    expect(preSputnik.records).toHaveLength(0);
-    expect(preSputnik.catalogObjectCount).toBe(0);
-    expect(preSputnik.renderableOrbitStateCount).toBe(0);
-    expect(filterExplorerCatalogSnapshot(preSputnik, { ...defaults, query: "Sputnik" })).toHaveLength(0);
-    expect(preSputnikScenario.satellites).toHaveLength(0);
-    expect(preSputnikScenario.catalogLayers).toHaveLength(0);
+    expect(earliest.snapshot.year).toBe("1957");
+    expect(earliest.records).toHaveLength(2);
+    expect(earliest.catalogObjectCount).toBe(2);
+    expect(earliest.renderableOrbitStateCount).toBe(2);
+    expect(filterExplorerCatalogSnapshot(earliest, { ...defaults, query: "Sputnik" })).toHaveLength(1);
+    expect(earliestScenario.satellites).toHaveLength(2);
+    expect(earliestScenario.catalogLayers).toHaveLength(0);
 
     expect(midSixties.records.length).toBeGreaterThan(0);
     expect(midSixties.catalogObjectCount).toBe(midSixties.records.length);
@@ -296,8 +292,6 @@ describe("Explorer catalog scenario", () => {
     expect(midSixtiesScenario.satellites).toHaveLength(midSixties.renderableOrbitStateCount);
     expect(midSixtiesScenario.catalogLayers).toHaveLength(0);
 
-    const twentyFifteenIss = twentyFifteen.records.find((entry) => entry.catalogNumber === "25544");
-    const twentyFifteenHubble = twentyFifteen.records.find((entry) => entry.catalogNumber === "20580");
     const twentyFifteenStarlink = twentyFifteen.records.find((entry) => entry.catalogNumber === "44235");
 
     expect(twentyFifteen.records.length).toBeGreaterThan(1_500);
@@ -305,23 +299,18 @@ describe("Explorer catalog scenario", () => {
     expect(twentyFifteen.renderableOrbitStateCount).toBeGreaterThan(1_500);
     expect(twentyFifteen.dataCoverage.reconstructedHistoricalOrbitStateCount)
       .toBe(twentyFifteen.renderableOrbitStateCount);
-    expect(twentyFifteen.dataCoverage.catalogOnlyObjectCount).toBeGreaterThan(0);
+    expect(twentyFifteen.dataCoverage.catalogOnlyObjectCount).toBe(0);
     expect(twentyFifteen.dataCoverage.exactHistoricalOrbitStateCount).toBe(0);
     expect(twentyFifteen.records.every((entry) =>
       !entry.launchDate || Date.parse(entry.launchDate) <= Date.parse(twentyFifteen.snapshot.timestampIso),
     )).toBe(true);
-    expect(twentyFifteenIss?.selectionKind).toBe("satellite");
-    expect(twentyFifteenIss?.visualRole).toBe("selectable-orbital-object");
-    expect(twentyFifteenIss?.orbitAvailability).toBe("reconstructed-historical-orbit");
-    expect(twentyFifteenIss?.orbit).toBeDefined();
-    expect(twentyFifteenHubble?.selectionKind).toBe("satellite");
-    expect(twentyFifteenHubble?.orbitAvailability).toBe("reconstructed-historical-orbit");
-    expect(twentyFifteenHubble?.orbit).toBeDefined();
+    expect(twentyFifteen.records.some((entry) => entry.sourceId === "curated-reference"))
+      .toBe(false);
     expect(twentyFifteenStarlink).toBeUndefined();
     expect(filterExplorerCatalogSnapshot(twentyFifteen, { ...defaults, query: "STARLINK-31" })).toHaveLength(0);
     expect(twentyFifteenScenario.satellites).toHaveLength(twentyFifteen.renderableOrbitStateCount);
     expect(twentyFifteenScenario.satellites.some((satellite) => satellite.id.startsWith("demo-25544"))).toBe(false);
-    expect(twentyFifteenScenario.satellites.some((satellite) => satellite.catalogMetadata?.catalogNumber === "25544")).toBe(true);
+    expect(twentyFifteenScenario.satellites.some((satellite) => satellite.catalogMetadata?.sourceId === "curated-reference")).toBe(false);
     expect(twentyFifteenScenario.satellites.some((satellite) => satellite.catalogMetadata?.catalogNumber === "44235")).toBe(false);
     expect(twentyFifteenScenario.catalogLayers).toHaveLength(0);
 
@@ -339,7 +328,7 @@ describe("Explorer catalog scenario", () => {
     expect(twentyTwentyScenario.satellites).toHaveLength(twentyTwenty.renderableOrbitStateCount);
     expect(twentyTwentyScenario.catalogLayers).toHaveLength(0);
 
-    expect(current.dataCoverage.status).toBe("current-reference-only");
+    expect(current.dataCoverage.status).toBe("latest-public-catalog");
     expect(current.records.every((entry) => entry.sourceId !== "celestrak-gp-snapshot")).toBe(true);
     expect(createExplorerScenario(currentExplorerSnapshot).satellites.length).toBeGreaterThan(0);
   });
@@ -421,13 +410,13 @@ describe("Explorer catalog scenario", () => {
     );
 
     expect(scenario.satellites).toHaveLength(orbitalRecords.length);
-    expect(starlink?.satelliteIds).toEqual(["explorer-starlink"]);
-    expect(galileo?.satelliteIds).toHaveLength(0);
-    expect(noaa?.satelliteIds).toHaveLength(0);
-    expect(sentinel?.satelliteIds).toHaveLength(0);
+    expect(starlink?.satelliteIds.length).toBeGreaterThan(900);
+    expect(galileo?.satelliteIds.length).toBeGreaterThan(0);
+    expect(noaa?.satelliteIds.length).toBeGreaterThan(20);
+    expect(sentinel?.satelliteIds.length).toBeGreaterThan(0);
     expect(galileo).toBeDefined();
     expect(iridium).toBeDefined();
-    expect(iridium?.satelliteIds).toHaveLength(0);
+    expect(iridium?.satelliteIds.length).toBeGreaterThan(0);
     scenario.satellites.forEach((satellite) => {
       expect(current.byId.get(satellite.id)?.selectionKind).toBe("satellite");
     });
@@ -451,7 +440,7 @@ describe("Explorer catalog scenario", () => {
     expect(search("ISS").length).toBeGreaterThan(0);
     expect(search("ISS").slice(0, 10).some((entry) => entry.name === "ISS (NAUKA)")).toBe(false);
     expect(search("Hubble")[0]?.id).toBe("explorer-hubble");
-    expect(search("Hubble")).toHaveLength(1);
+    expect(search("Hubble").length).toBeGreaterThan(1);
     expect(search("Hubble")[0]).toMatchObject({
       catalogNumber: "20580",
       objectType: "Science payload",
@@ -462,9 +451,9 @@ describe("Explorer catalog scenario", () => {
     expect(search("GPS")[0]?.id).toBe("explorer-gps-constellation");
     expect(search("GPS").length).toBeGreaterThan(1);
     expect(search("Galileo")[0]?.id).toBe("explorer-galileo-constellation");
-    expect(search("Galileo")).toHaveLength(1);
+    expect(search("Galileo").length).toBeGreaterThan(1);
     expect(search("BeiDou")[0]?.id).toBe("explorer-beidou-constellation");
-    expect(search("BeiDou")).toHaveLength(1);
+    expect(search("BeiDou").length).toBeGreaterThan(1);
     expect(search("Tiangong")).toHaveLength(0);
     expect(search("Voyager")[0]?.id).toBe("explorer-voyager-1");
     expect(search("Voyager").length).toBeGreaterThan(1);
@@ -493,7 +482,7 @@ describe("Explorer catalog scenario", () => {
     );
   });
 
-  it("keeps one canonical release-reference record for each curated physical mission", () => {
+  it("keeps one explicit curated fallback record for recognizable missions absent from latest membership", () => {
     const current = explorerSnapshotView(currentExplorerSnapshot);
     const hubbleRecords = current.records.filter((entry) => entry.catalogNumber === "20580");
     const issRecords = current.records.filter((entry) => entry.id === "explorer-iss");
@@ -502,20 +491,37 @@ describe("Explorer catalog scenario", () => {
     expect(issRecords.map((entry) => entry.id)).toEqual(["explorer-iss"]);
     expect(hubbleRecords[0]?.tle).toBeUndefined();
     expect(hubbleRecords[0]?.sourceId).toBe("curated-reference");
+    expect(hubbleRecords[0]?.orbitAvailability).toBe("curated-reference-orbit");
+    expect(issRecords[0]?.sourceId).toBe("curated-reference");
+    expect(issRecords[0]?.orbitAvailability).toBe("curated-reference-orbit");
   });
 
-  it("ships a useful reference set without redistributed current GP records", () => {
+  it("ships a substantial, classified public population without redistributed current GP records", () => {
     const current = explorerSnapshotView(currentExplorerSnapshot);
     const orbitalRecords = current.records.filter(
       (entry) => entry.selectionKind === "satellite" && Boolean(entry.orbit),
     );
 
     expect(validateExplorerRuntimeCatalogHealth()).toEqual([]);
-    expect(orbitalRecords.length).toBeGreaterThanOrEqual(4);
-    expect(orbitalRecords.every((entry) => entry.sourceId === "curated-reference")).toBe(true);
+    expect(orbitalRecords).toHaveLength(33_474);
+    const gcatRecords = current.records.filter(
+      (entry) => entry.sourceId === "gcat-public-catalog",
+    );
+    const gcatOrbitalRecords = gcatRecords.filter(
+      (entry) => entry.selectionKind === "satellite" && Boolean(entry.orbit),
+    );
+    expect(gcatOrbitalRecords).toHaveLength(33_468);
+    expect(gcatOrbitalRecords.every(
+      (entry) => entry.orbitAvailability === "reconstructed-historical-orbit",
+    )).toBe(true);
+    expect(gcatRecords).toHaveLength(33_489);
+    expect(gcatRecords.filter((entry) => entry.categoryId === "payloads")).toHaveLength(18_842);
+    expect(gcatRecords.filter((entry) => entry.categoryId === "rocket-bodies")).toHaveLength(2_025);
+    expect(gcatRecords.filter((entry) => entry.categoryId === "components")).toHaveLength(1_345);
+    expect(gcatRecords.filter((entry) => entry.categoryId === "debris")).toHaveLength(11_277);
     expect(orbitalRecords.every((entry) => entry.tle === undefined)).toBe(true);
     expect(current.records.some((entry) => entry.sourceId === "celestrak-gp-snapshot")).toBe(false);
-    expect(current.dataCoverage.status).toBe("current-reference-only");
+    expect(current.dataCoverage.status).toBe("latest-public-catalog");
   });
 
   it("preserves recognizable LEO, MEO, GEO, and Molniya motion regimes", () => {
@@ -526,7 +532,12 @@ describe("Explorer catalog scenario", () => {
     const speedAt = (satellite: ScenarioSatellite, trueAnomalyDeg: number) =>
       speedKmS(keplerianToCartesian({ ...satellite.keplerian, trueAnomalyDeg }));
     const iss = scenario.satellites.find((satellite) => satellite.id === "explorer-iss")!;
-    const gps = scenario.satellites.find((satellite) => satellite.id === "explorer-gps")!;
+    const meo = scenario.satellites.find(
+      (satellite) =>
+        periodMinutes(satellite) > 600 &&
+        periodMinutes(satellite) < 900 &&
+        satellite.keplerian.eccentricity < 0.1,
+    )!;
     const geo = scenario.satellites.find(
       (satellite) =>
         periodMinutes(satellite) > 1_430 &&
@@ -544,13 +555,13 @@ describe("Explorer catalog scenario", () => {
     )!;
 
     expect(iss).toBeDefined();
-    expect(gps).toBeDefined();
+    expect(meo).toBeDefined();
     expect(geo).toBeDefined();
     expect(molniya).toBeDefined();
     expect(periodMinutes(iss)).toBeGreaterThan(90);
     expect(periodMinutes(iss)).toBeLessThan(100);
-    expect(periodMinutes(gps)).toBeGreaterThan(700);
-    expect(periodMinutes(gps)).toBeLessThan(730);
+    expect(periodMinutes(meo)).toBeGreaterThan(600);
+    expect(periodMinutes(meo)).toBeLessThan(900);
     expect(periodMinutes(geo)).toBeGreaterThan(1_430);
     expect(periodMinutes(geo)).toBeLessThan(1_445);
     expect(periodMinutes(molniya)).toBeGreaterThan(700);
@@ -563,17 +574,17 @@ describe("Explorer catalog scenario", () => {
       propagateSatellite(iss, startDate).positionKm,
       propagateSatellite(iss, laterDate).positionKm,
     );
-    const gpsMotionDeg = vectorAngularSeparationDeg(
-      propagateSatellite(gps, startDate).positionKm,
-      propagateSatellite(gps, laterDate).positionKm,
+    const meoMotionDeg = vectorAngularSeparationDeg(
+      propagateSatellite(meo, startDate).positionKm,
+      propagateSatellite(meo, laterDate).positionKm,
     );
     const geoStart = getSatelliteReadouts(geo, startDate);
     const geoLater = getSatelliteReadouts(geo, laterDate);
 
     expect(issMotionDeg).toBeGreaterThan(90);
-    expect(gpsMotionDeg).toBeGreaterThan(10);
-    expect(gpsMotionDeg).toBeLessThan(30);
-    expect(issMotionDeg).toBeGreaterThan(gpsMotionDeg * 4);
+    expect(meoMotionDeg).toBeGreaterThan(7);
+    expect(meoMotionDeg).toBeLessThan(35);
+    expect(issMotionDeg).toBeGreaterThan(meoMotionDeg * 3);
     expect(circularDegreesBetween(geoStart.longitudeDeg, geoLater.longitudeDeg)).toBeLessThan(0.25);
   });
 });

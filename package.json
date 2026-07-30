@@ -1,13 +1,13 @@
 {
   "name": "orbit-studio",
-  "version": "0.1.0",
-  "description": "Interactive Earth-orbit catalog explorer and orbital sandbox built with React and Three.js.",
+  "version": "0.2.2",
+  "description": "Open-source platform for exploring orbital data and building space simulations.",
   "private": true,
   "license": "MIT",
-  "packageManager": "npm@11.16.0",
+  "packageManager": "npm@11.11.0",
   "engines": {
-    "node": "24.18.0",
-    "npm": "11.16.0"
+    "node": ">=24 <26",
+    "npm": ">=11.11 <12"
   },
   "repository": {
     "type": "git",
@@ -34,16 +34,12 @@
     "release:verify": "npm run provenance:validate && npm run licenses:validate && npm run history:validate && node scripts/release/verify-release-source.mjs",
     "history:validate": "node scripts/release/reachable-history.mjs",
     "source:archive": "node scripts/release/source-archive.mjs",
+    "satellites:build": "python3 scripts/build-satellite-web-catalog.py",
+    "satellites:verify": "python3 data/satellite-source-of-truth/scripts/verify.py && python3 scripts/build-satellite-web-catalog.py --check",
     "provenance:generate": "node scripts/provenance/render-attribution.mjs && node scripts/provenance/dependency-licenses.mjs",
     "provenance:validate": "node scripts/provenance/validate-provenance.mjs",
     "licenses:validate": "node scripts/provenance/dependency-licenses.mjs --check",
     "test": "vitest run",
-    "catalog:sync": "node scripts/build-explorer-celestrak-catalog.mjs",
-    "catalog:historical": "node scripts/import-explorer-historical-catalog.mjs",
-    "data:download": "node scripts/download-explorer-historical-data.mjs",
-    "data:import": "node scripts/import-explorer-historical-catalog.mjs",
-    "data:validate": "node scripts/validate-explorer-historical-data.mjs",
-    "data:coverage": "node scripts/report-explorer-historical-coverage.mjs",
     "stars:build": "node scripts/build-hyg-bright-stars.mjs",
     "science:references": "node scripts/fetch-celestial-reference.mjs",
     "science:report": "node scripts/report-celestial-validation.mjs"

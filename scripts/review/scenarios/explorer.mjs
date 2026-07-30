@@ -19,6 +19,102 @@ const playbackTimeScales = {
 };
 const timelineVideoSampleRate = 4;
 const timelineVideoDurationSeconds = 12;
+export const rendererDiagnosticsObservationIntervalWallMs = 500;
+// The verified 2026 GCAT package contains 33,489 latest Earth-object members.
+// This floor catches a substituted tiny sample while allowing only modest,
+// explicitly reviewed variation in a future canonical package update.
+export const minimumReleaseSafeCatalogMembership = 33_000;
+export const minimumDefaultScreenVisiblePointCount = 250;
+export const minimumDefaultMarkerPixelCount = 300;
+export const minimumDefaultMarkerComponentCount = 250;
+
+export function latestPublicCatalogValidation(state) {
+  const failures = [];
+  if (state.snapshotId !== "snapshot-2026") failures.push("not-latest-public-snapshot");
+  if (state.dataCoverage?.status !== "latest-public-catalog") {
+    failures.push("latest-public-disclosure-missing");
+  }
+  if (state.warningState !== "latest-public-catalog") {
+    failures.push("latest-public-warning-state-mismatch");
+  }
+  if (state.catalogObjectCount < minimumReleaseSafeCatalogMembership) {
+    failures.push("catalog-population-too-small");
+  }
+  if (
+    state.datasets?.latestPublicCatalogMembershipCount !== state.catalogObjectCount
+  ) {
+    failures.push("catalog-membership-metadata-mismatch");
+  }
+  if (state.datasets?.currentCatalogRecordCount !== 0) {
+    failures.push("restricted-current-records-present");
+  }
+  if (state.resolvedExactOrbitStateCount !== 0) {
+    failures.push("public-reconstructions-misclassified-as-exact");
+  }
+  if (
+    state.resolvedReconstructedOrbitStateCount !==
+    state.renderableOrbitStateCount
+  ) {
+    failures.push("reconstructed-state-count-mismatch");
+  }
+  if (state.categoryCounts?.payloads <= 0) failures.push("payloads-missing");
+  if (state.categoryCounts?.["rocket-bodies"] <= 0) failures.push("rocket-bodies-missing");
+  if (state.categoryCounts?.components <= 0) failures.push("components-missing");
+  if (state.categoryCounts?.debris <= 0) failures.push("debris-missing");
+  if (state.renderer?.renderQueueSize !== state.visibleObjectCount) {
+    failures.push("render-queue-mismatch");
+  }
+  if (state.renderer?.gpuInstanceCount !== state.visibleObjectCount) {
+    failures.push("gpu-count-mismatch");
+  }
+  if (state.renderer?.renderedInstanceCount !== state.visibleObjectCount) {
+    failures.push("rendered-count-mismatch");
+  }
+  if (
+    state.renderer?.reconstructedHistoricalRenderedCount !==
+    state.resolvedReconstructedOrbitStateCount
+  ) {
+    failures.push("rendered-provenance-mismatch");
+  }
+  if (
+    (state.renderer?.visibleInstanceCount ?? 0) <
+    minimumDefaultScreenVisiblePointCount
+  ) {
+    failures.push("screen-visible-population-too-small");
+  }
+  if (
+    (state.visualEvidence?.markerPixelCount ?? 0) <
+    minimumDefaultMarkerPixelCount
+  ) {
+    failures.push("screenshot-population-not-legible");
+  }
+  if (
+    (state.visualEvidence?.markerComponentCount ?? 0) <
+    minimumDefaultMarkerComponentCount
+  ) {
+    failures.push("screenshot-marker-components-too-small");
+  }
+
+  return {
+    snapshotId: state.snapshotId,
+    catalogObjectCount: state.catalogObjectCount,
+    renderableOrbitStateCount: state.renderableOrbitStateCount,
+    exactOrbitStateCount: state.resolvedExactOrbitStateCount,
+    reconstructedOrbitStateCount: state.resolvedReconstructedOrbitStateCount,
+    catalogOnlyObjectCount: state.catalogOnlyObjectCount,
+    categoryCounts: state.categoryCounts,
+    renderer: state.renderer,
+    visualEvidence: state.visualEvidence,
+    thresholds: {
+      minimumCatalogMembership: minimumReleaseSafeCatalogMembership,
+      minimumScreenVisiblePointCount: minimumDefaultScreenVisiblePointCount,
+      minimumMarkerPixelCount: minimumDefaultMarkerPixelCount,
+      minimumMarkerComponentCount: minimumDefaultMarkerComponentCount,
+    },
+    pass: failures.length === 0,
+    failures,
+  };
+}
 
 export function historicalMilestoneValidation(state) {
   const expectedRendered =
@@ -69,6 +165,7 @@ export function playbackDeterminismSignature(state) {
     exactHistoricalRenderedCount: state.renderer.exactHistoricalRenderedCount,
     nearestHistoricalRenderedCount: state.renderer.nearestHistoricalRenderedCount,
     reconstructedHistoricalRenderedCount: state.renderer.reconstructedHistoricalRenderedCount,
+    curatedReferenceRenderedCount: state.renderer.curatedReferenceRenderedCount,
     positionDigest: state.renderer.positionDigest,
     camera: state.renderer.camera,
     warningState: state.warningState,
@@ -102,7 +199,10 @@ export function playbackMotionValidation(speed, timeScale, samples) {
     0,
     ...usable.map((sample) => Math.abs(sample.bufferLagMs)),
   );
-  const allowedBufferLagMs = Math.max(350, timeScale * 350);
+  const allowedBufferLagMs = Math.max(
+    rendererDiagnosticsObservationIntervalWallMs,
+    timeScale * rendererDiagnosticsObservationIntervalWallMs,
+  );
   if (maximumBufferLagMs > allowedBufferLagMs) failures.push("stale-render-buffer");
 
   return {
@@ -125,7 +225,7 @@ export const explorerReviewScenario = {
   title: "Explorer",
   notes: {
     featuresImplemented: [
-      "Release-safe representative Current view and explicit optional local catalog mode",
+      "Release-safe complete latest-public GCAT membership with explicitly reconstructed educational positions",
       "Educational discovery collections with first-class constellation exploration",
       "Progressive-disclosure object details and reorganized display controls",
       "Historical catalog reconstruction across the spaceflight timeline",
@@ -133,7 +233,7 @@ export const explorerReviewScenario = {
     ],
     knownLimitations: [
       "Historical positions are educational reconstructions when exact source states are unavailable; provenance counts identify that distinction.",
-      "The public Current review state is pinned to the documented Orbit Studio reference date; it explicitly reports that live current records are not bundled.",
+      "The public latest-catalog review state is pinned to the documented GCAT snapshot date; reconstructed positions are not live tracking or exact observations.",
     ],
     expectedReviewFocus: [
       "Verify catalog growth and coverage metadata across historical years.",
@@ -149,6 +249,7 @@ export const explorerReviewScenario = {
     readReviewState,
     recordMilestoneValidation,
     recordPlaybackDeterminism,
+    recordPopulationValidation,
     samplePlaybackMotion,
     setPlaybackSpeed,
     setRegimeFilter,
@@ -156,7 +257,15 @@ export const explorerReviewScenario = {
     setTimelineYear,
     waitForState,
   }) {
-    await capture("startup");
+    const startupState = await capture("startup");
+    const startupPopulationResult = latestPublicCatalogValidation(startupState);
+    recordPopulationValidation({ id: "startup", ...startupPopulationResult });
+    if (!startupPopulationResult.pass) {
+      throw new Error(
+        `Default Explorer population failed: ${startupPopulationResult.failures.join(", ")}; ` +
+        `evidence=${JSON.stringify(startupPopulationResult)}`,
+      );
+    }
 
     await page.locator(".explorer-catalog-launcher").click();
     await page.getByRole("combobox", { name: "Explore collection" }).waitFor();
@@ -213,7 +322,15 @@ export const explorerReviewScenario = {
     }
 
     await setTimelineYear("current");
-    await capture("current");
+    const currentState = await capture("current");
+    const currentPopulationResult = latestPublicCatalogValidation(currentState);
+    recordPopulationValidation({ id: "current", ...currentPopulationResult });
+    if (!currentPopulationResult.pass) {
+      throw new Error(
+        `Latest public catalog population failed: ${currentPopulationResult.failures.join(", ")}; ` +
+        `evidence=${JSON.stringify(currentPopulationResult)}`,
+      );
+    }
 
     const motionResults = [];
     for (const speed of playbackSpeeds) {
@@ -303,7 +420,7 @@ export const explorerReviewScenario = {
     const frameCount = timelineVideoDurationSeconds * timelineVideoSampleRate + 1;
     for (let index = 0; index < frameCount; index += 1) {
       const ratio = index / (frameCount - 1);
-      const year = 1957 + (2026 - 1957) * ratio;
+      const year = Math.round(1957 + (2026 - 1957) * ratio);
       await setTimelineYear(index === frameCount - 1 ? "current" : year, { settleMs: 70 });
       await captureTimelineFrame(index, index / timelineVideoSampleRate);
     }

@@ -42,4 +42,12 @@ describe("foundation scenario schema", () => {
   it("starts Playground at an immediately readable educational speed", () => {
     expect(createPlaygroundScenario(new Date("2026-06-01T00:00:00.000Z")).timeScale).toBe(1_250);
   });
+
+  it("starts Playground with a neutral authored satellite rather than a catalog object", () => {
+    const scenario = createPlaygroundScenario(new Date("2026-06-01T00:00:00.000Z"));
+
+    expect(scenario.satellites).toHaveLength(1);
+    expect(scenario.satellites[0].name).toBe("Satellite 1");
+    expect(scenario.satellites[0].catalogMetadata).toBeUndefined();
+  });
 });

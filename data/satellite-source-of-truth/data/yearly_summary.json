@@ -1,0 +1,4905 @@
+{
+  "rows": [
+    {
+      "appeared_count": 3,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 3,
+      "present_at_period_end_count": 2,
+      "year": 1957
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1957
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 0,
+      "year": 1957
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1957
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1957
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1957
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1957-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1957
+    },
+    {
+      "appeared_count": 11,
+      "ended_count": 6,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 13,
+      "present_at_period_end_count": 7,
+      "year": 1958
+    },
+    {
+      "appeared_count": 8,
+      "ended_count": 5,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 10,
+      "present_at_period_end_count": 5,
+      "year": 1958
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 1,
+      "year": 1958
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 1,
+      "year": 1958
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1958
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1958
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1958-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1958
+    },
+    {
+      "appeared_count": 21,
+      "ended_count": 11,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 28,
+      "present_at_period_end_count": 17,
+      "year": 1959
+    },
+    {
+      "appeared_count": 15,
+      "ended_count": 11,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 20,
+      "present_at_period_end_count": 9,
+      "year": 1959
+    },
+    {
+      "appeared_count": 3,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1959
+    },
+    {
+      "appeared_count": 3,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1959
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1959
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1959
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1959-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1959
+    },
+    {
+      "appeared_count": 52,
+      "ended_count": 21,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 69,
+      "present_at_period_end_count": 48,
+      "year": 1960
+    },
+    {
+      "appeared_count": 21,
+      "ended_count": 12,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 30,
+      "present_at_period_end_count": 18,
+      "year": 1960
+    },
+    {
+      "appeared_count": 10,
+      "ended_count": 3,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 14,
+      "present_at_period_end_count": 11,
+      "year": 1960
+    },
+    {
+      "appeared_count": 20,
+      "ended_count": 6,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 24,
+      "present_at_period_end_count": 18,
+      "year": 1960
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 1,
+      "year": 1960
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1960
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1960-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1960
+    },
+    {
+      "appeared_count": 421,
+      "ended_count": 60,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 469,
+      "present_at_period_end_count": 409,
+      "year": 1961
+    },
+    {
+      "appeared_count": 43,
+      "ended_count": 26,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 61,
+      "present_at_period_end_count": 35,
+      "year": 1961
+    },
+    {
+      "appeared_count": 13,
+      "ended_count": 11,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 24,
+      "present_at_period_end_count": 13,
+      "year": 1961
+    },
+    {
+      "appeared_count": 37,
+      "ended_count": 15,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 55,
+      "present_at_period_end_count": 40,
+      "year": 1961
+    },
+    {
+      "appeared_count": 328,
+      "ended_count": 8,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 329,
+      "present_at_period_end_count": 321,
+      "year": 1961
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1961
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1961-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1961
+    },
+    {
+      "appeared_count": 204,
+      "ended_count": 149,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 613,
+      "present_at_period_end_count": 464,
+      "year": 1962
+    },
+    {
+      "appeared_count": 82,
+      "ended_count": 57,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 117,
+      "present_at_period_end_count": 60,
+      "year": 1962
+    },
+    {
+      "appeared_count": 40,
+      "ended_count": 25,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 53,
+      "present_at_period_end_count": 28,
+      "year": 1962
+    },
+    {
+      "appeared_count": 40,
+      "ended_count": 27,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 80,
+      "present_at_period_end_count": 53,
+      "year": 1962
+    },
+    {
+      "appeared_count": 40,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 361,
+      "present_at_period_end_count": 321,
+      "year": 1962
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1962
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1962-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1962
+    },
+    {
+      "appeared_count": 323,
+      "ended_count": 92,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 787,
+      "present_at_period_end_count": 695,
+      "year": 1963
+    },
+    {
+      "appeared_count": 75,
+      "ended_count": 46,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 135,
+      "present_at_period_end_count": 89,
+      "year": 1963
+    },
+    {
+      "appeared_count": 31,
+      "ended_count": 21,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 59,
+      "present_at_period_end_count": 38,
+      "year": 1963
+    },
+    {
+      "appeared_count": 167,
+      "ended_count": 7,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 220,
+      "present_at_period_end_count": 213,
+      "year": 1963
+    },
+    {
+      "appeared_count": 50,
+      "ended_count": 18,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 371,
+      "present_at_period_end_count": 353,
+      "year": 1963
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1963
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1963-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1963
+    },
+    {
+      "appeared_count": 361,
+      "ended_count": 232,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 1056,
+      "present_at_period_end_count": 824,
+      "year": 1964
+    },
+    {
+      "appeared_count": 105,
+      "ended_count": 62,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 194,
+      "present_at_period_end_count": 132,
+      "year": 1964
+    },
+    {
+      "appeared_count": 52,
+      "ended_count": 32,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 90,
+      "present_at_period_end_count": 58,
+      "year": 1964
+    },
+    {
+      "appeared_count": 34,
+      "ended_count": 11,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 247,
+      "present_at_period_end_count": 236,
+      "year": 1964
+    },
+    {
+      "appeared_count": 168,
+      "ended_count": 127,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 521,
+      "present_at_period_end_count": 394,
+      "year": 1964
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1964
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1964-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1964
+    },
+    {
+      "appeared_count": 1321,
+      "ended_count": 419,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 2145,
+      "present_at_period_end_count": 1726,
+      "year": 1965
+    },
+    {
+      "appeared_count": 163,
+      "ended_count": 81,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 295,
+      "present_at_period_end_count": 214,
+      "year": 1965
+    },
+    {
+      "appeared_count": 89,
+      "ended_count": 53,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 147,
+      "present_at_period_end_count": 94,
+      "year": 1965
+    },
+    {
+      "appeared_count": 79,
+      "ended_count": 30,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 315,
+      "present_at_period_end_count": 285,
+      "year": 1965
+    },
+    {
+      "appeared_count": 990,
+      "ended_count": 255,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 1384,
+      "present_at_period_end_count": 1129,
+      "year": 1965
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1965
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1965-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1965
+    },
+    {
+      "appeared_count": 597,
+      "ended_count": 528,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 2323,
+      "present_at_period_end_count": 1795,
+      "year": 1966
+    },
+    {
+      "appeared_count": 141,
+      "ended_count": 97,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 355,
+      "present_at_period_end_count": 258,
+      "year": 1966
+    },
+    {
+      "appeared_count": 96,
+      "ended_count": 73,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 190,
+      "present_at_period_end_count": 117,
+      "year": 1966
+    },
+    {
+      "appeared_count": 109,
+      "ended_count": 65,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 394,
+      "present_at_period_end_count": 329,
+      "year": 1966
+    },
+    {
+      "appeared_count": 251,
+      "ended_count": 293,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 1380,
+      "present_at_period_end_count": 1087,
+      "year": 1966
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1966
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1966-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1966
+    },
+    {
+      "appeared_count": 427,
+      "ended_count": 343,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 2222,
+      "present_at_period_end_count": 1879,
+      "year": 1967
+    },
+    {
+      "appeared_count": 156,
+      "ended_count": 97,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 414,
+      "present_at_period_end_count": 317,
+      "year": 1967
+    },
+    {
+      "appeared_count": 111,
+      "ended_count": 78,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 228,
+      "present_at_period_end_count": 150,
+      "year": 1967
+    },
+    {
+      "appeared_count": 89,
+      "ended_count": 65,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 418,
+      "present_at_period_end_count": 353,
+      "year": 1967
+    },
+    {
+      "appeared_count": 71,
+      "ended_count": 103,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 1158,
+      "present_at_period_end_count": 1055,
+      "year": 1967
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1967
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1967-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1967
+    },
+    {
+      "appeared_count": 629,
+      "ended_count": 313,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 2508,
+      "present_at_period_end_count": 2195,
+      "year": 1968
+    },
+    {
+      "appeared_count": 142,
+      "ended_count": 108,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 459,
+      "present_at_period_end_count": 351,
+      "year": 1968
+    },
+    {
+      "appeared_count": 95,
+      "ended_count": 66,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 245,
+      "present_at_period_end_count": 179,
+      "year": 1968
+    },
+    {
+      "appeared_count": 65,
+      "ended_count": 42,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 418,
+      "present_at_period_end_count": 376,
+      "year": 1968
+    },
+    {
+      "appeared_count": 327,
+      "ended_count": 97,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 1382,
+      "present_at_period_end_count": 1285,
+      "year": 1968
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1968
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1968-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1968
+    },
+    {
+      "appeared_count": 620,
+      "ended_count": 348,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 2815,
+      "present_at_period_end_count": 2467,
+      "year": 1969
+    },
+    {
+      "appeared_count": 136,
+      "ended_count": 102,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 487,
+      "present_at_period_end_count": 385,
+      "year": 1969
+    },
+    {
+      "appeared_count": 94,
+      "ended_count": 76,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 273,
+      "present_at_period_end_count": 197,
+      "year": 1969
+    },
+    {
+      "appeared_count": 51,
+      "ended_count": 45,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 427,
+      "present_at_period_end_count": 382,
+      "year": 1969
+    },
+    {
+      "appeared_count": 339,
+      "ended_count": 125,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 1624,
+      "present_at_period_end_count": 1499,
+      "year": 1969
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1969
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1969-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1969
+    },
+    {
+      "appeared_count": 904,
+      "ended_count": 298,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 3371,
+      "present_at_period_end_count": 3073,
+      "year": 1970
+    },
+    {
+      "appeared_count": 133,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 518,
+      "present_at_period_end_count": 427,
+      "year": 1970
+    },
+    {
+      "appeared_count": 98,
+      "ended_count": 70,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 295,
+      "present_at_period_end_count": 225,
+      "year": 1970
+    },
+    {
+      "appeared_count": 71,
+      "ended_count": 48,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 453,
+      "present_at_period_end_count": 405,
+      "year": 1970
+    },
+    {
+      "appeared_count": 602,
+      "ended_count": 89,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 2101,
+      "present_at_period_end_count": 2012,
+      "year": 1970
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1970
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1970-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1970
+    },
+    {
+      "appeared_count": 625,
+      "ended_count": 339,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 3698,
+      "present_at_period_end_count": 3359,
+      "year": 1971
+    },
+    {
+      "appeared_count": 157,
+      "ended_count": 84,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 584,
+      "present_at_period_end_count": 500,
+      "year": 1971
+    },
+    {
+      "appeared_count": 109,
+      "ended_count": 63,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 334,
+      "present_at_period_end_count": 271,
+      "year": 1971
+    },
+    {
+      "appeared_count": 150,
+      "ended_count": 123,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 555,
+      "present_at_period_end_count": 432,
+      "year": 1971
+    },
+    {
+      "appeared_count": 209,
+      "ended_count": 69,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 2221,
+      "present_at_period_end_count": 2152,
+      "year": 1971
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1971
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1971-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1971
+    },
+    {
+      "appeared_count": 420,
+      "ended_count": 381,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 3779,
+      "present_at_period_end_count": 3398,
+      "year": 1972
+    },
+    {
+      "appeared_count": 137,
+      "ended_count": 78,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 637,
+      "present_at_period_end_count": 559,
+      "year": 1972
+    },
+    {
+      "appeared_count": 111,
+      "ended_count": 70,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 382,
+      "present_at_period_end_count": 312,
+      "year": 1972
+    },
+    {
+      "appeared_count": 136,
+      "ended_count": 115,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 568,
+      "present_at_period_end_count": 453,
+      "year": 1972
+    },
+    {
+      "appeared_count": 36,
+      "ended_count": 117,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 2188,
+      "present_at_period_end_count": 2071,
+      "year": 1972
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1972
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1972-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 3,
+      "year": 1972
+    },
+    {
+      "appeared_count": 896,
+      "ended_count": 565,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 4294,
+      "present_at_period_end_count": 3729,
+      "year": 1973
+    },
+    {
+      "appeared_count": 137,
+      "ended_count": 80,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 696,
+      "present_at_period_end_count": 616,
+      "year": 1973
+    },
+    {
+      "appeared_count": 113,
+      "ended_count": 79,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 425,
+      "present_at_period_end_count": 346,
+      "year": 1973
+    },
+    {
+      "appeared_count": 175,
+      "ended_count": 146,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 628,
+      "present_at_period_end_count": 482,
+      "year": 1973
+    },
+    {
+      "appeared_count": 471,
+      "ended_count": 260,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 2542,
+      "present_at_period_end_count": 2282,
+      "year": 1973
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1973
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1973-12-31",
+      "present_any_time_count": 3,
+      "present_at_period_end_count": 3,
+      "year": 1973
+    },
+    {
+      "appeared_count": 441,
+      "ended_count": 364,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 4170,
+      "present_at_period_end_count": 3806,
+      "year": 1974
+    },
+    {
+      "appeared_count": 128,
+      "ended_count": 67,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 744,
+      "present_at_period_end_count": 677,
+      "year": 1974
+    },
+    {
+      "appeared_count": 114,
+      "ended_count": 77,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 460,
+      "present_at_period_end_count": 383,
+      "year": 1974
+    },
+    {
+      "appeared_count": 169,
+      "ended_count": 158,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 651,
+      "present_at_period_end_count": 493,
+      "year": 1974
+    },
+    {
+      "appeared_count": 30,
+      "ended_count": 62,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 2312,
+      "present_at_period_end_count": 2250,
+      "year": 1974
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1974
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1974-12-31",
+      "present_any_time_count": 3,
+      "present_at_period_end_count": 3,
+      "year": 1974
+    },
+    {
+      "appeared_count": 1119,
+      "ended_count": 502,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 4925,
+      "present_at_period_end_count": 4423,
+      "year": 1975
+    },
+    {
+      "appeared_count": 163,
+      "ended_count": 87,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 840,
+      "present_at_period_end_count": 753,
+      "year": 1975
+    },
+    {
+      "appeared_count": 137,
+      "ended_count": 81,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 520,
+      "present_at_period_end_count": 439,
+      "year": 1975
+    },
+    {
+      "appeared_count": 245,
+      "ended_count": 219,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 738,
+      "present_at_period_end_count": 519,
+      "year": 1975
+    },
+    {
+      "appeared_count": 573,
+      "ended_count": 115,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 2823,
+      "present_at_period_end_count": 2708,
+      "year": 1975
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1975
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1975-12-31",
+      "present_any_time_count": 4,
+      "present_at_period_end_count": 4,
+      "year": 1975
+    },
+    {
+      "appeared_count": 1240,
+      "ended_count": 675,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 5663,
+      "present_at_period_end_count": 4988,
+      "year": 1976
+    },
+    {
+      "appeared_count": 187,
+      "ended_count": 73,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 940,
+      "present_at_period_end_count": 867,
+      "year": 1976
+    },
+    {
+      "appeared_count": 141,
+      "ended_count": 84,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 580,
+      "present_at_period_end_count": 496,
+      "year": 1976
+    },
+    {
+      "appeared_count": 205,
+      "ended_count": 178,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 724,
+      "present_at_period_end_count": 546,
+      "year": 1976
+    },
+    {
+      "appeared_count": 706,
+      "ended_count": 338,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 3414,
+      "present_at_period_end_count": 3076,
+      "year": 1976
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1976
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 2,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1976-12-31",
+      "present_any_time_count": 5,
+      "present_at_period_end_count": 3,
+      "year": 1976
+    },
+    {
+      "appeared_count": 1108,
+      "ended_count": 545,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 6096,
+      "present_at_period_end_count": 5551,
+      "year": 1977
+    },
+    {
+      "appeared_count": 175,
+      "ended_count": 106,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 1042,
+      "present_at_period_end_count": 936,
+      "year": 1977
+    },
+    {
+      "appeared_count": 137,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 633,
+      "present_at_period_end_count": 542,
+      "year": 1977
+    },
+    {
+      "appeared_count": 170,
+      "ended_count": 162,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 716,
+      "present_at_period_end_count": 554,
+      "year": 1977
+    },
+    {
+      "appeared_count": 624,
+      "ended_count": 183,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 3700,
+      "present_at_period_end_count": 3517,
+      "year": 1977
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1977
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 3,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1977-12-31",
+      "present_any_time_count": 5,
+      "present_at_period_end_count": 2,
+      "year": 1977
+    },
+    {
+      "appeared_count": 581,
+      "ended_count": 541,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 6132,
+      "present_at_period_end_count": 5591,
+      "year": 1978
+    },
+    {
+      "appeared_count": 194,
+      "ended_count": 140,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 1130,
+      "present_at_period_end_count": 990,
+      "year": 1978
+    },
+    {
+      "appeared_count": 133,
+      "ended_count": 93,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 675,
+      "present_at_period_end_count": 582,
+      "year": 1978
+    },
+    {
+      "appeared_count": 158,
+      "ended_count": 156,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 712,
+      "present_at_period_end_count": 556,
+      "year": 1978
+    },
+    {
+      "appeared_count": 96,
+      "ended_count": 152,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 3613,
+      "present_at_period_end_count": 3461,
+      "year": 1978
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1978
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1978-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1978
+    },
+    {
+      "appeared_count": 499,
+      "ended_count": 631,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 6090,
+      "present_at_period_end_count": 5459,
+      "year": 1979
+    },
+    {
+      "appeared_count": 158,
+      "ended_count": 127,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 1148,
+      "present_at_period_end_count": 1021,
+      "year": 1979
+    },
+    {
+      "appeared_count": 118,
+      "ended_count": 98,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 700,
+      "present_at_period_end_count": 602,
+      "year": 1979
+    },
+    {
+      "appeared_count": 167,
+      "ended_count": 157,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 723,
+      "present_at_period_end_count": 566,
+      "year": 1979
+    },
+    {
+      "appeared_count": 53,
+      "ended_count": 248,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 3514,
+      "present_at_period_end_count": 3266,
+      "year": 1979
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1979
+    },
+    {
+      "appeared_count": 3,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1979-12-31",
+      "present_any_time_count": 5,
+      "present_at_period_end_count": 4,
+      "year": 1979
+    },
+    {
+      "appeared_count": 577,
+      "ended_count": 590,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 6036,
+      "present_at_period_end_count": 5446,
+      "year": 1980
+    },
+    {
+      "appeared_count": 154,
+      "ended_count": 120,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 1175,
+      "present_at_period_end_count": 1055,
+      "year": 1980
+    },
+    {
+      "appeared_count": 117,
+      "ended_count": 109,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 719,
+      "present_at_period_end_count": 610,
+      "year": 1980
+    },
+    {
+      "appeared_count": 177,
+      "ended_count": 177,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 743,
+      "present_at_period_end_count": 566,
+      "year": 1980
+    },
+    {
+      "appeared_count": 128,
+      "ended_count": 183,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 3394,
+      "present_at_period_end_count": 3211,
+      "year": 1980
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1980
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1980-12-31",
+      "present_any_time_count": 5,
+      "present_at_period_end_count": 4,
+      "year": 1980
+    },
+    {
+      "appeared_count": 1365,
+      "ended_count": 636,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 6811,
+      "present_at_period_end_count": 6175,
+      "year": 1981
+    },
+    {
+      "appeared_count": 184,
+      "ended_count": 107,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 1239,
+      "present_at_period_end_count": 1132,
+      "year": 1981
+    },
+    {
+      "appeared_count": 138,
+      "ended_count": 101,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 748,
+      "present_at_period_end_count": 647,
+      "year": 1981
+    },
+    {
+      "appeared_count": 205,
+      "ended_count": 195,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 771,
+      "present_at_period_end_count": 576,
+      "year": 1981
+    },
+    {
+      "appeared_count": 837,
+      "ended_count": 231,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 4048,
+      "present_at_period_end_count": 3817,
+      "year": 1981
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1981
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 2,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1981-12-31",
+      "present_any_time_count": 5,
+      "present_at_period_end_count": 3,
+      "year": 1981
+    },
+    {
+      "appeared_count": 688,
+      "ended_count": 581,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 6863,
+      "present_at_period_end_count": 6282,
+      "year": 1982
+    },
+    {
+      "appeared_count": 174,
+      "ended_count": 104,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 1306,
+      "present_at_period_end_count": 1202,
+      "year": 1982
+    },
+    {
+      "appeared_count": 133,
+      "ended_count": 93,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 780,
+      "present_at_period_end_count": 687,
+      "year": 1982
+    },
+    {
+      "appeared_count": 192,
+      "ended_count": 189,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 768,
+      "present_at_period_end_count": 579,
+      "year": 1982
+    },
+    {
+      "appeared_count": 186,
+      "ended_count": 192,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 4003,
+      "present_at_period_end_count": 3811,
+      "year": 1982
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1982
+    },
+    {
+      "appeared_count": 3,
+      "ended_count": 3,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1982-12-31",
+      "present_any_time_count": 6,
+      "present_at_period_end_count": 3,
+      "year": 1982
+    },
+    {
+      "appeared_count": 701,
+      "ended_count": 517,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 6983,
+      "present_at_period_end_count": 6466,
+      "year": 1983
+    },
+    {
+      "appeared_count": 226,
+      "ended_count": 149,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 1428,
+      "present_at_period_end_count": 1279,
+      "year": 1983
+    },
+    {
+      "appeared_count": 141,
+      "ended_count": 93,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 828,
+      "present_at_period_end_count": 735,
+      "year": 1983
+    },
+    {
+      "appeared_count": 250,
+      "ended_count": 179,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 829,
+      "present_at_period_end_count": 650,
+      "year": 1983
+    },
+    {
+      "appeared_count": 84,
+      "ended_count": 93,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 3895,
+      "present_at_period_end_count": 3802,
+      "year": 1983
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1983
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 3,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1983-12-31",
+      "present_any_time_count": 3,
+      "present_at_period_end_count": 0,
+      "year": 1983
+    },
+    {
+      "appeared_count": 830,
+      "ended_count": 592,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 7296,
+      "present_at_period_end_count": 6704,
+      "year": 1984
+    },
+    {
+      "appeared_count": 225,
+      "ended_count": 121,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 1504,
+      "present_at_period_end_count": 1383,
+      "year": 1984
+    },
+    {
+      "appeared_count": 148,
+      "ended_count": 95,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 883,
+      "present_at_period_end_count": 788,
+      "year": 1984
+    },
+    {
+      "appeared_count": 357,
+      "ended_count": 291,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 1007,
+      "present_at_period_end_count": 716,
+      "year": 1984
+    },
+    {
+      "appeared_count": 100,
+      "ended_count": 85,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 3902,
+      "present_at_period_end_count": 3817,
+      "year": 1984
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1984
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1984-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1984
+    },
+    {
+      "appeared_count": 1401,
+      "ended_count": 470,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 8105,
+      "present_at_period_end_count": 7635,
+      "year": 1985
+    },
+    {
+      "appeared_count": 203,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 1586,
+      "present_at_period_end_count": 1495,
+      "year": 1985
+    },
+    {
+      "appeared_count": 132,
+      "ended_count": 79,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 920,
+      "present_at_period_end_count": 841,
+      "year": 1985
+    },
+    {
+      "appeared_count": 344,
+      "ended_count": 245,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 1060,
+      "present_at_period_end_count": 815,
+      "year": 1985
+    },
+    {
+      "appeared_count": 722,
+      "ended_count": 55,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 4539,
+      "present_at_period_end_count": 4484,
+      "year": 1985
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1985
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1985-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1985
+    },
+    {
+      "appeared_count": 1056,
+      "ended_count": 555,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 8691,
+      "present_at_period_end_count": 8136,
+      "year": 1986
+    },
+    {
+      "appeared_count": 159,
+      "ended_count": 66,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 1654,
+      "present_at_period_end_count": 1588,
+      "year": 1986
+    },
+    {
+      "appeared_count": 118,
+      "ended_count": 75,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 959,
+      "present_at_period_end_count": 884,
+      "year": 1986
+    },
+    {
+      "appeared_count": 216,
+      "ended_count": 254,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 1031,
+      "present_at_period_end_count": 777,
+      "year": 1986
+    },
+    {
+      "appeared_count": 563,
+      "ended_count": 160,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 5047,
+      "present_at_period_end_count": 4887,
+      "year": 1986
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1986
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1986-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1986
+    },
+    {
+      "appeared_count": 941,
+      "ended_count": 635,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 9077,
+      "present_at_period_end_count": 8442,
+      "year": 1987
+    },
+    {
+      "appeared_count": 149,
+      "ended_count": 88,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 1737,
+      "present_at_period_end_count": 1649,
+      "year": 1987
+    },
+    {
+      "appeared_count": 122,
+      "ended_count": 78,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 1006,
+      "present_at_period_end_count": 928,
+      "year": 1987
+    },
+    {
+      "appeared_count": 221,
+      "ended_count": 214,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 998,
+      "present_at_period_end_count": 784,
+      "year": 1987
+    },
+    {
+      "appeared_count": 449,
+      "ended_count": 255,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 5336,
+      "present_at_period_end_count": 5081,
+      "year": 1987
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1987
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1987-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1987
+    },
+    {
+      "appeared_count": 758,
+      "ended_count": 951,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 9200,
+      "present_at_period_end_count": 8249,
+      "year": 1988
+    },
+    {
+      "appeared_count": 167,
+      "ended_count": 117,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 1816,
+      "present_at_period_end_count": 1699,
+      "year": 1988
+    },
+    {
+      "appeared_count": 131,
+      "ended_count": 99,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 1059,
+      "present_at_period_end_count": 960,
+      "year": 1988
+    },
+    {
+      "appeared_count": 334,
+      "ended_count": 289,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 1118,
+      "present_at_period_end_count": 829,
+      "year": 1988
+    },
+    {
+      "appeared_count": 124,
+      "ended_count": 446,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 5205,
+      "present_at_period_end_count": 4759,
+      "year": 1988
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1988
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1988-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1988
+    },
+    {
+      "appeared_count": 596,
+      "ended_count": 1077,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 8845,
+      "present_at_period_end_count": 7768,
+      "year": 1989
+    },
+    {
+      "appeared_count": 194,
+      "ended_count": 131,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 1893,
+      "present_at_period_end_count": 1762,
+      "year": 1989
+    },
+    {
+      "appeared_count": 119,
+      "ended_count": 105,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 1079,
+      "present_at_period_end_count": 974,
+      "year": 1989
+    },
+    {
+      "appeared_count": 192,
+      "ended_count": 213,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 1021,
+      "present_at_period_end_count": 808,
+      "year": 1989
+    },
+    {
+      "appeared_count": 91,
+      "ended_count": 628,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 4850,
+      "present_at_period_end_count": 4222,
+      "year": 1989
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1989
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1989-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 2,
+      "year": 1989
+    },
+    {
+      "appeared_count": 683,
+      "ended_count": 578,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 8451,
+      "present_at_period_end_count": 7873,
+      "year": 1990
+    },
+    {
+      "appeared_count": 212,
+      "ended_count": 125,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 1974,
+      "present_at_period_end_count": 1849,
+      "year": 1990
+    },
+    {
+      "appeared_count": 140,
+      "ended_count": 94,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 1114,
+      "present_at_period_end_count": 1020,
+      "year": 1990
+    },
+    {
+      "appeared_count": 188,
+      "ended_count": 145,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 996,
+      "present_at_period_end_count": 851,
+      "year": 1990
+    },
+    {
+      "appeared_count": 142,
+      "ended_count": 211,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 4364,
+      "present_at_period_end_count": 4153,
+      "year": 1990
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1990
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 3,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1990-12-31",
+      "present_any_time_count": 3,
+      "present_at_period_end_count": 0,
+      "year": 1990
+    },
+    {
+      "appeared_count": 940,
+      "ended_count": 572,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 8813,
+      "present_at_period_end_count": 8241,
+      "year": 1991
+    },
+    {
+      "appeared_count": 178,
+      "ended_count": 107,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 2027,
+      "present_at_period_end_count": 1920,
+      "year": 1991
+    },
+    {
+      "appeared_count": 99,
+      "ended_count": 69,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 1119,
+      "present_at_period_end_count": 1050,
+      "year": 1991
+    },
+    {
+      "appeared_count": 211,
+      "ended_count": 171,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 1062,
+      "present_at_period_end_count": 891,
+      "year": 1991
+    },
+    {
+      "appeared_count": 451,
+      "ended_count": 224,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 4604,
+      "present_at_period_end_count": 4380,
+      "year": 1991
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1991
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1991-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 0,
+      "year": 1991
+    },
+    {
+      "appeared_count": 766,
+      "ended_count": 370,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 9007,
+      "present_at_period_end_count": 8637,
+      "year": 1992
+    },
+    {
+      "appeared_count": 136,
+      "ended_count": 95,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 2056,
+      "present_at_period_end_count": 1961,
+      "year": 1992
+    },
+    {
+      "appeared_count": 113,
+      "ended_count": 67,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 1163,
+      "present_at_period_end_count": 1096,
+      "year": 1992
+    },
+    {
+      "appeared_count": 137,
+      "ended_count": 113,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 1028,
+      "present_at_period_end_count": 915,
+      "year": 1992
+    },
+    {
+      "appeared_count": 380,
+      "ended_count": 95,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 4760,
+      "present_at_period_end_count": 4665,
+      "year": 1992
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1992
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1992-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1992
+    },
+    {
+      "appeared_count": 579,
+      "ended_count": 235,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 9216,
+      "present_at_period_end_count": 8981,
+      "year": 1993
+    },
+    {
+      "appeared_count": 112,
+      "ended_count": 51,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 2073,
+      "present_at_period_end_count": 2022,
+      "year": 1993
+    },
+    {
+      "appeared_count": 89,
+      "ended_count": 48,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 1185,
+      "present_at_period_end_count": 1137,
+      "year": 1993
+    },
+    {
+      "appeared_count": 119,
+      "ended_count": 87,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 1034,
+      "present_at_period_end_count": 947,
+      "year": 1993
+    },
+    {
+      "appeared_count": 259,
+      "ended_count": 49,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 4924,
+      "present_at_period_end_count": 4875,
+      "year": 1993
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1993
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1993-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1993
+    },
+    {
+      "appeared_count": 457,
+      "ended_count": 192,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 9438,
+      "present_at_period_end_count": 9246,
+      "year": 1994
+    },
+    {
+      "appeared_count": 124,
+      "ended_count": 37,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 2146,
+      "present_at_period_end_count": 2109,
+      "year": 1994
+    },
+    {
+      "appeared_count": 101,
+      "ended_count": 53,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 1238,
+      "present_at_period_end_count": 1185,
+      "year": 1994
+    },
+    {
+      "appeared_count": 101,
+      "ended_count": 71,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 1048,
+      "present_at_period_end_count": 977,
+      "year": 1994
+    },
+    {
+      "appeared_count": 131,
+      "ended_count": 31,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 5006,
+      "present_at_period_end_count": 4975,
+      "year": 1994
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1994
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1994-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1994
+    },
+    {
+      "appeared_count": 281,
+      "ended_count": 188,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 9527,
+      "present_at_period_end_count": 9339,
+      "year": 1995
+    },
+    {
+      "appeared_count": 101,
+      "ended_count": 45,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 2210,
+      "present_at_period_end_count": 2165,
+      "year": 1995
+    },
+    {
+      "appeared_count": 76,
+      "ended_count": 43,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 1261,
+      "present_at_period_end_count": 1218,
+      "year": 1995
+    },
+    {
+      "appeared_count": 90,
+      "ended_count": 59,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 1067,
+      "present_at_period_end_count": 1008,
+      "year": 1995
+    },
+    {
+      "appeared_count": 14,
+      "ended_count": 41,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 4989,
+      "present_at_period_end_count": 4948,
+      "year": 1995
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1995
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1995-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1995
+    },
+    {
+      "appeared_count": 1115,
+      "ended_count": 258,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 10454,
+      "present_at_period_end_count": 10196,
+      "year": 1996
+    },
+    {
+      "appeared_count": 98,
+      "ended_count": 35,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 2263,
+      "present_at_period_end_count": 2228,
+      "year": 1996
+    },
+    {
+      "appeared_count": 83,
+      "ended_count": 45,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 1301,
+      "present_at_period_end_count": 1256,
+      "year": 1996
+    },
+    {
+      "appeared_count": 112,
+      "ended_count": 63,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 1120,
+      "present_at_period_end_count": 1057,
+      "year": 1996
+    },
+    {
+      "appeared_count": 822,
+      "ended_count": 115,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 5770,
+      "present_at_period_end_count": 5655,
+      "year": 1996
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1996
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1996-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1996
+    },
+    {
+      "appeared_count": 371,
+      "ended_count": 435,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 10567,
+      "present_at_period_end_count": 10132,
+      "year": 1997
+    },
+    {
+      "appeared_count": 156,
+      "ended_count": 45,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 2384,
+      "present_at_period_end_count": 2339,
+      "year": 1997
+    },
+    {
+      "appeared_count": 89,
+      "ended_count": 48,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 1345,
+      "present_at_period_end_count": 1297,
+      "year": 1997
+    },
+    {
+      "appeared_count": 76,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 1133,
+      "present_at_period_end_count": 1042,
+      "year": 1997
+    },
+    {
+      "appeared_count": 48,
+      "ended_count": 249,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 5703,
+      "present_at_period_end_count": 5454,
+      "year": 1997
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1997
+    },
+    {
+      "appeared_count": 2,
+      "ended_count": 2,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1997-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 0,
+      "year": 1997
+    },
+    {
+      "appeared_count": 528,
+      "ended_count": 412,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 10660,
+      "present_at_period_end_count": 10248,
+      "year": 1998
+    },
+    {
+      "appeared_count": 157,
+      "ended_count": 44,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 2496,
+      "present_at_period_end_count": 2452,
+      "year": 1998
+    },
+    {
+      "appeared_count": 83,
+      "ended_count": 67,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 1380,
+      "present_at_period_end_count": 1313,
+      "year": 1998
+    },
+    {
+      "appeared_count": 91,
+      "ended_count": 101,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 1133,
+      "present_at_period_end_count": 1032,
+      "year": 1998
+    },
+    {
+      "appeared_count": 196,
+      "ended_count": 199,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 5650,
+      "present_at_period_end_count": 5451,
+      "year": 1998
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1998
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1998-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 0,
+      "year": 1998
+    },
+    {
+      "appeared_count": 423,
+      "ended_count": 456,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 10671,
+      "present_at_period_end_count": 10215,
+      "year": 1999
+    },
+    {
+      "appeared_count": 128,
+      "ended_count": 44,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 2580,
+      "present_at_period_end_count": 2536,
+      "year": 1999
+    },
+    {
+      "appeared_count": 91,
+      "ended_count": 77,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 1404,
+      "present_at_period_end_count": 1327,
+      "year": 1999
+    },
+    {
+      "appeared_count": 63,
+      "ended_count": 77,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 1095,
+      "present_at_period_end_count": 1018,
+      "year": 1999
+    },
+    {
+      "appeared_count": 141,
+      "ended_count": 258,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 5592,
+      "present_at_period_end_count": 5334,
+      "year": 1999
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1999
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "1999-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 1999
+    },
+    {
+      "appeared_count": 634,
+      "ended_count": 420,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 10849,
+      "present_at_period_end_count": 10429,
+      "year": 2000
+    },
+    {
+      "appeared_count": 130,
+      "ended_count": 59,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 2666,
+      "present_at_period_end_count": 2607,
+      "year": 2000
+    },
+    {
+      "appeared_count": 92,
+      "ended_count": 79,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 1419,
+      "present_at_period_end_count": 1340,
+      "year": 2000
+    },
+    {
+      "appeared_count": 60,
+      "ended_count": 64,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 1078,
+      "present_at_period_end_count": 1014,
+      "year": 2000
+    },
+    {
+      "appeared_count": 352,
+      "ended_count": 218,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 5686,
+      "present_at_period_end_count": 5468,
+      "year": 2000
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2000
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2000-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2000
+    },
+    {
+      "appeared_count": 701,
+      "ended_count": 493,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 11130,
+      "present_at_period_end_count": 10637,
+      "year": 2001
+    },
+    {
+      "appeared_count": 86,
+      "ended_count": 125,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 2693,
+      "present_at_period_end_count": 2568,
+      "year": 2001
+    },
+    {
+      "appeared_count": 65,
+      "ended_count": 66,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 1405,
+      "present_at_period_end_count": 1339,
+      "year": 2001
+    },
+    {
+      "appeared_count": 45,
+      "ended_count": 73,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 1059,
+      "present_at_period_end_count": 986,
+      "year": 2001
+    },
+    {
+      "appeared_count": 505,
+      "ended_count": 229,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 5973,
+      "present_at_period_end_count": 5744,
+      "year": 2001
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2001
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2001-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2001
+    },
+    {
+      "appeared_count": 241,
+      "ended_count": 522,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 10878,
+      "present_at_period_end_count": 10356,
+      "year": 2002
+    },
+    {
+      "appeared_count": 89,
+      "ended_count": 48,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 2657,
+      "present_at_period_end_count": 2609,
+      "year": 2002
+    },
+    {
+      "appeared_count": 63,
+      "ended_count": 65,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 1402,
+      "present_at_period_end_count": 1337,
+      "year": 2002
+    },
+    {
+      "appeared_count": 57,
+      "ended_count": 57,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 1043,
+      "present_at_period_end_count": 986,
+      "year": 2002
+    },
+    {
+      "appeared_count": 32,
+      "ended_count": 352,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 5776,
+      "present_at_period_end_count": 5424,
+      "year": 2002
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2002
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2002-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2002
+    },
+    {
+      "appeared_count": 430,
+      "ended_count": 320,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 10786,
+      "present_at_period_end_count": 10466,
+      "year": 2003
+    },
+    {
+      "appeared_count": 90,
+      "ended_count": 38,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 2699,
+      "present_at_period_end_count": 2661,
+      "year": 2003
+    },
+    {
+      "appeared_count": 71,
+      "ended_count": 46,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 1408,
+      "present_at_period_end_count": 1362,
+      "year": 2003
+    },
+    {
+      "appeared_count": 53,
+      "ended_count": 30,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 1039,
+      "present_at_period_end_count": 1009,
+      "year": 2003
+    },
+    {
+      "appeared_count": 216,
+      "ended_count": 206,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 5640,
+      "present_at_period_end_count": 5434,
+      "year": 2003
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2003
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2003-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2003
+    },
+    {
+      "appeared_count": 440,
+      "ended_count": 207,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 10906,
+      "present_at_period_end_count": 10699,
+      "year": 2004
+    },
+    {
+      "appeared_count": 72,
+      "ended_count": 23,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 2733,
+      "present_at_period_end_count": 2710,
+      "year": 2004
+    },
+    {
+      "appeared_count": 64,
+      "ended_count": 49,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 1426,
+      "present_at_period_end_count": 1377,
+      "year": 2004
+    },
+    {
+      "appeared_count": 73,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 1082,
+      "present_at_period_end_count": 1042,
+      "year": 2004
+    },
+    {
+      "appeared_count": 231,
+      "ended_count": 95,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 5665,
+      "present_at_period_end_count": 5570,
+      "year": 2004
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2004
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2004-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2004
+    },
+    {
+      "appeared_count": 347,
+      "ended_count": 229,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 11046,
+      "present_at_period_end_count": 10817,
+      "year": 2005
+    },
+    {
+      "appeared_count": 71,
+      "ended_count": 30,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 2781,
+      "present_at_period_end_count": 2751,
+      "year": 2005
+    },
+    {
+      "appeared_count": 55,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 1432,
+      "present_at_period_end_count": 1392,
+      "year": 2005
+    },
+    {
+      "appeared_count": 59,
+      "ended_count": 43,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 1101,
+      "present_at_period_end_count": 1058,
+      "year": 2005
+    },
+    {
+      "appeared_count": 162,
+      "ended_count": 116,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 5732,
+      "present_at_period_end_count": 5616,
+      "year": 2005
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2005
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2005-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2005
+    },
+    {
+      "appeared_count": 624,
+      "ended_count": 299,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 11441,
+      "present_at_period_end_count": 11142,
+      "year": 2006
+    },
+    {
+      "appeared_count": 93,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 2844,
+      "present_at_period_end_count": 2804,
+      "year": 2006
+    },
+    {
+      "appeared_count": 65,
+      "ended_count": 33,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 1457,
+      "present_at_period_end_count": 1424,
+      "year": 2006
+    },
+    {
+      "appeared_count": 69,
+      "ended_count": 37,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 1127,
+      "present_at_period_end_count": 1090,
+      "year": 2006
+    },
+    {
+      "appeared_count": 397,
+      "ended_count": 189,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 6013,
+      "present_at_period_end_count": 5824,
+      "year": 2006
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2006
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2006-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2006
+    },
+    {
+      "appeared_count": 4088,
+      "ended_count": 229,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 15230,
+      "present_at_period_end_count": 15001,
+      "year": 2007
+    },
+    {
+      "appeared_count": 110,
+      "ended_count": 47,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 2914,
+      "present_at_period_end_count": 2867,
+      "year": 2007
+    },
+    {
+      "appeared_count": 69,
+      "ended_count": 38,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 1493,
+      "present_at_period_end_count": 1455,
+      "year": 2007
+    },
+    {
+      "appeared_count": 63,
+      "ended_count": 34,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 1153,
+      "present_at_period_end_count": 1119,
+      "year": 2007
+    },
+    {
+      "appeared_count": 3846,
+      "ended_count": 110,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 9670,
+      "present_at_period_end_count": 9560,
+      "year": 2007
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2007
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2007-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2007
+    },
+    {
+      "appeared_count": 1008,
+      "ended_count": 758,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 16009,
+      "present_at_period_end_count": 15251,
+      "year": 2008
+    },
+    {
+      "appeared_count": 101,
+      "ended_count": 30,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 2968,
+      "present_at_period_end_count": 2938,
+      "year": 2008
+    },
+    {
+      "appeared_count": 67,
+      "ended_count": 33,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 1522,
+      "present_at_period_end_count": 1489,
+      "year": 2008
+    },
+    {
+      "appeared_count": 74,
+      "ended_count": 32,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 1193,
+      "present_at_period_end_count": 1161,
+      "year": 2008
+    },
+    {
+      "appeared_count": 766,
+      "ended_count": 663,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 10326,
+      "present_at_period_end_count": 9663,
+      "year": 2008
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2008
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2008-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2008
+    },
+    {
+      "appeared_count": 2750,
+      "ended_count": 338,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 18001,
+      "present_at_period_end_count": 17663,
+      "year": 2009
+    },
+    {
+      "appeared_count": 123,
+      "ended_count": 49,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 3061,
+      "present_at_period_end_count": 3012,
+      "year": 2009
+    },
+    {
+      "appeared_count": 75,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 1564,
+      "present_at_period_end_count": 1524,
+      "year": 2009
+    },
+    {
+      "appeared_count": 69,
+      "ended_count": 25,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 1230,
+      "present_at_period_end_count": 1205,
+      "year": 2009
+    },
+    {
+      "appeared_count": 2483,
+      "ended_count": 224,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 12146,
+      "present_at_period_end_count": 11922,
+      "year": 2009
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2009
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2009-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2009
+    },
+    {
+      "appeared_count": 561,
+      "ended_count": 403,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 18224,
+      "present_at_period_end_count": 17821,
+      "year": 2010
+    },
+    {
+      "appeared_count": 118,
+      "ended_count": 47,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 3130,
+      "present_at_period_end_count": 3083,
+      "year": 2010
+    },
+    {
+      "appeared_count": 66,
+      "ended_count": 31,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 1590,
+      "present_at_period_end_count": 1559,
+      "year": 2010
+    },
+    {
+      "appeared_count": 74,
+      "ended_count": 33,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 1279,
+      "present_at_period_end_count": 1246,
+      "year": 2010
+    },
+    {
+      "appeared_count": 303,
+      "ended_count": 292,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 12225,
+      "present_at_period_end_count": 11933,
+      "year": 2010
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2010
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2010-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2010
+    },
+    {
+      "appeared_count": 351,
+      "ended_count": 524,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 18172,
+      "present_at_period_end_count": 17648,
+      "year": 2011
+    },
+    {
+      "appeared_count": 128,
+      "ended_count": 55,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 3211,
+      "present_at_period_end_count": 3156,
+      "year": 2011
+    },
+    {
+      "appeared_count": 73,
+      "ended_count": 47,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 1632,
+      "present_at_period_end_count": 1585,
+      "year": 2011
+    },
+    {
+      "appeared_count": 88,
+      "ended_count": 43,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 1334,
+      "present_at_period_end_count": 1291,
+      "year": 2011
+    },
+    {
+      "appeared_count": 62,
+      "ended_count": 379,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 11995,
+      "present_at_period_end_count": 11616,
+      "year": 2011
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2011
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2011-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2011
+    },
+    {
+      "appeared_count": 497,
+      "ended_count": 497,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 18145,
+      "present_at_period_end_count": 17648,
+      "year": 2012
+    },
+    {
+      "appeared_count": 135,
+      "ended_count": 52,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 3291,
+      "present_at_period_end_count": 3239,
+      "year": 2012
+    },
+    {
+      "appeared_count": 69,
+      "ended_count": 44,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 1654,
+      "present_at_period_end_count": 1610,
+      "year": 2012
+    },
+    {
+      "appeared_count": 70,
+      "ended_count": 48,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 1361,
+      "present_at_period_end_count": 1313,
+      "year": 2012
+    },
+    {
+      "appeared_count": 223,
+      "ended_count": 353,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 11839,
+      "present_at_period_end_count": 11486,
+      "year": 2012
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2012
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2012-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2012
+    },
+    {
+      "appeared_count": 436,
+      "ended_count": 477,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 18084,
+      "present_at_period_end_count": 17607,
+      "year": 2013
+    },
+    {
+      "appeared_count": 208,
+      "ended_count": 44,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 3447,
+      "present_at_period_end_count": 3403,
+      "year": 2013
+    },
+    {
+      "appeared_count": 71,
+      "ended_count": 44,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 1681,
+      "present_at_period_end_count": 1637,
+      "year": 2013
+    },
+    {
+      "appeared_count": 72,
+      "ended_count": 47,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 1385,
+      "present_at_period_end_count": 1338,
+      "year": 2013
+    },
+    {
+      "appeared_count": 85,
+      "ended_count": 342,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 11571,
+      "present_at_period_end_count": 11229,
+      "year": 2013
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2013
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2013-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2013
+    },
+    {
+      "appeared_count": 577,
+      "ended_count": 706,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 18184,
+      "present_at_period_end_count": 17478,
+      "year": 2014
+    },
+    {
+      "appeared_count": 240,
+      "ended_count": 110,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 3643,
+      "present_at_period_end_count": 3533,
+      "year": 2014
+    },
+    {
+      "appeared_count": 79,
+      "ended_count": 51,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 1716,
+      "present_at_period_end_count": 1665,
+      "year": 2014
+    },
+    {
+      "appeared_count": 63,
+      "ended_count": 47,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 1401,
+      "present_at_period_end_count": 1354,
+      "year": 2014
+    },
+    {
+      "appeared_count": 195,
+      "ended_count": 498,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 11424,
+      "present_at_period_end_count": 10926,
+      "year": 2014
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2014
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2014-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2014
+    },
+    {
+      "appeared_count": 1099,
+      "ended_count": 497,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 18577,
+      "present_at_period_end_count": 18080,
+      "year": 2015
+    },
+    {
+      "appeared_count": 227,
+      "ended_count": 87,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 3760,
+      "present_at_period_end_count": 3673,
+      "year": 2015
+    },
+    {
+      "appeared_count": 77,
+      "ended_count": 40,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 1742,
+      "present_at_period_end_count": 1702,
+      "year": 2015
+    },
+    {
+      "appeared_count": 46,
+      "ended_count": 41,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 1400,
+      "present_at_period_end_count": 1359,
+      "year": 2015
+    },
+    {
+      "appeared_count": 749,
+      "ended_count": 329,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 11675,
+      "present_at_period_end_count": 11346,
+      "year": 2015
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2015
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2015-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2015
+    },
+    {
+      "appeared_count": 463,
+      "ended_count": 298,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 18543,
+      "present_at_period_end_count": 18245,
+      "year": 2016
+    },
+    {
+      "appeared_count": 221,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 3894,
+      "present_at_period_end_count": 3803,
+      "year": 2016
+    },
+    {
+      "appeared_count": 75,
+      "ended_count": 42,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 1777,
+      "present_at_period_end_count": 1735,
+      "year": 2016
+    },
+    {
+      "appeared_count": 54,
+      "ended_count": 42,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 1413,
+      "present_at_period_end_count": 1371,
+      "year": 2016
+    },
+    {
+      "appeared_count": 113,
+      "ended_count": 123,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 11459,
+      "present_at_period_end_count": 11336,
+      "year": 2016
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2016
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2016-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2016
+    },
+    {
+      "appeared_count": 595,
+      "ended_count": 221,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 18840,
+      "present_at_period_end_count": 18619,
+      "year": 2017
+    },
+    {
+      "appeared_count": 456,
+      "ended_count": 70,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 4259,
+      "present_at_period_end_count": 4189,
+      "year": 2017
+    },
+    {
+      "appeared_count": 68,
+      "ended_count": 37,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 1803,
+      "present_at_period_end_count": 1766,
+      "year": 2017
+    },
+    {
+      "appeared_count": 55,
+      "ended_count": 28,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 1426,
+      "present_at_period_end_count": 1398,
+      "year": 2017
+    },
+    {
+      "appeared_count": 16,
+      "ended_count": 86,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 11352,
+      "present_at_period_end_count": 11266,
+      "year": 2017
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2017
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2017-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2017
+    },
+    {
+      "appeared_count": 841,
+      "ended_count": 266,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 19460,
+      "present_at_period_end_count": 19194,
+      "year": 2018
+    },
+    {
+      "appeared_count": 450,
+      "ended_count": 124,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 4639,
+      "present_at_period_end_count": 4515,
+      "year": 2018
+    },
+    {
+      "appeared_count": 96,
+      "ended_count": 35,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 1862,
+      "present_at_period_end_count": 1827,
+      "year": 2018
+    },
+    {
+      "appeared_count": 86,
+      "ended_count": 35,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 1484,
+      "present_at_period_end_count": 1449,
+      "year": 2018
+    },
+    {
+      "appeared_count": 209,
+      "ended_count": 72,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 11475,
+      "present_at_period_end_count": 11403,
+      "year": 2018
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2018
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2018-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2018
+    },
+    {
+      "appeared_count": 1081,
+      "ended_count": 339,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 20275,
+      "present_at_period_end_count": 19936,
+      "year": 2019
+    },
+    {
+      "appeared_count": 459,
+      "ended_count": 91,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 4974,
+      "present_at_period_end_count": 4883,
+      "year": 2019
+    },
+    {
+      "appeared_count": 85,
+      "ended_count": 57,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 1912,
+      "present_at_period_end_count": 1855,
+      "year": 2019
+    },
+    {
+      "appeared_count": 45,
+      "ended_count": 24,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 1494,
+      "present_at_period_end_count": 1470,
+      "year": 2019
+    },
+    {
+      "appeared_count": 491,
+      "ended_count": 167,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 11894,
+      "present_at_period_end_count": 11727,
+      "year": 2019
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2019
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2019-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 1,
+      "year": 2019
+    },
+    {
+      "appeared_count": 2164,
+      "ended_count": 441,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 22100,
+      "present_at_period_end_count": 21659,
+      "year": 2020
+    },
+    {
+      "appeared_count": 1274,
+      "ended_count": 122,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 6157,
+      "present_at_period_end_count": 6035,
+      "year": 2020
+    },
+    {
+      "appeared_count": 72,
+      "ended_count": 50,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 1927,
+      "present_at_period_end_count": 1877,
+      "year": 2020
+    },
+    {
+      "appeared_count": 100,
+      "ended_count": 86,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 1570,
+      "present_at_period_end_count": 1484,
+      "year": 2020
+    },
+    {
+      "appeared_count": 718,
+      "ended_count": 182,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 12445,
+      "present_at_period_end_count": 12263,
+      "year": 2020
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2020
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 1,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2020-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 0,
+      "year": 2020
+    },
+    {
+      "appeared_count": 4065,
+      "ended_count": 548,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 25724,
+      "present_at_period_end_count": 25176,
+      "year": 2021
+    },
+    {
+      "appeared_count": 1805,
+      "ended_count": 177,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 7840,
+      "present_at_period_end_count": 7663,
+      "year": 2021
+    },
+    {
+      "appeared_count": 91,
+      "ended_count": 60,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 1968,
+      "present_at_period_end_count": 1908,
+      "year": 2021
+    },
+    {
+      "appeared_count": 111,
+      "ended_count": 85,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 1595,
+      "present_at_period_end_count": 1510,
+      "year": 2021
+    },
+    {
+      "appeared_count": 2058,
+      "ended_count": 226,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 14321,
+      "present_at_period_end_count": 14095,
+      "year": 2021
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2021
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2021-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2021
+    },
+    {
+      "appeared_count": 3614,
+      "ended_count": 2511,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 28790,
+      "present_at_period_end_count": 26279,
+      "year": 2022
+    },
+    {
+      "appeared_count": 2439,
+      "ended_count": 384,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 10102,
+      "present_at_period_end_count": 9718,
+      "year": 2022
+    },
+    {
+      "appeared_count": 111,
+      "ended_count": 71,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 2019,
+      "present_at_period_end_count": 1948,
+      "year": 2022
+    },
+    {
+      "appeared_count": 209,
+      "ended_count": 231,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 1719,
+      "present_at_period_end_count": 1488,
+      "year": 2022
+    },
+    {
+      "appeared_count": 855,
+      "ended_count": 1825,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 14950,
+      "present_at_period_end_count": 13125,
+      "year": 2022
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2022
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2022-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2022
+    },
+    {
+      "appeared_count": 3277,
+      "ended_count": 2081,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 29556,
+      "present_at_period_end_count": 27475,
+      "year": 2023
+    },
+    {
+      "appeared_count": 2900,
+      "ended_count": 684,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 12618,
+      "present_at_period_end_count": 11934,
+      "year": 2023
+    },
+    {
+      "appeared_count": 120,
+      "ended_count": 92,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 2068,
+      "present_at_period_end_count": 1976,
+      "year": 2023
+    },
+    {
+      "appeared_count": 144,
+      "ended_count": 201,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 1632,
+      "present_at_period_end_count": 1431,
+      "year": 2023
+    },
+    {
+      "appeared_count": 113,
+      "ended_count": 1104,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 13238,
+      "present_at_period_end_count": 12134,
+      "year": 2023
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2023
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2023-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2023
+    },
+    {
+      "appeared_count": 3798,
+      "ended_count": 2241,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 31273,
+      "present_at_period_end_count": 29032,
+      "year": 2024
+    },
+    {
+      "appeared_count": 2832,
+      "ended_count": 1122,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 14766,
+      "present_at_period_end_count": 13644,
+      "year": 2024
+    },
+    {
+      "appeared_count": 128,
+      "ended_count": 123,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 2104,
+      "present_at_period_end_count": 1981,
+      "year": 2024
+    },
+    {
+      "appeared_count": 29,
+      "ended_count": 89,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 1460,
+      "present_at_period_end_count": 1371,
+      "year": 2024
+    },
+    {
+      "appeared_count": 808,
+      "ended_count": 907,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 12942,
+      "present_at_period_end_count": 12035,
+      "year": 2024
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2024
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2024-12-31",
+      "present_any_time_count": 1,
+      "present_at_period_end_count": 1,
+      "year": 2024
+    },
+    {
+      "appeared_count": 4680,
+      "ended_count": 1968,
+      "is_partial_year": 0,
+      "object_class": "all",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 33712,
+      "present_at_period_end_count": 31744,
+      "year": 2025
+    },
+    {
+      "appeared_count": 4506,
+      "ended_count": 1187,
+      "is_partial_year": 0,
+      "object_class": "payload",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 18150,
+      "present_at_period_end_count": 16963,
+      "year": 2025
+    },
+    {
+      "appeared_count": 143,
+      "ended_count": 110,
+      "is_partial_year": 0,
+      "object_class": "rocket_body",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 2124,
+      "present_at_period_end_count": 2014,
+      "year": 2025
+    },
+    {
+      "appeared_count": 22,
+      "ended_count": 41,
+      "is_partial_year": 0,
+      "object_class": "component",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 1393,
+      "present_at_period_end_count": 1352,
+      "year": 2025
+    },
+    {
+      "appeared_count": 8,
+      "ended_count": 628,
+      "is_partial_year": 0,
+      "object_class": "debris",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 12043,
+      "present_at_period_end_count": 11415,
+      "year": 2025
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 0,
+      "object_class": "unknown",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2025
+    },
+    {
+      "appeared_count": 1,
+      "ended_count": 2,
+      "is_partial_year": 0,
+      "object_class": "spurious",
+      "period_end_date": "2025-12-31",
+      "present_any_time_count": 2,
+      "present_at_period_end_count": 0,
+      "year": 2025
+    },
+    {
+      "appeared_count": 2405,
+      "ended_count": 658,
+      "is_partial_year": 1,
+      "object_class": "all",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 34149,
+      "present_at_period_end_count": 33491,
+      "year": 2026
+    },
+    {
+      "appeared_count": 2314,
+      "ended_count": 435,
+      "is_partial_year": 1,
+      "object_class": "payload",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 19277,
+      "present_at_period_end_count": 18842,
+      "year": 2026
+    },
+    {
+      "appeared_count": 64,
+      "ended_count": 52,
+      "is_partial_year": 1,
+      "object_class": "rocket_body",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 2078,
+      "present_at_period_end_count": 2026,
+      "year": 2026
+    },
+    {
+      "appeared_count": 13,
+      "ended_count": 20,
+      "is_partial_year": 1,
+      "object_class": "component",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 1365,
+      "present_at_period_end_count": 1345,
+      "year": 2026
+    },
+    {
+      "appeared_count": 14,
+      "ended_count": 151,
+      "is_partial_year": 1,
+      "object_class": "debris",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 11429,
+      "present_at_period_end_count": 11278,
+      "year": 2026
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 1,
+      "object_class": "unknown",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2026
+    },
+    {
+      "appeared_count": 0,
+      "ended_count": 0,
+      "is_partial_year": 1,
+      "object_class": "spurious",
+      "period_end_date": "2026-06-27",
+      "present_any_time_count": 0,
+      "present_at_period_end_count": 0,
+      "year": 2026
+    }
+  ],
+  "source_snapshot_updated_at": "2026-06-27T22:13:02Z"
+}

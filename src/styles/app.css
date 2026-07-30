@@ -7663,3 +7663,322 @@ button.primary,
     background: rgba(5, 9, 14, 0.96);
   }
 }
+
+/* Orbit Studio approved brand lockups. */
+.explorer-brand-button,
+.playground-brand-button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.explorer-brand-button:hover,
+.playground-brand-button:hover {
+  border: 0;
+  background: transparent;
+  filter: brightness(1.08);
+}
+
+.explorer-brand-logo,
+.playground-brand-logo {
+  display: block;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.explorer-brand-logo-full {
+  width: 205px;
+  height: 60px;
+}
+
+.playground-brand-logo-full {
+  width: 205px;
+  height: 58px;
+}
+
+.explorer-brand-logo-icon,
+.playground-brand-logo-icon {
+  display: none;
+}
+
+.explorer-product-menu {
+  top: calc(100% + 8px);
+  right: 0;
+  width: 228px;
+  min-width: 228px;
+  gap: 2px;
+  padding: 7px;
+}
+
+.explorer-product-menu button,
+.explorer-product-menu a {
+  display: grid;
+  width: 100%;
+  min-height: 42px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.explorer-product-menu button span,
+.explorer-product-menu a span {
+  overflow: hidden;
+  color: #e4edf5;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorer-product-menu-logo {
+  display: block;
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+}
+
+.playground-topline {
+  min-height: 66px;
+  height: 66px;
+}
+
+.playground-title {
+  min-width: 0;
+}
+
+@media (max-width: 743px) {
+  .explorer-header {
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+  }
+
+  .explorer-brand-logo-full,
+  .playground-brand-logo-full {
+    display: none;
+  }
+
+  .explorer-brand-logo-icon,
+  .playground-brand-logo-icon {
+    display: block;
+    width: 44px;
+    height: 44px;
+  }
+
+  .explorer-product-menu {
+    top: auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .playground-title {
+    width: 48px;
+  }
+}
+
+/* Shared Orbit Studio app navigation and interface visibility. */
+.orbit-app-menu {
+  position: relative;
+  z-index: 96;
+  pointer-events: auto;
+}
+
+.orbit-app-menu-trigger {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  border: 1px solid rgba(127, 157, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(5, 10, 17, 0.82);
+  color: #e5edf5;
+  padding: 0;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(18px);
+}
+
+.orbit-app-menu-trigger:hover,
+.orbit-app-menu-trigger.active {
+  border-color: rgba(65, 184, 255, 0.7);
+  background: rgba(10, 31, 48, 0.92);
+  color: #ffffff;
+}
+
+.orbit-app-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  display: grid;
+  width: 252px;
+  gap: 2px;
+  border: 1px solid rgba(127, 157, 184, 0.28);
+  border-radius: 12px;
+  background: rgba(4, 10, 17, 0.97);
+  box-shadow: 0 22px 72px rgba(0, 0, 0, 0.62);
+  padding: 7px;
+  backdrop-filter: blur(22px);
+}
+
+.orbit-app-menu-panel button,
+.orbit-app-menu-panel a {
+  display: grid;
+  width: 100%;
+  min-height: 43px;
+  grid-template-columns: 29px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e5edf5;
+  padding: 0 10px;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.orbit-app-menu-panel button:hover,
+.orbit-app-menu-panel a:hover {
+  border: 0;
+  background: rgba(87, 177, 244, 0.11);
+  color: #ffffff;
+}
+
+.orbit-app-menu-panel button.active {
+  background: rgba(31, 132, 213, 0.16);
+  color: #ffffff;
+}
+
+.orbit-app-menu-panel img,
+.orbit-app-menu-panel button > svg:first-child,
+.orbit-app-menu-panel a > svg:first-child {
+  display: block;
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+  justify-self: center;
+}
+
+.orbit-app-menu-panel button > svg:first-child,
+.orbit-app-menu-panel a > svg:first-child {
+  width: 17px;
+  height: 17px;
+  color: #a9c0d2;
+}
+
+.orbit-app-menu-panel span {
+  overflow: hidden;
+  font-size: 0.79rem;
+  font-weight: 660;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orbit-app-menu-check {
+  justify-self: end;
+  color: #53c6ff;
+}
+
+.orbit-app-menu-divider {
+  height: 1px;
+  margin: 5px 8px;
+  background: rgba(139, 165, 187, 0.15);
+}
+
+.orbit-show-interface {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 130;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(72, 193, 255, 0.55);
+  border-radius: 9px;
+  background: rgba(4, 14, 23, 0.88);
+  color: #edf8ff;
+  padding: 0 11px;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(18px);
+}
+
+.orbit-show-interface:hover {
+  border-color: rgba(118, 216, 255, 0.86);
+  background: rgba(8, 29, 44, 0.94);
+}
+
+.orbit-show-interface kbd {
+  border: 1px solid rgba(153, 178, 197, 0.28);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #9eb2c2;
+  padding: 1px 5px;
+  font: inherit;
+  font-size: 0.63rem;
+}
+
+.playground-topline .orbit-app-menu {
+  pointer-events: auto;
+}
+
+.explorer-shell.interface-hidden > :not(.explorer-globe):not(.orbit-show-interface) {
+  display: none !important;
+}
+
+.explorer-shell.interface-hidden .explorer-mobile-menu,
+.explorer-shell.interface-hidden .explorer-mobile-playback-pill,
+.explorer-shell.interface-hidden .explorer-globe-toolbar,
+.explorer-shell.interface-hidden .explorer-historical-data-notice {
+  display: none !important;
+}
+
+@media (max-width: 743px) {
+  .orbit-app-menu-panel {
+    position: fixed;
+    top: 62px;
+    right: 10px;
+    width: min(252px, calc(100vw - 20px));
+  }
+
+  .orbit-show-interface {
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+  }
+
+  .orbit-show-interface kbd {
+    display: none;
+  }
+}
+
+
+/* Release shell corrections: shared app menu must render identically in both apps. */
+.explorer-header-actions .orbit-app-menu-panel button,
+.explorer-header-actions .orbit-app-menu-panel a {
+  display: grid;
+  width: 100%;
+  min-height: 43px;
+  grid-template-columns: 29px minmax(0, 1fr) 18px;
+  place-items: initial;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+}
+
+.explorer-header-actions .orbit-app-menu-panel span {
+  display: block;
+}
+
+.explorer-header-actions .orbit-app-menu-panel .orbit-app-menu-divider {
+  display: block;
+}

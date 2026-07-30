@@ -18,7 +18,7 @@ import {
 } from "./studioPlaybackClock";
 import {
   createConstellation,
-  createDefaultScenario,
+  createPlaygroundScenario,
   createGroundStation,
   createId,
   createRegion,
@@ -168,7 +168,7 @@ interface SimulationStore {
   clearImportError: () => void;
 }
 
-const initialScenario = createDefaultScenario();
+const initialScenario = createPlaygroundScenario();
 resetStudioPlaybackClock({
   simulationTimeUtc: initialScenario.simulationTimeUtc,
   isPlaying: true,

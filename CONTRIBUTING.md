@@ -1,6 +1,8 @@
 # Contributing
 
-Thanks for your interest in Orbit Studio.
+Thanks for your interest in Orbit Studio. Issues and pull requests are welcome as proposals, but
+the official repository, roadmap, releases, and product direction remain under maintainer control.
+Submitting a change does not grant write access or guarantee acceptance.
 
 ## Required Workflow
 

@@ -1,322 +1,143 @@
-# Explorer Historical Data Pipeline
+# Canonical Satellite Catalog Package
 
-Orbit Explorer never parses raw SATCAT, GCAT, or GP History files in the browser. Runtime code
-consumes only deterministic artifacts generated at build time:
+## Authority
 
-`src/data/historical/explorerHistoricalCatalog.normalized.json`
+Orbit Studio ships exactly one current-and-historical satellite/object database:
 
-Repository builds ship a bounded GCAT-derived public sample in this location so the public app can
-demonstrate timeline behavior without redistributing full SATCAT/CelesTrak-derived membership.
-Source-backed builds are produced locally from authorized source archives and may present historical
-catalog membership as complete when validation passes.
+```text
+data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite
+```
 
-## Build Modes
+It belongs to the verified Orbit Studio Satellite Source of Truth v1.0.0 package. The immutable
+upstream evidence is:
 
-Source-backed complete-membership build:
+```text
+data/satellite-source-of-truth/raw/gcat-satcat-2026-06-27.tsv
+```
 
-- Space-Track SATCAT source artifact is present.
-- Required validation has zero errors.
-- Every catalog object used for historical membership has a launch date.
-- `runtimeArtifacts.coverageManifest.completeMembership` is `true`.
+The source is Jonathan C. McDowell's General Catalog of Artificial Space Objects (GCAT), Standard
+Satellite Catalog (`satcat`), source header updated `2026-06-27T22:13:02Z`. GCAT is licensed CC BY
+4.0. Required attribution is:
 
-Repository/demo build:
+> Data from GCAT (J. McDowell, planet4589.org/space/gcat)
 
-- Required SATCAT artifact is absent.
-- The normalized artifact records `historicalMembership: "blocked-missing-satcat"`.
-- Explorer must not claim historical completeness.
-- A CC-BY GCAT-derived public sample may be bundled for public timeline/catalog demonstration.
-- Full generated artifacts stay under ignored `data/generated/historical/` unless a private build
-  explicitly opts into `--write-runtime`.
+Exact source, package, artifact, rights, and checksum evidence lives in
+`provenance/inventory.json`. This document describes scientific and runtime semantics; it is not a
+second provenance manifest.
 
-## Runtime Architecture
+## Package contents
 
-Historical source acquisition
+The package preserves:
 
-Raw archives
+- 69,703 normalized GCAT source records;
+- payload, rocket-body, component, debris, spurious, and unknown source classifications;
+- 1957–2026 annual presence, with 2026 partial through June 27;
+- 33,489 latest Earth-object members in the four rendered/cataloged classes;
+- source identity, names, aliases, owner/status, lifecycle, orbit epoch, perigee, apogee, and
+  inclination;
+- deterministic reconstruction candidates and package-specified generated angular elements;
+- a quality-issue ledger and explicit date-interval anomalies;
+- the schema, build/update scripts, package manifest, provenance, and exact checksums.
 
-Normalization
-
-Validation
-
-Canonical historical database
-
-Indexed runtime artifacts
-
-Historical query engine
-
-Renderer/UI
-
-All historical reconstruction continues to flow through `getHistoricalCatalog(selectedDate)` in
-`src/data/explorerCatalog.ts`, which delegates membership and orbit availability to
-`src/data/explorerHistoricalPipeline.ts`.
-
-## Commands
-
-Download authorized raw sources:
+Run the package verifier directly or through npm:
 
 ```sh
-npm run data:download
+python3 data/satellite-source-of-truth/scripts/verify.py
+npm run satellites:verify
 ```
 
-Import and generate deterministic runtime artifacts:
+Both must pass before a catalog change is accepted.
+
+## Browser export
+
+The SQLite database remains the source of truth. The browser consumes one deterministic derivative:
+
+```text
+src/data/generated/satelliteCatalog.web.json
+```
+
+Generate it with:
 
 ```sh
-npm run data:import
+npm run satellites:build
 ```
 
-By default this writes to ignored `data/generated/historical/explorerHistoricalCatalog.normalized.json`.
-Use `npm run data:import -- --write-runtime` only for private local builds after reviewing
-redistribution terms, and do not commit full generated artifacts unless redistribution is confirmed.
-
-Validate the normalized artifact:
-
-```sh
-npm run data:validate
-```
-
-Report coverage:
-
-```sh
-npm run data:coverage
-```
-
-Legacy alias:
-
-```sh
-npm run catalog:historical
-```
-
-## Space-Track Acquisition
-
-Credentials are read only from environment variables:
-
-```sh
-SPACE_TRACK_USERNAME=...
-SPACE_TRACK_PASSWORD=...
-```
-
-Never commit credentials. Credentials are required only for build-time acquisition and are never
-required at application runtime.
-
-Default SATCAT query:
-
-```txt
-/basicspacedata/query/class/satcat/format/json
-```
-
-Override when needed:
-
-```sh
-SPACE_TRACK_SATCAT_QUERY_PATH=/basicspacedata/query/class/satcat/format/json
-```
-
-GP History acquisition is optional until historical orbit rendering is being built:
-
-```sh
-SPACE_TRACK_INCLUDE_GP_HISTORY=1
-SPACE_TRACK_GP_HISTORY_START=1957-10-04
-SPACE_TRACK_GP_HISTORY_END=1957-10-31
-SPACE_TRACK_GP_HISTORY_CHUNK_DAYS=7
-```
-
-Or provide a Space-Track query directly:
-
-```sh
-SPACE_TRACK_GP_HISTORY_QUERY_PATH=/basicspacedata/query/class/gp_history/...
-```
-
-The downloader writes cached raw archives to:
-
-```sh
-data/historical-catalog/raw/
-```
-
-Use `--force` to replace cached files:
-
-```sh
-node scripts/download-explorer-historical-data.mjs --force
-```
-
-Raw archives and download manifests are ignored by git.
-
-## GCAT Acquisition
-
-GCAT is optional supplemental metadata. It must not replace SATCAT as the historical membership
-authority.
-
-Configure explicit GCAT URLs when local redistribution terms have been reviewed:
-
-```sh
-GCAT_SOURCE_URLS=https://example.invalid/gcat-source.tsv npm run data:download -- --gcat
-```
-
-GCAT fields can enrich names, aliases, mission metadata, object type labels, ownership labels, and
-orbital-summary constraints. Perigee, apogee, and inclination may support an explicitly identified
-educational reconstruction; they never become an exact historical position.
-
-## Source Authority
-
-| Dataset | Source | Purpose | Runtime role | Required |
-| --- | --- | --- | --- | --- |
-| SATCAT | Space-Track | Historical membership, lifecycle, identity, ownership, object type | Catalog membership authority | Yes |
-| GP History | Space-Track | Historical orbit states and nearest-epoch lookup | Optional orbit rendering source | Required for full historical orbit rendering |
-| Current GP | CelesTrak | Optional privately acquired current-day orbital state | Current view only; local mode only | No for the public release |
-| GCAT | Jonathan McDowell GCAT | Supplemental metadata, lifecycle, and orbital envelopes | Metadata-constrained reconstruction when required fields exist | No |
-
-Current CelesTrak GP must never reconstruct historical membership or historical orbits.
-
-## Artifact Contract
-
-The importer writes schema version 2:
-
-```json
-{
-  "schemaVersion": 2,
-  "generatedAt": "deterministic timestamp",
-  "importVersion": "explorer-historical-import-v3",
-  "sourceFingerprint": "sha256:...",
-  "importStatus": {},
-  "validation": {},
-  "sourceFiles": [],
-  "objects": [],
-  "orbitStates": [],
-  "runtimeArtifacts": {}
-}
-```
-
-Runtime artifacts include:
-
-- `objectIndex`
-- `identityIndex`
-- `launchIndex`
-- `decayIndex`
-- `orbitStateIndex`
-- `coverageManifest`
-- `sourceManifest`
-
-Each artifact includes schema version, generated timestamp, import version, source fingerprint,
-record counts, validation summary, and source checksums when available.
-
-The same raw input produces the same normalized output. `SOURCE_DATE_EPOCH` may be set when a
-specific deterministic timestamp is required.
-
-## Canonical Identity
-
-The importer creates one canonical object per logical object. Merge order:
-
-1. NORAD catalog number
-2. International designator / COSPAR id
-3. Source record id
-4. Normalized name, only as a last resort
-
-Examples:
-
-- `object-norad-25544`
-- `object-intl-1998-067a`
-- `object-source-...`
-
-All source-specific identifiers are retained as aliases and provenance.
-
-## Merge Policy
-
-Field reconciliation is policy-driven:
-
-| Field class | Preferred source | Fallback sources | Conflict handling |
-| --- | --- | --- | --- |
-| Lifecycle | Space-Track SATCAT | Equivalent authoritative catalog only | Validation error |
-| Identity | Space-Track SATCAT | GCAT aliases, future source ids | Merge aliases, report duplicate identities |
-| Ownership | Space-Track SATCAT | GCAT | Warning on conflict |
-| Object type | Space-Track SATCAT | GCAT | Warning on conflict |
-| Names/aliases | GCAT or SATCAT | Any source | Preserve alternates and provenance |
-| Orbit states | Space-Track GP History | Historical GP/TLE/OMM archives | Never use current GP |
-
-No field uses first-non-empty-wins semantics.
-
-## Validation
-
-Validated cases include:
-
-- missing required SATCAT
-- missing launch dates
-- duplicate NORAD ids
-- duplicate COSPAR ids
-- conflicting launch, decay, or reentry dates
-- conflicting ownership
-- conflicting object types
-- missing required identifiers
-- missing object types
-- invalid chronology
-- invalid identifiers
-- conflicting metadata
-
-Validation issues are written into the artifact and surfaced by:
-
-```sh
-npm run data:validate
-```
-
-Complete-membership milestone checks run only when the artifact is SATCAT-backed and
-validation-clean.
-
-Vitest also includes `src/data/explorerHistoricalSourceBacked.integration.test.ts`. That suite is
-skipped for repository/demo artifacts and runs only when
-`runtimeArtifacts.coverageManifest.completeMembership` is `true`.
-
-## Historical Membership
-
-Membership depends only on lifecycle:
-
-```txt
-launchDate <= selectedDate
-AND
-decayDate/reentryDate is empty or >= selectedDate
-```
-
-Objects with unknown launch dates never appear in historical membership. Renderer code must not
-participate in membership decisions.
-
-## Historical Orbit Query
-
-Historical orbit availability is independent from catalog completeness:
-
-```txt
-selectedDate + canonicalObjectId -> nearest valid GP History epoch -> orbit state
-```
-
-If no suitable source historical orbit record exists, Explorer may resolve a deterministic
-reconstruction only when source perigee, apogee, and inclination constrain it. The state remains
-marked reconstructed through the runtime and review outputs. Without those constraints, Explorer
-retains catalog membership, searchability, and metadata but renders no physical marker.
-
-## Licensing And Redistribution
-
-See `provenance/inventory.json` for authoritative inclusion decisions and `ATTRIBUTION.md` for its
-generated human-readable notice.
-
-Space-Track data is governed by Space-Track account and redistribution terms. Do not commit raw
-Space-Track exports unless the project has explicit permission to redistribute them.
-
-GCAT is licensed under Creative Commons Attribution 4.0 International (CC-BY-4.0). Cite GCAT when
-bundling raw GCAT files or normalized supplemental metadata.
-
-CelesTrak current GP redistribution remains unresolved because the official usage policy does not
-state a public snapshot or derived-record redistribution grant. The public repository and production
-bundle therefore exclude those records. `npm run catalog:sync` is an explicit private local
-acquisition path; its output and receipt remain under ignored `data/local-only/celestrak/`. Current
-GP remains current-only.
-
-The repository intentionally ignores:
-
-```txt
-data/historical-catalog/raw/**
-data/historical-catalog/cache/**
-data/generated/**
-data/local-only/**
-```
-
-## Performance Notes
-
-The normalized JSON artifact is suitable for SATCAT-scale catalog membership. GP History can be
-multi-GB and should move to chunked/indexed storage before full historical orbit rendering. The
-artifact model already separates `orbitStateIndex` from catalog membership so this can happen
-without renderer changes.
+The generator:
+
+1. runs the package verifier;
+2. validates the database and immutable raw checksum against the package manifest;
+3. queries every Earth-associated payload, rocket body, component, and debris record;
+4. preserves stable JCAT and available SATCAT identifiers;
+5. records annual membership ranges, classification, lifecycle, and orbital constraints;
+6. verifies package-provided reconstruction angles;
+7. applies the same documented SHA-256 reconstruction formula to historical rows that predate the
+   package's latest reconstruction-candidate table;
+8. writes canonical counts, source identity, processing notes, and data semantics into the artifact;
+9. produces byte-identical output for identical inputs.
+
+`scripts/build-satellite-web-catalog.test.mjs` generates into a temporary directory and compares
+the bytes with the tracked artifact.
+
+## Membership semantics
+
+Completed years use `yearly_presence.present_at_period_end = 1`. The selected Explorer timestamp is
+the corresponding December 31 period end. This is annual membership evidence, not sub-day event
+timing.
+
+The partial 2026 period uses the package-required `snapshot_present_earth_objects` view at
+`2026-06-27T22:13:02Z`. Two rows differ from the generic partial-year `present_at_period_end`
+calculation because of recorded interval anomalies. The exporter documents and validates this
+reconciliation rather than silently choosing one count.
+
+Membership means the source/package says an object belongs in that annual snapshot. It does not
+mean a payload is operational, transmitting, observed at the displayed position, or tracked live.
+
+## State classification
+
+Orbit Studio keeps four concepts separate:
+
+1. **Source-backed membership** — identity, class, and annual/latest inclusion come from GCAT and
+   the verified package.
+2. **Source-provided orbital constraints** — orbit epoch, perigee, apogee, and inclination remain
+   source fields.
+3. **Reconstructed educational state** — missing RAAN, argument of periapsis, and mean anomaly are
+   stable deterministic package/export outputs. Runtime converts mean anomaly to true anomaly and
+   uses the shared two-body propagator.
+4. **Catalog-only** — a source member with missing or physically invalid orbital constraints. It
+   remains searchable and inspectable but receives no marker or fabricated orbit.
+
+The latest membership contains 33,468 reconstructed renderable states and 21 catalog-only rows.
+Across the supported Earth-associated four-class history there are 69,376 reconstruction-capable
+rows and 244 catalog-only rows. The 21 latest zero/invalid-envelope cases are not made renderable by
+weakening the physical invariant that semi-major axis must exceed Earth radius.
+
+Reconstructed states must never be labeled live, observed, exact, or current tracking.
+
+## Presentation-only references
+
+Curated Explorer records provide recognizable names, educational summaries, discovery ordering,
+constellation associations, and a small set of explicitly project-authored reference orbits.
+They are a derived presentation layer, never membership authority.
+
+The latest GCAT membership semantics do not retain Hubble after its deployment event or Zarya after
+its initial ISS docking event. Orbit Studio therefore keeps their recognizable current Explorer
+entries as `curated-reference-orbit`, separately counted from GCAT membership and reconstructed
+states. Historical views do not inject that current presentation fallback.
+
+## Updating
+
+A package update is valid only when all of these move together:
+
+1. a new immutable file under `data/satellite-source-of-truth/raw/`;
+2. regenerated package products from `scripts/build.py`;
+3. updated package `manifest.json`, `provenance.json`, and `CHECKSUMS.sha256`;
+4. passing package verification;
+5. regenerated browser artifact;
+6. reviewed membership, class, reconstruction, catalog-only, and quality counts;
+7. updated `provenance/inventory.json`, generated attribution, tests, review thresholds, and docs;
+8. production build, review, release verification, and archive verification.
+
+Do not introduce a second sample, local override, current feed, hidden fallback, random cloud, or
+hand-maintained satellite database. CelesTrak snapshots and Space-Track responses remain excluded
+unless a future explicit, evidence-backed architecture and redistribution decision replaces this
+contract.

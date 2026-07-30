@@ -1,0 +1,169 @@
+{
+  "artifacts": {
+    "data/objects.csv.gz": {
+      "bytes": 6072674,
+      "sha256": "f5ac5497e0bd2fc79ec4f253776514e0d8614350b011947284b51cc82fc95509"
+    },
+    "data/objects.ndjson.gz": {
+      "bytes": 7482511,
+      "sha256": "1f2980e1542a5eda698615df9d7d743598df75d133a90279315d8742eec05ee7"
+    },
+    "data/orbit-studio-satellites.sqlite": {
+      "bytes": 124649472,
+      "sha256": "70b7e9cbc06180960f931edef7533b2bc04426b7e6a42576d3b5eb3e20ee82e4"
+    },
+    "data/overview.json": {
+      "bytes": 1995,
+      "sha256": "5077b80021ec30a23ae5a380d5dc86e64cb20d2016e3b18f4a8fb39db7c1ab0f"
+    },
+    "data/quality_issues.csv": {
+      "bytes": 4849,
+      "sha256": "8f4da269a39be182a5aee92241a58a89b0ac7726f900af45beb364974fca3da5"
+    },
+    "data/reconstruction_candidates.csv.gz": {
+      "bytes": 3629310,
+      "sha256": "27de4ad790323e9ddd26aaf818a6e0542a4d5697c5ba03bae5b1cc043420eda2"
+    },
+    "data/snapshot_present_earth_objects.csv.gz": {
+      "bytes": 2657982,
+      "sha256": "77487395334ec467c67091ac5a427c4785bd00b28a5a83574d779d64a289a735"
+    },
+    "data/yearly_object_presence.csv.gz": {
+      "bytes": 2379513,
+      "sha256": "175181afce34a696f34e6a6296398bf60d822d0a570da96486c81e29004cb47f"
+    },
+    "data/yearly_summary.csv": {
+      "bytes": 19950,
+      "sha256": "b44b27b60c504958d5225d16794108cbc7a279d297a596773eda663c2a416290"
+    },
+    "data/yearly_summary.json": {
+      "bytes": 129657,
+      "sha256": "33a3575d4c9ef974ff14c450bec8919d994e35303644f861d3fc7f2b254e3f90"
+    },
+    "raw/gcat-satcat-2026-06-27.tsv": {
+      "bytes": 18917083,
+      "sha256": "15fab511f91d485d5c441091c98a6d03074343c12350fe3cac6a251d7f799956"
+    }
+  },
+  "authority": {
+    "canonical_normalized_exchange": "data/objects.csv.gz",
+    "canonical_query_database": "data/orbit-studio-satellites.sqlite",
+    "canonical_rendering_input": "data/reconstruction_candidates.csv.gz",
+    "canonical_yearly_history": "data/yearly_object_presence.csv.gz",
+    "canonical_yearly_summary": "data/yearly_summary.csv",
+    "immutable_upstream_snapshot": "raw/gcat-satcat-2026-06-27.tsv"
+  },
+  "counts": {
+    "class_counts": {
+      "component": 7920,
+      "debris": 27843,
+      "payload": 27572,
+      "rocket_body": 6285,
+      "spurious": 26,
+      "unknown": 57
+    },
+    "date_interval_anomaly_count": 61,
+    "package_version": "1.0.0",
+    "partial_final_year": true,
+    "partial_final_year_end_date": "2026-06-27",
+    "quality_issue_count": 61,
+    "reconstruction_candidate_count": 33489,
+    "snapshot_present_earth_class_counts": {
+      "component": 1345,
+      "debris": 11277,
+      "payload": 18842,
+      "rocket_body": 2025
+    },
+    "snapshot_present_earth_count": 33489,
+    "snapshot_present_no_recorded_end_class_counts": {
+      "component": 1345,
+      "debris": 11277,
+      "payload": 18842,
+      "rocket_body": 2025,
+      "unknown": 57
+    },
+    "snapshot_present_no_recorded_end_count": 33546,
+    "source": "GCAT Standard Satellite Catalog",
+    "source_fields": [
+      "JCAT",
+      "Satcat",
+      "Launch_Tag",
+      "Piece",
+      "Type",
+      "Name",
+      "PLName",
+      "LDate",
+      "Parent",
+      "SDate",
+      "Primary",
+      "DDate",
+      "Status",
+      "Dest",
+      "Owner",
+      "State",
+      "Manufacturer",
+      "Bus",
+      "Motor",
+      "Mass",
+      "MassFlag",
+      "DryMass",
+      "DryFlag",
+      "TotMass",
+      "TotFlag",
+      "Length",
+      "LFlag",
+      "Diameter",
+      "DFlag",
+      "Span",
+      "SpanFlag",
+      "Shape",
+      "ODate",
+      "Perigee",
+      "PF",
+      "Apogee",
+      "AF",
+      "Inc",
+      "IF",
+      "OpOrbit",
+      "OQUAL",
+      "AltNames"
+    ],
+    "source_record_count": 69703,
+    "source_snapshot_updated_at": "2026-06-27T22:13:02Z",
+    "source_url": "https://planet4589.org/space/gcat/tsv/cat/satcat.tsv",
+    "terminology": {
+      "component": "Separated functional or structural component.",
+      "debris": "Fragment or debris object.",
+      "payload": "Satellite or spacecraft payload.",
+      "rocket_body": "Rocket stage.",
+      "snapshot_present": "No recorded descent/end date in this source snapshot; not equivalent to operationally active."
+    },
+    "year_range": [
+      1957,
+      2026
+    ],
+    "yearly_presence_row_count": 756064
+  },
+  "excluded_as_authority": [
+    "CelesTrak snapshots",
+    "Space-Track responses",
+    "application fixtures",
+    "small samples",
+    "ad hoc generated catalogs"
+  ],
+  "package": {
+    "name": "Orbit Studio Satellite Source of Truth",
+    "snapshot_updated_at": "2026-06-27T22:13:02Z",
+    "version": "1.0.0"
+  },
+  "upstream": {
+    "author": "Jonathan C. McDowell",
+    "catalog": "Standard Satellite Catalog (satcat)",
+    "homepage": "https://planet4589.org/space/gcat/",
+    "license": "CC BY 4.0",
+    "name": "General Catalog of Artificial Space Objects (GCAT)",
+    "required_attribution": "Data from GCAT (J. McDowell, planet4589.org/space/gcat)",
+    "source_header": "# Updated 2026 Jun 27 2213:02",
+    "url": "https://planet4589.org/space/gcat/tsv/cat/satcat.tsv"
+  }
+}

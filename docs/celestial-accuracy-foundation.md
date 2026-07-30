@@ -46,7 +46,7 @@ At the evidence instant 2026-01-01T13:18:20Z, the former solar vector differs fr
 | Sun | Astronomy Engine 2.1.19, VSOP87/NOVAS-derived geocentric apparent vector | EQJ/ICRS-compatible J2000 | TT derived from UTC/UT | 1600–2200 | Library documents approximately 1 arcminute; current JPL DE441 matrix is <0.03 arcminute | Implemented |
 | Moon | Astronomy Engine 2.1.19 geocentric vector and illumination | EQJ/ICRS-compatible J2000 | TT derived from UTC/UT | 1600–2200 | Current JPL DE441 matrix <0.09 arcminute direction, <50 km range, <0.00005 illuminated fraction | Implemented; display distance is scaled separately |
 | Stars | HYG Database v4.1, apparent magnitude <=5.1 | EQJ, epoch J2000.0 | UTC-derived Julian epoch for catalog space velocity | HYG proper-motion field quality is source-dependent | 1,839 authentic records; no synthetic filler; no parallax or radial perspective beyond HYG Cartesian velocity | Implemented |
-| Current Earth-orbit objects | Public release: project-authored representative orbital elements and two-body propagation. Private local mode: directly acquired CelesTrak GP records and SGP4/WGS-72 | Representative inertial elements or locally acquired TEME records mapped through shared scene axes | Canonical UTC | Public reference date is 2026-07-18; local records use their stated epochs | Public mode demonstrates representative motion and regimes, not current catalog membership or measured positions. Local SGP4 model conformance is validated against Vallado vectors; physical usefulness remains limited by record age and TLE uncertainty | Public reference-only mode implemented; local source-backed mode opt-in |
+| Earth-orbit catalog objects | Verified GCAT package membership with source-constrained, deterministic two-body educational reconstructions | Reconstructed inertial elements mapped through shared scene axes | Canonical UTC | Completed years use calendar-period end; the partial latest snapshot is 2026-06-27T22:13:02Z | Membership, lifecycle, orbit epoch, perigee, apogee, and inclination are source-backed. Generated node, apsis, and phase are not observed, live, or exact. The current package contains no exact historical source states | Canonical SQLite package and deterministic browser derivative implemented; CelesTrak and Space-Track authorities absent |
 | Historical Earth-orbit objects | Imported historical membership; source orbit records when available; `metadata-constrained-keplerian-v1` otherwise | Source-defined frame or deterministic reconstructed elements mapped through shared scene axes | Selected UTC | Source- and lifecycle-dependent | Source records produce model-derived positions; reconstruction preserves source perigee, apogee, and inclination but does not claim historical phase, longitude, node, or apsidal orientation; unconstrained records remain catalog-only | Implemented with provenance retained through resolver, renderer, UI, and review outputs |
 
 ## Independent references and reproducibility
@@ -70,13 +70,15 @@ The HYG source and selection details are in `src/data/stars/README.md`. The gene
   Metadata-constrained reconstructions are rendered only when source perigee, apogee, and
   inclination are available and remain labeled reconstructed; unconstrained positions remain
   catalog-only and are not rendered.
-- The public release has no live current catalog and must not be used to infer present-day
-  membership or measured positions. Its representative current objects are educational references.
-- Locally acquired current GP source records remain subject to age and TLE uncertainty; their
-  SGP4-derived positions are model-derived, and model agreement is not a claim of measured
-  real-world position.
-- Locally acquired NORAD catalog identifiers above 69999 are omitted until the current runtime
-  accepts Alpha-5/OMM records directly.
+- The public release has no live current catalog. Its verified GCAT package supplies complete
+  packaged Earth-object membership for the supported four classes at the dated 2026-06-27 snapshot;
+  this is not a claim of exhaustive real-world coverage, operational status, or measured position.
+  Displayed reconstructed positions are educational.
+- The packaged history contains annual period-end membership, not continuous observational state
+  history. Sub-year launch, decay, docking, deployment, or reclassification events cannot be
+  inferred from the annual Explorer timeline.
+- Exact historical source states are absent from the current package. All renderable package states
+  are deterministic reconstructions constrained by source perigee, apogee, and inclination.
 
 ## Development diagnostics
 

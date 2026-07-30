@@ -65,6 +65,19 @@ async function recursiveFiles(directory) {
   return files.sort();
 }
 
+export async function existingCurrentTreePaths(
+  candidatePaths,
+  root = projectRoot,
+) {
+  const paths = [];
+  for (const candidatePath of candidatePaths) {
+    if (await fileExists(path.join(root, candidatePath))) {
+      paths.push(candidatePath);
+    }
+  }
+  return paths;
+}
+
 function expectedExactBundlePaths(inventory) {
   const paths = new Set([
     "ATTRIBUTION.md",
@@ -115,7 +128,10 @@ function validateInventorySchema(inventory, failures) {
   if (inventory.controls?.releaseBuildMetadata?.schemaVersion !== 1) {
     failures.push("provenance-release-build-schema-invalid");
   }
-  if (inventory.controls?.releaseBuildMetadata?.currentCatalogMode !== "release") {
+  if (
+    inventory.controls?.releaseBuildMetadata?.currentCatalogMode !==
+    "release-public-gcat"
+  ) {
     failures.push("provenance-release-build-mode-invalid");
   }
   const requiredControlArrays = [
@@ -230,7 +246,7 @@ function validateInventorySchema(inventory, failures) {
 }
 
 async function validateTrackedFiles(inventory, failures) {
-  const trackedPaths = await gitPaths([
+  const candidatePaths = await gitPaths([
     "ls-files",
     "--cached",
     "--others",
@@ -239,6 +255,11 @@ async function validateTrackedFiles(inventory, failures) {
     "--",
     ".",
   ]);
+  // The current-tree audit follows the filesystem state, including unstaged
+  // deletions. `git ls-files --cached` alone would keep a deleted path in the
+  // candidate list and try to audit content that is no longer part of the
+  // final source being validated.
+  const trackedPaths = await existingCurrentTreePaths(candidatePaths);
   const classified = new Set(inventory.controls.projectMetadataPaths);
 
   for (const item of inventory.controls.firstPartyArtifacts) {

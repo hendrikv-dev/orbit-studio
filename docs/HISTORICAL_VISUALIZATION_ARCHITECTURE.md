@@ -1,79 +1,101 @@
 # Historical Visualization Architecture
 
-Orbit Studio distinguishes catalog membership from physical-state provenance. Historical objects
-are never treated as exact simply because the product can draw them.
+## One authority, one runtime path
 
-## Resolution order
+The canonical satellite authority is the verified SQLite database at
+`data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite`. The tracked compact browser
+derivative is `src/data/generated/satelliteCatalog.web.json`. No bounded sample, optional local
+override, current GP feed, or second historical database participates in the Explorer runtime.
 
-For each object that exists at the selected UTC, Explorer resolves one of these states:
+`explorerHistoricalCatalog.ts` adapts the generated rows into the stable catalog/query interfaces.
+`explorerHistoricalPipeline.ts` resolves annual membership and state availability.
+`explorerCatalog.ts` adds presentation metadata, filtering, discovery, and Scenario conversion.
+Every renderable state then follows the ordinary shared propagation, worker, point-cloud, selection,
+diagnostics, and review path.
 
-1. **Source orbit record** — an imported TLE, OMM, GP, or complete element set. TLE/GP records use SGP4;
-   complete Keplerian source states use the existing two-body path and retain their source epoch.
-2. **Metadata-constrained reconstruction** — a deterministic Keplerian orbit constrained by
-   source-reported perigee altitude, apogee altitude, and inclination. RAAN, argument of periapsis,
-   and phase are unavailable in GCAT and are deterministically synthesized. They are never described
-   as an exact historical fix.
-3. **Catalog-only** — lifecycle membership without enough orbital constraints. No marker or orbit is
-   rendered.
+## Annual membership
 
-The runtime availability values are `exact-historical-orbit`, `nearest-historical-orbit`,
-`reconstructed-historical-orbit`, and `catalog-only`. The first is a legacy schema token meaning a
-source orbit record exists on the same UTC calendar date; it does not mean an exact measured
-position at the selected instant or zero uncertainty. User-facing language and reports should call
-this class source-record coverage and identify the resulting position as model-derived. Coverage
-counts keep these populations separate through the query pipeline, Explorer UI, review bridge,
-`review.json`, and `timeline.csv`.
+The package covers 1957–2026. Completed years mean present at calendar-year end. The final 2026
+snapshot is partial through `2026-06-27T22:13:02Z` and uses the package's explicit latest
+Earth-object view. The timeline exposes these discrete annual states; it does not interpolate
+membership or pretend an annual row is a sub-day launch/decay observation.
 
-## Runtime truth contract
+The package's membership ranges are contiguous for all exported Earth-associated supported-class
+objects. The exporter refuses to collapse non-contiguous annual rows into a range.
 
-Resolver eligibility is not treated as proof of rendering. In development and deterministic review
-runs, the point renderer publishes its actual queue size, GPU buffer count, valid rendered count,
-provenance counts, camera-visible count, camera state, canonical UTC, and position-buffer digest.
-The review bridge is ready only after that renderer state matches the selected timeline UTC and
-resolved visible population.
+## State resolution
 
-Playback speed is excluded from existence, provenance, filtering, render eligibility, and physical
-state. Workers predict their completion instant from measured latency and playback speed, then
-propagate a UTC-quantized horizon of bounded 240-second Hermite segments around that instant. The
-renderer selects only a segment containing the authoritative frame UTC; it never extrapolates.
-A pending or expired horizon retains the last verified buffer, but diagnostics retain that buffer's
-actual UTC and expose its increasing lag instead of relabeling it as current. Selecting a timeline milestone pauses
-playback at the milestone's exact UTC; playback resumes only through the existing play control.
+Resolution order is:
 
-## Reconstruction model
+1. a source state if a future approved package supplies one;
+2. a deterministic educational reconstruction when the source provides a physically valid
+   perigee, apogee, and inclination envelope;
+3. catalog-only when those constraints are missing or invalid.
 
-`metadata-constrained-keplerian-v1` derives semi-major axis and eccentricity from source perigee and
-apogee radii. Source inclination is preserved exactly. A stable hash supplies the three missing
-angular elements. Objects from the same launch family share a deterministic orbital plane, while
-each record has a stable phase. The object launch instant is the propagation epoch, making motion
-continuous across playback and stable across runs.
+Current package history contains no exact/source Cartesian or complete angular state. All 69,376
+renderable supported-history rows are classified `reconstructed-historical`; 244 remain
+catalog-only. The latest snapshot contains 33,468 reconstructed states and 21 catalog-only members.
 
-This reconstruction communicates orbital population, regime, altitude envelope, inclination, and
-lifecycle. It does **not** claim historical longitude, phase, node, or apsidal orientation. GCAT's
-source orbital epoch is retained as provenance but is not promoted into an exact state.
+## Reconstruction
 
-## Lifecycle policy
+The package contract defines:
 
-No record appears before its launch time. Known decay and reentry dates remove it after the recorded
-event. The timeline begins at Sputnik 1 launch, `1957-10-04T19:28:34Z`. The bundled source reports
-orbit insertion at approximately 19:33; the payload and associated upper stage are visible from
-launch as explicitly reconstructed educational states. That five-minute interval must not be read
-as a measured orbital position.
+```text
+SHA-256("orbit-studio-gcat-reconstruction-v1:" + JCAT)
+```
 
-## Alternatives rejected
+as the deterministic source for the three unavailable angular elements. The package provides those
+values for its latest reconstruction candidates. The repository export verifies them exactly and
+applies the same documented algorithm once, during generation, for earlier supported rows. The
+browser never hashes an identity or generates random angles.
 
-- Interpolating Cartesian positions between sparse TLEs is not physically meaningful and creates
-  frame and discontinuity problems.
-- Unconstrained regime shells fabricate more state than the source provides. Records without the
-  three required constraints remain catalog-only.
-- A separate historical renderer would duplicate filtering, selection, propagation, and batching.
-  Resolved historical states instead enter the normal Scenario model.
-- Showing current TLEs at historical dates would be scientifically false and remains prohibited.
+Runtime derives semi-major axis and eccentricity from the source perigee/apogee radii, preserves
+source inclination, converts the generated mean anomaly to true anomaly, and anchors the resulting
+state at the selected annual period end. It refuses an orbit whose semi-major axis does not exceed
+Earth radius. Reconstruction communicates source-backed orbit shape and population structure, not
+historical longitude, node, phase, apsidal orientation, or an observed fix.
 
-## Source and limitations
+## Curated presentation
 
-The bundled public historical sample is derived from Jonathan McDowell's GCAT SATCAT under
-CC-BY-4.0. It intentionally samples the larger catalog and is not complete. Archived source GP/TLE
-coverage is currently absent from the public artifact; adding licensed historical state archives is
-the preferred future improvement. When those records are imported, the same resolver selects them
-ahead of reconstruction without changing the rendering architecture.
+Curated names, aliases, educational summaries, discovery collections, and constellation mappings
+are presentation views. Matching SATCAT identities can receive a recognizable product name without
+changing source membership or orbital constraints.
+
+A separately classified six-object `curated-reference` layer keeps especially important current
+objects and orbit concepts discoverable when the package's event-based lifecycle semantics do not
+retain them in latest membership. These rows are excluded from GCAT membership/reconstruction
+counts and never injected into historical snapshots.
+
+## Rendering and diagnostics
+
+Resolved satellites become ordinary Scenario satellites and use the existing two-body propagator,
+prepared worker horizons, Hermite interpolation, point-cloud/L0D path, selected-object renderer,
+and orbit path sampling. Preparing a worker orbit caches only invariant terms from the same
+two-body equations; direct equivalence tests compare its state vectors with the unprepared
+Keplerian composition. Horizons are prewarmed for 2,500× so changing playback speed cannot inherit
+a shorter low-speed buffer. During a backward reset, a future-only staged horizon is discarded. If
+the replacement horizon is not ready when high-speed playback begins, the point cloud temporarily
+evaluates the same prepared two-body model at the authoritative UTC rather than freezing an old GPU
+buffer. Lower speeds keep the lighter worker/interpolation path.
+
+The renderer reports:
+
+- authoritative and buffered simulation UTC;
+- queue, GPU, rendered, and screen-visible counts;
+- reconstructed, curated-reference, exact, nearest-source, and current-source provenance counts;
+- a deterministic position-buffer digest;
+- camera state.
+
+Review cross-checks these diagnostics with catalog state and screenshot marker pixels. A nonzero
+scene count alone cannot satisfy the default-population gate.
+
+## Scientific boundary
+
+GCAT and the package establish catalog membership and source orbital-envelope fields within their
+documented limits. The reconstruction is deterministic and constrained, but not observational
+ephemeris. Nothing in the default view is live tracking. Annual membership is not proof of
+operational status, and a package snapshot is not proof that every real-world object is present.
+
+Exact historical positions would require a separately licensed and independently validated
+source-state archive. Adding one must preserve this resolver order and provenance classification;
+it must not create a parallel renderer or overwrite the canonical membership authority.

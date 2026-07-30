@@ -10,19 +10,13 @@ import {
   type Scenario,
 } from "../lib/scenario";
 import type { TleData } from "../physics/tle";
-import {
-  explorerCelestrakCatalogAttributionLabel,
-  explorerCelestrakCatalogRecords,
-  explorerCelestrakCatalogSource,
-  explorerCelestrakSnapshotDate,
-  explorerCurrentCatalogMode,
-  explorerCurrentReferenceDate,
-} from "./explorerCelestrakCatalog";
 import { explorerConstellationSemanticTerms } from "./explorerConstellationArchitecture";
 import {
+  explorerCanonicalSatellitePeriods,
   explorerHistoricalCatalog,
   explorerHistoricalCatalogIsLoaded,
   explorerHistoricalCatalogIndex,
+  explorerLatestPublicCatalogSnapshot,
   historicalCatalogCoverageForDate,
   type ExplorerHistoricalCatalogObject,
   type ExplorerHistoricalOrbitState,
@@ -34,9 +28,18 @@ import {
 } from "./explorerHistoricalPipeline";
 export { prioritizeExplorerSearchResults } from "./explorerDiscovery";
 
+if (!explorerLatestPublicCatalogSnapshot) {
+  throw new Error("The bundled GCAT catalog is missing latest-public-snapshot metadata.");
+}
+
+export const explorerLatestPublicCatalogDate =
+  explorerLatestPublicCatalogSnapshot.timestampIso.slice(0, 10);
+export const explorerCurrentCatalogMode = "release-public-gcat" as const;
+
 export const explorerCategoryIds = [
   "payloads",
   "rocket-bodies",
+  "components",
   "debris",
   "ground-stations",
   "constellations",
@@ -135,7 +138,7 @@ export interface ExplorerSnapshot {
 export interface ExplorerCatalogDataCoverage {
   status:
     | "current-loaded"
-    | "current-reference-only"
+    | "latest-public-catalog"
     | "historical-loaded"
     | "historical-not-loaded";
   catalogObjectCount: number;
@@ -177,6 +180,7 @@ export const explorerCategoryHierarchy: Array<{
 }> = [
   { id: "payloads", label: "Payloads", description: "Operational and historical spacecraft" },
   { id: "rocket-bodies", label: "Rocket Bodies", description: "Launch vehicle stages in orbit" },
+  { id: "components", label: "Components", description: "Separated functional and structural components" },
   { id: "debris", label: "Debris", description: "Tracked fragments and inactive material" },
   { id: "ground-stations", label: "Ground Stations", description: "Earth-based tracking infrastructure" },
   { id: "constellations", label: "Constellations", description: "Coordinated orbital systems" },
@@ -193,11 +197,20 @@ export const explorerCatalogSources: ExplorerCatalogSource[] = [
     supportsHistoricalSnapshots: false,
     updateCadence: "static",
   },
-  explorerCelestrakCatalogSource,
+  {
+    id: "gcat-public-catalog",
+    name: "GCAT public catalog",
+    description:
+      "Complete packaged Earth-object membership with deterministic educational orbit reconstruction where source orbital angles are unavailable.",
+    kind: "historical-import",
+    supportsHistoricalSnapshots: true,
+    updateCadence: "static",
+  },
   {
     id: "historical-import",
-    name: "Imported historical catalog records",
-    description: "Local Space-Track, CelesTrak historical GP, or GCAT imports normalized for Explorer.",
+    name: "Imported catalog records",
+    description:
+      "Normalized historical records from explicitly identified source families.",
     kind: "historical-import",
     supportsHistoricalSnapshots: true,
     updateCadence: "static",
@@ -210,6 +223,7 @@ const orbital = (
   ...entry,
   selectionKind: "satellite",
   visualRole: "selectable-orbital-object",
+  orbitAvailability: entry.orbitAvailability ?? "curated-reference-orbit",
 });
 
 const reference = (
@@ -223,6 +237,8 @@ const curatedExplorerCatalog: ExplorerCatalogEntry[] = [
   orbital({
     id: "explorer-sputnik-1",
     name: "Sputnik 1",
+    catalogNumber: "2",
+    alternateNames: ["1-y ISZ"],
     categoryId: "payloads",
     objectType: "Historical payload",
     operator: "Soviet space program",
@@ -315,6 +331,8 @@ const curatedExplorerCatalog: ExplorerCatalogEntry[] = [
   orbital({
     id: "explorer-iss",
     name: "International Space Station",
+    catalogNumber: "25544",
+    alternateNames: ["ISS"],
     categoryId: "payloads",
     objectType: "Crewed research payload",
     operator: "International partnership",
@@ -621,7 +639,7 @@ const curatedExplorerCatalog: ExplorerCatalogEntry[] = [
     launched: "2000",
     status: "Operational",
     summary:
-      "China's global positioning, navigation, and timing constellation. Individual members appear only when a local current catalog is loaded.",
+      "China's global positioning, navigation, and timing constellation. Explorer groups any matching members present in the selected source-backed catalog.",
     sourceId: "curated-reference",
     selectionKind: "constellation",
     activeFromYear: 2000,
@@ -850,185 +868,139 @@ const curatedExplorerCatalog: ExplorerCatalogEntry[] = [
 ];
 
 function inferredConstellationId(name: string): string | undefined {
-  if (name.startsWith("BEIDOU-")) {
+  const normalizedName = name.toUpperCase();
+  if (/^(BEIDOU|COMPASS)[ -]/.test(normalizedName)) {
     return "explorer-beidou-constellation";
   }
-
-  if (name.startsWith("NOAA ") || name.includes("NOAA")) {
+  if (/^(GPS|NAVSTAR)[ -]/.test(normalizedName)) {
+    return "explorer-gps-constellation";
+  }
+  if (/^(GALILEO[ -]|GALILEOSAT-)/.test(normalizedName)) {
+    return "explorer-galileo-constellation";
+  }
+  if (/^STARLINK[ -]/.test(normalizedName)) {
+    return "explorer-starlink-constellation";
+  }
+  if (/^ONEWEB[ -]/.test(normalizedName)) {
+    return "explorer-oneweb-constellation";
+  }
+  if (/^IRIDIUM[ -]/.test(normalizedName)) {
+    return "explorer-iridium-constellation";
+  }
+  if (normalizedName.startsWith("NOAA ") || normalizedName.includes("NOAA")) {
     return "explorer-noaa-constellation";
   }
-
-  if (name.startsWith("SENTINEL-")) {
+  if (normalizedName.startsWith("SENTINEL-")) {
     return "explorer-sentinel-constellation";
   }
 
   return undefined;
 }
 
-function canonicalCelestrakName(record: (typeof explorerCelestrakCatalogRecords)[number]): string {
-  if (record.catalogNumber === "25544") return "International Space Station";
-  if (record.catalogNumber === "20580") return "Hubble Space Telescope";
-  if (record.catalogNumber === "48274") return "Tiangong Space Station (Tianhe)";
-  return record.name;
-}
-
-function celestrakAlternateNames(record: (typeof explorerCelestrakCatalogRecords)[number]): string[] {
-  const names = new Set<string>();
-  if (record.catalogNumber === "25544") {
-    names.add("ISS");
-    names.add("ISS (ZARYA)");
-    names.add("ZARYA");
-  }
-  if (record.catalogNumber === "20580") names.add("HST");
-  if (record.catalogNumber === "48274") {
-    names.add("Tiangong");
-    names.add("Tiangong Space Station");
-    names.add("Tianhe core module");
-  }
-  if (record.name !== canonicalCelestrakName(record)) names.add(record.name);
-  return [...names];
-}
-
-const celestrakCatalog: ExplorerCatalogEntry[] = explorerCelestrakCatalogRecords.map((record) =>
-  orbital({
-    id: record.id,
-    name: canonicalCelestrakName(record),
-    catalogNumber: record.catalogNumber,
-    alternateNames: celestrakAlternateNames(record),
-    categoryId: record.categoryId,
-    objectType: record.objectType,
-    operator: record.operator,
-    country: record.country,
-    launched: record.launched,
-    launchDate: Number.isFinite(Number(record.launched)) ? `${record.launched}-01-01` : undefined,
-    status: record.status,
-    summary: `${canonicalCelestrakName(record)} has a current source-backed GP orbital record.`,
-    sourceId: explorerCelestrakCatalogSource.id,
-    sourceAttribution: [explorerCelestrakCatalogAttributionLabel],
-    constellationId:
-      ("constellationId" in record ? record.constellationId : undefined) ??
-      inferredConstellationId(record.name),
-    activeFromYear: 2026,
-    orbit: { ...record.orbit },
-    tle: record.tle ? { ...record.tle } : undefined,
-  }),
-);
-const celestrakCatalogByCatalogNumber = new Map(
-  celestrakCatalog
-    .filter((entry) => entry.catalogNumber && entry.orbit)
+const sourceBackedCuratedCatalog = curatedExplorerCatalog;
+const curatedCatalogByCatalogNumber = new Map(
+  curatedExplorerCatalog
+    .filter((entry) => entry.catalogNumber)
     .map((entry) => [entry.catalogNumber!, entry]),
 );
 
-const sourceBackedCuratedCatalog = curatedExplorerCatalog.map((entry) => {
-  const orbitalRecord = entry.catalogNumber
-    ? celestrakCatalogByCatalogNumber.get(entry.catalogNumber)
-    : undefined;
-  if (!orbitalRecord || entry.catalogNumber !== "20580") return entry;
-
-  return {
-    ...entry,
-    orbit: orbitalRecord.orbit ? { ...orbitalRecord.orbit } : undefined,
-    tle: orbitalRecord.tle ? { ...orbitalRecord.tle } : undefined,
-    sourceId: orbitalRecord.sourceId,
-    sourceAttribution: [
-      ...new Set([
-        ...(entry.sourceAttribution ?? []),
-        ...(orbitalRecord.sourceAttribution ?? []),
-      ]),
-    ],
-  };
-});
-
 export const explorerCatalog: ExplorerCatalogEntry[] = [
   ...sourceBackedCuratedCatalog,
-  ...celestrakCatalog.filter((entry) => entry.catalogNumber !== "20580"),
 ];
+
+function canonicalPeriodEndTimestamp(year: number): string {
+  const period = explorerCanonicalSatellitePeriods.find(
+    (candidate) => candidate.year === year,
+  );
+  if (!period) {
+    throw new Error(`Canonical satellite catalog is missing annual period ${year}.`);
+  }
+  return period.isPartialYear
+    ? explorerLatestPublicCatalogSnapshot!.timestampIso
+    : `${period.periodEndDate}T12:00:00.000Z`;
+}
 
 export const explorerSnapshots: ExplorerSnapshot[] = [
   {
     id: "snapshot-1957",
     label: "First artificial satellite",
     year: "1957",
-    timestampIso: "1957-10-04T19:28:34.000Z",
-    detail: "Earth orbit begins as a tracked environment",
+    timestampIso: canonicalPeriodEndTimestamp(1957),
+    detail: "1957 period-end membership after the first orbital launches",
     milestone: "Sputnik",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-1961",
     label: "First human orbital flight",
     year: "1961",
-    timestampIso: "1961-04-12T06:07:00.000Z",
-    detail: "Human spaceflight enters the catalog",
+    timestampIso: canonicalPeriodEndTimestamp(1961),
+    detail: "1961 period-end membership during the first human-orbit era",
     milestone: "Gagarin",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-1969",
     label: "Lunar mission era",
     year: "1969",
-    timestampIso: "1969-07-16T13:32:00.000Z",
-    detail: "Mission complexity and tracked material grow",
+    timestampIso: canonicalPeriodEndTimestamp(1969),
+    detail: "1969 period-end membership during the lunar-mission era",
     milestone: "Apollo 11",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-1978",
     label: "Navigation constellation begins",
     year: "1978",
-    timestampIso: "1978-02-22T12:00:00.000Z",
-    detail: "Persistent orbital infrastructure emerges",
+    timestampIso: canonicalPeriodEndTimestamp(1978),
+    detail: "1978 period-end membership as navigation infrastructure emerges",
     milestone: "GPS",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-1990",
     label: "Hubble observatory deployed",
     year: "1990",
-    timestampIso: "1990-04-25T12:49:00.000Z",
-    detail: "Long-lived science platforms expand the working orbital environment",
+    timestampIso: canonicalPeriodEndTimestamp(1990),
+    detail: "1990 period-end membership as long-lived science platforms expand",
     milestone: "Hubble",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-1998",
     label: "ISS assembly begins",
     year: "1998",
-    timestampIso: "1998-11-20T12:00:00.000Z",
-    detail: "International infrastructure expands in low Earth orbit",
+    timestampIso: canonicalPeriodEndTimestamp(1998),
+    detail: "1998 period-end membership as international infrastructure expands",
     milestone: "ISS",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-2015",
     label: "Commercial launch expansion",
     year: "2015",
-    timestampIso: "2015-06-01T12:00:00.000Z",
-    detail: "Commercial access accelerates catalog growth",
+    timestampIso: canonicalPeriodEndTimestamp(2015),
+    detail: "2015 period-end membership as commercial access accelerates",
     milestone: "Commercial Era",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-2019",
     label: "Large constellation deployment",
     year: "2019",
-    timestampIso: "2019-05-24T12:00:00.000Z",
-    detail: "Constellation-scale deployment changes low Earth orbit",
+    timestampIso: canonicalPeriodEndTimestamp(2019),
+    detail: "2019 period-end membership as constellation deployment expands",
     milestone: "Starlink",
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   },
   {
     id: "snapshot-2026",
-    label: "Current reference",
+    label: "Latest public catalog",
     year: "2026",
-    timestampIso: `${explorerCelestrakSnapshotDate ?? explorerCurrentReferenceDate}T12:00:00.000Z`,
-    detail: explorerCelestrakSnapshotDate
-      ? "Locally acquired current GP records"
-      : "Representative orbital references; current records are not bundled",
+    timestampIso: explorerLatestPublicCatalogSnapshot.timestampIso,
+    detail: "Complete GCAT membership · reconstructed educational positions",
     milestone: "Current",
-    sourceId: explorerCelestrakSnapshotDate
-      ? explorerCelestrakCatalogSource.id
-      : "curated-reference",
+    sourceId: "gcat-public-catalog",
   },
 ];
 
@@ -1054,18 +1026,7 @@ export function createExplorerCurrentSnapshot(simulationTimeUtc: string): Explor
   if (!Number.isFinite(timestampMs)) {
     throw new RangeError(`Invalid Explorer simulation timestamp: ${simulationTimeUtc}`);
   }
-  const timestampIso = new Date(timestampMs).toISOString();
-
-  return {
-    id: `current-${timestampIso}`,
-    label: "Current catalog",
-    year: String(new Date(timestampMs).getUTCFullYear()),
-    timestampIso,
-    detail: "Current catalog at the canonical simulation timestamp",
-    milestone: "Current",
-    sourceId: currentExplorerSnapshot.sourceId,
-    catalogMode: "current",
-  };
+  return explorerSnapshotForDateIso(new Date(timestampMs).toISOString());
 }
 
 export function explorerSnapshotHasHistoricalData(snapshot: ExplorerSnapshot): boolean {
@@ -1104,37 +1065,26 @@ export function explorerSnapshotNearestToYear(year: number): ExplorerSnapshot {
 
 export function explorerSnapshotForYear(
   year: number,
-  options: { snap?: boolean; snapThresholdYears?: number } = {},
+  _options: { snap?: boolean; snapThresholdYears?: number } = {},
 ): ExplorerSnapshot {
-  const clampedYear = clampTimelineYear(year);
-  const nearest = explorerSnapshotNearestToYear(clampedYear);
-  const snapThresholdYears = options.snapThresholdYears ?? 0.45;
+  const selectedYear = Math.round(clampTimelineYear(year));
+  const nearest = explorerSnapshotNearestToYear(selectedYear);
 
-  if (Math.abs(snapshotYear(nearest) - clampedYear) < 0.001) {
+  if (snapshotYear(nearest) === selectedYear) {
     return nearest;
   }
-
-  if (options.snap && Math.abs(snapshotYear(nearest) - clampedYear) <= snapThresholdYears) {
-    return nearest;
-  }
-
-  const roundedYear = Number(clampedYear.toFixed(2));
-  const displayYear = Number.isInteger(roundedYear)
-    ? String(roundedYear)
-    : roundedYear.toFixed(1);
-  const wholeYear = Math.floor(clampedYear);
-  const yearRatio = clampedYear - wholeYear;
-  const yearStartMs = Date.UTC(wholeYear, 0, 1, 12);
-  const nextYearStartMs = Date.UTC(wholeYear + 1, 0, 1, 12);
 
   return {
-    id: `timeline-${roundedYear.toFixed(2)}`,
-    label: `Selected date ${displayYear}`,
-    year: displayYear,
-    timestampIso: new Date(yearStartMs + (nextYearStartMs - yearStartMs) * yearRatio).toISOString(),
-    detail: `Selected timeline date ${displayYear}`,
+    id: `timeline-${selectedYear}`,
+    label: `${selectedYear} period end`,
+    year: String(selectedYear),
+    timestampIso: canonicalPeriodEndTimestamp(selectedYear),
+    detail:
+      selectedYear === 2026
+        ? "Partial 2026 membership through the GCAT package snapshot"
+        : `${selectedYear} membership present at calendar-year end`,
     milestone: nearest.milestone,
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   };
 }
 
@@ -1148,18 +1098,22 @@ export function explorerSnapshotForDateIso(timestampIso: string): ExplorerSnapsh
   }
 
   const selectedYear = Number.isFinite(selectedTimestampMs)
-    ? parsed.getUTCFullYear()
+    ? Math.round(clampTimelineYear(parsed.getUTCFullYear()))
     : Number(explorerSnapshots[0].year);
   const nearest = explorerSnapshotNearestToYear(selectedYear);
+  if (snapshotYear(nearest) === selectedYear) return nearest;
 
   return {
-    id: `timeline-${Number.isFinite(selectedTimestampMs) ? parsed.toISOString() : timestampIso}`,
-    label: `Selected date ${Number.isFinite(selectedTimestampMs) ? parsed.toISOString().slice(0, 10) : timestampIso}`,
+    id: `timeline-${selectedYear}`,
+    label: `${selectedYear} period end`,
     year: String(selectedYear),
-    timestampIso: Number.isFinite(selectedTimestampMs) ? parsed.toISOString() : timestampIso,
-    detail: `Selected timeline date ${Number.isFinite(selectedTimestampMs) ? parsed.toISOString().slice(0, 10) : timestampIso}`,
+    timestampIso: canonicalPeriodEndTimestamp(selectedYear),
+    detail:
+      selectedYear === 2026
+        ? "Partial 2026 membership through the GCAT package snapshot"
+        : `${selectedYear} membership present at calendar-year end`,
     milestone: nearest.milestone,
-    sourceId: "historical-import",
+    sourceId: "gcat-public-catalog",
   };
 }
 
@@ -1177,6 +1131,11 @@ function sourceLabelsForEntry(entry: ExplorerCatalogEntry): string[] {
 }
 
 function historicalCategoryFor(object: ExplorerHistoricalCatalogObject): ExplorerCategoryId {
+  if (object.sourceObjectClass === "payload") return "payloads";
+  if (object.sourceObjectClass === "rocket_body") return "rocket-bodies";
+  if (object.sourceObjectClass === "component") return "components";
+  if (object.sourceObjectClass === "debris") return "debris";
+
   const text = `${object.objectType ?? ""} ${object.name}`.toLowerCase();
   if (/\b(r\/b|rocket|upper stage|launcher)\b/.test(text)) return "rocket-bodies";
   if (/\b(deb|debris|fragment|piece|component)\b/.test(text)) return "debris";
@@ -1185,6 +1144,7 @@ function historicalCategoryFor(object: ExplorerHistoricalCatalogObject): Explore
 
 function historicalColorFor(categoryId: ExplorerCategoryId): string {
   if (categoryId === "rocket-bodies") return "#b9a98e";
+  if (categoryId === "components") return "#c99bd8";
   if (categoryId === "debris") return "#c28f81";
   return "#9fc7df";
 }
@@ -1204,6 +1164,9 @@ function historicalEntryForObject(
   } = {},
 ): ExplorerCatalogEntry {
   const state = resolvedState;
+  const curatedIdentity = object.catalogNumber
+    ? curatedCatalogByCatalogNumber.get(object.catalogNumber)
+    : undefined;
   const categoryId = historicalCategoryFor(object);
   const orbit = state?.orbit
     ? { ...state.orbit, color: historicalColorFor(categoryId) }
@@ -1230,10 +1193,16 @@ function historicalEntryForObject(
   ];
 
   return {
-    id: object.id,
-    name: object.name,
+    id: curatedIdentity?.id ?? object.id,
+    name: curatedIdentity?.name ?? object.name,
     catalogNumber: object.catalogNumber,
-    alternateNames: object.alternateNames,
+    alternateNames: [
+      ...new Set([
+        ...(object.alternateNames ?? []),
+        ...(curatedIdentity?.alternateNames ?? []),
+        ...(curatedIdentity && curatedIdentity.name !== object.name ? [object.name] : []),
+      ]),
+    ],
     internationalDesignator: object.internationalDesignator,
     categoryId,
     objectType: object.objectType ?? "Catalog object",
@@ -1247,8 +1216,13 @@ function historicalEntryForObject(
     summary: state?.stateKind === "reconstructed"
       ? `${object.name} has a deterministic educational orbit constrained by imported historical catalog metadata; its displayed position is not an exact historical fix.`
       : `${object.name} is loaded from imported historical catalog source records.`,
-    sourceId: "historical-import",
+    sourceId: object.sources.every((source) => source.sourceFamily === "gcat")
+      ? "gcat-public-catalog"
+      : "historical-import",
     sourceAttribution,
+    constellationId:
+      curatedIdentity?.constellationId ??
+      inferredConstellationId(object.name),
     selectionKind: renderable ? "satellite" : "catalog-object",
     visualRole: renderable ? "selectable-orbital-object" : "catalog-reference",
     activeFromYear: yearFromIso(object.launchDate),
@@ -1258,6 +1232,7 @@ function historicalEntryForObject(
     orbit: renderable ? orbit : undefined,
     tle: renderable ? tle : undefined,
     orbitAvailability,
+    semanticTerms: curatedIdentity?.semanticTerms,
   };
 }
 
@@ -1278,28 +1253,19 @@ function dataCoverageForSnapshot(
   records: ExplorerCatalogEntry[],
 ): ExplorerCatalogDataCoverage {
   if (isExplorerCurrentCatalogSnapshot(snapshot)) {
-    const sourceLabels = [
-      ...new Set(records.flatMap((entry) => sourceLabelsForEntry(entry))),
-    ].sort();
-    const renderableOrbitStateCount = records.filter(
-      (entry) => entry.selectionKind === "satellite" && Boolean(entry.orbit),
-    ).length;
-
-    const currentRecordsLoaded = explorerCurrentCatalogMode === "local-acquired";
+    const coverage = historicalCatalogCoverageForDate(snapshot.timestampIso);
     return {
-      status: currentRecordsLoaded ? "current-loaded" : "current-reference-only",
-      catalogObjectCount: records.length,
-      renderableOrbitStateCount,
-      exactHistoricalOrbitStateCount: 0,
-      reconstructedHistoricalOrbitStateCount: 0,
-      catalogOnlyObjectCount: 0,
-      sourceLabels,
-      label: currentRecordsLoaded
-        ? "Locally acquired current catalog loaded"
-        : "Current records are not bundled",
-      description: currentRecordsLoaded
-        ? `Current mode uses locally acquired CelesTrak GP records with latest epoch ${explorerCelestrakSnapshotDate}.`
-        : "The public release shows a small set of clearly identified representative reference orbits. They are not live or current orbital records. Run the documented local acquisition workflow to load current GP data privately.",
+      status: "latest-public-catalog",
+      catalogObjectCount: coverage.catalogObjectCount,
+      renderableOrbitStateCount: coverage.renderableOrbitStateCount,
+      exactHistoricalOrbitStateCount: coverage.exactOrbitStateCount,
+      reconstructedHistoricalOrbitStateCount: coverage.reconstructedOrbitStateCount,
+      catalogOnlyObjectCount: coverage.catalogOnlyObjectCount,
+      sourceLabels: coverage.sourceLabels,
+      label: "GCAT membership · reconstructed positions",
+      description:
+        `Latest bundled public membership is the complete GCAT Earth-object snapshot dated ${explorerLatestPublicCatalogDate}. ` +
+        "Positions are educational reconstructions constrained by source perigee, apogee, and inclination; they are not live tracking or exact observations.",
     };
   }
 
@@ -1314,7 +1280,7 @@ function dataCoverageForSnapshot(
       catalogOnlyObjectCount: 0,
       sourceLabels: [],
       label: "Historical catalog data not loaded",
-      description: "Import local Space-Track, CelesTrak historical GP, or GCAT records to enable historical catalog counts and scrub behavior.",
+      description: "The canonical GCAT annual membership data is unavailable.",
     };
   }
   const renderableOrbitStateCount = records.filter(
@@ -1348,11 +1314,11 @@ function dataCoverageForSnapshot(
       ]),
     ].sort(),
     label: completeHistoricalMembership
-      ? "Historical catalog loaded"
-      : "Incomplete historical sample loaded",
+      ? `${snapshot.year} period-end membership`
+      : "Incomplete historical membership",
     description: completeHistoricalMembership
-      ? "Membership comes from validated SATCAT historical source records. Source orbit states are used when available; otherwise explicitly identified educational reconstructions use source perigee, apogee, and inclination constraints."
-      : "This repository build contains an incomplete GCAT-derived sample, not complete historical membership. Displayed positions are educational reconstructions from source perigee, apogee, and inclination because historical source orbit states are not loaded.",
+      ? "Membership answers which GCAT Earth objects were present at this annual period end. Displayed states are explicitly identified educational reconstructions from source perigee, apogee, and inclination."
+      : "Canonical annual membership is incomplete.",
   };
 }
 
@@ -1373,9 +1339,25 @@ function createSearchText(entry: ExplorerCatalogEntry): string {
 export function createExplorerCatalogSnapshotView(
   snapshot: ExplorerSnapshot,
 ): ExplorerCatalogSnapshotView {
+  const sourceRecords = historicalRecordsForSnapshot(snapshot);
+  const sourceCatalogNumbers = new Set(
+    sourceRecords.flatMap((entry) =>
+      entry.catalogNumber ? [entry.catalogNumber] : []),
+  );
   const records = isExplorerCurrentCatalogSnapshot(snapshot)
-    ? explorerCatalog.filter((entry) => isRecordActive(entry, snapshot))
-    : historicalRecordsForSnapshot(snapshot);
+    ? uniqueExplorerCatalogEntries([
+        ...sourceRecords,
+        ...sourceBackedCuratedCatalog.filter(
+          (entry) =>
+            isRecordActive(entry, snapshot) &&
+            (
+              entry.selectionKind !== "satellite" ||
+              !entry.catalogNumber ||
+              !sourceCatalogNumbers.has(entry.catalogNumber)
+            ),
+        ),
+      ])
+    : sourceRecords;
   const byId = new Map(records.map((entry) => [entry.id, entry]));
   const searchTextById = new Map(
     records.map((entry) => [entry.id, createSearchText(entry)]),
@@ -1416,12 +1398,8 @@ function uniqueExplorerCatalogEntries(entries: ExplorerCatalogEntry[]): Explorer
 
 export const explorerCanonicalCatalogView: ExplorerCatalogSnapshotView = (() => {
   const snapshot = currentExplorerSnapshot;
-  const records = uniqueExplorerCatalogEntries([
-    ...explorerCatalog,
-    ...explorerHistoricalCatalog.objects.map((object) =>
-      historicalEntryForObject(object, currentExplorerSnapshot),
-    ),
-  ]);
+  const currentView = createExplorerCatalogSnapshotView(snapshot);
+  const records = currentView.records;
   const byId = new Map(records.map((entry) => [entry.id, entry]));
   const searchTextById = new Map(records.map((entry) => [entry.id, createSearchText(entry)]));
   const categoryCounts = new Map(
@@ -1443,14 +1421,14 @@ export const explorerCanonicalCatalogView: ExplorerCatalogSnapshotView = (() => 
     catalogObjectCount: records.length,
     renderableOrbitStateCount,
     dataCoverage: {
-      status: explorerCurrentCatalogMode === "local-acquired"
-        ? "current-loaded"
-        : "current-reference-only",
+      status: currentView.dataCoverage.status,
       catalogObjectCount: records.length,
       renderableOrbitStateCount,
-      exactHistoricalOrbitStateCount: 0,
-      reconstructedHistoricalOrbitStateCount: 0,
-      catalogOnlyObjectCount: 0,
+      exactHistoricalOrbitStateCount:
+        currentView.dataCoverage.exactHistoricalOrbitStateCount,
+      reconstructedHistoricalOrbitStateCount:
+        currentView.dataCoverage.reconstructedHistoricalOrbitStateCount,
+      catalogOnlyObjectCount: currentView.dataCoverage.catalogOnlyObjectCount,
       sourceLabels: [...new Set(records.flatMap((entry) => sourceLabelsForEntry(entry)))].sort(),
       label: "Canonical catalog",
       description: "Search uses the stable Explorer catalog identity layer.",
@@ -1506,7 +1484,7 @@ export function filterExplorerCatalog(filters: ExplorerCatalogFilters): Explorer
 
 const snapshotViews = new Map<string, ExplorerCatalogSnapshotView>();
 const fixedSnapshotIds = new Set(explorerSnapshots.map((snapshot) => snapshot.id));
-const snapshotViewCacheLimit = explorerSnapshots.length + 32;
+const snapshotViewCacheLimit = explorerSnapshots.length + 4;
 
 function cacheSnapshotView(
   snapshot: ExplorerSnapshot,
@@ -1562,6 +1540,7 @@ function catalogSatellite(
       categoryId:
         entry.categoryId === "payloads" ||
         entry.categoryId === "rocket-bodies" ||
+        entry.categoryId === "components" ||
         entry.categoryId === "debris"
           ? entry.categoryId
           : "unknown",
@@ -1573,6 +1552,8 @@ function catalogSatellite(
       orbitStateProvenance:
         entry.orbitAvailability === "reconstructed-historical-orbit"
           ? "reconstructed-historical"
+          : entry.orbitAvailability === "curated-reference-orbit"
+            ? "curated-reference"
           : entry.orbitAvailability === "exact-historical-orbit"
             ? "exact-historical"
             : entry.orbitAvailability === "nearest-historical-orbit"
@@ -1761,41 +1742,82 @@ export function explorerCategoryLabel(categoryId: ExplorerCategoryId): string {
 export function validateExplorerRuntimeCatalogHealth(): string[] {
   const issues: string[] = [];
   const current = explorerSnapshotView(currentExplorerSnapshot);
-  const renderableRecords = current.records.filter(
+  const latestSnapshot = explorerLatestPublicCatalogSnapshot!;
+  const gcatRecords = current.records.filter(
+    (entry) => entry.sourceId === "gcat-public-catalog",
+  );
+  const renderableRecords = gcatRecords.filter(
     (entry) =>
       entry.selectionKind === "satellite" &&
       entry.visualRole === "selectable-orbital-object" &&
       entry.orbit,
   );
+  const categoryCount = (categoryId: ExplorerCategoryId, renderableOnly = false) =>
+    gcatRecords.filter(
+      (entry) =>
+        entry.categoryId === categoryId &&
+        (!renderableOnly || (
+          entry.selectionKind === "satellite" &&
+          Boolean(entry.orbit)
+        )),
+    ).length;
 
-  if (explorerCurrentCatalogMode === "release-reference-only") {
-    if (explorerCelestrakCatalogRecords.length !== 0) {
-      issues.push("Release-reference mode unexpectedly contains CelesTrak records.");
-    }
-    if (current.dataCoverage.status !== "current-reference-only") {
-      issues.push("Release-reference mode does not disclose reference-only coverage.");
-    }
-    if (renderableRecords.length < 4) {
-      issues.push("Release-reference mode does not expose a useful representative orbit set.");
-    }
-    if (renderableRecords.some((entry) => entry.tle || entry.sourceId === explorerCelestrakCatalogSource.id)) {
-      issues.push("Release-reference mode contains records presented as locally acquired GP data.");
-    }
-    return issues;
+  if (current.dataCoverage.status !== "latest-public-catalog") {
+    issues.push("Canonical GCAT mode does not disclose latest-public coverage.");
   }
-
-  if (renderableRecords.length < 10_000) {
+  if (gcatRecords.length !== latestSnapshot.catalogObjectCount) {
     issues.push(
-      `Local/generated orbit catalog exposes ${renderableRecords.length.toLocaleString()} renderable records; expected a full-data build to expose at least 10,000.`,
+      `Latest public catalog exposes ${gcatRecords.length.toLocaleString()} GCAT members; canonical metadata declares ${latestSnapshot.catalogObjectCount.toLocaleString()}.`,
     );
   }
-
-  if (!renderableRecords.some((entry) => entry.categoryId === "debris")) {
-    issues.push("Runtime orbit catalog has no renderable debris records.");
+  if (renderableRecords.length !== latestSnapshot.reconstructedOrbitStateCount) {
+    issues.push(
+      `Latest public catalog exposes ${renderableRecords.length.toLocaleString()} renderable states; canonical metadata declares ${latestSnapshot.reconstructedOrbitStateCount.toLocaleString()}.`,
+    );
   }
-
-  if (!renderableRecords.some((entry) => entry.categoryId === "payloads")) {
-    issues.push("Runtime orbit catalog has no renderable payload records.");
+  const catalogOnlyCount = gcatRecords.filter(
+    (entry) => entry.orbitAvailability === "catalog-only",
+  ).length;
+  if (catalogOnlyCount !== latestSnapshot.catalogOnlyObjectCount) {
+    issues.push(
+      `Latest public catalog exposes ${catalogOnlyCount.toLocaleString()} catalog-only objects; canonical metadata declares ${latestSnapshot.catalogOnlyObjectCount.toLocaleString()}.`,
+    );
+  }
+  const categoryExpectations = [
+    ["payloads", latestSnapshot.categoryCounts.payloads, latestSnapshot.renderableCategoryCounts.payloads],
+    ["rocket-bodies", latestSnapshot.categoryCounts.rocketBodies, latestSnapshot.renderableCategoryCounts.rocketBodies],
+    ["components", latestSnapshot.categoryCounts.components, latestSnapshot.renderableCategoryCounts.components],
+    ["debris", latestSnapshot.categoryCounts.debris, latestSnapshot.renderableCategoryCounts.debris],
+  ] as const;
+  for (const [categoryId, expectedMembership, expectedRenderable] of categoryExpectations) {
+    const actualMembership = categoryCount(categoryId);
+    const actualRenderable = categoryCount(categoryId, true);
+    if (actualMembership !== expectedMembership) {
+      issues.push(
+        `Latest public ${categoryId} membership is ${actualMembership.toLocaleString()}; canonical metadata declares ${expectedMembership.toLocaleString()}.`,
+      );
+    }
+    if (actualRenderable !== expectedRenderable) {
+      issues.push(
+        `Latest public renderable ${categoryId} count is ${actualRenderable.toLocaleString()}; canonical metadata declares ${expectedRenderable.toLocaleString()}.`,
+      );
+    }
+  }
+  if (renderableRecords.some(
+    (entry) => entry.orbitAvailability !== "reconstructed-historical-orbit",
+  )) {
+    issues.push("A canonical GCAT renderable record lacks reconstructed-orbit classification.");
+  }
+  if (renderableRecords.some(
+    (entry) =>
+      !entry.summary.includes("deterministic educational orbit") ||
+      !entry.summary.includes("not an exact historical fix") ||
+      /live tracking|current tracking|exact position|observed position/i.test(entry.summary),
+  )) {
+    issues.push("A reconstructed release record implies exact, observed, or live tracking.");
+  }
+  if (renderableRecords.some((entry) => entry.tle)) {
+    issues.push("Canonical GCAT release records unexpectedly contain TLE data.");
   }
 
   return issues;

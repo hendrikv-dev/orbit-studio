@@ -35,7 +35,9 @@ describe("Explorer visibility hierarchy", () => {
   it("resolves global layer, constellation, and individual visibility independently", () => {
     const view = explorerSnapshotView(currentSnapshot);
     const constellation = view.byId.get("explorer-gps-constellation")!;
-    const member = view.byId.get("explorer-gps")!;
+    const member = view.records.find(
+      (entry) => entry.constellationId === constellation.id && entry.orbit,
+    )!;
     const visibility = createExplorerVisibilityState();
 
     expect(isExplorerEntryVisible(member, visibility)).toBe(true);
@@ -134,10 +136,17 @@ describe("Explorer visibility hierarchy", () => {
     expect(cleared.satelliteIds).not.toContain(hubble.id);
   });
 
-  it("resolves metadata-constrained historical members without current-catalog fallback", () => {
+  it("resolves cross-class historical members without a curated current fallback", () => {
     const view = getHistoricalCatalog("2015-06-01T12:00:00.000Z");
-    const iss = view.records.find((entry) => entry.catalogNumber === "25544");
-    const hubble = view.records.find((entry) => entry.catalogNumber === "20580");
+    const payload = view.records.find(
+      (entry) => entry.categoryId === "payloads" && entry.orbit,
+    );
+    const rocketBody = view.records.find(
+      (entry) => entry.categoryId === "rocket-bodies" && entry.orbit,
+    );
+    const debris = view.records.find(
+      (entry) => entry.categoryId === "debris" && entry.orbit,
+    );
     const sceneEntries = view.records.filter(
       (entry) => entry.selectionKind === "satellite" && entry.visualRole === "selectable-orbital-object",
     );
@@ -149,10 +158,12 @@ describe("Explorer visibility hierarchy", () => {
       null,
     );
 
-    expect(iss?.selectionKind).toBe("satellite");
-    expect(iss?.orbitAvailability).toBe("reconstructed-historical-orbit");
-    expect(hubble?.selectionKind).toBe("satellite");
-    expect(hubble?.orbitAvailability).toBe("reconstructed-historical-orbit");
+    for (const entry of [payload, rocketBody, debris]) {
+      expect(entry?.selectionKind).toBe("satellite");
+      expect(entry?.orbitAvailability).toBe("reconstructed-historical-orbit");
+      expect(entry?.sourceId).toBe("gcat-public-catalog");
+    }
+    expect(view.records.some((entry) => entry.sourceId === "curated-reference")).toBe(false);
     expect(view.renderableOrbitStateCount).toBeGreaterThan(1_500);
     expect(sceneEntries).toHaveLength(view.renderableOrbitStateCount);
     expect(resolved.satelliteIds).toHaveLength(view.renderableOrbitStateCount);
@@ -175,7 +186,7 @@ describe("Explorer visibility hierarchy", () => {
     );
     const shells = representativeConstellationShells(starlink, scenario.satellites);
 
-    expect(summary.memberCount).toBe(0);
+    expect(summary.memberCount).toBeGreaterThan(900);
     expect(summary.orbitalClassification.toLowerCase()).toContain("low earth orbit");
     expect(summary.shellCount).toBeGreaterThan(1);
     expect(summary.inclinationFamilies).toBeGreaterThan(1);
@@ -189,7 +200,7 @@ describe("Explorer visibility hierarchy", () => {
     expect(representatives.every((satellite) => satellite.visualization.showTrail)).toBe(true);
   });
 
-  it("teaches first-class constellation architecture without inventing source members", () => {
+  it("teaches first-class constellation architecture while identifying source members", () => {
     const scenario = createExplorerScenario(currentSnapshot);
     const galileo = scenario.constellations.find(
       (constellation) => constellation.id === "explorer-galileo-constellation",
@@ -202,7 +213,7 @@ describe("Explorer visibility hierarchy", () => {
     const galileoPlanes = representativeConstellationSatellites(galileo, scenario.satellites);
     const oneWebSummary = summarizeExplorerConstellation(oneWeb, scenario.satellites);
 
-    expect(galileoSummary.memberCount).toBe(0);
+    expect(galileoSummary.memberCount).toBeGreaterThan(0);
     expect(galileoSummary.systemPopulation).toBeGreaterThanOrEqual(galileoSummary.memberCount);
     expect(galileoSummary.planeCount).toBe(3);
     expect(galileoSummary.altitudeRangeKm[0]).toBeGreaterThan(20_000);

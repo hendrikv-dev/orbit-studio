@@ -631,6 +631,11 @@ const curatedEducation: Record<string, ExplorerEducationContent> = {
   },
 };
 
+const curatedEducationIdByCatalogNumber: Readonly<Record<string, string>> = {
+  "20580": "explorer-hubble",
+  "25544": "explorer-iss",
+};
+
 function defaultHeroFor(entry: ExplorerCatalogEntry): ExplorerHeroMedia {
   if (entry.categoryId === "ground-stations") {
     return {
@@ -786,7 +791,9 @@ function fallbackWhy(entry: ExplorerCatalogEntry): string {
 }
 
 export function explorerEducationForEntry(entry: ExplorerCatalogEntry): ExplorerEducationContent {
-  const educationId = entry.catalogNumber === "25544" ? "explorer-iss" : entry.id;
+  const educationId = entry.catalogNumber
+    ? curatedEducationIdByCatalogNumber[entry.catalogNumber] ?? entry.id
+    : entry.id;
   const curated = curatedEducation[educationId];
   if (curated) return curated;
 
@@ -800,7 +807,9 @@ export function explorerEducationForEntry(entry: ExplorerCatalogEntry): Explorer
 }
 
 export function explorerFeaturedEducationPriority(entry: ExplorerCatalogEntry): number | null {
-  const educationId = entry.catalogNumber === "25544" ? "explorer-iss" : entry.id;
+  const educationId = entry.catalogNumber
+    ? curatedEducationIdByCatalogNumber[entry.catalogNumber] ?? entry.id
+    : entry.id;
   return curatedEducation[educationId]?.featuredPriority ?? null;
 }
 
