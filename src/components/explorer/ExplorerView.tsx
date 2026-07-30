@@ -360,6 +360,9 @@ function useMobileSheetDrag(onDismiss: () => void): {
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
+    const isDedicatedHandle = event.currentTarget.classList.contains(
+      "explorer-mobile-sheet-handle",
+    );
     const isInteractiveTarget = Boolean(
       target.closest("button, input, select, textarea, a"),
     );
@@ -367,7 +370,11 @@ function useMobileSheetDrag(onDismiss: () => void): {
       typeof window === "undefined" ||
       window.matchMedia("(max-width: 743px)").matches;
 
-    if (isInteractiveTarget || !isMobileSheet || (event.pointerType === "mouse" && event.button !== 0)) {
+    if (
+      (isInteractiveTarget && !isDedicatedHandle) ||
+      !isMobileSheet ||
+      (event.pointerType === "mouse" && event.button !== 0)
+    ) {
       return;
     }
 
@@ -497,7 +504,19 @@ function ExplorerPanelHeader({
   dragHandleProps?: ReturnType<typeof useMobileSheetDrag>["dragHandleProps"];
 }) {
   return (
-    <header className={`explorer-panel-header ${className}`.trim()} {...dragHandleProps}>
+    <header className={`explorer-panel-header ${className}`.trim()}>
+      {dragHandleProps && (
+        <button
+          aria-label={closeLabel}
+          className="explorer-mobile-sheet-handle"
+          title={`${closeLabel}. Drag down or tap to close.`}
+          type="button"
+          {...dragHandleProps}
+          onClick={onClose}
+        >
+          <span aria-hidden="true" />
+        </button>
+      )}
       <div className="explorer-panel-heading-copy">
         {eyebrow && <span className="explorer-panel-eyebrow">{eyebrow}</span>}
         {titleLevel === "h1" ? <h1>{title}</h1> : <h2>{title}</h2>}
@@ -1402,6 +1421,29 @@ export function ExplorerView({
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(0);
+  const [mobileSearchViewportHeight, setMobileSearchViewportHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (!searchOpen || typeof window === "undefined") {
+      setMobileSearchViewportHeight(null);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    const updateViewportHeight = () => {
+      setMobileSearchViewportHeight(Math.round(viewport?.height ?? window.innerHeight));
+    };
+
+    updateViewportHeight();
+    viewport?.addEventListener("resize", updateViewportHeight);
+    viewport?.addEventListener("scroll", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateViewportHeight);
+      viewport?.removeEventListener("scroll", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, [searchOpen]);
   const [typeFilters, setTypeFilters] = useState<ExplorerCategoryId[]>([]);
   const [colorMode, setColorMode] = useState<ExplorerColorMode>("type");
   const [regimeFilter, setRegimeFilter] = useState<ExplorerRegimeFilter>("all");
@@ -2042,6 +2084,13 @@ export function ExplorerView({
           data-explorer-catalog-context
           data-search-open={searchOpen ? "true" : "false"}
           data-search-active={searchActive ? "true" : "false"}
+          style={
+            mobileSearchViewportHeight
+              ? ({
+                  "--explorer-search-viewport-height": `${mobileSearchViewportHeight}px`,
+                } as CSSProperties)
+              : undefined
+          }
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
             if (!nextTarget || !event.currentTarget.contains(nextTarget)) setSearchOpen(false);

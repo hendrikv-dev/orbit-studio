@@ -8300,3 +8300,92 @@ button.primary,
     margin-bottom: 0;
   }
 }
+
+/* Mobile sheet interaction correction: one real handle, no decorative duplicates. */
+.explorer-mobile-sheet-handle {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .explorer-overlay-panel::before,
+  .explorer-mobile-sheet::before,
+  .explorer-selection-card::before,
+  .explorer-panel-header::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .explorer-panel-header {
+    position: relative;
+    padding-top: 34px !important;
+    touch-action: auto;
+  }
+
+  .explorer-mobile-sheet-handle {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    z-index: 4;
+    display: grid;
+    width: 88px;
+    height: 28px;
+    min-width: 88px;
+    min-height: 28px;
+    place-items: center;
+    transform: translateX(-50%);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 0;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .explorer-mobile-sheet-handle:active {
+    cursor: grabbing;
+  }
+
+  .explorer-mobile-sheet-handle span {
+    display: block;
+    width: 52px;
+    height: 5px;
+    border-radius: 999px;
+    background: #526374;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+
+  .explorer-mobile-sheet-handle:focus-visible span,
+  .explorer-mobile-sheet-handle:active span {
+    background: #8aa8bd;
+    transform: scaleX(1.08);
+  }
+
+  .explorer-overlay-panel .explorer-panel-close,
+  .explorer-mobile-sheet .explorer-panel-close {
+    display: none !important;
+  }
+
+  /* Use Safari's keyboard-reduced visual viewport, not the layout viewport. */
+  .explorer-global-search[data-search-open="true"] {
+    height: var(--explorer-search-viewport-height, 100dvh) !important;
+    max-height: var(--explorer-search-viewport-height, 100dvh) !important;
+    overflow: hidden !important;
+  }
+
+  .explorer-global-search[data-search-open="true"][data-search-active="true"] .explorer-search-dropdown {
+    position: absolute !important;
+    top: calc(78px + env(safe-area-inset-top, 0px)) !important;
+    right: 14px !important;
+    bottom: auto !important;
+    left: 14px !important;
+    display: grid !important;
+    height: calc(var(--explorer-search-viewport-height, 100dvh) - 92px - env(safe-area-inset-top, 0px)) !important;
+    min-height: 160px !important;
+    max-height: none !important;
+    align-content: start !important;
+    overflow-y: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
