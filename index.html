@@ -8,22 +8,7 @@
     <title>Orbit Studio</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script>
-      if (window.location.protocol === "file:") {
-        document.body.style.cssText = "margin:0;min-height:100vh;display:grid;place-items:center;background:#02050d;color:#eef5ff;font-family:Inter,system-ui,sans-serif";
-        document.getElementById("root").innerHTML = `
-          <main style="width:min(620px,calc(100vw - 40px));padding:36px;border:1px solid #23314a;border-radius:18px;background:#07101f;box-shadow:0 24px 80px rgba(0,0,0,.45)">
-            <img src="public/brand/orbit-studio-logo.png" alt="Orbit Studio" style="display:block;width:220px;max-width:70%;margin-bottom:26px" />
-            <h1 style="margin:0 0 12px;font-size:28px">Start Orbit Studio with the launcher</h1>
-            <p style="margin:0;color:#b5c3d7;line-height:1.6">This project uses Vite and cannot run by opening index.html directly. Double-click <strong style="color:#fff">START_ORBIT_STUDIO.command</strong> in this folder. Keep the Terminal window open while using the app.</p>
-          </main>`;
-      } else {
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = "/src/main.tsx";
-        document.body.appendChild(script);
-      }
-    </script>
-  </body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
 </html>
