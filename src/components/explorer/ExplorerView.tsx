@@ -2665,6 +2665,68 @@ export function ExplorerView({
             </button>
           </div>
         )}
+        <nav className="explorer-mobile-dock" aria-label="Explorer controls">
+          <button
+            aria-pressed={orbitSheetOpen}
+            className={orbitSheetOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              orbitSheetOpen ? orbitPanel.close() : orbitPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setLayersOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Crosshair size={19} />
+            <span>Orbit</span>
+          </button>
+          <button
+            aria-pressed={layersOpen}
+            className={layersOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              layersOpen ? layersPanel.close() : layersPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setOrbitSheetOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Filter size={19} />
+            <span>Display</span>
+          </button>
+          <button
+            aria-pressed={catalogOpen}
+            className={catalogOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              catalogOpen ? catalogPanel.close() : catalogPanel.openFrom(catalogLauncherRef.current);
+              setLayersOpen(false);
+              setOrbitSheetOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Search size={19} />
+            <span>Explore</span>
+          </button>
+          <button
+            aria-pressed={playbackSheetOpen}
+            className={playbackSheetOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              playbackSheetOpen ? playbackPanel.close() : playbackPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setLayersOpen(false);
+              setOrbitSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            {explorerPlaybackRunning ? <Pause size={19} /> : <Play size={19} />}
+            <span>Playback</span>
+          </button>
+        </nav>
         <div className="explorer-globe-toolbar">
           <div className="explorer-control-group explorer-workspace-controls" aria-label="Explorer workspace panels">
             <button

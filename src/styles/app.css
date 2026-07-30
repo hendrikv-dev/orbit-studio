@@ -7982,3 +7982,245 @@ button.primary,
 .explorer-header-actions .orbit-app-menu-panel .orbit-app-menu-divider {
   display: block;
 }
+
+/* Mobile workspace refinement: one dock, one sheet, visualization first. */
+.explorer-mobile-dock { display: none; }
+
+@media (max-width: 820px) {
+  .explorer-shell {
+    --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  .explorer-header {
+    height: 72px;
+    padding: 10px 16px;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(2, 7, 14, .98), rgba(2, 7, 14, .82));
+    backdrop-filter: blur(18px);
+  }
+
+  .explorer-brand-logo-full { display: none; }
+  .explorer-brand-logo-icon { display: block; width: 50px; height: 50px; object-fit: contain; }
+
+  .explorer-global-search {
+    position: static;
+    width: auto;
+    min-width: 0;
+  }
+
+  .explorer-global-search label {
+    height: 48px;
+    border-radius: 15px;
+    padding: 0 14px;
+  }
+
+  .explorer-global-search input {
+    font-size: 16px;
+    min-width: 0;
+  }
+
+  .explorer-global-search:focus-within {
+    position: fixed;
+    z-index: 120;
+    inset: 0;
+    width: auto;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px;
+    background: #030811;
+  }
+
+  .explorer-global-search:focus-within label {
+    height: 56px;
+    border-color: #2baef5;
+    box-shadow: 0 0 0 3px rgba(43, 174, 245, .18);
+  }
+
+  .explorer-global-search:focus-within .explorer-search-dropdown {
+    position: absolute;
+    inset: calc(80px + env(safe-area-inset-top, 0px)) 16px 16px;
+    width: auto;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow-y: auto;
+  }
+
+  .explorer-search-dropdown button {
+    min-height: 68px;
+    border-radius: 14px;
+    margin-bottom: 6px;
+    background: #08121f;
+  }
+
+  .explorer-regime-control,
+  .explorer-time-chip,
+  .explorer-catalog-launcher,
+  .explorer-display-launcher,
+  .explorer-mobile-menu,
+  .explorer-mobile-playback-pill,
+  .explorer-globe-toolbar {
+    display: none !important;
+  }
+
+  .explorer-globe {
+    inset: 72px 0 0;
+    height: calc(100svh - 72px);
+    padding-bottom: calc(78px + var(--mobile-safe-bottom));
+  }
+
+  .explorer-globe canvas {
+    transform: translateY(-4vh);
+  }
+
+  .explorer-mobile-dock {
+    display: grid;
+    position: fixed;
+    z-index: 84;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + var(--mobile-safe-bottom));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    min-height: 66px;
+    padding: 6px;
+    border: 1px solid rgba(91, 125, 158, .38);
+    border-radius: 20px;
+    background: rgba(3, 10, 18, .94);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .48);
+    backdrop-filter: blur(20px);
+  }
+
+  .explorer-mobile-dock button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 54px;
+    padding: 7px 4px;
+    border: 0;
+    border-radius: 15px;
+    color: #aebed0;
+    background: transparent;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .explorer-mobile-dock button.active,
+  .explorer-mobile-dock button:active {
+    color: #f4fbff;
+    background: linear-gradient(180deg, rgba(24, 116, 179, .65), rgba(13, 65, 105, .7));
+  }
+
+  .explorer-overlay-panel,
+  .explorer-mobile-sheet {
+    position: fixed !important;
+    z-index: 90 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(76svh, 760px) !important;
+    border: 1px solid rgba(91, 125, 158, .34) !important;
+    border-bottom: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    background: rgba(3, 11, 20, .98) !important;
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, .58) !important;
+    padding-bottom: calc(82px + var(--mobile-safe-bottom)) !important;
+    overflow: hidden;
+  }
+
+  .explorer-catalog-panel,
+  .explorer-layers-popover {
+    height: min(76svh, 760px) !important;
+  }
+
+  .explorer-mobile-sheet {
+    height: auto !important;
+    min-height: 260px;
+  }
+
+  .explorer-panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 26px 22px 18px !important;
+    background: rgba(3, 11, 20, .98);
+  }
+
+  .explorer-panel-header::before {
+    content: "";
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 54px;
+    height: 5px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: #526374;
+  }
+
+  .explorer-panel-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .explorer-catalog-summary,
+  .explorer-browse-content,
+  .explorer-layer-options,
+  .explorer-analysis-options,
+  .explorer-visualization-options,
+  .explorer-mobile-sheet-options,
+  .explorer-mobile-playback-options {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .explorer-browse-content {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .explorer-results-heading {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #030b14;
+  }
+
+  .explorer-timeline {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(86px + var(--mobile-safe-bottom)) !important;
+    height: 64px !important;
+    border-radius: 18px !important;
+    padding: 8px 12px !important;
+  }
+
+  .explorer-timeline-speeds,
+  .explorer-timeline-playback > button:not(.explorer-timeline-play-toggle),
+  .explorer-timeline-status {
+    display: none !important;
+  }
+
+  .explorer-timeline-playback {
+    width: 48px !important;
+  }
+
+  .explorer-timeline-track {
+    min-width: 0;
+  }
+
+  .explorer-shell:has(.explorer-overlay-panel) .explorer-mobile-dock,
+  .explorer-shell:has(.explorer-mobile-sheet) .explorer-mobile-dock {
+    z-index: 92;
+  }
+}
