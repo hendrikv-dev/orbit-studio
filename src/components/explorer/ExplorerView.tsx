@@ -2040,6 +2040,8 @@ export function ExplorerView({
         <div
           className="explorer-global-search"
           data-explorer-catalog-context
+          data-search-open={searchOpen ? "true" : "false"}
+          data-search-active={searchActive ? "true" : "false"}
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
             if (!nextTarget || !event.currentTarget.contains(nextTarget)) setSearchOpen(false);
