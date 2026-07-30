@@ -51,3 +51,5 @@ data/generated/**
 data/local-only/**
 public/earth/*.jpg
 !public/earth/nasa-blue-marble-january-5400.jpg
+
+.orbit-studio-backups/

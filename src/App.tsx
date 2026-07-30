@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { List, Menu, Pause, Play, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Orbit, Pause, Play, RotateCcw } from "lucide-react";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ExplorerView } from "./components/explorer/ExplorerView";
 import { OrbitStudioHome } from "./components/home/OrbitStudioHome";
 import { OrbitAppMenu, ShowInterfaceButton } from "./components/layout/OrbitAppMenu";
 import { OrbitControlsPanel } from "./components/OrbitControlsPanel";
-import { PlaygroundSatelliteColumn } from "./components/PlaygroundSatelliteColumn";
 import {
   createExplorerCurrentSnapshot,
   createExplorerScenario,
@@ -25,7 +24,7 @@ import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
 
 type ProductMode = "home" | "explorer" | "playground";
-type PlaygroundMobileSurface = "objects" | "orbit" | "playback" | null;
+type PlaygroundMobileSurface = "orbit" | "playback" | null;
 const playgroundMobileTimeScales = [1, 10, 100, 1000, 2500];
 const KONAMI_SEQUENCE = [
   "ArrowUp",
@@ -182,7 +181,6 @@ export function App() {
   const [playgroundSceneSession, setPlaygroundSceneSession] = useState(0);
   const [playgroundMobileSurface, setPlaygroundMobileSurface] =
     useState<PlaygroundMobileSurface>(null);
-  const [playgroundMobileMenuOpen, setPlaygroundMobileMenuOpen] = useState(false);
   const [auroraModeEnabled, setAuroraModeEnabled] = useState(false);
   const [auroraToast, setAuroraToast] = useState<string | null>(null);
   const auroraModeEnabledRef = useRef(false);
@@ -307,7 +305,6 @@ export function App() {
     setProductMode("explorer");
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const openStudio = useCallback(() => {
@@ -316,7 +313,6 @@ export function App() {
     setProductMode("playground");
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const openHome = useCallback(() => {
@@ -324,17 +320,14 @@ export function App() {
     setProductMode("home");
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const openPlaygroundMobileSurface = useCallback((surface: Exclude<PlaygroundMobileSurface, null>) => {
     setPlaygroundMobileSurface(surface);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const showAuroraToast = useCallback((message: string) => {
@@ -470,9 +463,7 @@ export function App() {
       <main
       className={`app-shell studio-mode-shell playground-shell ${
         interfaceVisible ? "" : "playground-ui-hidden"
-      } playground-mobile-surface-${playgroundMobileSurface ?? "none"} ${
-        playgroundMobileMenuOpen ? "playground-mobile-menu-open" : ""
-      }`}
+      } playground-mobile-surface-${playgroundMobileSurface ?? "none"}`}
     >
       <AppErrorBoundary
         variant="renderer"
@@ -515,40 +506,22 @@ export function App() {
               onOpenPlayground={openStudio}
             />
           </div>
-          <div className="playground-mobile-mode-menu">
-            <button
-              aria-expanded={playgroundMobileMenuOpen}
-              aria-label="Open Playground menu"
-              className={playgroundMobileMenuOpen ? "active" : ""}
-              type="button"
-              onClick={() => {
-                setPlaygroundMobileMenuOpen((current) => !current);
-                setPlaygroundMobileSurface(null);
-              }}
-            >
-              <Menu size={16} />
-            </button>
-            {playgroundMobileMenuOpen && playgroundMobileSurface === null && (
-              <div className="playground-mobile-mode-menu-panel" aria-label="Playground modes">
-                <button type="button" onClick={() => openPlaygroundMobileSurface("objects")}>
-                  <List size={15} />
-                  <span>Objects</span>
-                </button>
-                <button type="button" onClick={() => openPlaygroundMobileSurface("orbit")}>
-                  <SlidersHorizontal size={15} />
-                  <span>Orbit</span>
-                </button>
-                <button type="button" onClick={() => openPlaygroundMobileSurface("playback")}>
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>Playback</span>
-                </button>
-              </div>
-            )}
-          </div>
-          {playgroundMobileSurface === null && !playgroundMobileMenuOpen && (
-            <div className="playground-mobile-playback-pill" aria-label="Compact Playground playback">
+          <button
+            aria-expanded={playgroundMobileSurface === "orbit"}
+            aria-label={playgroundMobileSurface === "orbit" ? "Close Playground orbit controls" : "Open Playground orbit controls"}
+            className={`playground-mobile-orbit-trigger ${playgroundMobileSurface === "orbit" ? "active" : ""}`}
+            type="button"
+            onClick={() => {
+              setPlaygroundMobileSurface((current) => current === "orbit" ? null : "orbit");
+            }}
+          >
+            <Orbit size={20} />
+          </button>
+          {playgroundMobileSurface !== "playback" && (
+            <div className="playground-mobile-playback-pill explorer-mobile-playback-pill" aria-label="Compact Playground playback">
               <button
                 aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
+                aria-pressed={isPlaying}
                 className={isPlaying ? "running" : ""}
                 type="button"
                 onClick={() => setPlaying(!isPlaying)}
@@ -556,52 +529,58 @@ export function App() {
                 {isPlaying ? <Pause size={14} /> : <Play size={14} />}
               </button>
               <button
-                aria-label="Open Playground playback controls"
+                aria-label="Open Playground playback speed controls"
                 type="button"
                 onClick={() => openPlaygroundMobileSurface("playback")}
               >
-                {playgroundTimeScale.toLocaleString()}x
+                {playgroundTimeScale.toLocaleString()}×
               </button>
             </div>
           )}
           {playgroundMobileSurface === "playback" && (
-            <aside className="playground-mobile-playback-sheet" aria-label="Playground playback controls">
+            <aside className="playground-mobile-playback-sheet explorer-mobile-sheet explorer-mobile-playback-sheet" aria-label="Playground playback controls">
+              <button
+                aria-label="Close Playground playback controls"
+                className="playground-mobile-sheet-handle"
+                type="button"
+                onClick={closePlaygroundMobileSurface}
+              />
               <div className="playground-mobile-sheet-heading">
                 <strong>Playback</strong>
-                <button type="button" aria-label="Close playback controls" onClick={closePlaygroundMobileSurface}>
-                  <X size={14} />
-                </button>
               </div>
-              <div className="playground-mobile-playback-actions">
+              <section className="explorer-mobile-playback-options">
                 <button
-                  className={`playback-toggle ${isPlaying ? "running" : ""}`}
+                  aria-pressed={isPlaying}
+                  className={`explorer-playback-toggle ${isPlaying ? "running" : ""}`}
                   type="button"
                   onClick={() => setPlaying(!isPlaying)}
                 >
                   {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>{isPlaying ? "Pause" : "Play"}</span>
+                  <span>{isPlaying ? "Running" : "Paused"}</span>
                 </button>
+                <div className="explorer-mobile-speed-options" aria-label="Playground playback speed">
+                  {playgroundMobileTimeScales.map((scale) => (
+                    <button
+                      aria-pressed={playgroundTimeScale === scale}
+                      className={playgroundTimeScale === scale ? "active" : ""}
+                      key={scale}
+                      type="button"
+                      onClick={() => setTimeScale(scale)}
+                    >
+                      {scale.toLocaleString()}×
+                    </button>
+                  ))}
+                </div>
                 <button
+                  aria-pressed={playgroundIsReverse}
                   className={playgroundIsReverse ? "active" : ""}
                   type="button"
                   onClick={() => setReverse(!playgroundIsReverse)}
                 >
                   <RotateCcw size={15} />
-                  <span>Reverse</span>
+                  <span>{playgroundIsReverse ? "Forward" : "Reverse"}</span>
                 </button>
-              </div>
-              <div className="playground-mobile-speed-options" aria-label="Playback speed">
-                {playgroundMobileTimeScales.map((scale) => (
-                  <button
-                    className={playgroundTimeScale === scale ? "active" : ""}
-                    key={scale}
-                    type="button"
-                    onClick={() => setTimeScale(scale)}
-                  >
-                    {scale.toLocaleString()}x
-                  </button>
-                ))}
-              </div>
+              </section>
             </aside>
           )}
           <OrbitControlsPanel
