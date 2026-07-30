@@ -1663,6 +1663,7 @@ export function createExplorerScenario(
 
   return {
     ...scenario,
+    environment: "explorer",
     name: "Orbit Studio Explorer Catalog",
     simulationEpoch: snapshot.timestampIso,
     simulationTimeUtc: snapshot.timestampIso,

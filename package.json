@@ -1,6 +1,6 @@
 {
   "name": "orbit-studio",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Open-source platform for exploring orbital data and building space simulations.",
   "private": true,
   "license": "MIT",

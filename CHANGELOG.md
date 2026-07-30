@@ -47,3 +47,9 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 - Added reachable-history rejection for prohibited blobs and excluded evidence, corrected the
   independently verified former snapshot checksum, and added verified tracked-`HEAD` source
   archive generation so private working-directory files cannot enter a release package.
+
+## 0.2.3
+
+- Isolated Explorer and Playground into separate simulation-store instances.
+- Prevented Explorer catalog objects from appearing in Playground without an explicit future import workflow.
+- Added Safari page-restoration repair and Playground isolation regression coverage.

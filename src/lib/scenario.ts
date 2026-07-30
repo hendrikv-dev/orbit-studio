@@ -243,6 +243,7 @@ export interface CatalogLayerModel {
 }
 
 export interface Scenario {
+  environment?: "explorer" | "playground" | "workspace";
   appVersion: string;
   name: string;
   simulationEpoch: string;
@@ -687,9 +688,9 @@ export function createDefaultScenario(now = new Date()): Scenario {
   };
 }
 
-export function createPlaygroundScenario(now = new Date(), seedSatellite?: SatelliteModel): Scenario {
+export function createPlaygroundScenario(now = new Date()): Scenario {
   const simulationEpoch = now.toISOString();
-  const sourceSatellite = seedSatellite ?? createSatellite("Satellite 1", now, {
+  const sourceSatellite = createSatellite("Satellite 1", now, {
     keplerian: {
       ...createSampleKeplerian(now),
       trueAnomalyDeg: 324,
@@ -697,7 +698,7 @@ export function createPlaygroundScenario(now = new Date(), seedSatellite?: Satel
   });
   const satellite: SatelliteModel = {
     ...sourceSatellite,
-    name: seedSatellite?.name ?? "Satellite 1",
+    name: "Satellite 1",
     constellationId: null,
     catalogMetadata: undefined,
     propagationMode: sourceSatellite.propagationMode === "advanced" ? "two-body" : sourceSatellite.propagationMode,
@@ -717,6 +718,7 @@ export function createPlaygroundScenario(now = new Date(), seedSatellite?: Satel
   };
 
   return {
+    environment: "playground",
     appVersion: APP_VERSION,
     name: "Playground",
     simulationEpoch,

@@ -16,7 +16,11 @@ import {
 } from "./data/explorerCatalog";
 import { createPlaygroundScenario } from "./lib/scenario";
 import { SimulationScene } from "./rendering/SimulationScene";
-import { useSimulationStore } from "./state/useSimulationStore";
+import {
+  getSimulationStoreForEnvironment,
+  setActiveSimulationEnvironment,
+  useSimulationStore,
+} from "./state/useSimulationStore";
 import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
 
@@ -92,7 +96,7 @@ function initialExplorerSnapshot(): ExplorerSnapshot {
   }
 
   return createExplorerCurrentSnapshot(
-    useSimulationStore.getState().scenario.simulationTimeUtc,
+    getSimulationStoreForEnvironment("explorer").getState().scenario.simulationTimeUtc,
   );
 }
 
@@ -121,8 +125,52 @@ function developmentCelestialPlaybackPaused(): boolean {
   );
 }
 
+function resetPlaygroundStoreNow(): void {
+  const store = getSimulationStoreForEnvironment("playground").getState();
+  const scenario = createPlaygroundScenario(new Date(readStudioPlaybackTimeIso()));
+
+  store.loadScenario(scenario);
+  store.setPlaying(true);
+  store.setFocusMode(false);
+  store.setPanelCollapsed("left", false);
+  store.setPanelCollapsed("right", false);
+  store.setVisibilityFilter("selectedOnly", false);
+  store.setVisibilityFilter("payloads", true);
+  store.setVisibilityFilter("debris", false);
+  store.setVisibilityFilter("rocketBodies", false);
+  store.setVisibilityFilter("constellations", false);
+  store.setVisibilityFilter("stations", false);
+  store.setVisibilityFilter("regions", false);
+  store.setVisibilityFilter("catalog", false);
+  store.setLabelMode("hidden");
+  store.setCoverageSetting("enabled", false);
+  store.setRenderSetting("showCoverageLayer", false);
+  store.setRenderSetting("showLatLonGrid", false);
+  store.setRenderSetting("showEciGrid", false);
+  store.setRenderSetting("showEcefGrid", false);
+  store.setRenderSetting("showGeoValidationOverlay", false);
+  store.setRenderSetting("showStarOcclusionDiagnostics", false);
+  store.setRenderSetting("showAtmosphere", true);
+}
+
+function isCleanPlaygroundScenario(): boolean {
+  const scenario = getSimulationStoreForEnvironment("playground").getState().scenario;
+  return (
+    scenario.environment === "playground" &&
+    scenario.catalogLayers.length === 0 &&
+    scenario.constellations.length === 0 &&
+    scenario.satellites.every((satellite) => satellite.catalogMetadata === undefined)
+  );
+}
+
 export function App() {
-  const [productMode, setProductMode] = useState<ProductMode>(readInitialProductMode);
+  const [productMode, setProductMode] = useState<ProductMode>(() => {
+    const initialMode = readInitialProductMode();
+    if (initialMode === "playground") resetPlaygroundStoreNow();
+    return initialMode;
+  });
+  setActiveSimulationEnvironment(productMode === "explorer" ? "explorer" : "playground");
+
   const [activeSnapshot, setActiveSnapshot] = useState<ExplorerSnapshot>(
     initialExplorerSnapshot,
   );
@@ -241,12 +289,12 @@ export function App() {
   useLayoutEffect(() => {
     if (productMode !== "playground") return;
 
-    // Playground always starts from a neutral authored sample. It must not inherit
-    // an arbitrary catalog selection such as Vanguard 1 from Explorer.
-    loadScenario(createPlaygroundScenario(new Date(readStudioPlaybackTimeIso())));
+    // Repair any restored or legacy shared-store state before Playground renders.
+    // Playground never accepts catalog-backed Explorer objects implicitly.
+    if (!isCleanPlaygroundScenario()) resetPlaygroundStoreNow();
     configurePlayground();
     setPlaygroundSceneSession((session) => session + 1);
-  }, [configurePlayground, loadScenario, productMode]);
+  }, [configurePlayground, productMode]);
 
   const selectExplorerSnapshot = useCallback((snapshot: ExplorerSnapshot) => {
     // Re-selecting the active milestone must still reset playback to its canonical UTC.
@@ -260,10 +308,10 @@ export function App() {
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
     setPlaygroundMobileMenuOpen(false);
-    configureExplorer(1);
-  }, [configureExplorer]);
+  }, []);
 
   const openStudio = useCallback(() => {
+    resetPlaygroundStoreNow();
     replaceAppQuery("playground");
     setProductMode("playground");
     setInterfaceVisible(true);
@@ -369,6 +417,22 @@ export function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [interfaceVisible, productMode]);
+
+  useEffect(() => {
+    if (productMode !== "playground") return undefined;
+
+    const handlePageShow = () => {
+      // Safari can restore an earlier JavaScript heap through its page cache.
+      // Reassert the environment boundary instead of reviving Explorer state.
+      if (!isCleanPlaygroundScenario()) {
+        resetPlaygroundStoreNow();
+        setPlaygroundSceneSession((session) => session + 1);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [productMode]);
 
   const auroraToastElement = <AuroraToast message={auroraToast} />;
 
