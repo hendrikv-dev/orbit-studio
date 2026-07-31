@@ -9,7 +9,7 @@ interface OrbitStudioHomeProps {
 }
 
 const repositoryUrl = "https://github.com/hendrikv-dev/orbit-studio";
-const docsUrl = `${repositoryUrl}#readme`;
+const docsUrl = `${repositoryUrl}/blob/main/README.md`;
 const dataUrl = `${repositoryUrl}/blob/main/docs/sources.md`;
 const issuesUrl = `${repositoryUrl}/issues`;
 const licenseUrl = `${repositoryUrl}/blob/main/LICENSE`;

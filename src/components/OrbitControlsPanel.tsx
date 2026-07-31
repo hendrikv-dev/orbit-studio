@@ -52,7 +52,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function isMobileViewport(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 743px)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches;
 }
 
 function formatSliderValue(value: number, precision: number, unit?: string): string {

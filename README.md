@@ -176,3 +176,62 @@ The MIT license applies to Orbit Studio's original source code, not to third-par
 by separate terms. Required attribution, rights bases, restrictions, and inclusion decisions are in
 `ATTRIBUTION.md`, `THIRD_PARTY_NOTICES.md`, and `provenance/inventory.json`. Locally acquired current
 or historical catalogs are not part of the public release.
+
+## Use Orbit Studio as a website
+
+Orbit Studio is a browser application. Open the hosted site, then choose **Explorer** or **Playground** from the homepage.
+
+### Explorer
+
+Use Explorer to search the public orbital catalog, select an object, change the historical date, control playback, and inspect the displayed orbit and source-backed metadata. On phones and narrow tablets, use the bottom dock to open Explore, Display, Orbit, and Playback sheets. Each sheet has one drag handle, an explicit close button, and can be dismissed by dragging downward.
+
+Historical positions may be reconstructed from the best available public data rather than directly observed at every date. Orbit Studio communicates the available reconstruction and provenance rather than presenting all positions as equally verified. It is an educational visualization, not a live operational tracking service.
+
+### Playground
+
+Use Playground to add satellites and change altitude, eccentricity, inclination, RAAN, argument of periapsis, and true anomaly. The visualization updates as values change. Playback controls support pause, forward or reverse time, and selectable speed. On mobile, Orbit and Playback open as bottom sheets; drag handles are not shown on desktop.
+
+### Run the website locally
+
+```bash
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite. For a production-equivalent local build:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Data access and API status
+
+Orbit Studio does not currently operate a hosted REST API. The website uses a generated static catalog artifact. Treating an internal build asset as a stable API is not supported because its deployed filename and schema may change between releases.
+
+For programmatic use, build the repository and read the generated catalog at:
+
+```text
+src/data/generated/satelliteCatalog.web.json
+```
+
+JavaScript:
+
+```js
+import catalog from "./src/data/generated/satelliteCatalog.web.json" with { type: "json" };
+console.log(catalog);
+```
+
+Python:
+
+```python
+import json
+from pathlib import Path
+
+catalog = json.loads(
+    Path("src/data/generated/satelliteCatalog.web.json").read_text()
+)
+print(catalog.keys())
+```
+
+Before relying on the data, review `docs/sources.md`, `ATTRIBUTION.md`, and the source-of-truth package manifest. A future public API should be versioned under `/api/v1`, publish an OpenAPI schema, and define filtering, pagination, caching, provenance, reconstruction quality, and deprecation rules before it is advertised as stable.

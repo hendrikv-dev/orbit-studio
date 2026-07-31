@@ -22,6 +22,7 @@ import {
 } from "./state/useSimulationStore";
 import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
+import { useMobileSheetDrag } from "./lib/useMobileSheetDrag";
 
 type ProductMode = "home" | "explorer" | "playground";
 type PlaygroundMobileSurface = "orbit" | "playback" | null;
@@ -329,6 +330,7 @@ export function App() {
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
   }, []);
+  const playgroundPlaybackSheetDrag = useMobileSheetDrag(closePlaygroundMobileSurface);
 
   const showAuroraToast = useCallback((message: string) => {
     setAuroraToast(message);
@@ -538,11 +540,16 @@ export function App() {
             </div>
           )}
           {playgroundMobileSurface === "playback" && (
-            <aside className="playground-mobile-playback-sheet explorer-mobile-sheet explorer-mobile-playback-sheet" aria-label="Playground playback controls">
+            <aside
+              className="playground-mobile-playback-sheet explorer-mobile-sheet explorer-mobile-playback-sheet"
+              aria-label="Playground playback controls"
+              style={playgroundPlaybackSheetDrag.sheetStyle}
+            >
               <button
                 aria-label="Close Playground playback controls"
                 className="playground-mobile-sheet-handle"
                 type="button"
+                {...playgroundPlaybackSheetDrag.dragHandleProps}
                 onClick={closePlaygroundMobileSurface}
               />
               <div className="playground-mobile-sheet-heading">

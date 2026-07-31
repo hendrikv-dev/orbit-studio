@@ -1,3 +1,4 @@
+import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { OrbitStudioHome } from "./OrbitStudioHome";
@@ -44,6 +45,7 @@ describe("OrbitStudioHome", () => {
 
     expect(html).toContain("use as a foundation for your own work");
     expect(html).toContain("View source");
+    expect(html).toContain(`${"https://github.com/hendrikv-dev/orbit-studio"}/blob/main/README.md`);
     expect(html).not.toContain("or contribute");
   });
   it("does not render a dead donation action when no provider URL is configured", () => {

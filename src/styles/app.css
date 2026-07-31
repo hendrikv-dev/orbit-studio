@@ -8431,3 +8431,24 @@ button.primary,
     background: rgba(3, 11, 20, 0.98);
   }
 }
+
+/* Shared sheet contract: drag affordances are mobile-only and never duplicated. */
+.explorer-mobile-sheet-handle,
+.playground-mobile-sheet-handle {
+  display: none !important;
+}
+
+.explorer-overlay-panel::before,
+.explorer-mobile-sheet::before,
+.explorer-selection-card::before,
+.explorer-panel-header::before {
+  content: none !important;
+  display: none !important;
+}
+
+@media (max-width: 820px) {
+  .explorer-mobile-sheet-handle,
+  .playground-mobile-sheet-handle {
+    display: grid !important;
+  }
+}

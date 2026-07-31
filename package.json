@@ -42,7 +42,8 @@
     "test": "vitest run",
     "stars:build": "node scripts/build-hyg-bright-stars.mjs",
     "science:references": "node scripts/fetch-celestial-reference.mjs",
-    "science:report": "node scripts/report-celestial-validation.mjs"
+    "science:report": "node scripts/report-celestial-validation.mjs",
+    "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
