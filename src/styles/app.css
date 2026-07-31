@@ -9739,3 +9739,12 @@ button.primary,
     cursor: pointer !important;
   }
 }
+
+/* Focused fix: allow the final Explore result to scroll fully above mobile browser chrome. */
+@media (max-width: 820px) {
+  .explorer-catalog-panel.explorer-overlay-panel .explorer-catalog-list {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    -webkit-overflow-scrolling: touch;
+  }
+}
