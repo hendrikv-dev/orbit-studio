@@ -183,7 +183,7 @@ Orbit Studio is a browser application. Open the hosted site, then choose **Explo
 
 ### Explorer
 
-Use Explorer to search the public orbital catalog, select an object, change the historical date, control playback, and inspect the displayed orbit and source-backed metadata. On phones and narrow tablets, use the bottom dock to open Explore, Display, Orbit, and Playback sheets. Each sheet has one drag handle, an explicit close button, and can be dismissed by dragging downward.
+Use Explorer to search the public orbital catalog, select an object, change the historical date, control playback, and inspect the displayed orbit and source-backed metadata. On phones and narrow tablets, use the bottom dock to open Explore, Display, Orbit, and Playback sheets. Each sheet has one mobile-only drag handle and can be dismissed by dragging downward or tapping the handle.
 
 Historical positions may be reconstructed from the best available public data rather than directly observed at every date. Orbit Studio communicates the available reconstruction and provenance rather than presenting all positions as equally verified. It is an educational visualization, not a live operational tracking service.
 

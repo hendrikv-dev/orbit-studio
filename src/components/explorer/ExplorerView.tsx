@@ -151,7 +151,7 @@ const explorerColorModes: Array<{ id: ExplorerColorMode; label: string; tooltip:
   },
   {
     id: "white",
-    label: "White",
+    label: "Neutral",
     tooltip: "Displays all satellites using a neutral color.",
   },
 ];

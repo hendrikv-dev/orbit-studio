@@ -67,7 +67,15 @@ export function PlaybackSpeedSlider({
         </span>
       </span>
       <span className="playback-speed-slider-labels" aria-hidden="true">
-        <span>1×</span><span>10×</span><span>100×</span><span>1,000×</span><span>3,000×</span>
+        {SPEED_ANCHORS.map((speed, index) => (
+          <span
+            className={index === 0 ? "first" : index === SPEED_ANCHORS.length - 1 ? "last" : ""}
+            key={speed}
+            style={{ left: `${speedToSlider(speed) / 10}%` }}
+          >
+            {speed.toLocaleString()}×
+          </span>
+        ))}
       </span>
     </label>
   );
