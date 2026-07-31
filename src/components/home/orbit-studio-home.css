@@ -232,12 +232,15 @@
   background: #05070b;
 }
 
+/* Keep the original app screenshots largely intact; crop only enough to remove visible seams. */
 .orbit-home-card-explorer .orbit-home-preview-button img {
-  transform: scale(1.12);
+  object-position: 50% 50%;
+  transform: scale(1.025);
 }
 
 .orbit-home-card-playground .orbit-home-preview-button img {
-  transform: scale(1.04);
+  object-position: 50% 50%;
+  transform: scale(1.015);
 }
 
 /* Preview imagery remains completely stable on hover and focus. */
@@ -513,5 +516,13 @@
   .orbit-home *::after {
     scroll-behavior: auto !important;
     transition: none !important;
+  }
+}
+
+
+@media (max-width: 800px) {
+  .orbit-home-card-explorer .orbit-home-preview-button img,
+  .orbit-home-card-playground .orbit-home-preview-button img {
+    object-position: 50% 50%;
   }
 }

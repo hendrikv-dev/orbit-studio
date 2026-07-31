@@ -8696,3 +8696,73 @@ button.primary,
     transform: translateY(-7vh);
   }
 }
+
+
+/* Mobile sheet handle parity: one real, interactive handle in every Explorer and Playground sheet. */
+.explorer-panel-header,
+.explorer-mobile-sheet,
+.playground-mobile-playback-sheet {
+  position: relative;
+}
+
+@media (max-width: 820px) {
+  .explorer-mobile-sheet-handle,
+  .playground-mobile-sheet-handle {
+    position: absolute !important;
+    top: 10px !important;
+    left: 50% !important;
+    z-index: 12 !important;
+    display: grid !important;
+    width: 84px !important;
+    min-width: 84px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    place-items: center !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    transform: translateX(-50%) !important;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .explorer-mobile-sheet-handle:active,
+  .playground-mobile-sheet-handle:active {
+    cursor: grabbing;
+  }
+
+  .explorer-mobile-sheet-handle::after,
+  .explorer-mobile-sheet-handle > span,
+  .playground-mobile-sheet-handle::after {
+    content: "";
+    display: block;
+    width: 54px;
+    height: 5px;
+    border-radius: 999px;
+    background: #73889a;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.03);
+  }
+
+  .explorer-panel-header.explorer-mobile-sheet-drag-region {
+    min-height: 96px;
+    padding-top: 42px !important;
+  }
+
+  .explorer-mobile-playback-sheet > .explorer-mobile-sheet-handle,
+  .playground-mobile-playback-sheet > .explorer-mobile-sheet-handle,
+  .playground-mobile-playback-sheet > .playground-mobile-sheet-handle {
+    top: 10px !important;
+  }
+}
+
+/* Prevent the two high-end speed labels from colliding on narrow screens. */
+@media (max-width: 520px) {
+  .playback-speed-slider-labels > span:nth-last-child(2) {
+    transform: translateX(-72%);
+  }
+
+  .playback-speed-slider-labels > span.last {
+    transform: translateX(-100%);
+  }
+}
