@@ -2454,42 +2454,23 @@ export function ExplorerView({
             >
               <span aria-hidden="true" />
             </button>
-          <section className="explorer-mobile-playback-options">
-            <button
-              aria-pressed={explorerPlaybackRunning}
-              className={`explorer-playback-toggle ${explorerPlaybackRunning ? "running" : ""}`}
-              type="button"
-              onClick={toggleExplorerPlayback}
-            >
-              {explorerPlaybackRunning ? <Pause size={13} /> : <Play size={13} />}
-              <span>{explorerPlaybackRunning ? "Running" : "Paused"}</span>
-            </button>
-            <PlaybackSpeedSlider
-              value={explorerPlaybackSpeed}
-              onChange={changeExplorerPlaybackSpeed}
-              label="Explorer playback speed"
-            />
-            {selectedSatelliteAvailable && (
+            <section className="explorer-mobile-playback-options">
               <button
-                aria-pressed={scenario.cameraSettings.followSelectedObject}
-                className={scenario.cameraSettings.followSelectedObject ? "active follow-active" : ""}
+                aria-label={explorerPlaybackRunning ? "Pause Explorer playback" : "Start Explorer playback"}
+                aria-pressed={explorerPlaybackRunning}
+                className={`explorer-mobile-playback-toggle ${explorerPlaybackRunning ? "running" : ""}`}
                 type="button"
-                onClick={() => {
-                  const next = !scenario.cameraSettings.followSelectedObject;
-                  setFollowSelectedObject(next);
-                  if (next && !explorerPlaybackRunning) {
-                    changeExplorerPlaybackSpeed(followExplorerSpeed);
-                    setExplorerPlaybackRunning(true);
-                    setPlaying(true);
-                    setTimeScale(followExplorerSpeed);
-                  }
-                }}
+                onClick={toggleExplorerPlayback}
               >
-                <Eye size={13} />
-                {scenario.cameraSettings.followSelectedObject ? "Following" : "Follow Sat"}
+                {explorerPlaybackRunning ? <Pause size={18} /> : <Play size={18} />}
               </button>
-            )}
-          </section>
+              <PlaybackSpeedSlider
+                className="explorer-mobile-playback-slider"
+                value={explorerPlaybackSpeed}
+                onChange={changeExplorerPlaybackSpeed}
+                label="Explorer playback speed"
+              />
+            </section>
           </aside>
         </>
       )}
