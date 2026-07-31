@@ -4504,9 +4504,7 @@ button.primary,
 }
 
 .explorer-milestones button.active i {
-  border-color: #b9e2ff;
-  background: #62b9ff;
-  box-shadow: 0 0 14px rgba(98, 185, 255, 0.72);
+  visibility: hidden;
 }
 
 .explorer-milestones strong {
@@ -7133,10 +7131,10 @@ button.primary,
 
 .explorer-milestones i {
   top: -2px;
-  width: 2px;
-  height: 12px;
+  width: 5px;
+  height: 5px;
   border-width: 0;
-  border-radius: 1px;
+  border-radius: 50%;
   background: #4d83ff;
   box-shadow: 0 0 10px rgba(55, 118, 255, 0.75);
 }
