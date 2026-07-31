@@ -9783,9 +9783,9 @@ button.primary,
 }
 /* END focused mobile Explorer timeline-only fix */
 
-/* Mobile Explorer timeline: keep the first endpoint label inside the track. */
+/* Mobile Explorer timeline: anchor the actual first milestone label inside the track. */
 @media (max-width: 820px) {
-  .explorer-milestones button.first {
+  .explorer-milestones > button:first-child {
     justify-items: start;
     text-align: left;
     transform: none;
