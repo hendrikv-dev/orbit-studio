@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Orbit, Pause, Play, RotateCcw } from "lucide-react";
+import { Orbit, Pause, Play } from "lucide-react";
 import { PlaybackSpeedSlider } from "./components/PlaybackSpeedSlider";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ExplorerView } from "./components/explorer/ExplorerView";
@@ -23,10 +23,9 @@ import {
 } from "./state/useSimulationStore";
 import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
-import { useMobileSheetDrag } from "./lib/useMobileSheetDrag";
 
 type ProductMode = "home" | "explorer" | "playground";
-type PlaygroundMobileSurface = "orbit" | "playback" | null;
+type PlaygroundMobileSurface = "orbit" | null;
 const KONAMI_SEQUENCE = [
   "ArrowUp",
   "ArrowUp",
@@ -323,14 +322,9 @@ export function App() {
     setPlaygroundMobileSurface(null);
   }, []);
 
-  const openPlaygroundMobileSurface = useCallback((surface: Exclude<PlaygroundMobileSurface, null>) => {
-    setPlaygroundMobileSurface(surface);
-  }, []);
-
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
   }, []);
-  const playgroundPlaybackSheetDrag = useMobileSheetDrag(closePlaygroundMobileSurface);
 
   const showAuroraToast = useCallback((message: string) => {
     setAuroraToast(message);
@@ -519,75 +513,23 @@ export function App() {
           >
             <Orbit size={20} />
           </button>
-          {playgroundMobileSurface !== "playback" && (
-            <div className="playground-mobile-playback-pill explorer-mobile-playback-pill playground-playback-dock" aria-label="Playground playback controls">
-              <button
-                aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
-                aria-pressed={isPlaying}
-                className={isPlaying ? "running" : ""}
-                type="button"
-                onClick={() => setPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              </button>
-              <PlaybackSpeedSlider
-                className="playground-desktop-speed-slider"
-                value={playgroundTimeScale}
-                onChange={setTimeScale}
-                label="Playground playback speed"
-              />
-              <button
-                aria-label="Open Playground playback controls"
-                type="button"
-                onClick={() => openPlaygroundMobileSurface("playback")}
-              >
-                {playgroundTimeScale.toLocaleString()}×
-              </button>
-            </div>
-          )}
-          {playgroundMobileSurface === "playback" && (
-            <aside
-              className="playground-mobile-playback-sheet explorer-mobile-sheet explorer-mobile-playback-sheet"
-              aria-label="Playground playback controls"
-              style={playgroundPlaybackSheetDrag.sheetStyle}
+          <div className="playground-playback-dock" aria-label="Playground playback controls">
+            <button
+              aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
+              aria-pressed={isPlaying}
+              className={`playground-playback-dock-toggle ${isPlaying ? "running" : ""}`}
+              type="button"
+              onClick={() => setPlaying(!isPlaying)}
             >
-              <button
-                aria-label="Close Playground playback controls"
-                className="playground-mobile-sheet-handle"
-                type="button"
-                {...playgroundPlaybackSheetDrag.dragHandleProps}
-                onClick={closePlaygroundMobileSurface}
-              />
-              <div className="playground-mobile-sheet-heading">
-                <strong>Playback</strong>
-              </div>
-              <section className="explorer-mobile-playback-options">
-                <button
-                  aria-pressed={isPlaying}
-                  className={`explorer-playback-toggle ${isPlaying ? "running" : ""}`}
-                  type="button"
-                  onClick={() => setPlaying(!isPlaying)}
-                >
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>{isPlaying ? "Running" : "Paused"}</span>
-                </button>
-                <PlaybackSpeedSlider
-                  value={playgroundTimeScale}
-                  onChange={setTimeScale}
-                  label="Playground playback speed"
-                />
-                <button
-                  aria-pressed={playgroundIsReverse}
-                  className={playgroundIsReverse ? "active" : ""}
-                  type="button"
-                  onClick={() => setReverse(!playgroundIsReverse)}
-                >
-                  <RotateCcw size={15} />
-                  <span>{playgroundIsReverse ? "Forward" : "Reverse"}</span>
-                </button>
-              </section>
-            </aside>
-          )}
+              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+            </button>
+            <PlaybackSpeedSlider
+              className="playground-playback-dock-slider"
+              value={playgroundTimeScale}
+              onChange={setTimeScale}
+              label="Playground playback speed"
+            />
+          </div>
           {playgroundMobileSurface === "orbit" && (
             <OrbitControlsPanel
               onOpenExplorer={openExplorer}
