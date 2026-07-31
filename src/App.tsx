@@ -502,17 +502,18 @@ export function App() {
               onOpenPlayground={openStudio}
             />
           </div>
-          <button
-            aria-expanded={playgroundMobileSurface === "orbit"}
-            aria-label={playgroundMobileSurface === "orbit" ? "Close Playground orbit controls" : "Open Playground orbit controls"}
-            className={`playground-mobile-orbit-trigger ${playgroundMobileSurface === "orbit" ? "active" : ""}`}
-            type="button"
-            onClick={() => {
-              setPlaygroundMobileSurface((current) => current === "orbit" ? null : "orbit");
-            }}
-          >
-            <Orbit size={20} />
-          </button>
+          {playgroundMobileSurface !== "orbit" && (
+            <button
+              aria-expanded="false"
+              aria-label="Open Playground orbit controls"
+              className="playground-mobile-orbit-trigger"
+              type="button"
+              onClick={() => setPlaygroundMobileSurface("orbit")}
+            >
+              <Orbit size={18} />
+              <span>Orbit controls</span>
+            </button>
+          )}
           <div className="playground-playback-dock" aria-label="Playground playback controls">
             <button
               aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
@@ -530,12 +531,10 @@ export function App() {
               label="Playground playback speed"
             />
           </div>
-          {playgroundMobileSurface === "orbit" && (
-            <OrbitControlsPanel
-              onOpenExplorer={openExplorer}
-              onMobileClose={closePlaygroundMobileSurface}
-            />
-          )}
+          <OrbitControlsPanel
+            onOpenExplorer={openExplorer}
+            onMobileClose={closePlaygroundMobileSurface}
+          />
         </>
       ) : (
         <ShowInterfaceButton onShow={() => setInterfaceVisible(true)} />

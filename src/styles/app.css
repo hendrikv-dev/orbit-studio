@@ -8882,3 +8882,114 @@ button.primary,
     pointer-events: none;
   }
 }
+
+
+/* Responsive Playground orbit controls: persistent desktop sidebar, compact mobile tab + sheet. */
+@media (min-width: 821px) {
+  .playground-mobile-orbit-trigger {
+    display: none !important;
+  }
+
+  .playground-shell .orbit-controls-panel {
+    display: grid !important;
+    top: 68px !important;
+    right: auto !important;
+    bottom: 14px !important;
+    left: 14px !important;
+    width: 350px !important;
+    max-height: none !important;
+    border-radius: 8px !important;
+  }
+
+  .playground-shell .orbit-controls-heading .playground-panel-toggle {
+    display: none !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .playground-mobile-orbit-trigger {
+    position: fixed !important;
+    top: calc(70px + env(safe-area-inset-top, 0px)) !important;
+    left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    z-index: 86 !important;
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    border: 1px solid rgba(150, 95, 255, 0.58) !important;
+    border-radius: 14px !important;
+    background: rgba(8, 13, 23, 0.92) !important;
+    color: #e8ddff !important;
+    padding: 0 14px !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .playground-mobile-orbit-trigger span {
+    font-size: 0.82rem;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .playground-shell .orbit-controls-panel {
+    display: none !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-panel {
+    position: fixed !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 92 !important;
+    display: grid !important;
+    width: 100% !important;
+    max-height: min(60svh, 680px) !important;
+    overflow-y: auto !important;
+    border-radius: 24px 24px 0 0 !important;
+    padding: 14px 20px calc(22px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading {
+    position: sticky !important;
+    top: -14px !important;
+    z-index: 4 !important;
+    min-height: 62px !important;
+    margin: -14px -20px 8px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    background: rgba(3, 11, 20, 0.98) !important;
+    padding: 28px 20px 10px !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 48px;
+    height: 5px;
+    border-radius: 999px;
+    background: #7b8fa3;
+    transform: translateX(-50%);
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div::before {
+    content: "Orbit controls";
+    color: #d7c8ff;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div > span {
+    display: none;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading .playground-panel-toggle {
+    display: grid !important;
+  }
+}
