@@ -9748,3 +9748,10 @@ button.primary,
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Focused fix: mobile Explore content must not reserve a bottom margin. */
+@media (max-width: 820px) {
+  .explorer-browse-content {
+    margin-bottom: 0 !important;
+  }
+}
