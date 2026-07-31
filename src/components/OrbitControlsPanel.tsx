@@ -13,6 +13,7 @@ import {
   StepBack,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useMobileSheetDrag } from "../lib/useMobileSheetDrag";
 import { EARTH_RADIUS_KM } from "../physics/constants";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
 import { useSimulationStore } from "../state/useSimulationStore";
@@ -148,6 +149,7 @@ export function OrbitControlsPanel({
   onMobileClose,
 }: OrbitControlsPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const mobileSheetDrag = useMobileSheetDrag(() => onMobileClose?.());
   const [selectorOpen, setSelectorOpen] = useState(false);
   const scenario = useSidebarScenario();
   const selectedSatelliteId = useSimulationStore((state) => state.selectedSatelliteId);
@@ -196,8 +198,19 @@ export function OrbitControlsPanel({
     <section
       className={`orbit-controls-panel ${collapsed ? "collapsed" : ""}`}
       aria-label="Orbit controls"
+      style={mobileSheetDrag.sheetStyle}
     >
       <div className="orbit-controls-heading">
+        <button
+          aria-label="Close orbit controls"
+          className="explorer-mobile-sheet-handle playground-mobile-sheet-handle"
+          title="Close orbit controls. Drag down or tap to close."
+          type="button"
+          {...mobileSheetDrag.dragHandleProps}
+          onClick={() => onMobileClose?.()}
+        >
+          <span aria-hidden="true" />
+        </button>
         <div>
           <span>Orbit controls</span>
           <strong>{satellite.name}</strong>
