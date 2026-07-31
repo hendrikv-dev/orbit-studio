@@ -1,9 +1,0 @@
-HYG Database v4.1 data is licensed under the Creative Commons
-Attribution-ShareAlike 4.0 International license (CC BY-SA 4.0).
-
-Copyright and attribution: David Nash, HYG Database.
-Source: https://github.com/astronexus/HYG-Database
-License: https://creativecommons.org/licenses/by-sa/4.0/
-
-The generated magnitude-limited subset in hygBrightStars.v41.json is an
-adaptation of that data and is distributed under the same CC BY-SA 4.0 terms.
