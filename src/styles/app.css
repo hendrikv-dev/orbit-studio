@@ -9762,3 +9762,23 @@ button.primary,
     padding-bottom: 0 !important;
   }
 }
+
+/* BEGIN focused mobile Explorer timeline-only fix */
+@media (max-width: 820px) {
+  .explorer-timeline {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+
+  .explorer-timeline-playback,
+  .explorer-timeline-speed-slider {
+    display: none !important;
+  }
+
+  .explorer-timeline-control {
+    grid-column: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+/* END focused mobile Explorer timeline-only fix */
