@@ -4504,7 +4504,9 @@ button.primary,
 }
 
 .explorer-milestones button.active i {
-  visibility: hidden;
+  border-color: #b9e2ff;
+  background: #62b9ff;
+  box-shadow: 0 0 14px rgba(98, 185, 255, 0.72);
 }
 
 .explorer-milestones strong {
@@ -6045,11 +6047,6 @@ button.primary,
     display: none;
   }
 
-  .explorer-milestones button.first:not(.active) i,
-  .explorer-milestones:has(button.first.active) button:nth-child(2) i {
-    display: none;
-  }
-
   .explorer-historical-data-notice {
     right: max(10px, env(safe-area-inset-right, 0px));
     bottom: calc(94px + env(safe-area-inset-bottom, 0px));
@@ -7109,6 +7106,7 @@ button.primary,
 .explorer-milestones button.last {
   bottom: 0;
   width: 54px;
+  height: 26px;
   padding: 12px 0 0;
 }
 
@@ -7130,7 +7128,7 @@ button.primary,
 }
 
 .explorer-milestones i {
-  top: -2px;
+  top: -5.5px;
   width: 5px;
   height: 5px;
   border-width: 0;

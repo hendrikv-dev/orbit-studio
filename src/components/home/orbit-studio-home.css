@@ -234,12 +234,12 @@
 
 /* Keep the original app screenshots largely intact; crop only enough to remove visible seams. */
 .orbit-home-card-explorer .orbit-home-preview-button img {
-  object-position: 50% 50%;
+  object-position: 51% 50%;
   transform: scale(1.025);
 }
 
 .orbit-home-card-playground .orbit-home-preview-button img {
-  object-position: 70% 50%;
+  object-position: 35% 50%;
   transform: scale(1.015);
 }
 
