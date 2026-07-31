@@ -9783,9 +9783,11 @@ button.primary,
 }
 /* END focused mobile Explorer timeline-only fix */
 
-/* Mobile Explorer timeline: align first endpoint marker with final endpoint marker. */
+/* Mobile Explorer timeline: keep the first endpoint label inside the track. */
 @media (max-width: 820px) {
-  .explorer-milestones button.first i {
-    transform: translateY(-3px);
+  .explorer-milestones button.first {
+    justify-items: start;
+    text-align: left;
+    transform: none;
   }
 }
