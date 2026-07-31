@@ -9755,3 +9755,10 @@ button.primary,
     margin-bottom: 0 !important;
   }
 }
+
+/* focused fix: mobile Explorer catalog bottom padding */
+@media (max-width: 743px) {
+  .explorer-catalog-panel.explorer-overlay-panel {
+    padding-bottom: 0 !important;
+  }
+}
