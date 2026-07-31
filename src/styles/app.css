@@ -9525,24 +9525,14 @@ button.primary,
   }
 }
 
-/* 2026-07-30 focused correction: shared header anchors at every responsive size,
-   plus a dedicated gap below the mobile Playground header for the orbit CTA.
-   No sheet, renderer, playback, or desktop-panel geometry is changed here. */
-.explorer-header,
-.playground-topline {
-  box-sizing: border-box !important;
-  height: 66px !important;
-  min-height: 66px !important;
-  padding-left: max(24px, env(safe-area-inset-left, 0px)) !important;
-  padding-right: max(24px, env(safe-area-inset-right, 0px)) !important;
-  align-items: center !important;
-}
-
-.explorer-brand-button,
-.explorer-brand,
-.playground-brand-button,
-.playground-title,
-.explorer-header-actions,
+/* 2026-07-30 rollback-and-reapply: preserve header control alignment without
+   changing either application shell, renderer viewport, header row height, or
+   scene stacking. This replaces the over-broad rules from the previous pass. */
+.explorer-header .explorer-brand-button,
+.explorer-header .explorer-brand,
+.playground-topline .playground-brand-button,
+.playground-topline .playground-title,
+.explorer-header .explorer-header-actions,
 .playground-topline > .orbit-app-menu {
   align-self: center !important;
   margin-top: 0 !important;
@@ -9550,23 +9540,8 @@ button.primary,
   transform: none !important;
 }
 
-@media (min-width: 1080px) {
-  .explorer-shell {
-    grid-template-rows: 66px minmax(0, 1fr) 112px !important;
-  }
-}
-
 @media (max-width: 820px) {
-  .explorer-header,
-  .playground-topline {
-    height: 72px !important;
-    min-height: 72px !important;
-    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
-    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
-  }
-
-  /* Preserve the established horizontal inset and create a visible 8px gap
-     beneath the 72px mobile header. The active state stays in the same place. */
+  /* Keep the already-approved mobile Playground trigger inset. */
   .playground-mobile-orbit-trigger,
   .playground-mobile-orbit-trigger.active {
     top: calc(80px + env(safe-area-inset-top, 0px)) !important;
