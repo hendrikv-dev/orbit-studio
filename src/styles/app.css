@@ -9791,3 +9791,14 @@ button.primary,
     transform: none;
   }
 }
+
+/* 2026-07-31 mobile timeline first-label final override.
+   Keep the 1957 label inside the timeline boundary. This must remain after
+   later generic milestone rules so their translateX(-50%) cannot override it. */
+@media (max-width: 743px) {
+  .explorer-milestones > button.first {
+    justify-items: start;
+    text-align: left;
+    transform: none;
+  }
+}
