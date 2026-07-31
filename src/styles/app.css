@@ -7132,10 +7132,11 @@ button.primary,
 }
 
 .explorer-milestones i {
-  top: 2px;
-  width: 5px;
-  height: 5px;
+  top: -2px;
+  width: 2px;
+  height: 12px;
   border-width: 0;
+  border-radius: 1px;
   background: #4d83ff;
   box-shadow: 0 0 10px rgba(55, 118, 255, 0.75);
 }
