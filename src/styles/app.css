@@ -9548,3 +9548,71 @@ button.primary,
     left: max(14px, env(safe-area-inset-left, 0px)) !important;
   }
 }
+
+/* APPROVED-FOCUSED-FIX: shared header anchors + Explorer mobile Playback parity
+   Scope is intentionally limited to horizontal header anchors and the Explorer
+   Playback dismissal surface. No renderer, shell, panel sizing, or playback
+   behavior is changed. */
+.explorer-header,
+.playground-topline {
+  padding-left: max(20px, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(20px, env(safe-area-inset-right, 0px)) !important;
+}
+
+.explorer-header > .explorer-brand-button,
+.playground-topline > .playground-brand-button,
+.explorer-header > .explorer-header-actions,
+.playground-topline > .orbit-app-menu {
+  align-self: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  transform: none !important;
+}
+
+.explorer-header .explorer-brand-logo-icon,
+.playground-topline .playground-brand-logo-icon {
+  display: block !important;
+  width: 50px !important;
+  height: 50px !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+}
+
+.explorer-header-actions .orbit-app-menu-trigger,
+.playground-topline .orbit-app-menu-trigger {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.explorer-mobile-playback-backdrop {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .explorer-header,
+  .playground-topline {
+    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .explorer-mobile-playback-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+}
+/* END APPROVED-FOCUSED-FIX */
+

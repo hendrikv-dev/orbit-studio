@@ -2432,21 +2432,28 @@ export function ExplorerView({
       )}
 
       {playbackSheetOpen && (
-        <aside
-          className="explorer-mobile-sheet explorer-mobile-playback-sheet"
-          aria-label="Explorer playback controls"
-          style={playbackSheetDrag.sheetStyle}
-        >
+        <>
           <button
             aria-label="Close playback controls"
-            className="explorer-mobile-sheet-handle"
+            className="explorer-mobile-playback-backdrop"
             type="button"
-            {...playbackSheetDrag.dragHandleProps}
             onClick={() => playbackPanel.close()}
           />
-          <div className="playground-mobile-sheet-heading">
-            <strong>Playback</strong>
-          </div>
+          <aside
+            className="explorer-mobile-sheet explorer-mobile-playback-sheet"
+            aria-label="Explorer playback controls"
+            style={playbackSheetDrag.sheetStyle}
+          >
+            <button
+              aria-label="Close playback controls"
+              className="explorer-mobile-sheet-handle"
+              title="Close playback controls. Drag down or tap to close."
+              type="button"
+              {...playbackSheetDrag.dragHandleProps}
+              onClick={() => playbackPanel.close()}
+            >
+              <span aria-hidden="true" />
+            </button>
           <section className="explorer-mobile-playback-options">
             <button
               aria-pressed={explorerPlaybackRunning}
@@ -2483,7 +2490,8 @@ export function ExplorerView({
               </button>
             )}
           </section>
-        </aside>
+          </aside>
+        </>
       )}
 
       <section className="explorer-globe" aria-label="Orbital environment globe">
