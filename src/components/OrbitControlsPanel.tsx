@@ -4,12 +4,9 @@ import {
   Eye,
   EyeOff,
   Palette,
-  Pause,
-  Play,
   Plus,
   Route,
   Satellite as SatelliteIcon,
-  StepBack,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { EARTH_RADIUS_KM } from "../physics/constants";
@@ -22,7 +19,6 @@ interface OrbitControlsPanelProps {
   onMobileClose?: () => void;
 }
 
-const timeScales = [1, 10, 100, 1000, 2500];
 const ALTITUDE_SLIDER_MIN_KM = 120;
 const ALTITUDE_SLIDER_MAX_KM = 36000;
 const ECCENTRICITY_SLIDER_MAX = 0.85;
@@ -150,14 +146,8 @@ export function OrbitControlsPanel({
   const [selectorOpen, setSelectorOpen] = useState(false);
   const scenario = useSidebarScenario();
   const selectedSatelliteId = useSimulationStore((state) => state.selectedSatelliteId);
-  const isPlaying = useSimulationStore((state) => state.isPlaying);
-  const timeScale = useSimulationStore((state) => state.scenario.timeScale);
-  const isReverse = useSimulationStore((state) => state.scenario.isReverse);
   const addSatellite = useSimulationStore((state) => state.addSatellite);
   const selectSatellite = useSimulationStore((state) => state.selectSatellite);
-  const setPlaying = useSimulationStore((state) => state.setPlaying);
-  const setTimeScale = useSimulationStore((state) => state.setTimeScale);
-  const setReverse = useSimulationStore((state) => state.setReverse);
   const setEducationalOverlay = useSimulationStore((state) => state.setEducationalOverlay);
   const updateSatelliteVisualization = useSimulationStore(
     (state) => state.updateSatelliteVisualization,
@@ -382,36 +372,7 @@ export function OrbitControlsPanel({
             </div>
           </ControlSection>
 
-          <ControlSection label="Playback">
-            <div className="playground-playback wide-field" aria-label="Playback controls">
-              <button
-                className="playback-toggle"
-                type="button"
-                onClick={() => setPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                <span>{isPlaying ? "Pause" : "Play"}</span>
-              </button>
-              <button
-                className={isReverse ? "active" : ""}
-                type="button"
-                onClick={() => setReverse(!isReverse)}
-              >
-                <StepBack size={15} />
-                <span>Reverse</span>
-              </button>
-            </div>
-            <div className="playground-speed-presets wide-field" aria-label="Playback speed">
-              {timeScales.map((scale) => (
-                <button
-                  className={timeScale === scale ? "active" : ""}
-                  key={scale}
-                  type="button"
-                  onClick={() => setTimeScale(scale)}
-                >{scale.toLocaleString()}×</button>
-              ))}
-            </div>
-          </ControlSection>
+
         </>
       )}
     </section>

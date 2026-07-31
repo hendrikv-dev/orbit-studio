@@ -102,6 +102,7 @@ import {
   type ExplorerFocusPreset,
 } from "../../data/explorerVisuals";
 import { useMobileSheetDrag } from "../../lib/useMobileSheetDrag";
+import { PlaybackSpeedSlider } from "../PlaybackSpeedSlider";
 
 interface ExplorerViewProps {
   activeSnapshot: ExplorerSnapshot;
@@ -154,16 +155,8 @@ const explorerColorModes: Array<{ id: ExplorerColorMode; label: string; tooltip:
     tooltip: "Displays all satellites using a neutral color.",
   },
 ];
-const explorerSpeedPresets = [
-  { id: "1x", label: "1×", timeScale: 1 },
-  { id: "10x", label: "10×", timeScale: 10 },
-  { id: "100x", label: "100×", timeScale: 100 },
-  { id: "1000x", label: "1000×", timeScale: 1_000 },
-  { id: "max", label: "2,500×", timeScale: 2_500 },
-] as const;
-type ExplorerSpeedPresetId = (typeof explorerSpeedPresets)[number]["id"];
-const defaultExplorerSpeedPreset: ExplorerSpeedPresetId = "1x";
-const followExplorerSpeedPreset: ExplorerSpeedPresetId = "100x";
+const defaultExplorerSpeed = 1;
+const followExplorerSpeed = 100;
 
 function initialExplorerPlaybackRunning(): boolean {
   return !(isOrbitStudioReviewMode() || (
@@ -173,9 +166,6 @@ function initialExplorerPlaybackRunning(): boolean {
   ));
 }
 
-function explorerSpeedPresetFor(id: ExplorerSpeedPresetId) {
-  return explorerSpeedPresets.find((preset) => preset.id === id) ?? explorerSpeedPresets[0];
-}
 
 function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
   return (
@@ -1076,8 +1066,8 @@ function ExplorerTimeline({
   activeSnapshot,
   onSelectSnapshot,
   explorerPlaybackRunning,
-  explorerSpeedPreset,
-  onApplySpeedPreset,
+  explorerPlaybackSpeed,
+  onChangePlaybackSpeed,
   onTogglePlayback,
   visibleCatalogObjectCount,
   visibleRenderableOrbitStateCount,
@@ -1085,8 +1075,8 @@ function ExplorerTimeline({
   activeSnapshot: ExplorerSnapshot;
   onSelectSnapshot: (snapshot: ExplorerSnapshot) => void;
   explorerPlaybackRunning: boolean;
-  explorerSpeedPreset: ExplorerSpeedPresetId;
-  onApplySpeedPreset: (presetId: ExplorerSpeedPresetId) => void;
+  explorerPlaybackSpeed: number;
+  onChangePlaybackSpeed: (speed: number) => void;
   onTogglePlayback: () => void;
   visibleCatalogObjectCount: number;
   visibleRenderableOrbitStateCount: number;
@@ -1291,19 +1281,12 @@ function ExplorerTimeline({
           ))}
         </div>
       </div>
-      <div className="explorer-timeline-speeds" aria-label="Explorer playback speed">
-        {explorerSpeedPresets.map((preset) => (
-          <button
-            aria-pressed={explorerSpeedPreset === preset.id}
-            className={explorerSpeedPreset === preset.id ? "active" : ""}
-            key={preset.id}
-            type="button"
-            onClick={() => onApplySpeedPreset(preset.id)}
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
+      <PlaybackSpeedSlider
+        className="explorer-timeline-speed-slider"
+        value={explorerPlaybackSpeed}
+        onChange={onChangePlaybackSpeed}
+        label="Explorer timeline playback speed"
+      />
     </footer>
   );
 }
@@ -1350,8 +1333,7 @@ export function ExplorerView({
   const [regimeFilter, setRegimeFilter] = useState<ExplorerRegimeFilter>("all");
   const [focusPreset, setFocusPreset] = useState<ExplorerFocusPreset>("earth-orbit");
   const [focusRequestKey, setFocusRequestKey] = useState(0);
-  const [explorerSpeedPreset, setExplorerSpeedPreset] =
-    useState<ExplorerSpeedPresetId>(defaultExplorerSpeedPreset);
+  const [explorerPlaybackSpeed, setExplorerPlaybackSpeed] = useState(defaultExplorerSpeed);
   const [explorerPlaybackRunning, setExplorerPlaybackRunning] = useState(
     initialExplorerPlaybackRunning,
   );
@@ -1387,7 +1369,6 @@ export function ExplorerView({
   const setPlaying = useSimulationStore((state) => state.setPlaying);
   const setTimeScale = useSimulationStore((state) => state.setTimeScale);
   const setFollowSelectedObject = useSimulationStore((state) => state.setFollowSelectedObject);
-  const currentSpeedPreset = explorerSpeedPresetFor(explorerSpeedPreset);
   const currentColorMode =
     explorerColorModes.find((mode) => mode.id === colorMode) ?? explorerColorModes[0];
   const selectedObjectTypeFilter =
@@ -1408,27 +1389,29 @@ export function ExplorerView({
     },
     [scenario.selectedObjectId, setFollowSelectedObject],
   );
-  const applyExplorerSpeedPreset = useCallback(
-    (presetId: ExplorerSpeedPresetId) => {
-      const preset = explorerSpeedPresetFor(presetId);
-      setExplorerSpeedPreset(preset.id);
-      if (explorerPlaybackRunning) setTimeScale(preset.timeScale);
+  const changeExplorerPlaybackSpeed = useCallback(
+    (speed: number) => {
+      const normalizedSpeed = Math.max(1, Math.min(3000, Math.round(speed)));
+      setExplorerPlaybackSpeed(normalizedSpeed);
+      setTimeScale(normalizedSpeed);
     },
-    [explorerPlaybackRunning, setTimeScale],
+    [setTimeScale],
   );
   const toggleExplorerPlayback = useCallback(() => {
     setExplorerPlaybackRunning((running) => {
       const next = !running;
       setPlaying(next);
-      if (next) setTimeScale(currentSpeedPreset.timeScale);
+      if (next) setTimeScale(explorerPlaybackSpeed);
       return next;
     });
-  }, [currentSpeedPreset.timeScale, setPlaying, setTimeScale]);
+  }, [explorerPlaybackSpeed, setPlaying, setTimeScale]);
   const selectExplorerTimelineSnapshot = useCallback((snapshot: ExplorerSnapshot) => {
-    setExplorerPlaybackRunning(false);
-    setPlaying(false);
     onSelectSnapshot(snapshot);
-  }, [onSelectSnapshot, setPlaying]);
+    if (explorerPlaybackRunning) {
+      setPlaying(true);
+      setTimeScale(explorerPlaybackSpeed);
+    }
+  }, [explorerPlaybackRunning, explorerPlaybackSpeed, onSelectSnapshot, setPlaying, setTimeScale]);
   const snapshotView = useMemo(() => explorerSnapshotView(activeSnapshot), [activeSnapshot]);
   const typeFilterSet = useMemo(() => new Set(typeFilters), [typeFilters]);
   const matchesExplorerFilters = useCallback(
@@ -1756,7 +1739,7 @@ export function ExplorerView({
       objectTypeFilters: [...typeFilters],
       playback: {
         isPlaying,
-        speed: currentSpeedPreset.label,
+        speed: `${explorerPlaybackSpeed.toLocaleString()}×`,
         timeScale: scenario.timeScale,
       },
       dataCoverage: {
@@ -1785,7 +1768,7 @@ export function ExplorerView({
     };
   }, [
     activeSnapshot,
-    currentSpeedPreset.label,
+    explorerPlaybackSpeed,
     catalogCollectionId,
     isPlaying,
     query,
@@ -1838,10 +1821,11 @@ export function ExplorerView({
       setPlayback: (playing: boolean) => {
         setExplorerPlaybackRunning(playing);
         setPlaying(playing);
-        if (playing) setTimeScale(currentSpeedPreset.timeScale);
+        if (playing) setTimeScale(explorerPlaybackSpeed);
       },
-      setPlaybackSpeed: (speed: ExplorerSpeedPresetId) => {
-        applyExplorerSpeedPreset(speed);
+      setPlaybackSpeed: (speed) => {
+        const reviewSpeeds = { "1x": 1, "10x": 10, "100x": 100, "1000x": 1000, max: 3000 } as const;
+        changeExplorerPlaybackSpeed(reviewSpeeds[speed]);
       },
     } satisfies Window["__ORBIT_STUDIO_REVIEW__"];
 
@@ -1854,9 +1838,9 @@ export function ExplorerView({
     };
   }, [
     applyExplorerRegimeFilter,
-    applyExplorerSpeedPreset,
+    changeExplorerPlaybackSpeed,
     clearExplorerSelection,
-    currentSpeedPreset.timeScale,
+    explorerPlaybackSpeed,
     selectExplorerTimelineSnapshot,
     setPlaying,
     setTimeScale,
@@ -1951,10 +1935,10 @@ export function ExplorerView({
 
   useEffect(() => {
     setPlaying(explorerPlaybackRunning);
-    if (explorerPlaybackRunning) setTimeScale(currentSpeedPreset.timeScale);
+    if (explorerPlaybackRunning) setTimeScale(explorerPlaybackSpeed);
   }, [
     activeSnapshot.id,
-    currentSpeedPreset.timeScale,
+    explorerPlaybackSpeed,
     explorerPlaybackRunning,
     setPlaying,
     setTimeScale,
@@ -2453,13 +2437,16 @@ export function ExplorerView({
           aria-label="Explorer playback controls"
           style={playbackSheetDrag.sheetStyle}
         >
-          <ExplorerPanelHeader
-            className="explorer-mobile-sheet-drag-region"
-            closeLabel="Close playback controls"
-            dragHandleProps={playbackSheetDrag.dragHandleProps}
-            title="Playback"
-            onClose={playbackPanel.close}
+          <button
+            aria-label="Close playback controls"
+            className="explorer-mobile-sheet-handle"
+            type="button"
+            {...playbackSheetDrag.dragHandleProps}
+            onClick={() => playbackPanel.close()}
           />
+          <div className="playground-mobile-sheet-heading">
+            <strong>Playback</strong>
+          </div>
           <section className="explorer-mobile-playback-options">
             <button
               aria-pressed={explorerPlaybackRunning}
@@ -2470,19 +2457,11 @@ export function ExplorerView({
               {explorerPlaybackRunning ? <Pause size={13} /> : <Play size={13} />}
               <span>{explorerPlaybackRunning ? "Running" : "Paused"}</span>
             </button>
-            <div className="explorer-mobile-speed-options" aria-label="Explorer playback speed">
-              {explorerSpeedPresets.map((preset) => (
-                <button
-                  aria-pressed={explorerSpeedPreset === preset.id}
-                  className={explorerSpeedPreset === preset.id ? "active" : ""}
-                  key={preset.id}
-                  type="button"
-                  onClick={() => applyExplorerSpeedPreset(preset.id)}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+            <PlaybackSpeedSlider
+              value={explorerPlaybackSpeed}
+              onChange={changeExplorerPlaybackSpeed}
+              label="Explorer playback speed"
+            />
             {selectedSatelliteAvailable && (
               <button
                 aria-pressed={scenario.cameraSettings.followSelectedObject}
@@ -2492,10 +2471,10 @@ export function ExplorerView({
                   const next = !scenario.cameraSettings.followSelectedObject;
                   setFollowSelectedObject(next);
                   if (next && !explorerPlaybackRunning) {
-                    applyExplorerSpeedPreset(followExplorerSpeedPreset);
+                    changeExplorerPlaybackSpeed(followExplorerSpeed);
                     setExplorerPlaybackRunning(true);
                     setPlaying(true);
-                    setTimeScale(explorerSpeedPresetFor(followExplorerSpeedPreset).timeScale);
+                    setTimeScale(followExplorerSpeed);
                   }
                 }}
               >
@@ -2613,7 +2592,7 @@ export function ExplorerView({
                 setMobileMenuOpen(false);
               }}
             >
-              {currentSpeedPreset.label}
+              {explorerPlaybackSpeed.toLocaleString()}×
             </button>
           </div>
         )}
@@ -2757,22 +2736,12 @@ export function ExplorerView({
               {explorerPlaybackRunning ? <Pause size={13} /> : <Play size={13} />}
               <span>{explorerPlaybackRunning ? "Running" : "Paused"}</span>
             </button>
-            <label className="explorer-speed-select">
-              <span>Speed</span>
-              <select
-                aria-label="Explorer playback speed"
-                value={explorerSpeedPreset}
-                onChange={(event) =>
-                  applyExplorerSpeedPreset(event.target.value as ExplorerSpeedPresetId)
-                }
-              >
-                {explorerSpeedPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <PlaybackSpeedSlider
+              className="explorer-desktop-speed-slider"
+              value={explorerPlaybackSpeed}
+              onChange={changeExplorerPlaybackSpeed}
+              label="Explorer playback speed"
+            />
             {selectedSatelliteAvailable && (
               <button
                 aria-pressed={scenario.cameraSettings.followSelectedObject}
@@ -2782,10 +2751,10 @@ export function ExplorerView({
                   const next = !scenario.cameraSettings.followSelectedObject;
                   setFollowSelectedObject(next);
                   if (next && !explorerPlaybackRunning) {
-                    applyExplorerSpeedPreset(followExplorerSpeedPreset);
+                    changeExplorerPlaybackSpeed(followExplorerSpeed);
                     setExplorerPlaybackRunning(true);
                     setPlaying(true);
-                    setTimeScale(explorerSpeedPresetFor(followExplorerSpeedPreset).timeScale);
+                    setTimeScale(followExplorerSpeed);
                   }
                 }}
               >
@@ -2849,8 +2818,8 @@ export function ExplorerView({
         activeSnapshot={activeSnapshot}
         onSelectSnapshot={selectExplorerTimelineSnapshot}
         explorerPlaybackRunning={explorerPlaybackRunning}
-        explorerSpeedPreset={explorerSpeedPreset}
-        onApplySpeedPreset={applyExplorerSpeedPreset}
+        explorerPlaybackSpeed={explorerPlaybackSpeed}
+        onChangePlaybackSpeed={changeExplorerPlaybackSpeed}
         onTogglePlayback={toggleExplorerPlayback}
         visibleCatalogObjectCount={loadedCatalogObjectCount}
         visibleRenderableOrbitStateCount={loadedRenderableOrbitStateCount}

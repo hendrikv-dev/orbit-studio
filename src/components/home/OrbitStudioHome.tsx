@@ -1,3 +1,4 @@
+import React from "react";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import "./orbit-studio-home.css";
 

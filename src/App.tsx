@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Orbit, Pause, Play, RotateCcw } from "lucide-react";
+import { PlaybackSpeedSlider } from "./components/PlaybackSpeedSlider";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ExplorerView } from "./components/explorer/ExplorerView";
 import { OrbitStudioHome } from "./components/home/OrbitStudioHome";
@@ -26,7 +27,6 @@ import { useMobileSheetDrag } from "./lib/useMobileSheetDrag";
 
 type ProductMode = "home" | "explorer" | "playground";
 type PlaygroundMobileSurface = "orbit" | "playback" | null;
-const playgroundMobileTimeScales = [1, 10, 100, 1000, 2500];
 const KONAMI_SEQUENCE = [
   "ArrowUp",
   "ArrowUp",
@@ -520,7 +520,7 @@ export function App() {
             <Orbit size={20} />
           </button>
           {playgroundMobileSurface !== "playback" && (
-            <div className="playground-mobile-playback-pill explorer-mobile-playback-pill" aria-label="Compact Playground playback">
+            <div className="playground-mobile-playback-pill explorer-mobile-playback-pill playground-playback-dock" aria-label="Playground playback controls">
               <button
                 aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
                 aria-pressed={isPlaying}
@@ -530,8 +530,14 @@ export function App() {
               >
                 {isPlaying ? <Pause size={14} /> : <Play size={14} />}
               </button>
+              <PlaybackSpeedSlider
+                className="playground-desktop-speed-slider"
+                value={playgroundTimeScale}
+                onChange={setTimeScale}
+                label="Playground playback speed"
+              />
               <button
-                aria-label="Open Playground playback speed controls"
+                aria-label="Open Playground playback controls"
                 type="button"
                 onClick={() => openPlaygroundMobileSurface("playback")}
               >
@@ -565,19 +571,11 @@ export function App() {
                   {isPlaying ? <Pause size={15} /> : <Play size={15} />}
                   <span>{isPlaying ? "Running" : "Paused"}</span>
                 </button>
-                <div className="explorer-mobile-speed-options" aria-label="Playground playback speed">
-                  {playgroundMobileTimeScales.map((scale) => (
-                    <button
-                      aria-pressed={playgroundTimeScale === scale}
-                      className={playgroundTimeScale === scale ? "active" : ""}
-                      key={scale}
-                      type="button"
-                      onClick={() => setTimeScale(scale)}
-                    >
-                      {scale.toLocaleString()}×
-                    </button>
-                  ))}
-                </div>
+                <PlaybackSpeedSlider
+                  value={playgroundTimeScale}
+                  onChange={setTimeScale}
+                  label="Playground playback speed"
+                />
                 <button
                   aria-pressed={playgroundIsReverse}
                   className={playgroundIsReverse ? "active" : ""}
@@ -590,10 +588,12 @@ export function App() {
               </section>
             </aside>
           )}
-          <OrbitControlsPanel
-            onOpenExplorer={openExplorer}
-            onMobileClose={closePlaygroundMobileSurface}
-          />
+          {playgroundMobileSurface === "orbit" && (
+            <OrbitControlsPanel
+              onOpenExplorer={openExplorer}
+              onMobileClose={closePlaygroundMobileSurface}
+            />
+          )}
         </>
       ) : (
         <ShowInterfaceButton onShow={() => setInterfaceVisible(true)} />
