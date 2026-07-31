@@ -502,17 +502,25 @@ export function App() {
               onOpenPlayground={openStudio}
             />
           </div>
-          {playgroundMobileSurface !== "orbit" && (
-            <button
-              aria-expanded="false"
-              aria-label="Open Playground orbit controls"
-              className="playground-mobile-orbit-trigger"
-              type="button"
-              onClick={() => setPlaygroundMobileSurface("orbit")}
-            >
-              <Orbit size={20} />
-            </button>
-          )}
+          <button
+            aria-expanded={playgroundMobileSurface === "orbit"}
+            aria-label={
+              playgroundMobileSurface === "orbit"
+                ? "Close Playground orbit controls"
+                : "Open Playground orbit controls"
+            }
+            className={`playground-mobile-orbit-trigger ${
+              playgroundMobileSurface === "orbit" ? "active" : ""
+            }`}
+            type="button"
+            onClick={() =>
+              setPlaygroundMobileSurface((surface) =>
+                surface === "orbit" ? null : "orbit",
+              )
+            }
+          >
+            <Orbit size={20} />
+          </button>
           <div className="playground-playback-dock" aria-label="Playground playback controls">
             <button
               aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
