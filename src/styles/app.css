@@ -9463,3 +9463,12 @@ button.primary,
     display: none !important;
   }
 }
+
+/* Focused mobile Playground alignment correction: preserve the existing left inset and
+   add a small visual gap below the header divider. */
+@media (max-width: 820px) {
+  .playground-mobile-orbit-trigger,
+  .playground-mobile-orbit-trigger.active {
+    top: calc(78px + env(safe-area-inset-top, 0px)) !important;
+  }
+}
