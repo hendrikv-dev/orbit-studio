@@ -510,8 +510,7 @@ export function App() {
               type="button"
               onClick={() => setPlaygroundMobileSurface("orbit")}
             >
-              <Orbit size={18} />
-              <span>Orbit controls</span>
+              <Orbit size={20} />
             </button>
           )}
           <div className="playground-playback-dock" aria-label="Playground playback controls">

@@ -8993,3 +8993,193 @@ button.primary,
     display: grid !important;
   }
 }
+
+/* Focused desktop Playground panel geometry correction.
+   Keep the persistent sidebar separated from the header and sized to its content. */
+@media (min-width: 821px) {
+  .playground-shell .orbit-controls-panel {
+    top: 82px !important;
+    bottom: auto !important;
+    left: 16px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 98px) !important;
+    align-content: start !important;
+    overflow-y: auto !important;
+    border-radius: 14px !important;
+  }
+
+  .playground-shell .orbit-controls-panel > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Responsive orbit-control correction: compact cyan mobile trigger, integrated sheet header,
+   one Explorer handle, and compact desktop geometry. */
+@media (min-width: 821px) {
+  .playground-mobile-orbit-trigger {
+    display: none !important;
+  }
+
+  .playground-shell .orbit-controls-panel {
+    top: 82px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 16px !important;
+    display: grid !important;
+    width: 350px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 98px) !important;
+    align-content: start !important;
+    overflow-y: auto !important;
+    border-radius: 14px !important;
+  }
+
+  .playground-shell .orbit-controls-heading,
+  .playground-shell .orbit-controls-heading .playground-panel-toggle {
+    display: none !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .playground-mobile-orbit-trigger {
+    position: fixed !important;
+    top: calc(70px + env(safe-area-inset-top, 0px)) !important;
+    left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    z-index: 86 !important;
+    display: grid !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    place-items: center !important;
+    border: 1px solid rgba(61, 185, 255, 0.62) !important;
+    border-radius: 14px !important;
+    background: rgba(5, 18, 29, 0.94) !important;
+    color: #dff6ff !important;
+    padding: 0 !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .playground-mobile-orbit-trigger span {
+    display: none !important;
+  }
+
+  .playground-shell .orbit-controls-panel {
+    display: none !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-panel {
+    position: fixed !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 92 !important;
+    display: grid !important;
+    width: 100% !important;
+    max-height: min(60svh, 680px) !important;
+    overflow-y: auto !important;
+    border-radius: 24px 24px 0 0 !important;
+    padding: 0 20px calc(22px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 4 !important;
+    display: grid !important;
+    grid-template-columns: 48px minmax(0, 1fr) !important;
+    align-items: center !important;
+    min-height: 76px !important;
+    margin: 0 -20px 8px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    background: rgba(3, 11, 20, 0.98) !important;
+    padding: 20px 20px 8px !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 9px !important;
+    left: 50% !important;
+    width: 48px !important;
+    height: 5px !important;
+    border-radius: 999px !important;
+    background: #7b8fa3 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div {
+    min-width: 0 !important;
+    padding-left: 10px !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div > span {
+    display: block !important;
+    color: #dff6ff !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading .playground-panel-toggle {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    place-items: center !important;
+    border: 1px solid rgba(61, 185, 255, 0.62) !important;
+    border-radius: 14px !important;
+    background: rgba(5, 18, 29, 0.98) !important;
+    color: #dff6ff !important;
+    padding: 0 !important;
+  }
+
+  .playground-mobile-surface-orbit .orbit-controls-heading > div {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+}
+
+/* Explorer must render one handle, never both the generated bar and its child bar. */
+@media (max-width: 820px) {
+  .explorer-mobile-sheet-handle > span {
+    display: none !important;
+  }
+
+  .explorer-mobile-sheet-handle::before,
+  .explorer-mobile-sheet-drag-region::before,
+  .explorer-mobile-sheet-drag-region::after,
+  .explorer-mobile-sheet::before,
+  .explorer-panel-header::before,
+  .explorer-overlay-panel::before,
+  .explorer-selection-card::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .explorer-mobile-sheet-handle::after {
+    content: "" !important;
+    display: block !important;
+  }
+}
+
+/* Keep the compact playback bar usable without high-end label collisions. */
+.playback-speed-slider-labels > span:nth-last-child(2) {
+  transform: translateX(-50%) !important;
+}
+
+.playback-speed-slider-labels > span.last {
+  transform: translateX(-100%) !important;
+}

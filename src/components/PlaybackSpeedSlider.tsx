@@ -73,7 +73,7 @@ export function PlaybackSpeedSlider({
             key={speed}
             style={{ left: `${speedToSlider(speed) / 10}%` }}
           >
-            {speed.toLocaleString()}×
+            {speed === 1000 ? "1k×" : speed === 3000 ? "3k×" : `${speed}×`}
           </span>
         ))}
       </span>
