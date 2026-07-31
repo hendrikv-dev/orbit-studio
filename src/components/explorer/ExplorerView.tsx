@@ -1352,8 +1352,15 @@ export function ExplorerView({
   const layersPanelRef = useRef<HTMLElement | null>(null);
   const catalogLauncherRef = useRef<HTMLButtonElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const detailsInvokerRef = useRef<{ entryId: string; element: HTMLElement } | null>(null);
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    const input = searchInputRef.current;
+    if (input && document.activeElement === input) input.blur();
+  }, []);
   const catalogPanel = useExplorerPanelController(setCatalogOpen);
   const layersPanel = useExplorerPanelController(setLayersOpen);
   const orbitPanel = useExplorerPanelController(setOrbitSheetOpen);
@@ -1637,7 +1644,7 @@ export function ExplorerView({
 
   const selectEntry = useCallback((entry: ExplorerCatalogEntry, invoker?: HTMLElement) => {
     if (invoker) detailsInvokerRef.current = { entryId: entry.id, element: invoker };
-    setSearchOpen(false);
+    closeSearch();
     closeExplorerSheets();
     if (entry.selectionKind !== "satellite") setFollowSelectedObject(false);
     if (entry.selectionKind === "satellite" && sceneSatelliteIds.has(entry.id)) {
@@ -1659,6 +1666,7 @@ export function ExplorerView({
     }
   }, [
     closeExplorerSheets,
+    closeSearch,
     sceneConstellationIds,
     sceneGroundStationIds,
     sceneSatelliteIds,
@@ -1852,7 +1860,7 @@ export function ExplorerView({
       if (filterMenuOpen) {
         filterMenu.close();
       } else if (searchOpen) {
-        setSearchOpen(false);
+        closeSearch();
       } else if (catalogOpen) {
         catalogPanel.close();
       } else if (layersOpen) {
@@ -1875,6 +1883,7 @@ export function ExplorerView({
     catalogOpen,
     catalogPanel,
     clearExplorerSelection,
+    closeSearch,
     filterMenu,
     filterMenuOpen,
     layersOpen,
@@ -1933,6 +1942,19 @@ export function ExplorerView({
     return () => window.removeEventListener("pointerdown", handlePointerDown);
   }, [filterMenu, filterMenuOpen]);
 
+  // Touch platforms do not reliably fire `blur` when the user taps a non-focusable
+  // surface, which otherwise left the field expanded with the keyboard dismissed.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (searchWrapRef.current?.contains(target)) return;
+      closeSearch();
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [closeSearch, searchOpen]);
+
   useEffect(() => {
     setPlaying(explorerPlaybackRunning);
     if (explorerPlaybackRunning) setTimeScale(explorerPlaybackSpeed);
@@ -1965,6 +1987,7 @@ export function ExplorerView({
           />
         </button>
         <div
+          ref={searchWrapRef}
           className="explorer-global-search"
           data-explorer-catalog-context
           data-search-open={searchOpen ? "true" : "false"}
@@ -1978,12 +2001,14 @@ export function ExplorerView({
           }
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
-            if (!nextTarget || !event.currentTarget.contains(nextTarget)) setSearchOpen(false);
+            if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+            setSearchOpen(false);
           }}
         >
           <label>
             <Search size={16} />
             <input
+              ref={searchInputRef}
               aria-activedescendant={
                 searchOpen && globalSearchResults[highlightedSearchIndex]
                   ? `explorer-search-option-${highlightedSearchIndex}`
@@ -2014,7 +2039,7 @@ export function ExplorerView({
                 if (event.key === "Escape" && searchOpen) {
                   event.preventDefault();
                   event.stopPropagation();
-                  setSearchOpen(false);
+                  closeSearch();
                   return;
                 }
 
@@ -2058,7 +2083,8 @@ export function ExplorerView({
                 type="button"
                 onClick={() => {
                   setQuery("");
-                  setSearchOpen(false);
+                  setHighlightedSearchIndex(0);
+                  searchInputRef.current?.focus();
                 }}
               >
                 <X size={14} />
