@@ -9616,3 +9616,59 @@ button.primary,
 }
 /* END APPROVED-FOCUSED-FIX */
 
+
+/* 2026-07-31 approved header-only correction.
+   Scope: remove duplicate brand lockups and keep the primary brand/menu anchors
+   identical between Explorer and Playground. No shell, renderer, panel, sheet,
+   playback, filter, or scene selectors are changed here. */
+@media (min-width: 821px) {
+  .playground-topline {
+    height: 70px !important;
+    min-height: 70px !important;
+    padding-left: max(20px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(20px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .explorer-header {
+    padding-left: max(20px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(20px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .explorer-header .explorer-brand-logo-full,
+  .playground-topline .playground-brand-logo-full {
+    display: block !important;
+  }
+
+  .explorer-header .explorer-brand-logo-icon,
+  .playground-topline .playground-brand-logo-icon {
+    display: none !important;
+  }
+
+  .explorer-header .explorer-brand-logo-full,
+  .playground-topline .playground-brand-logo-full {
+    width: 205px !important;
+    height: 60px !important;
+    margin: 0 !important;
+    object-fit: contain !important;
+    object-position: left center !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .explorer-header .explorer-brand-logo-full,
+  .playground-topline .playground-brand-logo-full {
+    display: none !important;
+  }
+
+  .explorer-header .explorer-brand-logo-icon,
+  .playground-topline .playground-brand-logo-icon {
+    display: block !important;
+    width: 50px !important;
+    height: 50px !important;
+    margin: 0 !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: none !important;
+  }
+}
