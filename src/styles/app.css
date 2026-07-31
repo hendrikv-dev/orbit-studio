@@ -9672,3 +9672,11 @@ button.primary,
     transform: none !important;
   }
 }
+
+/* 2026-07-31 desktop-only Playground brand alignment.
+   The approved mobile layout is intentionally untouched. */
+@media (min-width: 821px) {
+  .playground-topline > .playground-brand-button {
+    transform: translateX(12px) !important;
+  }
+}
