@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
   type Dispatch,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SetStateAction,
 } from "react";
@@ -1162,6 +1163,47 @@ function ExplorerTimeline({
     [onSelectSnapshot],
   );
 
+  // Milestone bands tile the whole track, so they sit on top of the scrub line.
+  // A press resolves to the milestone, but dragging out of one has to keep
+  // scrubbing rather than dead-end on the dot the finger started from.
+  const milestoneDragRef = useRef<{ startX: number; scrubbing: boolean } | null>(null);
+  const MILESTONE_DRAG_SLOP_PX = 6;
+
+  const handleMilestonePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    milestoneDragRef.current = { startX: event.clientX, scrubbing: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleMilestonePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = milestoneDragRef.current;
+      if (!drag) return;
+      if (!drag.scrubbing && Math.abs(event.clientX - drag.startX) < MILESTONE_DRAG_SLOP_PX) return;
+      drag.scrubbing = true;
+      scheduleTimelineSelection(event.clientX, false);
+    },
+    [scheduleTimelineSelection],
+  );
+
+  const handleMilestonePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      const drag = milestoneDragRef.current;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      if (!drag?.scrubbing) return;
+      if (timelineAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(timelineAnimationFrameRef.current);
+        timelineAnimationFrameRef.current = null;
+        pendingTimelineSelectionRef.current = null;
+      }
+      selectFromClientX(event.clientX, true);
+    },
+    [selectFromClientX],
+  );
+
   return (
     <footer className="explorer-timeline">
       <div className="explorer-timeline-playback" aria-label="Explorer playback">
@@ -1260,25 +1302,76 @@ function ExplorerTimeline({
           </i>
         </div>
         <div className="explorer-milestones">
-          {explorerTimelineSnapshots.map((snapshot, index) => (
-            <button
-              aria-current={snapshot.id === activeSnapshot.id ? "date" : undefined}
-              className={[
-                snapshot.id === activeSnapshot.id ? "active" : "",
-                index === 0 ? "first" : "",
-                index === explorerTimelineSnapshots.length - 1 ? "last" : "",
-              ].filter(Boolean).join(" ")}
-              key={snapshot.id}
-              style={{ left: `${explorerVisibleTimelinePosition(snapshot) * 100}%` }}
-              title={snapshot.label}
-              type="button"
-              onClick={() => onSelectSnapshot(snapshot)}
-            >
-              <i />
-              <strong>{snapshot.year}</strong>
-              <span>{snapshot.milestone}</span>
-            </button>
-          ))}
+          {explorerTimelineSnapshots.map((snapshot, index) => {
+            // Milestones are only a few years apart in places, so fixed-width hit
+            // boxes overlapped and stole each other's taps. Each button instead
+            // owns the strip running to the midpoint of each neighbour: the bands
+            // tile the track without overlapping, every point resolves to its
+            // nearest milestone, and the dot still marks the true year.
+            const position = explorerVisibleTimelinePosition(snapshot);
+            const previous = explorerTimelineSnapshots[index - 1];
+            const next = explorerTimelineSnapshots[index + 1];
+            const bandStart = previous
+              ? (explorerVisibleTimelinePosition(previous) + position) / 2
+              : 0;
+            const bandEnd = next ? (position + explorerVisibleTimelinePosition(next)) / 2 : 1;
+            const bandWidth = Math.max(bandEnd - bandStart, Number.EPSILON);
+            // The end milestones sit on the track edge, so their band is half-width
+            // by construction. Nothing competes beyond the track, so let them reach
+            // a little further out rather than leave a 9px target.
+            const outerReachPx = 12;
+            const left = previous
+              ? `${bandStart * 100}%`
+              : `calc(${bandStart * 100}% - ${outerReachPx}px)`;
+            const width = `calc(${bandWidth * 100}% + ${previous && next ? 0 : outerReachPx}px)`;
+
+            return (
+              <button
+                aria-current={snapshot.id === activeSnapshot.id ? "date" : undefined}
+                className={[
+                  snapshot.id === activeSnapshot.id ? "active" : "",
+                  index === 0 ? "first" : "",
+                  index === explorerTimelineSnapshots.length - 1 ? "last" : "",
+                ].filter(Boolean).join(" ")}
+                key={snapshot.id}
+                style={{
+                  left,
+                  width,
+                  transform: "none",
+                  // The dot's true position, expressed within its own band. Used by
+                  // the stylesheet to place the dot and anchor the edge labels. The
+                  // end bands reach `outerReachPx` past their milestone, so their
+                  // dot is that far in from the extended edge.
+                  "--milestone-dot": !previous
+                    ? `${outerReachPx}px`
+                    : !next
+                      ? `calc(100% - ${outerReachPx}px)`
+                      : `${((position - bandStart) / bandWidth) * 100}%`,
+                } as CSSProperties}
+                title={snapshot.label}
+                type="button"
+                // The surrounding scrubber captures the pointer on pointerdown and
+                // derives a year from the raw x position, which overrode the
+                // milestone before its click could ever fire.
+                onPointerDown={handleMilestonePointerDown}
+                onPointerMove={handleMilestonePointerMove}
+                onPointerUp={handleMilestonePointerUp}
+                onClick={() => {
+                  // A drag already resolved to a scrubbed year; don't snap back.
+                  if (milestoneDragRef.current?.scrubbing) {
+                    milestoneDragRef.current = null;
+                    return;
+                  }
+                  milestoneDragRef.current = null;
+                  onSelectSnapshot(snapshot);
+                }}
+              >
+                <i />
+                <strong>{snapshot.year}</strong>
+                <span>{snapshot.milestone}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <PlaybackSpeedSlider

@@ -152,16 +152,32 @@ function coverageLabel(coveredPercent: number): string {
   return "Not visible";
 }
 
+function browserRendersCanvas(): boolean {
+  if (typeof document === "undefined") return false;
+  return typeof document.createElement("canvas").getContext === "function";
+}
+
+/**
+ * React Three Fiber renders this as the <canvas> element's fallback content, so
+ * a browser only paints it when canvas itself is unsupported. Chrome still
+ * exposes focusable children of that content to the keyboard, which put a 0x0
+ * "Reset local app state" button in the tab order of a perfectly healthy page.
+ * WebGL initialization failures surface through AppErrorBoundary instead, so the
+ * recovery control belongs here only when canvas genuinely cannot render.
+ */
 function RendererCanvasFallback() {
+  const canvasUnsupported = !browserRendersCanvas();
   return (
-    <section className="renderer-fallback" role="alert">
+    <section className="renderer-fallback" role={canvasUnsupported ? "alert" : undefined}>
       <div>
         <strong>Earth renderer unavailable</strong>
         <span>WebGL or a critical scene resource failed to initialize.</span>
       </div>
-      <button type="button" className="danger-button" onClick={resetLocalAppStateAndReload}>
-        Reset local app state
-      </button>
+      {canvasUnsupported && (
+        <button type="button" className="danger-button" onClick={resetLocalAppStateAndReload}>
+          Reset local app state
+        </button>
+      )}
     </section>
   );
 }

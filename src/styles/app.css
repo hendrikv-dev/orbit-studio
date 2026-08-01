@@ -7930,7 +7930,11 @@ button.primary,
   display: none !important;
 }
 
+/* These live inside .explorer-globe, so the direct-child rule above cannot
+   reach them and each has to be named. The mobile dock in particular kept the
+   whole bottom bar on screen while the interface was supposedly hidden. */
 .explorer-shell.interface-hidden .explorer-mobile-menu,
+.explorer-shell.interface-hidden .explorer-mobile-dock,
 .explorer-shell.interface-hidden .explorer-mobile-playback-pill,
 .explorer-shell.interface-hidden .explorer-globe-toolbar,
 .explorer-shell.interface-hidden .explorer-historical-data-notice {
@@ -9770,22 +9774,66 @@ button.primary,
 }
 /* END focused mobile Explorer timeline-only fix */
 
-/* Mobile Explorer timeline: anchor the actual first milestone label inside the track. */
-@media (max-width: 820px) {
-  .explorer-milestones > button:first-child {
-    justify-items: start;
-    text-align: left;
-    transform: none;
-  }
+/* Explorer timeline milestones: nearest-neighbour hit bands.
+   The button element is now the band (positioned and sized inline from the
+   snapshot years), so nothing here may set its width or transform. The dot and
+   the label are placed inside that band at `--milestone-dot`, which is the
+   milestone's true position expressed as a fraction of its own band.
+
+   This supersedes the earlier first/last label-alignment overrides: those moved
+   the whole button to keep the edge labels inside the track, which dragged each
+   edge dot ~23px away from the year it marked and made the first and last
+   milestones untappable at their own centre. Only the label is clamped now. */
+.explorer-milestones button,
+.explorer-milestones button.first,
+.explorer-milestones button.last {
+  display: block;
+  padding: 12px 0 0;
+  text-align: left;
 }
 
-/* 2026-07-31 mobile timeline first-label final override.
-   Keep the 1957 label inside the timeline boundary. This must remain after
-   later generic milestone rules so their translateX(-50%) cannot override it. */
-@media (max-width: 743px) {
-  .explorer-milestones > button.first {
-    justify-items: start;
-    text-align: left;
-    transform: none;
-  }
+/* Grow the touch target vertically without moving the dot: the visual box stays
+   26px and this generated box carries the rest of the 44px hit area. */
+.explorer-milestones button::after {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+
+.explorer-milestones i {
+  left: var(--milestone-dot, 50%);
+  transform: translateX(-50%);
+}
+
+/* Labels are decoration; the band behind them takes the tap. Without this the
+   clamped end labels overhang their narrow band and swallow a neighbour's taps. */
+.explorer-milestones strong,
+.explorer-milestones span {
+  position: absolute;
+  left: var(--milestone-dot, 50%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.explorer-milestones strong {
+  top: 12px;
+}
+
+.explorer-milestones span {
+  top: 28px;
+}
+
+/* Edge labels grow inward from their own dot so they stay inside the track,
+   while the dot itself remains on the year it marks. */
+.explorer-milestones button.first strong,
+.explorer-milestones button.first span {
+  left: var(--milestone-dot, 0px);
+  transform: none;
+}
+
+.explorer-milestones button.last strong,
+.explorer-milestones button.last span {
+  left: var(--milestone-dot, 100%);
+  transform: translateX(-100%);
 }

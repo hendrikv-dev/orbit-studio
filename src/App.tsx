@@ -108,12 +108,23 @@ function readInitialProductMode(): ProductMode {
   return "home";
 }
 
-function replaceAppQuery(mode: ProductMode): void {
-  if (typeof window === "undefined") return;
+function appQueryHref(mode: ProductMode): string {
   const url = new URL(window.location.href);
   if (mode === "home") url.searchParams.delete("app");
   else url.searchParams.set("app", mode);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/**
+ * Switching apps has to leave a history entry behind, otherwise Back walks off
+ * the site instead of returning to the previous app. Repeating the active mode
+ * still replaces, so re-tapping the current app cannot stack duplicate entries.
+ */
+function recordAppQuery(mode: ProductMode): void {
+  if (typeof window === "undefined") return;
+  const href = appQueryHref(mode);
+  if (mode === readInitialProductMode()) window.history.replaceState({ app: mode }, "", href);
+  else window.history.pushState({ app: mode }, "", href);
 }
 
 function developmentCelestialPlaybackPaused(): boolean {
@@ -300,27 +311,32 @@ export function App() {
     setActiveSnapshot({ ...snapshot });
   }, []);
 
-  const openExplorer = useCallback(() => {
-    replaceAppQuery("explorer");
-    setProductMode("explorer");
+  // Shared by the in-app buttons and by history navigation, so a mode reached
+  // through Back is set up exactly like one reached by clicking.
+  const applyProductMode = useCallback((mode: ProductMode) => {
+    if (mode === "playground") resetPlaygroundStoreNow();
+    setProductMode(mode);
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
   }, []);
 
-  const openStudio = useCallback(() => {
-    resetPlaygroundStoreNow();
-    replaceAppQuery("playground");
-    setProductMode("playground");
-    setInterfaceVisible(true);
-    setPlaygroundMobileSurface(null);
-  }, []);
+  const goToProductMode = useCallback(
+    (mode: ProductMode) => {
+      recordAppQuery(mode);
+      applyProductMode(mode);
+    },
+    [applyProductMode],
+  );
 
-  const openHome = useCallback(() => {
-    replaceAppQuery("home");
-    setProductMode("home");
-    setInterfaceVisible(true);
-    setPlaygroundMobileSurface(null);
-  }, []);
+  useEffect(() => {
+    const handlePopState = () => applyProductMode(readInitialProductMode());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [applyProductMode]);
+
+  const openExplorer = useCallback(() => goToProductMode("explorer"), [goToProductMode]);
+  const openStudio = useCallback(() => goToProductMode("playground"), [goToProductMode]);
+  const openHome = useCallback(() => goToProductMode("home"), [goToProductMode]);
 
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
