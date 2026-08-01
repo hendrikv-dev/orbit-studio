@@ -1,15 +1,16 @@
 import React from "react";
 import { ArrowRight, ExternalLink } from "lucide-react";
+import { orbitStudioRepositoryUrl, orbitStudioSponsorUrl } from "../../lib/projectLinks";
 import "./orbit-studio-home.css";
 
 interface OrbitStudioHomeProps {
   onOpenExplorer: () => void;
   onOpenPlayground: () => void;
-  /** Direct URL to a hosted payment page such as Stripe, Ko-fi, or GitHub Sponsors. */
+  /** Overrides the default GitHub Sponsors destination. */
   supportUrl?: string;
 }
 
-const repositoryUrl = "https://github.com/hendrikv-dev/orbit-studio";
+const repositoryUrl = orbitStudioRepositoryUrl;
 const docsUrl = `${repositoryUrl}/blob/main/README.md`;
 const dataUrl = `${repositoryUrl}/blob/main/docs/sources.md`;
 const issuesUrl = `${repositoryUrl}/issues`;
@@ -20,7 +21,7 @@ export function OrbitStudioHome({
   onOpenPlayground,
   supportUrl,
 }: OrbitStudioHomeProps) {
-  const donationUrl = supportUrl?.trim();
+  const sponsorUrl = supportUrl?.trim() || orbitStudioSponsorUrl;
 
   return (
     <main className="orbit-home">
@@ -35,9 +36,6 @@ export function OrbitStudioHome({
           <a href={repositoryUrl} target="_blank" rel="noreferrer">
             GitHub <ExternalLink aria-hidden="true" size={13} />
           </a>
-          {donationUrl && (
-            <a className="orbit-home-support-link" href="#support">Support</a>
-          )}
         </nav>
       </header>
 
@@ -126,20 +124,15 @@ export function OrbitStudioHome({
             <strong>Report an issue</strong>
             <span>Share a reproducible problem with the official repository.</span>
           </a>
+          {/* Sits among the other ways to engage with the project, carrying the
+              same weight as the source and issue links rather than its own
+              promotional block. */}
+          <a href={sponsorUrl} target="_blank" rel="noreferrer">
+            <strong>Support Orbit Studio</strong>
+            <span>Sponsor continued development through GitHub Sponsors.</span>
+          </a>
         </div>
       </section>
-
-      {donationUrl && (
-        <section className="orbit-home-support" id="support" aria-labelledby="orbit-home-support-title">
-          <div>
-            <h2 id="orbit-home-support-title">Support Orbit Studio</h2>
-            <p>Contributions help fund hosting, data processing, and continued development.</p>
-          </div>
-          <a className="orbit-home-primary-link" href={donationUrl} target="_blank" rel="noreferrer">
-            Donate <ExternalLink aria-hidden="true" size={15} />
-          </a>
-        </section>
-      )}
 
       <footer className="orbit-home-footer">
         <span>Orbit Studio</span>

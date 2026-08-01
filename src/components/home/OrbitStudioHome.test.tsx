@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { OrbitStudioHome } from "./OrbitStudioHome";
+import { orbitStudioSponsorUrl } from "../../lib/projectLinks";
 
 const renderHome = () => renderToStaticMarkup(
   <OrbitStudioHome
@@ -32,12 +33,26 @@ describe("OrbitStudioHome", () => {
     expect(html).toContain('/home/playground-home.webp');
   });
 
-  it("links the donation CTA directly to the configured provider", () => {
+  it("links support to the configured provider without promotional framing", () => {
     const html = renderHome();
 
     expect(html).toContain('href="https://example.com/donate"');
-    expect(html).toContain("Donate");
+    expect(html).toContain("Support Orbit Studio");
     expect(html).not.toContain("Contribute on GitHub");
+    // Support is an ordinary project link, never a solicitation.
+    expect(html).not.toContain("Donate");
+    expect(html).not.toContain("orbit-home-primary-link");
+    expect(html).not.toContain("orbit-home-support");
+  });
+
+  it("keeps support beside the other project resources rather than in its own section", () => {
+    const html = renderHome();
+    const resourceList = html.slice(html.indexOf('class="orbit-home-resource-list"'));
+
+    expect(resourceList.indexOf("Support Orbit Studio")).toBeGreaterThan(-1);
+    expect(resourceList.indexOf("Report an issue")).toBeLessThan(
+      resourceList.indexOf("Support Orbit Studio"),
+    );
   });
 
   it("describes source access without implying shared control of the official repository", () => {
@@ -48,7 +63,7 @@ describe("OrbitStudioHome", () => {
     expect(html).toContain(`${"https://github.com/hendrikv-dev/orbit-studio"}/blob/main/README.md`);
     expect(html).not.toContain("or contribute");
   });
-  it("does not render a dead donation action when no provider URL is configured", () => {
+  it("falls back to the project's GitHub Sponsors page when no override is configured", () => {
     const html = renderToStaticMarkup(
       <OrbitStudioHome
         onOpenExplorer={() => undefined}
@@ -56,8 +71,17 @@ describe("OrbitStudioHome", () => {
       />,
     );
 
+    expect(html).toContain(`href="${orbitStudioSponsorUrl}"`);
     expect(html).not.toContain("Donate");
     expect(html).not.toContain('href="#support"');
+  });
+
+  it("opens the support link safely in a new tab", () => {
+    const html = renderHome();
+    const anchor = html.slice(html.indexOf('href="https://example.com/donate"'));
+
+    expect(anchor.slice(0, 120)).toContain('target="_blank"');
+    expect(anchor.slice(0, 120)).toContain('rel="noreferrer"');
   });
 
 });

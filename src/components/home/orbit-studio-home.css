@@ -65,15 +65,6 @@
   color: #fff;
 }
 
-.orbit-home-header .orbit-home-support-link {
-  min-height: 36px;
-  justify-content: center;
-  border: 1px solid rgba(109, 190, 255, 0.44);
-  border-radius: 9px;
-  padding: 0 14px;
-  color: #eef8ff;
-}
-
 .orbit-home-hero {
   display: grid;
   width: min(900px, calc(100% - 36px));
@@ -251,7 +242,6 @@
 }
 
 .orbit-home-about,
-.orbit-home-support,
 .orbit-home-footer {
   width: min(1200px, calc(100% - 40px));
   margin-right: auto;
@@ -271,8 +261,7 @@
   gap: 12px;
 }
 
-.orbit-home-about h2,
-.orbit-home-support h2 {
+.orbit-home-about h2 {
   margin: 0;
   color: #f5f8ff;
   font-size: clamp(1.75rem, 2.8vw, 2.8rem);
@@ -280,8 +269,7 @@
   line-height: 1.02;
 }
 
-.orbit-home-about p,
-.orbit-home-support p {
+.orbit-home-about p {
   max-width: 62ch;
   margin: 0;
   color: var(--home-muted);
@@ -323,41 +311,6 @@
   border-color: rgba(101, 184, 255, 0.46);
 }
 
-.orbit-home-support {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 28px;
-  border-top: 1px solid rgba(120, 155, 202, 0.18);
-  border-bottom: 1px solid rgba(120, 155, 202, 0.18);
-  padding: 40px 0;
-}
-
-.orbit-home-support > div:first-child {
-  display: grid;
-  gap: 10px;
-}
-
-.orbit-home-primary-link {
-  display: inline-flex;
-  min-width: 118px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #176cff, #7847ef);
-  color: white;
-  padding: 0 18px;
-  font-size: 0.86rem;
-  font-weight: 760;
-  text-decoration: none;
-}
-
-.orbit-home-primary-link:hover {
-  filter: brightness(1.08);
-}
-
 .orbit-home-footer {
   display: flex;
   min-height: 86px;
@@ -382,7 +335,6 @@
   .orbit-home-header,
   .orbit-home-apps,
   .orbit-home-about,
-  .orbit-home-support,
   .orbit-home-footer {
     width: min(100% - 28px, 1440px);
   }
@@ -422,7 +374,7 @@
 }
 
 @media (max-width: 800px) {
-  .orbit-home-header nav a:not(.orbit-home-support-link):not(:last-of-type) {
+  .orbit-home-header nav a:not(:last-of-type) {
     display: none;
   }
 
@@ -469,11 +421,6 @@
 
   .orbit-home-resource-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .orbit-home-support {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }
 

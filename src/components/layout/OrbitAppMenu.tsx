@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eye, EyeOff, Github, MoreHorizontal } from "lucide-react";
+import { Check, Eye, EyeOff, Github, Heart, MoreHorizontal } from "lucide-react";
+import { orbitStudioRepositoryUrl, orbitStudioSponsorUrl } from "../../lib/projectLinks";
 
 export type OrbitAppId = "explorer" | "playground";
 
@@ -108,15 +109,11 @@ export function OrbitAppMenu({
 
           <div aria-hidden="true" className="orbit-app-menu-divider" />
 
-          <button role="menuitem" type="button" onClick={() => select(onHideInterface)}>
-            <EyeOff aria-hidden="true" size={17} />
-            <span>Hide interface</span>
-          </button>
-
-          <div aria-hidden="true" className="orbit-app-menu-divider" />
-
+          {/* Project links are grouped together: both leave the app, so they read
+              as one kind of action. Support sits beside GitHub rather than in its
+              own group, which would give it emphasis it should not have. */}
           <a
-            href="https://github.com/hendrikv-dev/orbit-studio"
+            href={orbitStudioRepositoryUrl}
             rel="noreferrer"
             role="menuitem"
             target="_blank"
@@ -125,6 +122,25 @@ export function OrbitAppMenu({
             <Github aria-hidden="true" size={17} />
             <span>GitHub</span>
           </a>
+
+          <a
+            href={orbitStudioSponsorUrl}
+            rel="noreferrer"
+            role="menuitem"
+            target="_blank"
+            onClick={() => setOpen(false)}
+          >
+            <Heart aria-hidden="true" size={17} />
+            <span>Support Orbit Studio</span>
+          </a>
+
+          <div aria-hidden="true" className="orbit-app-menu-divider" />
+
+          {/* View control last: it acts on the current screen, not the project. */}
+          <button role="menuitem" type="button" onClick={() => select(onHideInterface)}>
+            <EyeOff aria-hidden="true" size={17} />
+            <span>Hide interface</span>
+          </button>
         </div>
       )}
     </div>
