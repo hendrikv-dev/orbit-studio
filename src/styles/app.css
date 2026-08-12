@@ -9837,3 +9837,248 @@ button.primary,
   left: var(--milestone-dot, 100%);
   transform: translateX(-100%);
 }
+
+/* Orbital population view — the catalog drawn in orbital parameter space.
+   It occupies the globe area rather than replacing the shell, so Explorer state
+   (selection, filters, timeline, panels) is untouched by switching. */
+.explorer-population {
+  position: absolute;
+  /* The densest LEO shells sit at the bottom of the axis, so the plot stops
+     above the timeline rather than rendering the catalog behind it. */
+  inset: 0 0 var(--explorer-population-bottom-inset, 148px) 0;
+  z-index: 6;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(20, 46, 74, 0.42), rgba(3, 7, 12, 0) 62%),
+    #03070c;
+}
+
+.explorer-population-canvas {
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.explorer-population-axis-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: #6f869a;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.explorer-population-axis-y {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform-origin: left center;
+  transform: rotate(-90deg) translateX(-50%);
+  white-space: nowrap;
+}
+
+.explorer-population-axis-x {
+  position: absolute;
+  right: 14px;
+  bottom: 4px;
+}
+
+.explorer-population-legend {
+  position: absolute;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+  /* The densest part of the plot sits behind this label, so it needs a surface
+     of its own rather than sitting directly on the data. */
+  border: 1px solid rgba(103, 148, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(4, 9, 16, 0.82);
+  padding: 8px 11px;
+  backdrop-filter: blur(10px);
+}
+
+.explorer-population-legend strong {
+  color: #e8f3fb;
+  font-size: 0.82rem;
+}
+
+.explorer-population-legend span {
+  color: #8ea3b5;
+  font-size: 0.68rem;
+}
+
+.explorer-population-note {
+  color: #6d8496 !important;
+  font-style: italic;
+}
+
+.explorer-population-readout {
+  position: absolute;
+  min-width: 210px;
+  border: 1px solid rgba(103, 148, 184, 0.26);
+  border-radius: 12px;
+  background: rgba(4, 9, 16, 0.92);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.46);
+  padding: 10px 12px;
+  backdrop-filter: blur(14px);
+}
+
+.explorer-population-readout strong {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 6px;
+  color: #eaf5ff;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorer-population-readout dl {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.explorer-population-readout div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.explorer-population-readout dt {
+  color: #7f95a8;
+  font-size: 0.66rem;
+}
+
+.explorer-population-readout dd {
+  margin: 0;
+  color: #dbe9f4;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-population-controls {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+}
+
+.explorer-population-controls button {
+  min-height: 32px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 999px;
+  background: rgba(5, 9, 14, 0.72);
+  color: #cfe0ee;
+  padding: 0 12px;
+  font-size: 0.7rem;
+  backdrop-filter: blur(14px);
+}
+
+.explorer-population-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: #8296a7;
+  font-size: 0.8rem;
+}
+
+/* Representation switch. Mirrors the existing floating launcher treatment so it
+   reads as part of Explorer rather than a new control system. */
+.explorer-view-switch {
+  position: absolute;
+  z-index: 22;
+  display: flex;
+  gap: 2px;
+  border: 1px solid rgba(117, 142, 160, 0.18);
+  border-radius: 999px;
+  background: rgba(5, 9, 14, 0.62);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  padding: 3px;
+  backdrop-filter: blur(18px);
+}
+
+.explorer-view-switch button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #93a8ba;
+  padding: 0 12px;
+  font-size: 0.72rem;
+}
+
+.explorer-view-switch button.active {
+  background: rgba(0, 113, 226, 0.26);
+  color: #eaf5ff;
+}
+
+@media (min-width: 744px) {
+  /* Below the header and clear of the Explore launcher on the left. */
+  .explorer-view-switch {
+    top: 82px;
+    right: 14px;
+  }
+
+  .explorer-population-legend {
+    top: 84px;
+    left: 152px;
+    max-width: min(340px, calc(100% - 420px));
+  }
+
+  .explorer-population-controls {
+    bottom: 14px;
+    left: 62px;
+  }
+
+  .explorer-population-readout {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+@media (max-width: 743px) {
+  .explorer-population {
+    --explorer-population-bottom-inset: calc(172px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .explorer-view-switch {
+    top: max(82px, calc(74px + env(safe-area-inset-top, 0px)));
+    right: 10px;
+  }
+
+  .explorer-view-switch button span {
+    display: none;
+  }
+
+  .explorer-view-switch button {
+    padding: 0 10px;
+  }
+
+  .explorer-population-legend {
+    top: max(84px, calc(76px + env(safe-area-inset-top, 0px)));
+    left: 10px;
+    max-width: calc(100% - 130px);
+  }
+
+  .explorer-population-readout {
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
+    min-width: 0;
+  }
+
+  .explorer-population-controls {
+    right: 10px;
+    bottom: 132px;
+  }
+}
+
+.explorer-shell.interface-hidden .explorer-view-switch {
+  display: none !important;
+}

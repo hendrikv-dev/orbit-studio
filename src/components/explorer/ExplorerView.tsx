@@ -20,7 +20,9 @@ import {
   Eye,
   ExternalLink,
   Filter,
+  Globe2,
   ImageOff,
+  Map as MapIcon,
   Menu,
   Palette,
   Pause,
@@ -28,6 +30,7 @@ import {
   RadioTower,
   Rocket,
   Satellite,
+  ScatterChart,
   Search,
   Settings,
   SkipBack,
@@ -36,6 +39,8 @@ import {
   StepForward,
   X,
 } from "lucide-react";
+import { ExplorerPopulationView } from "./ExplorerPopulationView";
+import { explorerPopulationPoints } from "../../data/explorerPopulation";
 import {
   explorerCategoryHierarchy,
   explorerCategoryLabel,
@@ -167,6 +172,9 @@ function initialExplorerPlaybackRunning(): boolean {
   ));
 }
 
+
+/** Explorer draws one state; the mode chooses which representation. */
+type ExplorerViewMode = "globe" | "population";
 
 function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
   return (
@@ -755,6 +763,17 @@ function ExplorerInspector({
     () => satellite ? createSelectedOrbitFrame(satellite) : null,
     [satellite],
   );
+
+  const [activeInspectorTab, setActiveInspectorTab] =
+    useState<"overview" | "data">("overview");
+  const overviewTabRef = useRef<HTMLButtonElement | null>(null);
+  const dataTabRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    setActiveInspectorTab("overview");
+  }, [entry?.id]);
+
+
   const education = useMemo(
     () => entry ? explorerEducationForEntry(entry) : null,
     [entry],
@@ -812,14 +831,6 @@ function ExplorerInspector({
       { label: "Status", value: entry.status },
     ];
   }, [constellationSummary, education?.keyFacts, entry, readouts, satellite, selectedOrbitFrame]);
-  const [activeInspectorTab, setActiveInspectorTab] =
-    useState<"overview" | "data">("overview");
-  const overviewTabRef = useRef<HTMLButtonElement | null>(null);
-  const dataTabRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    setActiveInspectorTab("overview");
-  }, [entry?.id]);
 
   const selectInspectorTab = useCallback((tab: "overview" | "data", focus = false) => {
     setActiveInspectorTab(tab);
@@ -1421,6 +1432,7 @@ export function ExplorerView({
       window.removeEventListener("orientationchange", updateViewportHeight);
     };
   }, [searchOpen]);
+  const [viewMode, setViewMode] = useState<ExplorerViewMode>("globe");
   const [typeFilters, setTypeFilters] = useState<ExplorerCategoryId[]>([]);
   const [colorMode, setColorMode] = useState<ExplorerColorMode>("type");
   const [regimeFilter, setRegimeFilter] = useState<ExplorerRegimeFilter>("all");
@@ -1554,6 +1566,28 @@ export function ExplorerView({
       (entry) => isExplorerSceneEntry(entry) && matchesExplorerFilters(entry),
     );
   }, [matchesExplorerFilters, snapshotView.records]);
+
+  // The population view is deliberately anchored to the current catalog rather
+  // than the timeline. Orbit shape is only sourced at each object's own epoch —
+  // there is no historical element series — so plotting a 1990 membership set in
+  // parameter space would place today's shapes at a date they never had. The
+  // same Explorer filters apply, so the two representations stay in step.
+  const populationSnapshotView = useMemo(
+    () => explorerSnapshotView(currentExplorerSnapshot),
+    [],
+  );
+  const populationPoints = useMemo(
+    () =>
+      explorerPopulationPoints(
+        populationSnapshotView.records.filter(
+          (entry) => isExplorerSceneEntry(entry) && matchesExplorerFilters(entry),
+        ),
+      ),
+    [matchesExplorerFilters, populationSnapshotView.records],
+  );
+  const populationSnapshotLabel = currentExplorerSnapshot.year === activeSnapshot.year
+    ? `current catalog (${currentExplorerSnapshot.year})`
+    : `current catalog (${currentExplorerSnapshot.year}) — timeline is at ${activeSnapshot.year}`;
   const resolvedVisibility = useMemo(
     () =>
       resolveExplorerVisibility(
@@ -1769,6 +1803,16 @@ export function ExplorerView({
     selectSatellite,
     setFollowSelectedObject,
   ]);
+
+  // A point in the population view is the same Explorer object the globe would
+  // select, so the selection survives switching representation either way.
+  const selectPopulationObject = useCallback(
+    (id: string) => {
+      const entry = explorerEntryForId(id, currentExplorerSnapshot);
+      if (entry) selectEntry(entry);
+    },
+    [selectEntry],
+  );
 
   const explorerReviewState = useMemo<ExplorerReviewState>(() => {
     const selectedEntry = scenario.selectedObjectId
@@ -2322,6 +2366,31 @@ export function ExplorerView({
       >
         <Settings size={20} />
       </button>
+
+      {/* One Explorer state, two representations. The switch changes how the
+          catalog is drawn; it never changes selection, filters or the timeline. */}
+      <div className="explorer-view-switch" role="group" aria-label="Explorer representation">
+        <button
+          aria-pressed={viewMode === "globe"}
+          className={viewMode === "globe" ? "active" : ""}
+          title="Globe view"
+          type="button"
+          onClick={() => setViewMode("globe")}
+        >
+          <Globe2 size={16} />
+          <span>Globe</span>
+        </button>
+        <button
+          aria-pressed={viewMode === "population"}
+          className={viewMode === "population" ? "active" : ""}
+          title="Orbital population view"
+          type="button"
+          onClick={() => setViewMode("population")}
+        >
+          <ScatterChart size={16} />
+          <span>Population</span>
+        </button>
+      </div>
 
       {catalogOpen && (
       <aside
@@ -2882,7 +2951,9 @@ export function ExplorerView({
             explorerSelectedOrbitVisible={sceneVisibility.selectedOrbitVisible}
             explorerVisibleGroundStationIds={explorerVisibleGroundStationIds}
             explorerVisibleSatelliteIds={resolvedVisibility.satelliteIds}
-            explorerAnimate={explorerAnimate && isPlaying}
+            // The globe keeps its state while the population view is shown, but
+            // there is no reason to keep animating a scene nobody can see.
+            explorerAnimate={explorerAnimate && isPlaying && viewMode === "globe"}
             explorerFocusPreset={focusPreset}
             explorerFocusRequestKey={focusRequestKey}
             explorerMarkerStyles={markerStyles}
@@ -2906,7 +2977,15 @@ export function ExplorerView({
             onClearSelection={clearExplorerSelection}
           />
         </AppErrorBoundary>
-        {historicalCatalogOnly && (
+        {viewMode === "population" && (
+          <ExplorerPopulationView
+            points={populationPoints}
+            selectedId={scenario.selectedObjectId}
+            snapshotLabel={populationSnapshotLabel}
+            onSelect={selectPopulationObject}
+          />
+        )}
+        {historicalCatalogOnly && viewMode === "globe" && (
           <div className="explorer-historical-data-notice" role="status" aria-live="polite">
             <strong>Historical positions unavailable</strong>
             <span>
