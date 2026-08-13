@@ -10171,8 +10171,11 @@ button.primary,
   backdrop-filter: blur(18px);
 }
 
+/* Header, then the map at its correct size, then the readout taking whatever
+   is left. Any slack a 2:1 map leaves on a tall screen collects at the end of
+   the readout instead of splitting into voids above and below the map. */
 .explorer-coverage-surface-expanded {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, auto) minmax(min-content, 1fr);
 }
 
 .explorer-coverage-surface-expanded > header {
@@ -10220,7 +10223,7 @@ button.primary,
   width: 100%;
   max-height: 100%;
   height: auto;
-  margin: auto;
+  margin: 0 auto;
   border: 0;
   border-radius: 0;
 }
@@ -10228,6 +10231,107 @@ button.primary,
 .explorer-coverage-expanded .explorer-coverage-expand {
   top: 12px;
   right: 12px;
+}
+
+/* The slack a 2:1 map leaves on a tall screen. On a phone this is most of the
+   surface, so it carries the coverage numbers and the station list; on a wide
+   screen there is little room, so the same content lays out as a short strip
+   and the map keeps nearly all its height. */
+.explorer-coverage-readout {
+  display: grid;
+  align-content: start;
+  gap: 10px 24px;
+  width: 100%;
+  max-width: 1180px;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+}
+
+.explorer-coverage-readout dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px 18px;
+  margin: 0;
+}
+
+.explorer-coverage-readout dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(103, 148, 184, 0.12);
+  padding-bottom: 4px;
+}
+
+.explorer-coverage-readout dt {
+  color: #8ea3b5;
+  font-size: 0.72rem;
+}
+
+.explorer-coverage-readout dd {
+  color: #eaf5ff;
+  margin: 0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-coverage-readout .explorer-coverage-stations {
+  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  gap: 4px 10px;
+}
+
+.explorer-coverage-readout .explorer-coverage-caveat {
+  margin: 0;
+}
+
+/* Portrait screens have the most slack and the least room per line, so they
+   spend it on legibility: roomier rows and wider station cells — at three
+   columns the long complex names wrap — rather than empty background. */
+@media (max-width: 743px), (max-width: 899px) and (orientation: portrait) {
+  .explorer-coverage-readout {
+    gap: 16px;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .explorer-coverage-readout dl {
+    gap: 10px 18px;
+  }
+
+  .explorer-coverage-readout dl > div {
+    padding-bottom: 7px;
+  }
+
+  .explorer-coverage-readout dt,
+  .explorer-coverage-readout dd {
+    font-size: 0.8rem;
+  }
+
+  .explorer-coverage-readout .explorer-coverage-stations {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 6px;
+  }
+
+  .explorer-coverage-readout .explorer-coverage-stations li {
+    min-height: 34px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .explorer-coverage-readout {
+    grid-template-columns: minmax(240px, 0.85fr) minmax(0, 2fr);
+    align-items: start;
+  }
+
+  .explorer-coverage-readout dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .explorer-coverage-readout .explorer-coverage-caveat {
+    grid-column: 1 / -1;
+  }
 }
 
 .explorer-coverage-compare-open {

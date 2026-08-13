@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { ExplorerPopulationView } from "./ExplorerPopulationView";
+import { ExplorerCoverageCaveat, ExplorerCoverageReadout } from "./ExplorerCoverageReadout";
 import { ExplorerCoverageMap } from "./ExplorerCoverageMap";
 import {
   coverageEnvelope,
@@ -978,6 +979,21 @@ function ExplorerCoveragePanel({ coverage }: { coverage: CoveragePanel }) {
         onToggleExpanded={() =>
           coverage.setPresentation(presentation === "expanded" ? "split" : "expanded")}
       />
+
+      {/* A 2:1 map on a tall screen leaves most of the surface empty. The
+          readout the inspector would have shown goes there, so promoting the
+          map adds detail instead of trading it away. */}
+      {presentation === "expanded" && (
+        <div className="explorer-coverage-readout">
+          <ExplorerCoverageReadout
+            access={primary.access}
+            envelope={primary.envelope}
+            shape={primary.shape}
+            stations={coverage.stations}
+          />
+          <ExplorerCoverageCaveat />
+        </div>
+      )}
     </div>
   );
 
@@ -1277,43 +1293,12 @@ function ExplorerInspector({
                         </button>
                       </p>
                     )}
-                    {/* Period and inclination are already above; only what the
-                        map adds appears here. */}
-                    <dl>
-                      <div>
-                        <dt>Coverage band</dt>
-                        <dd>±{coverage.primary.envelope.coveredLimitDeg.toFixed(1)}°</dd>
-                      </div>
-                      <div>
-                        <dt>Earth surface in band</dt>
-                        <dd>{(coverage.primary.envelope.surfaceFraction * 100).toFixed(0)}%</dd>
-                      </div>
-                      <div>
-                        <dt>Revolutions / day</dt>
-                        <dd>{revolutionsPerDay(coverage.primary.shape.semiMajorAltitudeKm).toFixed(2)}</dd>
-                      </div>
-                      <div>
-                        <dt>Track shift / rev</dt>
-                        <dd>{longitudeDriftPerRevolutionDeg(coverage.primary.shape.semiMajorAltitudeKm).toFixed(1)}°</dd>
-                      </div>
-                    </dl>
-                    {coverage.stations.length > 0 && (
-                      <ul className="explorer-coverage-stations">
-                        {coverage.primary.access.map((item) => (
-                          <li key={item.stationId} className={item.reachable ? "reachable" : ""}>
-                            <span>
-                              {coverage.stations.find((station) => station.id === item.stationId)?.name
-                                ?? item.stationId}
-                            </span>
-                            <span>
-                              {item.reachable
-                                ? `~${Math.round(item.accessesPerDay)} passes/day`
-                                : "never in view"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <ExplorerCoverageReadout
+                      access={coverage.primary.access}
+                      envelope={coverage.primary.envelope}
+                      shape={coverage.primary.shape}
+                      stations={coverage.stations}
+                    />
                     {coverage.presentation === "docked" && (
                       <button
                         className="explorer-coverage-compare-open"
@@ -1323,12 +1308,7 @@ function ExplorerInspector({
                         Open beside the globe
                       </button>
                     )}
-                    <p className="explorer-coverage-caveat">
-                      Coverage band, footprint and pass rates come from the sourced orbit
-                      shape. The track&apos;s longitude comes from a reconstructed phase, so
-                      it shows the shape and spacing of the ground track, not a live
-                      position — individual pass times are not implied.
-                    </p>
+                    <ExplorerCoverageCaveat />
                   </section>
                 )}
               </>
