@@ -270,6 +270,10 @@ export function ExplorerPopulationView({
       context.clip();
       context.font = "10px ui-sans-serif, system-ui, sans-serif";
       context.textBaseline = "middle";
+      // On a narrow plot every edge is already occupied by a panel, and the
+      // legend names each curve anyway, so the on-canvas labels are dropped
+      // rather than drawn underneath something.
+      const labelCurves = geometry.plotWidth >= 520;
 
       for (const curve of explorerOrbitTheoryCurves) {
         const active = curve.id === activeCurveId;
@@ -286,11 +290,13 @@ export function ExplorerPopulationView({
           context.moveTo(x, PADDING.top);
           context.lineTo(x, PADDING.top + geometry.plotHeight);
           context.stroke();
-          context.save();
-          context.translate(x + 4, PADDING.top + 6);
-          context.textAlign = "left";
-          context.fillText(curve.label, 0, 0);
-          context.restore();
+          if (labelCurves) {
+            context.save();
+            context.translate(x + 4, PADDING.top + 6);
+            context.textAlign = "left";
+            context.fillText(curve.label, 0, 0);
+            context.restore();
+          }
         }
 
         if (curve.kind === "constant-altitude" && curve.altitudeKm !== undefined) {
@@ -301,8 +307,12 @@ export function ExplorerPopulationView({
           context.moveTo(PADDING.left, y);
           context.lineTo(PADDING.left + geometry.plotWidth, y);
           context.stroke();
-          context.textAlign = "right";
-          context.fillText(curve.label, PADDING.left + geometry.plotWidth - 6, y - 8);
+          if (labelCurves) {
+            // Centred: the population legend owns the left of the plot and the
+            // theory legend owns the right, at every breakpoint.
+            context.textAlign = "center";
+            context.fillText(curve.label, PADDING.left + geometry.plotWidth / 2, y - 8);
+          }
         }
 
         if (curve.kind === "inclination-of-altitude" && curve.inclinationAt) {
@@ -325,7 +335,7 @@ export function ExplorerPopulationView({
             if (unit > 0.34 && !labelAt) labelAt = { x, y };
           }
           context.stroke();
-          if (labelAt) {
+          if (labelAt && labelCurves) {
             context.textAlign = "left";
             context.fillText(curve.label, labelAt.x + 6, labelAt.y);
           }

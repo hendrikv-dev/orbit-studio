@@ -1246,23 +1246,37 @@ function ExplorerInspector({
                 {coverage.primary && (
                   <section className="explorer-inspector-data-section">
                     <h3>Mission coverage</h3>
-                    <ExplorerCoverageMap
-                      series={[{
-                        id: entry.id,
-                        name: entry.name,
-                        colorTrack: COVERAGE_PRIMARY_COLOR,
-                        colorBand: COVERAGE_PRIMARY_BAND,
-                        shape: coverage.primary.shape,
-                        track: coverage.primary.track,
-                        marker: coverage.primary.marker,
-                      }]}
-                      trackIsReconstructed
-                      stations={coverage.stations}
-                      selectedStationId={null}
-                      onSelectStation={() => undefined}
-                      variant="docked"
-                      onToggleExpanded={() => coverage.setPresentation("expanded")}
-                    />
+                    {/* The map lives in exactly one place at a time. Rendering it
+                        here as well while it is open beside the globe put the same
+                        map on screen twice, which is worst on a tablet where both
+                        copies are large. */}
+                    {coverage.presentation === "docked" ? (
+                      <ExplorerCoverageMap
+                        series={[{
+                          id: entry.id,
+                          name: entry.name,
+                          colorTrack: COVERAGE_PRIMARY_COLOR,
+                          colorBand: COVERAGE_PRIMARY_BAND,
+                          shape: coverage.primary.shape,
+                          track: coverage.primary.track,
+                          marker: coverage.primary.marker,
+                        }]}
+                        trackIsReconstructed
+                        stations={coverage.stations}
+                        selectedStationId={null}
+                        onSelectStation={() => undefined}
+                        variant="docked"
+                        onToggleExpanded={() => coverage.setPresentation("expanded")}
+                      />
+                    ) : (
+                      <p className="explorer-coverage-elsewhere">
+                        The map is open {coverage.presentation === "split"
+                          ? "beside the globe" : "full screen"}.
+                        <button type="button" onClick={() => coverage.setPresentation("docked")}>
+                          Bring it back here
+                        </button>
+                      </p>
+                    )}
                     {/* Period and inclination are already above; only what the
                         map adds appears here. */}
                     <dl>
@@ -1300,13 +1314,15 @@ function ExplorerInspector({
                         ))}
                       </ul>
                     )}
-                    <button
-                      className="explorer-coverage-compare-open"
-                      type="button"
-                      onClick={() => coverage.setPresentation("split")}
-                    >
-                      Open beside the globe
-                    </button>
+                    {coverage.presentation === "docked" && (
+                      <button
+                        className="explorer-coverage-compare-open"
+                        type="button"
+                        onClick={() => coverage.setPresentation("split")}
+                      >
+                        Open beside the globe
+                      </button>
+                    )}
                     <p className="explorer-coverage-caveat">
                       Coverage band, footprint and pass rates come from the sourced orbit
                       shape. The track&apos;s longitude comes from a reconstructed phase, so
