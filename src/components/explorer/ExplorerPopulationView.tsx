@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Sigma } from "lucide-react";
 import { explorerTypeColors } from "../../data/explorerVisuals";
+import {
+  explorerOrbitTheoryCurves,
+  type OrbitTheoryCurve,
+} from "../../data/explorerOrbitTheory";
 import {
   altitudeToUnit,
   clampPopulationViewport,
@@ -57,6 +62,10 @@ export function ExplorerPopulationView({
     width: 0, height: 0, plotWidth: 0, plotHeight: 0,
   });
   const [hoveredIndex, setHoveredIndex] = useState(-1);
+  // Theory overlay: the closed-form curves a student derives, drawn over the
+  // measured population so the two can be read together.
+  const [showTheory, setShowTheory] = useState(false);
+  const [activeCurveId, setActiveCurveId] = useState<string | null>(null);
 
   const bounds = useMemo(() => explorerPopulationBounds(points), [points]);
 
@@ -245,9 +254,83 @@ export function ExplorerPopulationView({
         }
       }
     }
+    if (showTheory) {
+      // Deliberately a different visual language from the data: thin, dashed and
+      // cool, so it reads as "this is the equation" rather than "these are objects".
+      context.save();
+      context.beginPath();
+      context.rect(PADDING.left, PADDING.top, geometry.plotWidth, geometry.plotHeight);
+      context.clip();
+      context.font = "10px ui-sans-serif, system-ui, sans-serif";
+      context.textBaseline = "middle";
+
+      for (const curve of explorerOrbitTheoryCurves) {
+        const active = curve.id === activeCurveId;
+        context.strokeStyle = active ? "rgba(167, 243, 208, 0.95)" : "rgba(125, 211, 252, 0.6)";
+        context.fillStyle = active ? "rgba(167, 243, 208, 0.95)" : "rgba(125, 211, 252, 0.75)";
+        context.lineWidth = active ? 2 : 1.25;
+        context.setLineDash(active ? [] : [5, 4]);
+
+        if (curve.kind === "constant-inclination" && curve.inclinationDeg !== undefined) {
+          const x = PADDING.left +
+            ((inclinationToUnit(curve.inclinationDeg) - viewport.offsetX) * viewport.zoom) *
+              geometry.plotWidth;
+          context.beginPath();
+          context.moveTo(x, PADDING.top);
+          context.lineTo(x, PADDING.top + geometry.plotHeight);
+          context.stroke();
+          context.save();
+          context.translate(x + 4, PADDING.top + 6);
+          context.textAlign = "left";
+          context.fillText(curve.label, 0, 0);
+          context.restore();
+        }
+
+        if (curve.kind === "constant-altitude" && curve.altitudeKm !== undefined) {
+          const y = PADDING.top +
+            (1 - (altitudeToUnit(curve.altitudeKm, bounds) - viewport.offsetY) * viewport.zoom) *
+              geometry.plotHeight;
+          context.beginPath();
+          context.moveTo(PADDING.left, y);
+          context.lineTo(PADDING.left + geometry.plotWidth, y);
+          context.stroke();
+          context.textAlign = "right";
+          context.fillText(curve.label, PADDING.left + geometry.plotWidth - 6, y - 8);
+        }
+
+        if (curve.kind === "inclination-of-altitude" && curve.inclinationAt) {
+          // Sampled in altitude because the relationship is inclination(altitude).
+          context.beginPath();
+          let started = false;
+          let labelAt: { x: number; y: number } | null = null;
+          const steps = 160;
+          for (let step = 0; step <= steps; step += 1) {
+            const unit = step / steps;
+            const altitudeKm = unitToAltitude(unit, bounds);
+            const inclinationDeg = curve.inclinationAt(altitudeKm);
+            if (inclinationDeg === null) { started = false; continue; }
+            const x = PADDING.left +
+              ((inclinationToUnit(inclinationDeg) - viewport.offsetX) * viewport.zoom) *
+                geometry.plotWidth;
+            const y = PADDING.top +
+              (1 - (unit - viewport.offsetY) * viewport.zoom) * geometry.plotHeight;
+            if (started) context.lineTo(x, y); else { context.moveTo(x, y); started = true; }
+            if (unit > 0.34 && !labelAt) labelAt = { x, y };
+          }
+          context.stroke();
+          if (labelAt) {
+            context.textAlign = "left";
+            context.fillText(curve.label, labelAt.x + 6, labelAt.y);
+          }
+        }
+      }
+      context.setLineDash([]);
+      context.restore();
+    }
+
     context.restore();
     setSceneVersion((current) => current + 1);
-  }, [altitudeToY, bounds, categoryBuckets, geometry, points, projection, rangeVariant, selectedId, viewport]);
+  }, [activeCurveId, altitudeToY, bounds, categoryBuckets, geometry, points, projection, rangeVariant, selectedId, showTheory, viewport]);
 
   // Interactive layer: blit the static plot, then draw only selection and hover.
   useEffect(() => {
@@ -457,6 +540,41 @@ export function ExplorerPopulationView({
           </dl>
         </div>
       )}
+
+      <div className="explorer-population-theory">
+        <button
+          aria-pressed={showTheory}
+          className={showTheory ? "active" : ""}
+          type="button"
+          onClick={() => setShowTheory((current) => !current)}
+        >
+          <Sigma aria-hidden="true" size={14} />
+          <span>Orbit theory</span>
+        </button>
+        {showTheory && (
+          <ul>
+            {explorerOrbitTheoryCurves.map((curve: OrbitTheoryCurve) => (
+              <li key={curve.id}>
+                <button
+                  className={curve.id === activeCurveId ? "active" : ""}
+                  type="button"
+                  onMouseEnter={() => setActiveCurveId(curve.id)}
+                  onFocus={() => setActiveCurveId(curve.id)}
+                  onMouseLeave={() => setActiveCurveId(null)}
+                  onBlur={() => setActiveCurveId(null)}
+                  onClick={() =>
+                    setActiveCurveId((current) => current === curve.id ? null : curve.id)}
+                >
+                  {curve.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {showTheory && activeCurveId && (
+          <p>{explorerOrbitTheoryCurves.find((c) => c.id === activeCurveId)?.explanation}</p>
+        )}
+      </div>
 
       <div className="explorer-population-controls">
         {viewport.zoom > 1.01 && (

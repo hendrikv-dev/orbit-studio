@@ -10346,3 +10346,93 @@ button.primary,
     display: none;
   }
 }
+
+/* Orbit theory overlay: closed-form curves drawn over the measured population.
+   Styled as annotation rather than data — the point is that the equation and
+   the catalog agree, so the curves must not compete with the objects. */
+.explorer-population-theory {
+  position: absolute;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  max-width: min(280px, calc(100% - 90px));
+}
+
+.explorer-population-theory > button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 999px;
+  background: rgba(5, 9, 14, 0.72);
+  color: #cfe0ee;
+  padding: 0 13px;
+  font-size: 0.7rem;
+  backdrop-filter: blur(14px);
+}
+
+.explorer-population-theory > button.active {
+  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(56, 152, 214, 0.24);
+  color: #eaf5ff;
+}
+
+.explorer-population-theory ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  border: 1px solid rgba(103, 148, 184, 0.22);
+  border-radius: 10px;
+  background: rgba(4, 9, 16, 0.86);
+  padding: 5px;
+  list-style: none;
+  backdrop-filter: blur(12px);
+}
+
+.explorer-population-theory li button {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ec5e0;
+  padding: 4px 8px;
+  font-size: 0.68rem;
+  text-align: left;
+}
+
+.explorer-population-theory li button.active,
+.explorer-population-theory li button:hover {
+  background: rgba(125, 211, 252, 0.16);
+  color: #d6f2ff;
+}
+
+.explorer-population-theory p {
+  margin: 0;
+  border-left: 2px solid rgba(167, 243, 208, 0.55);
+  color: #9fb4c4;
+  padding: 2px 0 2px 9px;
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 744px) {
+  /* Below the Globe/Population switch, which owns the top-right corner. */
+  .explorer-population-theory {
+    top: 136px;
+    right: 14px;
+    justify-items: end;
+  }
+}
+
+@media (max-width: 743px) {
+  .explorer-population-theory {
+    right: 10px;
+    bottom: 132px;
+    justify-items: end;
+  }
+
+  .explorer-population-theory p {
+    display: none;
+  }
+}
