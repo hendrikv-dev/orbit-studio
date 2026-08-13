@@ -65,7 +65,14 @@ export function ExplorerPopulationView({
   // Theory overlay: the closed-form curves a student derives, drawn over the
   // measured population so the two can be read together.
   const [showTheory, setShowTheory] = useState(false);
-  const [activeCurveId, setActiveCurveId] = useState<string | null>(null);
+  // Pinning and hovering are separate states. Collapsing them into one meant a
+  // click landed on a curve that hover had already made active, so the toggle
+  // read "already on" and switched it off — the explanation vanished at the
+  // moment you asked for it, and on touch, where there is no hover, it never
+  // appeared at all.
+  const [pinnedCurveId, setPinnedCurveId] = useState<string | null>(null);
+  const [hoveredCurveId, setHoveredCurveId] = useState<string | null>(null);
+  const activeCurveId = pinnedCurveId ?? hoveredCurveId;
 
   const bounds = useMemo(() => explorerPopulationBounds(points), [points]);
 
@@ -546,7 +553,10 @@ export function ExplorerPopulationView({
           aria-pressed={showTheory}
           className={showTheory ? "active" : ""}
           type="button"
-          onClick={() => setShowTheory((current) => !current)}
+          onClick={() => setShowTheory((current) => {
+            if (current) { setPinnedCurveId(null); setHoveredCurveId(null); }
+            return !current;
+          })}
         >
           <Sigma aria-hidden="true" size={14} />
           <span>Orbit theory</span>
@@ -556,14 +566,15 @@ export function ExplorerPopulationView({
             {explorerOrbitTheoryCurves.map((curve: OrbitTheoryCurve) => (
               <li key={curve.id}>
                 <button
+                  aria-pressed={curve.id === pinnedCurveId}
                   className={curve.id === activeCurveId ? "active" : ""}
                   type="button"
-                  onMouseEnter={() => setActiveCurveId(curve.id)}
-                  onFocus={() => setActiveCurveId(curve.id)}
-                  onMouseLeave={() => setActiveCurveId(null)}
-                  onBlur={() => setActiveCurveId(null)}
+                  onMouseEnter={() => setHoveredCurveId(curve.id)}
+                  onFocus={() => setHoveredCurveId(curve.id)}
+                  onMouseLeave={() => setHoveredCurveId(null)}
+                  onBlur={() => setHoveredCurveId(null)}
                   onClick={() =>
-                    setActiveCurveId((current) => current === curve.id ? null : curve.id)}
+                    setPinnedCurveId((current) => current === curve.id ? null : curve.id)}
                 >
                   {curve.label}
                 </button>

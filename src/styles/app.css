@@ -10430,9 +10430,11 @@ button.primary,
     right: 10px;
     bottom: 132px;
     justify-items: end;
+    max-width: calc(100% - 20px);
   }
 
+  /* The explanation is the reason the overlay exists; a phone gets it too. */
   .explorer-population-theory p {
-    display: none;
+    text-align: left;
   }
 }
