@@ -14,6 +14,7 @@ import {
 import {
   Box,
   ChevronRight,
+  Columns2,
   Clock,
   CircleDot,
   Crosshair,
@@ -23,6 +24,7 @@ import {
   Globe2,
   ImageOff,
   Map as MapIcon,
+  Maximize2,
   Menu,
   Palette,
   Pause,
@@ -39,9 +41,26 @@ import {
   StepForward,
   X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { ExplorerPopulationView } from "./ExplorerPopulationView";
+import { ExplorerCoverageMap } from "./ExplorerCoverageMap";
+import {
+  coverageEnvelope,
+  estimateStationAccess,
+  longitudeDriftPerRevolutionDeg,
+  normalizeLongitudeDeg,
+  orbitalPeriodMinutes,
+  revolutionsPerDay,
+  type CoverageStation,
+  type SubSatellitePoint,
+} from "../../data/explorerCoverage";
+import { propagateSatellite } from "../../lib/propagation";
+import type { SatelliteModel } from "../../lib/scenario";
+import { EARTH_RADIUS_KM } from "../../physics/constants";
+import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
 import { explorerPopulationPoints } from "../../data/explorerPopulation";
 import {
+  catalogSatellite,
   explorerCategoryHierarchy,
   explorerCategoryLabel,
   currentExplorerSnapshot,
@@ -719,13 +738,263 @@ function ExplorerSourceLinks({ sources }: { sources: ExplorerOfficialSource[] })
   );
 }
 
+const COVERAGE_PRIMARY_COLOR = "rgba(255, 214, 140, 0.95)";
+const COVERAGE_PRIMARY_BAND = "rgba(255, 205, 120, 0.08)";
+
+export interface CoverageSeries {
+  shape: { semiMajorAltitudeKm: number; eccentricity: number; inclinationDeg: number };
+  envelope: ReturnType<typeof coverageEnvelope>;
+  track: SubSatellitePoint[];
+  marker: SubSatellitePoint | null;
+  access: ReturnType<typeof estimateStationAccess>[];
+}
+
+/**
+ * Coverage geometry for one object.
+ *
+ * The split matters: `track` is anchored to the snapshot so it is built once per
+ * selection, while `marker` follows the playback clock. Keying the whole track to
+ * the clock rebuilt ~4,400 propagation steps per tick.
+ */
+function useCoverageSeries(
+  satellite: SatelliteModel | null,
+  anchorIso: string,
+  markerIso: string,
+  stations: readonly CoverageStation[],
+): CoverageSeries | null {
+  const shape = useMemo(() => {
+    if (!satellite) return null;
+    return {
+      semiMajorAltitudeKm: satellite.keplerian.semiMajorAxisKm - EARTH_RADIUS_KM,
+      eccentricity: satellite.keplerian.eccentricity,
+      inclinationDeg: satellite.keplerian.inclinationDeg,
+    };
+  }, [satellite]);
+
+  const track = useMemo<SubSatellitePoint[]>(() => {
+    if (!satellite || !shape) return [];
+    const start = Date.parse(anchorIso);
+    if (!Number.isFinite(start)) return [];
+    const stepSeconds = Math.max(
+      20,
+      Math.round((orbitalPeriodMinutes(shape.semiMajorAltitudeKm) * 60) / 220),
+    );
+    const totalSteps = Math.min(4400, Math.round(86400 / stepSeconds));
+    const points: SubSatellitePoint[] = [];
+    for (let step = 0; step <= totalSteps; step += 1) {
+      const timeMs = start + step * stepSeconds * 1000;
+      const date = new Date(timeMs);
+      try {
+        const geodetic = ecefToGeodetic(eciToEcef(propagateSatellite(satellite, date), date));
+        points.push({
+          latitudeDeg: geodetic.latitudeDeg,
+          longitudeDeg: normalizeLongitudeDeg(geodetic.longitudeDeg),
+          altitudeKm: geodetic.altitudeKm,
+          timeMs,
+        });
+      } catch {
+        break;
+      }
+    }
+    return points;
+  }, [anchorIso, satellite, shape]);
+
+  const marker = useMemo<SubSatellitePoint | null>(() => {
+    if (!satellite) return null;
+    const timeMs = Date.parse(markerIso);
+    if (!Number.isFinite(timeMs)) return null;
+    const date = new Date(timeMs);
+    try {
+      const geodetic = ecefToGeodetic(eciToEcef(propagateSatellite(satellite, date), date));
+      return {
+        latitudeDeg: geodetic.latitudeDeg,
+        longitudeDeg: normalizeLongitudeDeg(geodetic.longitudeDeg),
+        altitudeKm: geodetic.altitudeKm,
+        timeMs,
+      };
+    } catch {
+      return null;
+    }
+  }, [markerIso, satellite]);
+
+  const envelope = useMemo(() => shape ? coverageEnvelope(shape, 5) : null, [shape]);
+  const access = useMemo(
+    () => shape ? stations.map((station) => estimateStationAccess(station, shape, track)) : [],
+    [shape, stations, track],
+  );
+
+  if (!shape || !envelope) return null;
+  return { shape, envelope, track, marker, access };
+}
+
+export type CoveragePresentation = "docked" | "split" | "expanded";
+
+export interface CoveragePanel {
+  presentation: CoveragePresentation;
+  setPresentation: (next: CoveragePresentation) => void;
+  primary: CoverageSeries | null;
+  stations: CoverageStation[];
+  entry: ExplorerCatalogEntry | undefined;
+}
+
+/**
+ * Coverage state lives in the shell rather than the inspector because the map
+ * has to be renderable in two different places: docked inside the info panel,
+ * and beside the globe in split view. Both read the same series.
+ */
+function useCoveragePanel(activeSnapshot: ExplorerSnapshot): CoveragePanel {
+  const scenario = useSimulationStore((state) => state.scenario);
+  const snapshotView = useMemo(() => explorerSnapshotView(activeSnapshot), [activeSnapshot]);
+  const entry = scenario.selectedObjectId
+    ? explorerEntryForId(scenario.selectedObjectId, activeSnapshot)
+    : undefined;
+  const satellite =
+    scenario.selectedObjectType === "satellite"
+      ? scenario.satellites.find((item) => item.id === scenario.selectedObjectId)
+      : undefined;
+
+  const [presentation, setPresentation] = useState<CoveragePresentation>("docked");
+  useEffect(() => {
+    setPresentation("docked");
+  }, [scenario.selectedObjectId]);
+
+  // Playback advances an out-of-React clock; `scenario.simulationTimeUtc` only
+  // moves on discrete events, which is why the globe animates and React does
+  // not. The marker samples the same clock the scene uses, on its own modest
+  // ticker, exactly as the time chip does. The tick rate is also the throttle.
+  const [markerTimeIso, setMarkerTimeIso] = useState(() => readStudioPlaybackTimeIso());
+  useEffect(() => {
+    if (!satellite) return;
+    const update = () => setMarkerTimeIso(readStudioPlaybackTimeIso());
+    update();
+    const intervalId = window.setInterval(update, 125);
+    return () => window.clearInterval(intervalId);
+  }, [satellite]);
+
+  const stations = useMemo<CoverageStation[]>(
+    () =>
+      snapshotView.records
+        .filter((record) => record.groundStation)
+        .map((record) => ({
+          id: record.id,
+          name: record.name,
+          latitudeDeg: record.groundStation!.latitudeDeg,
+          longitudeDeg: record.groundStation!.longitudeDeg,
+          minimumElevationDeg: record.groundStation!.minimumElevationDeg,
+        })),
+    [snapshotView.records],
+  );
+
+
+  const primary = useCoverageSeries(
+    satellite ?? null, activeSnapshot.timestampIso, markerTimeIso, stations,
+  );
+
+  // Split view needs the globe, the map and the inspector on screen together,
+  // which a phone cannot give. Fall back to full screen rather than stacking them.
+  useEffect(() => {
+    if (presentation !== "split" || typeof window === "undefined") return;
+    const query = window.matchMedia("(max-width: 743px)");
+    const apply = () => { if (query.matches) setPresentation("expanded"); };
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, [presentation]);
+
+  // Only the full-screen state is a modal; split view leaves the shell usable.
+  useEffect(() => {
+    if (presentation !== "expanded") return;
+    const shell = document.querySelector<HTMLElement>(".explorer-shell");
+    if (!shell) return;
+    shell.setAttribute("inert", "");
+    return () => shell.removeAttribute("inert");
+  }, [presentation]);
+
+
+  return { presentation, setPresentation, primary, stations, entry };
+}
+
+/**
+ * The coverage map outside the info panel.
+ *
+ * `split` keeps the 3D globe on screen and puts the 2D map beside it, so the
+ * same object can be watched in space and over the ground at once — both driven
+ * by the same playback clock. `expanded` gives the map the whole viewport.
+ */
+function ExplorerCoveragePanel({ coverage }: { coverage: CoveragePanel }) {
+  const { presentation, primary, entry } = coverage;
+  if (presentation === "docked" || !primary || !entry) return null;
+
+  const series = [{
+    id: entry.id, name: entry.name,
+    colorTrack: COVERAGE_PRIMARY_COLOR, colorBand: COVERAGE_PRIMARY_BAND,
+    shape: primary.shape, track: primary.track, marker: primary.marker,
+  }];
+
+  const body = (
+    <div className={`explorer-coverage-surface explorer-coverage-surface-${presentation}`}
+         role={presentation === "expanded" ? "dialog" : undefined}
+         aria-modal={presentation === "expanded" ? true : undefined}
+         aria-label={`${entry.name} mission coverage`}>
+      <header>
+        <div className="explorer-coverage-promoted-title">
+          <strong>{entry.name}</strong>
+          <span>Mission coverage geometry</span>
+        </div>
+        <div className="explorer-coverage-actions">
+          <button
+            aria-pressed={presentation === "split"}
+            className={presentation === "split" ? "active" : ""}
+            type="button"
+            onClick={() => coverage.setPresentation("split")}
+          >
+            <Columns2 aria-hidden="true" size={14} />
+            <span>Split</span>
+          </button>
+          <button
+            aria-pressed={presentation === "expanded"}
+            className={presentation === "expanded" ? "active" : ""}
+            type="button"
+            onClick={() => coverage.setPresentation("expanded")}
+          >
+            <Maximize2 aria-hidden="true" size={14} />
+            <span>Full screen</span>
+          </button>
+          <button className="explorer-coverage-close" type="button"
+                  onClick={() => coverage.setPresentation("docked")}>
+            <X aria-hidden="true" size={15} />
+            <span>Close</span>
+          </button>
+        </div>
+      </header>
+
+      <ExplorerCoverageMap
+        series={series}
+        trackIsReconstructed
+        stations={coverage.stations}
+        selectedStationId={null}
+        onSelectStation={() => undefined}
+        variant="expanded"
+        onToggleExpanded={() =>
+          coverage.setPresentation(presentation === "expanded" ? "split" : "expanded")}
+      />
+    </div>
+  );
+
+  // Split lives inside the shell so the globe stays interactive; full screen is
+  // a modal and must escape .explorer-globe, which is a containing block.
+  return presentation === "expanded" ? createPortal(body, document.body) : body;
+}
+
 function ExplorerInspector({
   activeSnapshot,
+  coverage,
   filterConflictMessage,
   onClearSelection,
   onResolveFilterConflict,
 }: {
   activeSnapshot: ExplorerSnapshot;
+  coverage: CoveragePanel;
   filterConflictMessage: string | null;
   onClearSelection: () => void;
   onResolveFilterConflict: () => void;
@@ -974,6 +1243,78 @@ function ExplorerInspector({
                     <div><dt>RAAN</dt><dd>{formatNumber(satellite.keplerian.raanDeg, 1)}°</dd></div>
                   </dl>
                 </section>
+                {coverage.primary && (
+                  <section className="explorer-inspector-data-section">
+                    <h3>Mission coverage</h3>
+                    <ExplorerCoverageMap
+                      series={[{
+                        id: entry.id,
+                        name: entry.name,
+                        colorTrack: COVERAGE_PRIMARY_COLOR,
+                        colorBand: COVERAGE_PRIMARY_BAND,
+                        shape: coverage.primary.shape,
+                        track: coverage.primary.track,
+                        marker: coverage.primary.marker,
+                      }]}
+                      trackIsReconstructed
+                      stations={coverage.stations}
+                      selectedStationId={null}
+                      onSelectStation={() => undefined}
+                      variant="docked"
+                      onToggleExpanded={() => coverage.setPresentation("expanded")}
+                    />
+                    {/* Period and inclination are already above; only what the
+                        map adds appears here. */}
+                    <dl>
+                      <div>
+                        <dt>Coverage band</dt>
+                        <dd>±{coverage.primary.envelope.coveredLimitDeg.toFixed(1)}°</dd>
+                      </div>
+                      <div>
+                        <dt>Earth surface in band</dt>
+                        <dd>{(coverage.primary.envelope.surfaceFraction * 100).toFixed(0)}%</dd>
+                      </div>
+                      <div>
+                        <dt>Revolutions / day</dt>
+                        <dd>{revolutionsPerDay(coverage.primary.shape.semiMajorAltitudeKm).toFixed(2)}</dd>
+                      </div>
+                      <div>
+                        <dt>Track shift / rev</dt>
+                        <dd>{longitudeDriftPerRevolutionDeg(coverage.primary.shape.semiMajorAltitudeKm).toFixed(1)}°</dd>
+                      </div>
+                    </dl>
+                    {coverage.stations.length > 0 && (
+                      <ul className="explorer-coverage-stations">
+                        {coverage.primary.access.map((item) => (
+                          <li key={item.stationId} className={item.reachable ? "reachable" : ""}>
+                            <span>
+                              {coverage.stations.find((station) => station.id === item.stationId)?.name
+                                ?? item.stationId}
+                            </span>
+                            <span>
+                              {item.reachable
+                                ? `~${Math.round(item.accessesPerDay)} passes/day`
+                                : "never in view"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <button
+                      className="explorer-coverage-compare-open"
+                      type="button"
+                      onClick={() => coverage.setPresentation("split")}
+                    >
+                      Open beside the globe
+                    </button>
+                    <p className="explorer-coverage-caveat">
+                      Coverage band, footprint and pass rates come from the sourced orbit
+                      shape. The track&apos;s longitude comes from a reconstructed phase, so
+                      it shows the shape and spacing of the ground track, not a live
+                      position — individual pass times are not implied.
+                    </p>
+                  </section>
+                )}
               </>
             )}
             {entry.groundStation && (
@@ -1433,6 +1774,7 @@ export function ExplorerView({
     };
   }, [searchOpen]);
   const [viewMode, setViewMode] = useState<ExplorerViewMode>("globe");
+  const coveragePanel = useCoveragePanel(activeSnapshot);
   const [typeFilters, setTypeFilters] = useState<ExplorerCategoryId[]>([]);
   const [colorMode, setColorMode] = useState<ExplorerColorMode>("type");
   const [regimeFilter, setRegimeFilter] = useState<ExplorerRegimeFilter>("all");
@@ -2977,6 +3319,9 @@ export function ExplorerView({
             onClearSelection={clearExplorerSelection}
           />
         </AppErrorBoundary>
+        {coveragePanel.presentation === "split" && viewMode === "globe" && (
+          <ExplorerCoveragePanel coverage={coveragePanel} />
+        )}
         {viewMode === "population" && (
           <ExplorerPopulationView
             points={populationPoints}
@@ -2995,8 +3340,13 @@ export function ExplorerView({
         )}
       </section>
 
+      {coveragePanel.presentation === "expanded" && (
+        <ExplorerCoveragePanel coverage={coveragePanel} />
+      )}
+
       <ExplorerInspector
         activeSnapshot={activeSnapshot}
+        coverage={coveragePanel}
         filterConflictMessage={selectedFilterConflictMessage}
         onClearSelection={closeExplorerDetails}
         onResolveFilterConflict={resolveSelectedFilterConflict}

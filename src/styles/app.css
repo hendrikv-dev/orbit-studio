@@ -10082,3 +10082,267 @@ button.primary,
 .explorer-shell.interface-hidden .explorer-view-switch {
   display: none !important;
 }
+
+/* Mission coverage map.
+   Coverage is a lens on the selected object, so it is docked inside the
+   inspector's Orbit & data tab by default and can be promoted to full screen.
+   It never covers the globe viewport in its docked form. */
+.explorer-coverage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(103, 148, 184, 0.22);
+  border-radius: 10px;
+  background: #050a12;
+}
+
+.explorer-coverage-docked {
+  aspect-ratio: 2 / 1;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.explorer-coverage-canvas {
+  display: block;
+}
+
+.explorer-coverage-expand {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 8px;
+  background: rgba(5, 9, 14, 0.72);
+  color: #cfe0ee;
+  padding: 0;
+  backdrop-filter: blur(10px);
+}
+
+.explorer-coverage-stations {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.explorer-coverage-stations li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: rgba(122, 141, 158, 0.06);
+  color: #7f95a8;
+  font-size: 0.68rem;
+}
+
+.explorer-coverage-stations li.reachable {
+  background: rgba(110, 231, 168, 0.09);
+  color: #cfe6da;
+}
+
+.explorer-coverage-stations li span:last-child {
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.explorer-coverage-caveat {
+  margin: 0;
+  color: #6d8496;
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+
+/* Expanded: the same map promoted to the full viewport. Portaled to the body,
+   because .explorer-inspector is a containing block and would trap it. */
+.explorer-coverage-surface-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: rgba(2, 6, 12, 0.97);
+  backdrop-filter: blur(18px);
+}
+
+.explorer-coverage-surface-expanded {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.explorer-coverage-surface-expanded > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px 12px;
+}
+
+.explorer-coverage-promoted-title {
+  display: grid;
+  gap: 2px;
+}
+
+.explorer-coverage-surface-expanded header strong {
+  color: #eaf5ff;
+  font-size: 0.95rem;
+}
+
+.explorer-coverage-surface-expanded header span {
+  color: #8ea3b5;
+  font-size: 0.7rem;
+}
+
+.explorer-coverage-surface-expanded header button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 999px;
+  background: rgba(5, 9, 14, 0.72);
+  color: #cfe0ee;
+  padding: 0 13px;
+  font-size: 0.74rem;
+}
+
+.explorer-coverage-expanded {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.explorer-coverage-expanded .explorer-coverage-expand {
+  top: 12px;
+  right: 12px;
+}
+
+.explorer-coverage-compare-open {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 9px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #cfe0ee;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 743px) {
+  .explorer-coverage-surface-expanded > header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title close" "actions actions";
+    row-gap: 10px;
+  }
+
+  .explorer-coverage-promoted-title { grid-area: title; }
+    .explorer-coverage-close { grid-area: close; }
+
+  }
+
+/* Split view: the globe keeps the upper half of its own area and the map takes
+   the lower half. Both stay live and share the playback clock, which is the
+   point — the same pass can be watched in space and over the ground at once. */
+.explorer-coverage-surface-split {
+  position: absolute;
+  /* Stops short of the inspector and the timeline instead of rendering beneath
+     them: the map's right third and its own controls were being covered. */
+  right: var(--explorer-coverage-split-right, 0px);
+  bottom: 140px;
+  left: 0;
+  z-index: 8;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: min(46%, 380px);
+  border-top: 1px solid rgba(103, 148, 184, 0.24);
+  background: rgba(3, 8, 14, 0.94);
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(14px);
+}
+
+.explorer-coverage-surface-split > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px 7px;
+}
+
+.explorer-coverage-surface-split .explorer-coverage {
+  border: 0;
+  border-radius: 0;
+}
+
+.explorer-coverage-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.explorer-coverage-actions button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 999px;
+  background: rgba(5, 9, 14, 0.66);
+  color: #cfe0ee;
+  padding: 0 11px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.explorer-coverage-actions button.active {
+  border-color: rgba(0, 148, 255, 0.5);
+  background: rgba(0, 113, 226, 0.26);
+  color: #eaf5ff;
+}
+
+/* The timeline sits at the bottom of the globe area, so split view stops above
+   it rather than covering the scrubber. */
+.explorer-shell:has(.explorer-coverage-surface-split) .explorer-timeline {
+  z-index: 46;
+}
+
+@media (max-width: 743px) {
+  .explorer-coverage-surface-split {
+    height: min(52%, 300px);
+    bottom: calc(158px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .explorer-coverage-actions button span {
+    display: none;
+  }
+
+  .explorer-coverage-actions button {
+    padding: 0 9px;
+  }
+}
+
+/* The inspector floats over the globe, so split view reserves its width
+   wherever the inspector is a side panel. Below 744px it becomes a sheet that
+   fills the screen, and split view is not offered at all. */
+@media (min-width: 744px) {
+  .explorer-shell:has(.explorer-selection-card) {
+    --explorer-coverage-split-right: 432px;
+  }
+}
+
+@media (min-width: 744px) and (max-width: 1180px) {
+  .explorer-coverage-surface-split {
+    bottom: 176px;
+  }
+}
+
+/* No room for globe + map + inspector on a phone; docked and full screen only. */
+@media (max-width: 743px) {
+  .explorer-coverage-compare-open {
+    display: none;
+  }
+}

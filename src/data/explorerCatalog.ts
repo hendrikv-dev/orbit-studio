@@ -566,6 +566,132 @@ const curatedExplorerCatalog: ExplorerCatalogEntry[] = [
       minimumElevationDeg: 10,
     },
   }),
+  // The remaining two Deep Space Network complexes. DSN is deliberately spaced
+  // near 120 deg apart in longitude so a deep-space target is always in view of
+  // one of the three; with all three present that arrangement is visible on the
+  // coverage map instead of having to be asserted.
+  reference({
+    id: "explorer-madrid-dsn",
+    name: "Madrid Deep Space Communications Complex",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "NASA / INTA",
+    country: "Spain",
+    launched: "1964",
+    status: "Operational",
+    summary: "The European complex of NASA's Deep Space Network, near Robledo de Chavela.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 1964,
+    groundStation: {
+      latitudeDeg: 40.4314,
+      longitudeDeg: -4.2481,
+      altitudeMeters: 837,
+      minimumElevationDeg: 10,
+    },
+  }),
+  reference({
+    id: "explorer-canberra-dsn",
+    name: "Canberra Deep Space Communications Complex",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "NASA / CSIRO",
+    country: "Australia",
+    launched: "1965",
+    status: "Operational",
+    summary: "The southern-hemisphere complex of NASA's Deep Space Network, at Tidbinbilla.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 1965,
+    groundStation: {
+      latitudeDeg: -35.4014,
+      longitudeDeg: 148.9817,
+      altitudeMeters: 688,
+      minimumElevationDeg: 10,
+    },
+  }),
+  // High-latitude sites. These exist because a near-polar orbit crosses their
+  // horizon on almost every revolution, which the coverage map shows directly.
+  reference({
+    id: "explorer-svalbard",
+    name: "Svalbard Satellite Station",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "KSAT",
+    country: "Norway",
+    launched: "1997",
+    status: "Operational",
+    summary: "A high-latitude polar ground station at Longyearbyen, Svalbard.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 1997,
+    groundStation: {
+      latitudeDeg: 78.2298,
+      longitudeDeg: 15.3891,
+      altitudeMeters: 458,
+      minimumElevationDeg: 5,
+    },
+  }),
+  reference({
+    id: "explorer-troll",
+    name: "Troll Satellite Station",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "KSAT",
+    country: "Antarctica (Norway)",
+    launched: "2007",
+    status: "Operational",
+    summary: "An Antarctic polar ground station in Queen Maud Land.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 2007,
+    groundStation: {
+      latitudeDeg: -72.0117,
+      longitudeDeg: 2.5333,
+      altitudeMeters: 1298,
+      minimumElevationDeg: 5,
+    },
+  }),
+  reference({
+    id: "explorer-wallops",
+    name: "Wallops Flight Facility",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "NASA",
+    country: "United States",
+    launched: "1945",
+    status: "Operational",
+    summary: "A NASA Near Space Network ground site on the Virginia coast.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 1945,
+    groundStation: {
+      latitudeDeg: 37.9273,
+      longitudeDeg: -75.4757,
+      altitudeMeters: 12,
+      minimumElevationDeg: 5,
+    },
+  }),
+  reference({
+    id: "explorer-kourou",
+    name: "Kourou Ground Station",
+    categoryId: "ground-stations",
+    objectType: "Ground station",
+    operator: "ESA (ESTRACK)",
+    country: "French Guiana",
+    launched: "1968",
+    status: "Operational",
+    summary: "An ESTRACK station near the Guiana Space Centre, close to the equator.",
+    sourceId: "curated-reference",
+    selectionKind: "ground-station",
+    activeFromYear: 1968,
+    groundStation: {
+      latitudeDeg: 5.2517,
+      longitudeDeg: -52.8047,
+      altitudeMeters: 20,
+      minimumElevationDeg: 5,
+    },
+  }),
   reference({
     id: "explorer-gps-constellation",
     name: "Global Positioning System",
@@ -1524,7 +1650,13 @@ export function explorerSnapshotView(snapshot: ExplorerSnapshot): ExplorerCatalo
   return getHistoricalCatalog(snapshot);
 }
 
-function catalogSatellite(
+/**
+ * Builds a propagatable model from any catalog entry that defines an orbit,
+ * including objects that are not currently in the rendered scene. Coverage
+ * comparison needs this: the object being compared against is chosen from the
+ * whole catalog, not just what the globe happens to be drawing.
+ */
+export function catalogSatellite(
   entry: ExplorerCatalogEntry,
   epoch: Date,
   showTrail: boolean,
