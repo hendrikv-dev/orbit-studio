@@ -47,13 +47,47 @@ interface ExplorerCoverageMapProps {
 }
 
 interface MapGeometry {
+  /** The canvas box, which is whatever shape the surrounding layout gives us. */
   width: number;
   height: number;
+  /**
+   * The map box: the largest 2:1 rectangle that fits, centred. An
+   * equirectangular projection spans 360° of longitude by 180° of latitude, so
+   * it is only correct at 2:1 — filling a taller or wider container would
+   * stretch the continents and every angle read off them. Anything outside this
+   * box is letterbox.
+   */
+  mapX: number;
+  mapY: number;
+  mapWidth: number;
+  mapHeight: number;
+}
+
+/** The largest correctly-proportioned map that fits the given canvas box. */
+export function mapGeometry(width: number, height: number): MapGeometry {
+  const mapWidth = Math.min(width, height * 2);
+  const mapHeight = mapWidth / 2;
+  return {
+    width,
+    height,
+    mapX: (width - mapWidth) / 2,
+    mapY: (height - mapHeight) / 2,
+    mapWidth,
+    mapHeight,
+  };
+}
+
+/** Confine drawing to the map box so nothing bleeds into the letterbox. */
+function clipToMap(context: CanvasRenderingContext2D, geometry: MapGeometry) {
+  context.save();
+  context.beginPath();
+  context.rect(geometry.mapX, geometry.mapY, geometry.mapWidth, geometry.mapHeight);
+  context.clip();
 }
 
 const project = (latitudeDeg: number, longitudeDeg: number, geometry: MapGeometry) => ({
-  x: ((longitudeDeg + 180) / 360) * geometry.width,
-  y: ((90 - latitudeDeg) / 180) * geometry.height,
+  x: geometry.mapX + ((longitudeDeg + 180) / 360) * geometry.mapWidth,
+  y: geometry.mapY + ((90 - latitudeDeg) / 180) * geometry.mapHeight,
 });
 
 /**
@@ -129,7 +163,7 @@ export function ExplorerCoverageMap({
 }: ExplorerCoverageMapProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [geometry, setGeometry] = useState<MapGeometry>({ width: 0, height: 0 });
+  const [geometry, setGeometry] = useState<MapGeometry>(() => mapGeometry(0, 0));
   const [mapImage, setMapImage] = useState<HTMLImageElement | null>(null);
 
   // Drawing a whole day of revolutions produces an unreadable mesh, so each
@@ -165,7 +199,7 @@ export function ExplorerCoverageMap({
     if (!frame) return;
     const observer = new ResizeObserver((entries) => {
       const box = entries[0]?.contentRect;
-      if (box) setGeometry({ width: box.width, height: box.height });
+      if (box) setGeometry(mapGeometry(box.width, box.height));
     });
     observer.observe(frame);
     return () => observer.disconnect();
@@ -192,9 +226,13 @@ export function ExplorerCoverageMap({
     // --- basemap ---------------------------------------------------------
     context.fillStyle = "#050a12";
     context.fillRect(0, 0, geometry.width, geometry.height);
+    // Everything geographic is confined to the map box. Without this the caps
+    // and track segments drawn a world width to either side — the copies that
+    // make an antimeridian crossing continuous — would paint over the letterbox.
+    clipToMap(context, geometry);
     if (mapImage) {
       context.globalAlpha = 0.55;
-      context.drawImage(mapImage, 0, 0, geometry.width, geometry.height);
+      context.drawImage(mapImage, geometry.mapX, geometry.mapY, geometry.mapWidth, geometry.mapHeight);
       context.globalAlpha = 1;
     }
 
@@ -209,13 +247,13 @@ export function ExplorerCoverageMap({
       const bandTop = project(item.envelope.coveredLimitDeg, -180, geometry).y;
       const bandBottom = project(-item.envelope.coveredLimitDeg, -180, geometry).y;
       context.fillStyle = item.colorBand;
-      context.fillRect(0, bandTop, geometry.width, bandBottom - bandTop);
+      context.fillRect(geometry.mapX, bandTop, geometry.mapWidth, bandBottom - bandTop);
       context.strokeStyle = item.colorTrack;
       context.globalAlpha = 0.45;
       for (const y of [bandTop, bandBottom]) {
         context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(geometry.width, y);
+        context.moveTo(geometry.mapX, y);
+        context.lineTo(geometry.mapX + geometry.mapWidth, y);
         context.stroke();
       }
       context.globalAlpha = 1;
@@ -228,15 +266,15 @@ export function ExplorerCoverageMap({
     for (let lon = -180; lon <= 180; lon += 30) {
       const x = project(0, lon, geometry).x;
       context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, geometry.height);
+      context.moveTo(x, geometry.mapY);
+      context.lineTo(x, geometry.mapY + geometry.mapHeight);
       context.stroke();
     }
     for (let lat = -60; lat <= 60; lat += 30) {
       const y = project(lat, 0, geometry).y;
       context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(geometry.width, y);
+      context.moveTo(geometry.mapX, y);
+      context.lineTo(geometry.mapX + geometry.mapWidth, y);
       context.stroke();
     }
 
@@ -307,6 +345,8 @@ export function ExplorerCoverageMap({
       context.stroke();
     }
 
+    context.restore();
+
     setSceneVersion((current) => current + 1);
   }, [drawSeries, geometry, mapImage, selectedStationId, stations, trackIsReconstructed]);
 
@@ -325,6 +365,7 @@ export function ExplorerCoverageMap({
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(scene, 0, 0);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    clipToMap(context, geometry);
 
     for (const item of drawSeries) {
       const head = item.marker ?? item.displayTrack[0];
@@ -344,14 +385,20 @@ export function ExplorerCoverageMap({
       context.lineWidth = 1.5;
       context.stroke();
     }
+    context.restore();
   }, [drawSeries, geometry, sceneVersion, variant]);
 
   const pickStation = (clientX: number, clientY: number) => {
     const frame = frameRef.current;
     if (!frame) return;
     const rect = frame.getBoundingClientRect();
-    const longitudeDeg = ((clientX - rect.left) / rect.width) * 360 - 180;
-    const latitudeDeg = 90 - ((clientY - rect.top) / rect.height) * 180;
+    // Unproject through the map box so a click lands where the map is drawn,
+    // not where the frame happens to extend.
+    const x = clientX - rect.left - geometry.mapX;
+    const y = clientY - rect.top - geometry.mapY;
+    if (x < 0 || y < 0 || x > geometry.mapWidth || y > geometry.mapHeight) return;
+    const longitudeDeg = (x / geometry.mapWidth) * 360 - 180;
+    const latitudeDeg = 90 - (y / geometry.mapHeight) * 180;
     let best: CoverageStation | null = null;
     let bestSeparation = 12;
     for (const station of stations) {
