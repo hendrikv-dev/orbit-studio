@@ -19,10 +19,23 @@ import {
 
 const HOUR = 3600;
 
-function formatCount(value: number): string {
-  if (value >= 1000) return `${Math.round(value / 100) / 10}k`;
-  if (value >= 10) return Math.round(value).toLocaleString();
-  return value.toFixed(1);
+/**
+ * The breakup model is documented as order-of-magnitude, so its output is shown
+ * to one significant figure with a tilde. "543 fragments" implies a count;
+ * "~500" implies an estimate, which is what it is.
+ */
+function formatModelCount(value: number): string {
+  if (value <= 0) return "0";
+  const magnitude = 10 ** Math.floor(Math.log10(value));
+  const rounded = Math.round(value / magnitude) * magnitude;
+  return `~${rounded >= 1000 ? `${rounded / 1000}k` : rounded.toLocaleString()}`;
+}
+
+/** Energy-to-mass ratio, also a model quantity: two significant figures. */
+function formatEmr(value: number): string {
+  if (value >= 100) return Math.round(value / 10) * 10 + "";
+  if (value >= 10) return Math.round(value) + "";
+  return value.toPrecision(2);
 }
 
 function formatLead(seconds: number): string {
@@ -69,17 +82,17 @@ export function EncounterSection({ altitudeKm }: { altitudeKm: number }) {
   return (
     <div className="encounter-section">
       <p className="encounter-preamble">
-        A hypothetical impact on this orbit. Orbit Studio has no current
-        ephemerides or covariance, so this is geometry and energy — never a
-        probability, and never a real pair of objects.
+        A hypothetical impact on this orbit, for geometry and energy only. Without
+        current ephemerides and covariance no collision probability can be computed,
+        and none is shown here. No real object pair is described.
       </p>
 
       <label className="mission-slider">
         <span className="mission-slider-label">
-          <span>Crossing angle</span>
+          <span>Relative inclination</span>
           <output>{crossingAngleDeg.toFixed(0)}°</output>
         </span>
-        <input aria-label="Crossing angle" type="range" min={0} max={180} step={1}
+        <input aria-label="Relative inclination" type="range" min={0} max={180} step={1}
                value={crossingAngleDeg}
                onChange={(event) => setCrossingAngleDeg(Number.parseFloat(event.target.value))} />
       </label>
@@ -109,8 +122,8 @@ export function EncounterSection({ altitudeKm }: { altitudeKm: number }) {
           <dd>{assessment.relativeSpeedKmS.toFixed(2)} km/s</dd>
         </div>
         <div>
-          <dt>Energy on target</dt>
-          <dd>{formatCount(assessment.energyToMassRatioJPerG)} J/g</dd>
+          <dt>Energy-to-mass ratio</dt>
+          <dd>{formatEmr(assessment.energyToMassRatioJPerG)} J/g</dd>
         </div>
       </dl>
 
@@ -122,8 +135,8 @@ export function EncounterSection({ altitudeKm }: { altitudeKm: number }) {
           {catastrophic
             ? `Above ${CATASTROPHIC_EMR_J_PER_G} J/g the target breaks up rather than being
                damaged. On the NASA standard breakup model this makes roughly
-               ${formatCount(assessment.fragmentsOver10cm)} fragments larger than 10 cm and
-               ${formatCount(assessment.fragmentsOver1cm)} larger than 1 cm — the second
+               ${formatModelCount(assessment.fragmentsOver10cm)} fragments larger than 10 cm and
+               ${formatModelCount(assessment.fragmentsOver1cm)} larger than 1 cm — the second
                number matters more, because those are lethal and almost none are tracked.`
             : `Under ${CATASTROPHIC_EMR_J_PER_G} J/g the impact craters the target instead of
                shattering it. Raise the crossing angle or the impactor mass to cross the
@@ -134,13 +147,12 @@ export function EncounterSection({ altitudeKm }: { altitudeKm: number }) {
       {/* Closing speed comes from the angle alone, which is the result people
           are most often surprised by. */}
       <p className="mission-insight">
-        <strong>Closing speed is set by the angle, not the altitude.</strong>
+        <strong>Closing speed is governed by relative inclination.</strong>
         <span>
-          Both objects orbit at the same speed here. Nose to tail they barely touch;
-          at {crossingAngleDeg.toFixed(0)}° they meet at{" "}
-          {assessment.relativeSpeedKmS.toFixed(1)} km/s, and head-on it would be{" "}
-          {headOnSpeedKmS.toFixed(1)} km/s. Nothing about the altitude changes that —
-          only the angle between the planes does.
+          Both objects orbit at the same speed. Co-planar and co-directional they
+          barely close; at {crossingAngleDeg.toFixed(0)}° they close at{" "}
+          {assessment.relativeSpeedKmS.toFixed(1)} km/s, and head-on at{" "}
+          {headOnSpeedKmS.toFixed(1)} km/s. Altitude does not enter it.
         </span>
       </p>
 
@@ -166,15 +178,16 @@ export function EncounterSection({ altitudeKm }: { altitudeKm: number }) {
       </dl>
 
       <p className="mission-insight">
-        <strong>An along-track burn moves you three times further than it should.</strong>
+        <strong>Along-track displacement grows at three times the burn rate.</strong>
         <span>
-          Naively that burn would displace you {naiveDriftKm.toFixed(1)} km in{" "}
-          {formatLead(leadSeconds)}. It displaces you{" "}
-          {alongTrackDriftKm(burn, leadSeconds).toFixed(1)} km, because changing speed
-          changes the orbital period and the offset compounds every revolution. It is
-          also why warning time is worth more than propellant — the same miss costs{" "}
+          The burn alone would displace {naiveDriftKm.toFixed(1)} km over{" "}
+          {formatLead(leadSeconds)}; the actual displacement is{" "}
+          {alongTrackDriftKm(burn, leadSeconds).toFixed(1)} km, because the change in
+          semi-major axis alters the period and the offset accumulates each
+          revolution. Warning time therefore buys more than propellant: the same miss
+          distance costs{" "}
           {(avoidanceDeltaVMetersPerSecond(REQUIRED_MISS_KM, 600) / burn).toFixed(0)}×
-          as much with ten minutes' notice.
+          as much at ten minutes' notice.
         </span>
       </p>
     </div>

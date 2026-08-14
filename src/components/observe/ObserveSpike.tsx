@@ -228,7 +228,7 @@ export function ObserveSpike() {
             </table>
             <p style={{ color: "#8ea3b5", marginTop: 12 }}>
               <span style={{ display: "block" }}>
-                {skyStars.length} catalogued stars above the horizon
+                {skyStars.length} cataloged stars above the horizon
               </span>
               {riseSet.map((entry) => (
                 <span key={entry.label} style={{ display: "block" }}>

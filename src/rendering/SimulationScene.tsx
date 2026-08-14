@@ -608,6 +608,23 @@ interface SimulationSceneProps {
   onClearSelection?: () => void;
 }
 
+/**
+ * Announces the first frame the renderer actually draws.
+ *
+ * The boot indicator cannot infer this from the DOM: the canvas element exists
+ * and is sized well before WebGL has drawn anything, so a DOM-presence check
+ * cleared the indicator over a still-blank viewport. Only the render loop knows.
+ */
+function SceneFirstFrameSignal() {
+  const announced = useRef(false);
+  useFrame(() => {
+    if (announced.current) return;
+    announced.current = true;
+    window.dispatchEvent(new CustomEvent("orbit-studio:first-frame"));
+  });
+  return null;
+}
+
 export function SimulationScene({
   missionFrame,
   showVisualContextLegend = false,
@@ -1227,6 +1244,7 @@ export function SimulationScene({
           far: missionFrame ? EARTH_RADIUS_KM * 90 : EARTH_RADIUS_KM * 40,
         }}
       >
+        <SceneFirstFrameSignal />
         <SceneMotionClock />
         <SceneSunDirection earthToSunWorldRef={earthToSunWorldRef} />
         <color attach="background" args={["#05070b"]} />

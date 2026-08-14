@@ -9991,6 +9991,11 @@ button.primary,
 .explorer-shell {
   /* Width of the representation switch plus a gap; see .explorer-view-switch. */
   --explorer-switch-clearance: 180px;
+  /* The inspector floats over .explorer-globe rather than taking a column from
+     it (absolute, 400px wide, 18px from the edge). The globe and the scatter
+     are happy to run underneath it; the text lenses are not, so they reserve
+     this much when a selection is open. */
+  --explorer-inspector-reserve: 430px;
 }
 
 .explorer-view-switch {
@@ -11047,6 +11052,11 @@ button.primary,
   display: block;
   width: 100%;
   height: auto;
+  /* A 640x300 viewBox at full column width is ~420px tall, which pushed the
+     x-axis below the fold on a 750px viewport — and scrolling to reach it took
+     the top gridline and the table header away, so the chart could only ever be
+     seen in halves. Capping the height keeps all of it on screen. */
+  max-height: min(320px, 40vh);
 }
 
 .explorer-lifetime-figure figcaption {
@@ -11371,3 +11381,96 @@ button.primary,
 }
 
 .encounter-verdict.survivable strong { color: #cdf0dd; }
+
+/* Text lenses step aside for the inspector. The globe and the population
+   scatter deliberately do not: they are backdrops and read fine underneath. */
+@media (min-width: 744px) {
+  .explorer-shell:has(.explorer-inspector) .explorer-debris,
+  .explorer-shell:has(.explorer-inspector) .explorer-lifetime {
+    right: var(--explorer-inspector-reserve);
+  }
+}
+
+.explorer-debris-survival-plot {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.explorer-debris-survival-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #7d93a6;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.explorer-debris-survival-grid {
+  stroke: rgba(126, 154, 176, 0.14);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Export sits at the top-right of an analytical view: present without competing
+   with the reading order. */
+.explorer-export-button {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 999px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #cfe0ee;
+  padding: 0 12px;
+  font-size: 0.71rem;
+}
+
+.explorer-export-button:hover {
+  border-color: rgba(150, 180, 205, 0.45);
+  color: #eaf5ff;
+}
+
+/* Clears the inspector when one is open, matching the lens insets. */
+@media (min-width: 744px) {
+  .explorer-shell:has(.explorer-inspector) .explorer-export-button {
+    right: 18px;
+  }
+}
+
+/* On a phone the switch occupies the top-right corner, so the button joins the
+   header flow instead of competing for that space. */
+@media (max-width: 743px) {
+  .explorer-export-button {
+    position: static;
+    margin-top: 10px;
+  }
+}
+
+/* On a phone the inspector is a sheet that covers most of the viewport, so a
+   text lens and a selected object cannot share the screen. Desktop reserves
+   room; here the sheet stands down while a lens is open. The selection itself
+   is kept — the panel returns on Globe or Population. */
+@media (max-width: 743px), (max-width: 960px) and (max-height: 520px) {
+  .explorer-shell:has(.explorer-debris) .explorer-inspector,
+  .explorer-shell:has(.explorer-lifetime) .explorer-inspector {
+    display: none;
+  }
+
+  .explorer-shell:has(.explorer-inspector):has(.explorer-debris),
+  .explorer-shell:has(.explorer-inspector):has(.explorer-lifetime) {
+    grid-template-rows:
+      calc(56px + env(safe-area-inset-top, 0px))
+      minmax(178px, 1fr)
+      auto;
+    grid-template-areas:
+      "header"
+      "globe"
+      "timeline";
+  }
+}

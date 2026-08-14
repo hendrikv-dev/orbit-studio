@@ -29,6 +29,14 @@ function formatDuration(seconds: number): string {
 const ISP_SECONDS = 320;
 
 /**
+ * Two decimals, not three. This is an impulsive two-body budget that ignores
+ * finite-burn losses of roughly 1-3% — 50 to 150 m/s on a GEO transfer — so a
+ * figure printed to 1 m/s claims precision the model does not have, directly
+ * above a caveat saying as much.
+ */
+const deltaV = (kmS: number) => `${kmS.toFixed(2)} km/s`;
+
+/**
  * Altitude spans three orders of magnitude here — 200 km to lunar distance —
  * so the slider is logarithmic. A linear one either loses all resolution in LEO
  * or cannot reach the ratios where the three-burn transfer starts to win, which
@@ -132,18 +140,18 @@ export function MissionPlannerSection({
       </div>
 
       {unchanged ? (
-        <p className="mission-idle">Target matches the current orbit — no manoeuvre needed.</p>
+        <p className="mission-idle">Target matches the current orbit — no maneuver needed.</p>
       ) : (
         <>
           <dl className="mission-budget">
             <div className="mission-budget-total">
               <dt>Total Δv</dt>
-              <dd>{plan.totalDeltaVKmS.toFixed(3)} km/s</dd>
+              <dd>{deltaV(plan.totalDeltaVKmS)}</dd>
             </div>
             {plan.transfer.burns.map((burn) => (
               <div key={burn.id}>
                 <dt>{burn.label}</dt>
-                <dd>{burn.deltaVKmS.toFixed(3)} km/s</dd>
+                <dd>{deltaV(burn.deltaVKmS)}</dd>
               </div>
             ))}
             <div>
@@ -159,13 +167,13 @@ export function MissionPlannerSection({
           {planeChange > 0.05 && (
             <p className="mission-insight">
               <strong>
-                {(plan.planeChangeAtArrivalFraction * 100).toFixed(0)}% of the{" "}
-                {planeChange.toFixed(1)}° turn belongs at the far burn.
+                Perform {(plan.planeChangeAtArrivalFraction * 100).toFixed(0)}% of the{" "}
+                {planeChange.toFixed(1)}° plane change at the apogee burn.
               </strong>
               <span>
-                Doing the whole plane change before departing would cost{" "}
-                {plan.naiveDeltaVKmS.toFixed(2)} km/s — {saving.toFixed(2)} km/s more. A
-                turn is cheapest where the spacecraft is slowest.
+                Performing it entirely at perigee would cost{" "}
+                {plan.naiveDeltaVKmS.toFixed(2)} km/s, {saving.toFixed(2)} km/s more,
+                because the plane change scales with the speed it is performed at.
               </span>
             </p>
           )}
@@ -174,8 +182,8 @@ export function MissionPlannerSection({
             <p className="mission-insight">
               <strong>A three-burn bi-elliptic transfer is cheaper here.</strong>
               <span>
-                {bielliptic.totalDeltaVKmS.toFixed(3)} km/s against{" "}
-                {plan.transfer.totalDeltaVKmS.toFixed(3)}, because the radius ratio is{" "}
+                {deltaV(bielliptic.totalDeltaVKmS)} against{" "}
+                {deltaV(plan.transfer.totalDeltaVKmS)}, because the radius ratio is{" "}
                 {ratio.toFixed(1)} — past about {BIELLIPTIC_ALWAYS_WORSE_RATIO.toFixed(1)} the
                 Hohmann transfer stops being optimal. It takes{" "}
                 {formatDuration(bielliptic.transferTimeSeconds)} instead of{" "}
@@ -193,8 +201,7 @@ export function MissionPlannerSection({
 
       <p className="mission-caveat">
         Impulsive two-body budget: instantaneous burns, no drag, no oblateness, no
-        finite-thrust losses. It is the first number a mission is sized with, not the
-        last.
+        finite-thrust losses. Suitable for first-order sizing only.
       </p>
     </div>
   );

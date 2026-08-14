@@ -66,8 +66,8 @@ export function hohmannTransfer(fromRadiusKm: number, toRadiusKm: number): Trans
   return {
     kind: "hohmann",
     burns: [
-      { id: "depart", label: "Departure burn", deltaVKmS: first, radiusKm: fromRadiusKm },
-      { id: "arrive", label: "Arrival burn", deltaVKmS: second, radiusKm: toRadiusKm },
+      { id: "depart", label: "Perigee burn", deltaVKmS: first, radiusKm: fromRadiusKm },
+      { id: "arrive", label: "Apogee burn", deltaVKmS: second, radiusKm: toRadiusKm },
     ],
     totalDeltaVKmS: first + second,
     transferTimeSeconds: halfPeriodSeconds(transferSemiMajorAxis),

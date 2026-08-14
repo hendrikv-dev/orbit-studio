@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { Download } from "lucide-react";
+import { buildCsv, downloadCsv } from "../../lib/csvExport";
 import type { ExplorerHistoricalCatalogObject } from "../../data/explorerHistoricalCatalog";
 import {
   explorerLifetimeBands,
@@ -42,7 +44,7 @@ export function ExplorerLifetimeView({
   objects: readonly ExplorerHistoricalCatalogObject[];
   snapshotYear: number;
 }) {
-  const [population, setPopulation] = useState<LifetimePopulation>("non-manoeuvring");
+  const [population, setPopulation] = useState<LifetimePopulation>("non-maneuvering");
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -86,6 +88,48 @@ export function ExplorerLifetimeView({
   return (
     <section className="explorer-lifetime" aria-label="Measured orbital lifetime">
       <header className="explorer-lifetime-header">
+        <button
+          className="explorer-export-button"
+          type="button"
+          onClick={() => {
+            const csv = buildCsv(
+              bands,
+              [
+                { header: "perigee_band_km", value: (band) => `${band.lowKm}-${band.highKm}` },
+                { header: "objects_measured", value: (band) => band.observed },
+                { header: "decayed", value: (band) => band.decayed },
+                { header: "still_in_orbit", value: (band) => band.censored },
+                {
+                  header: "median_lifetime_yr",
+                  // Matches the table: a median of 0 whole years reads as "under 1".
+                  value: (band) =>
+                    band.medianYears === null
+                      ? "beyond record"
+                      : band.medianYears < 1
+                        ? "<1"
+                        : band.medianYears,
+                },
+                { header: "survival_1yr", value: (band) => survivalAt(band.curve, 1).toFixed(3) },
+                { header: "survival_5yr", value: (band) => survivalAt(band.curve, 5).toFixed(3) },
+                { header: "survival_10yr", value: (band) => survivalAt(band.curve, 10).toFixed(3) },
+                { header: "survival_25yr", value: (band) => survivalAt(band.curve, 25).toFixed(3) },
+              ],
+              [
+                "Orbit Studio - measured orbital lifetime (Kaplan-Meier)",
+                `Population: ${population === "payload" ? "payloads (maneuvering)" : "debris, rocket bodies and components (non-maneuvering)"}`,
+                `Snapshot year: ${snapshotYear}`,
+                "Source: GCAT (J. McDowell, planet4589.org/space/gcat), CC BY 4.0",
+                "Includes objects whose orbit was recorded within a year of coming into existence, in near-circular orbits.",
+                "Objects still in orbit are censored at their current age, not counted as decayed.",
+                "median_lifetime_yr = 'beyond record' where survival never reaches 0.5 within the observed record.",
+              ],
+            );
+            downloadCsv(`orbit-studio-orbital-lifetime-${population}.csv`, csv);
+          }}
+        >
+          <Download aria-hidden="true" size={13} />
+          Export CSV
+        </button>
         <h2>How long orbits last</h2>
         <p>
           Measured from the decay dates of real objects, not from a drag model. An
@@ -94,10 +138,10 @@ export function ExplorerLifetimeView({
         </p>
         <div className="explorer-lifetime-population" role="group"
              aria-label="Population measured">
-          <button aria-pressed={population === "non-manoeuvring"} type="button"
-                  className={population === "non-manoeuvring" ? "active" : ""}
-                  onClick={() => setPopulation("non-manoeuvring")}>
-            Cannot manoeuvre
+          <button aria-pressed={population === "non-maneuvering"} type="button"
+                  className={population === "non-maneuvering" ? "active" : ""}
+                  onClick={() => setPopulation("non-maneuvering")}>
+            Debris & rocket bodies
           </button>
           <button aria-pressed={population === "payload"} type="button"
                   className={population === "payload" ? "active" : ""}
@@ -108,9 +152,9 @@ export function ExplorerLifetimeView({
         {population === "payload" ? (
           <p className="explorer-lifetime-warning" role="status">
             Payloads are inserted low and raised to their operating altitude, so the
-            recorded orbit is often not where the object lived. Read this as a record
-            of how satellites are operated — the lowest band appears to outlast the
-            one above it, which drag does not permit.
+            recorded orbit is often not where the object lived. This curve therefore
+            describes how satellites are operated rather than how orbits decay: the
+            lowest band appears to outlast the one above it, which drag does not permit.
           </p>
         ) : null}
       </header>
@@ -217,8 +261,7 @@ export function ExplorerLifetimeView({
             Counts objects whose orbit was recorded within a year of coming into
             existence, in near-circular orbits, so the recorded perigee is where the
             object actually was. “Beyond record” means half the band has still not
-            decayed — longer than {snapshotYear - 1957} years of observation, which is
-            not the same as a long number.
+            decayed within the {snapshotYear - 1957} years of observation available.
           </p>
         </div>
       </div>

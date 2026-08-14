@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ExternalLink, ScatterChart } from "lucide-react";
+import { Download, ExternalLink, ScatterChart } from "lucide-react";
+import { buildCsv, downloadCsv } from "../../lib/csvExport";
 import type { ExplorerHistoricalCatalogObject } from "../../data/explorerHistoricalCatalog";
 import {
   fragmentSurvivalByYear,
@@ -77,12 +78,25 @@ function SurvivalCurve({
 
   return (
     <figure className="explorer-debris-survival">
-      <svg preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} role="img"
-           aria-label={`Fragments remaining from ${firstYear} to ${lastYear}`}>
-        <polyline points={`0,${height} ${points} ${width},${height}`}
-                  className="explorer-debris-survival-area" />
-        <polyline points={points} className="explorer-debris-survival-line" />
-      </svg>
+      <div className="explorer-debris-survival-plot">
+        {/* Without a scale the area could be 0-100% or 60-100% and the reader
+            cannot tell. The Lifetime view labels its axis; so does this. */}
+        <div className="explorer-debris-survival-axis" aria-hidden="true">
+          <span>100%</span>
+          <span>50%</span>
+          <span>0%</span>
+        </div>
+        <svg preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} role="img"
+             aria-label={`Fragments remaining from ${firstYear} to ${lastYear}`}>
+          {[0.25, 0.5, 0.75].map((fraction) => (
+            <line key={fraction} className="explorer-debris-survival-grid"
+                  x1={0} x2={width} y1={height * fraction} y2={height * fraction} />
+          ))}
+          <polyline points={`0,${height} ${points} ${width},${height}`}
+                    className="explorer-debris-survival-area" />
+          <polyline points={points} className="explorer-debris-survival-line" />
+        </svg>
+      </div>
       <figcaption>
         <span>{firstYear}</span>
         <span>
@@ -112,7 +126,7 @@ function DispersionBar({ event }: { event: FragmentationEvent }) {
   return (
     <div className="explorer-debris-dispersion">
       <p className="explorer-debris-dispersion-title">
-        Fragment perigee, against the parent's
+        Fragment perigee range vs parent perigee
       </p>
       <div className="explorer-debris-dispersion-track">
         <span
@@ -135,19 +149,15 @@ function DispersionBar({ event }: { event: FragmentationEvent }) {
       </div>
       <dl>
         <div>
-          <dt>Parent perigee</dt>
+          <dt>
+            <span className="explorer-debris-key explorer-debris-key-parent" aria-hidden="true" />
+            Parent perigee
+          </dt>
           <dd>{Math.round(parent.perigeeKm).toLocaleString()} km</dd>
         </div>
         <div>
           <dt>Fragment perigee, median</dt>
           <dd>{Math.round(spread.medianKm).toLocaleString()} km</dd>
-        </div>
-        <div>
-          <dt>
-            <span className="explorer-debris-key explorer-debris-key-parent" aria-hidden="true" />
-            Parent perigee marker
-          </dt>
-          <dd>{Math.round(parent.perigeeKm).toLocaleString()} km</dd>
         </div>
         <div>
           <dt>Lowest fragment</dt>
@@ -188,10 +198,47 @@ export function ExplorerDebrisView({
   return (
     <section className="explorer-debris" aria-label="Debris and fragmentation">
       <header className="explorer-debris-header">
+        <button
+          className="explorer-export-button"
+          type="button"
+          onClick={() => {
+            const csv = buildCsv(
+              ranked,
+              [
+                { header: "parent", value: (event) => event.parentName },
+                { header: "parent_record_id", value: (event) => event.parentRecordId },
+                { header: "event_date_utc", value: (event) => event.dateIso },
+                { header: "date_precision", value: (event) => event.datePrecision },
+                { header: "date_uncertain", value: (event) => (event.dateUncertain ? "true" : "false") },
+                { header: "assessed_cause", value: (event) => fragmentationCauseFor(event).cause ?? "" },
+                { header: "cause_standing", value: (event) => fragmentationCauseFor(event).standing },
+                { header: "fragments_cataloged", value: (event) => event.fragmentCount },
+                { header: "fragments_in_orbit", value: (event) => event.inOrbitCount },
+                { header: "parent_perigee_km", value: (event) => event.parentOrbit?.perigeeKm.toFixed(1) },
+                { header: "parent_apogee_km", value: (event) => event.parentOrbit?.apogeeKm.toFixed(1) },
+                { header: "parent_inclination_deg", value: (event) => event.parentOrbit?.inclinationDeg.toFixed(2) },
+                { header: "fragment_perigee_min_km", value: (event) => event.fragmentPerigeeKm?.minKm.toFixed(1) },
+                { header: "fragment_perigee_median_km", value: (event) => event.fragmentPerigeeKm?.medianKm.toFixed(1) },
+              ],
+              [
+                "Orbit Studio - fragmentation events",
+                `Snapshot: ${snapshotLabel}`,
+                "Parentage, dates and orbits: GCAT (J. McDowell, planet4589.org/space/gcat), CC BY 4.0",
+                `Assessed cause: ${fragmentationCauseReference.reportNumber} - ${fragmentationCauseReference.title}`,
+                "cause_standing: assessed | assessed-unknown (investigated, undetermined) | unassessed (outside the cited reference)",
+                "fragments_in_orbit counts objects with no decay date recorded at the snapshot.",
+              ],
+            );
+            downloadCsv("orbit-studio-fragmentation-events.csv", csv);
+          }}
+        >
+          <Download aria-hidden="true" size={13} />
+          Export CSV
+        </button>
         <div>
           <h2>Fragmentation events</h2>
           <p>
-            {totalFragments.toLocaleString()} catalogued fragments from{" "}
+            {totalFragments.toLocaleString()} cataloged fragments from{" "}
             {events.length.toLocaleString()} recorded break-ups;{" "}
             {totalInOrbit.toLocaleString()} still in orbit at {snapshotLabel}.
           </p>
@@ -257,7 +304,7 @@ export function ExplorerDebrisView({
 
           <dl className="explorer-debris-facts">
             <div>
-              <dt>Fragments catalogued</dt>
+              <dt>Fragments cataloged</dt>
               <dd>{selected.fragmentCount.toLocaleString()}</dd>
             </div>
             <div>
@@ -298,7 +345,7 @@ export function ExplorerDebrisView({
             Parentage, separation dates and decay dates are sourced from GCAT. Cause
             comes from a separate NASA reference and is shown only where that
             reference assesses this exact break-up. Remaining fragments are those with
-            no decay date at {snapshotLabel} — not a prediction that they will stay.
+            no decay date recorded at {snapshotLabel}.
           </p>
         </article>
       </div>

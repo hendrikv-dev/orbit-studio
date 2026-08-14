@@ -6,8 +6,47 @@
     <meta name="theme-color" content="#080b12" />
     <link rel="icon" type="image/png" href="/brand/orbit-studio-icon.png" />
     <title>Orbit Studio</title>
+    <style>
+      #boot-indicator {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 10px;
+        background: #070b10;
+        color: #8ea3b5;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+      }
+      #boot-indicator p { margin: 0; color: #dfeaf4; font-size: 0.9rem; }
+      #boot-indicator small { color: #7d93a6; font-size: 0.74rem; }
+      .boot-mark {
+        width: 30px;
+        height: 30px;
+        border: 2px solid rgba(126, 154, 176, 0.25);
+        border-top-color: #4a9cdd;
+        border-radius: 50%;
+        animation: boot-spin 900ms linear infinite;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-mark { animation-duration: 2400ms; }
+      }
+    </style>
   </head>
   <body>
+  <!-- Static boot indicator. It must live in the document rather than in React:
+       the satellite catalog is a 16.6 MB module-level import, so the main thread
+       is busy parsing it before any component can mount. A React-rendered
+       loader would appear only after the wait it is meant to cover. Removed by
+       src/main.tsx once the app has mounted. -->
+  <div id="boot-indicator" role="status" aria-live="polite">
+    <div class="boot-mark"></div>
+    <p>Loading Orbit Studio</p>
+    <small>Preparing the satellite catalog</small>
+  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

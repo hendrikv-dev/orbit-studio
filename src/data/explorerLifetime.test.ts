@@ -90,7 +90,7 @@ describe("measured orbital lifetime", () => {
   });
 });
 
-describe("the manoeuvring control", () => {
+describe("the maneuvering control", () => {
   const payloads = explorerLifetimeBands(objects, SNAPSHOT_YEAR, "payload");
   const payloadBand = (id: string) => payloads.find((item) => item.id === id)!;
 

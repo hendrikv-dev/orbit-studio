@@ -732,7 +732,11 @@ function ExplorerKeyFactGrid({ facts }: { facts: ExplorerKeyFact[] }) {
 function ExplorerSourceLinks({ sources }: { sources: ExplorerOfficialSource[] }) {
   return (
     <div className="explorer-source-links">
-      <span>Official sources</span>
+      {/* Reference links for further reading. Not the provenance of the data on
+          screen — that is GCAT, stated in the data-quality section. Calling these
+          "official sources" implied CelesTrak supplied the orbit, which it never
+          does: no catalog entry carries a celestrak source id. */}
+      <span>Further reading</span>
       <div>
         {sources.slice(0, 3).map((source) => (
           <a href={source.url} key={source.url} target="_blank" rel="noreferrer">

@@ -29,7 +29,7 @@ import type { ExplorerHistoricalCatalogObject } from "./explorerHistoricalCatalo
  *    recorded 200-300 km with 89% still in orbit a year later, which drag does
  *    not permit. Measured on payloads, the 200-300 km band appears to outlast
  *    the 300-400 km band. The default population is therefore objects that
- *    cannot manoeuvre — debris, rocket bodies and components.
+ *    cannot maneuver — debris, rocket bodies and components.
  *
  * The payload population is still exposed, because the contrast between the two
  * is the clearest evidence that the control is necessary.
@@ -67,7 +67,7 @@ export interface LifetimeBand {
   medianYears: number | null;
 }
 
-export type LifetimePopulation = "non-manoeuvring" | "payload";
+export type LifetimePopulation = "non-maneuvering" | "payload";
 
 export const LIFETIME_BANDS: readonly { lowKm: number; highKm: number }[] = [
   { lowKm: 200, highKm: 300 },
@@ -91,7 +91,7 @@ function yearOf(value: string | undefined): number | null {
   return Number.isFinite(year) ? year : null;
 }
 
-function manoeuvres(object: ExplorerHistoricalCatalogObject): boolean {
+function maneuvers(object: ExplorerHistoricalCatalogObject): boolean {
   return object.sourceObjectClass === "payload";
 }
 
@@ -106,8 +106,8 @@ export function lifetimeObservationFor(
   snapshotYear: number,
   population: LifetimePopulation,
 ): { observation: LifetimeObservation; perigeeKm: number } | null {
-  const wantsManoeuvring = population === "payload";
-  if (manoeuvres(object) !== wantsManoeuvring) return null;
+  const wantsManeuvering = population === "payload";
+  if (maneuvers(object) !== wantsManeuvering) return null;
 
   const orbit = object.orbitalSummary;
   if (!orbit) return null;
@@ -170,7 +170,7 @@ function medianOf(curve: readonly SurvivalPoint[]): number | null {
 export function explorerLifetimeBands(
   objects: readonly ExplorerHistoricalCatalogObject[],
   snapshotYear: number,
-  population: LifetimePopulation = "non-manoeuvring",
+  population: LifetimePopulation = "non-maneuvering",
 ): LifetimeBand[] {
   const buckets = LIFETIME_BANDS.map(() => [] as LifetimeObservation[]);
 
