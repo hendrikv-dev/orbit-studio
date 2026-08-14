@@ -43,7 +43,8 @@
     "stars:build": "node scripts/build-hyg-bright-stars.mjs",
     "science:references": "node scripts/fetch-celestial-reference.mjs",
     "science:report": "node scripts/report-celestial-validation.mjs",
-    "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs"
+    "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs",
+    "fragmentation:build": "python3 scripts/build-fragmentation-causes.py"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
