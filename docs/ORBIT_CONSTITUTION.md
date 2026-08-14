@@ -17,6 +17,32 @@ When goals conflict, scientific honesty, lawful data use, accessibility, and use
 constraints. Visual polish, density, convenience, and performance must be optimized within those
 constraints, not traded against them silently.
 
+## Audience
+
+Orbit Studio is for **students and educators in aerospace and the space industry**. Every
+product decision is judged against whether it helps someone learn the subject or teach it.
+
+This is not a professional operations tool. Capabilities that serve working operators —
+live tracking, conjunction assessment, fleet management — are out of scope unless they
+also teach, and "an operator would want this" is not by itself a reason to build
+anything.
+
+It is also a scope boundary. Observation and forecasting — meteor showers, satellite
+visibility, aurora, eclipses — serve a different person doing a different thing, and
+belong to a separate tool rather than to Orbit Studio.
+
+## Environments
+
+Orbit Studio has **two** environments, divided by the epistemic status of their content:
+
+- **Explorer** — what is and was real. Never presents hypothetical simulation as
+  historical reality.
+- **Playground** — what is possible. Everything in it is explicitly the user's own
+  construction.
+
+New capability belongs inside one of these two, or in a different product. Adding a third
+environment requires changing this document first.
+
 ## 1. Scientific Claims Must Be Bounded
 
 Every physical claim must be supported by evidence and a model valid for the claimed quantity,

@@ -7,8 +7,19 @@ document and the Constitution disagree, the Constitution wins. Written after the
 feasibility spike (`?spike=observe`, commit `f8d389d`), and several requirements below
 exist because that spike contradicted an earlier estimate.
 
-Observe is the third Orbit Studio environment, alongside Explorer and Playground. It is
-not yet built. Nothing here authorises the live-data phases; those have their own gates.
+**Observe is a separate tool, not an Orbit Studio environment.** Orbit Studio is for
+students and educators in aerospace and the space industry, and it has two environments:
+Explorer for what is and was real, Playground for what is possible. Observe serves a
+different person doing a different thing — someone deciding whether to go outside
+tonight — and it is scoped as its own product.
+
+An earlier draft of this document called it the third environment. That was wrong, and
+the engineering findings had already been pointing at it: R7.1 below records that Observe
+cannot share a bundle entry with the satellite catalog, which is a strained requirement
+inside one app and a natural consequence of two.
+
+It is not yet built. Nothing here authorises the live-data phases; those have their own
+gates.
 
 ---
 
@@ -51,25 +62,30 @@ If a phase of work does not advance one of those two, it is not advancing Observ
 
 ---
 
-## 2. Why this is an environment and not a feature
+## 2. Why this is a separate tool
 
-Explorer and Playground are divided by the epistemic status of their content: Explorer is
-what is and was real, Playground is what is deliberately hypothetical. Neither contract
-can hold forecast data.
+Three separations point the same way, and any one of them would be enough.
 
-- Explorer's rule — never present hypothetical simulation as historical reality — forbids
-  an aurora forecast outright.
-- Playground's rule — everything here is invented — misrepresents it in the other
-  direction.
+**Audience.** Orbit Studio serves students and educators in aerospace. Observe serves
+anyone who might look up — a fair number of whom have no interest in orbital mechanics
+and will never open Explorer. Scoping one product for both means serving neither well.
 
-A model prediction with irreducible uncertainty is a third category, and it needs a home
-whose contract is built around uncertainty rather than one that tolerates it. That is the
-argument for Observe, and it carries a consequence: **uncertainty communication is
-Observe's organising principle, not a feature within it.**
+**Epistemic contract.** Explorer's rule is that nothing hypothetical may be presented as
+historical reality, which forbids an aurora forecast outright. Playground's rule is that
+everything in it is invented, which misrepresents a forecast in the other direction. A
+model prediction with irreducible uncertainty fits neither, and needs a product whose
+organising principle *is* uncertainty rather than one that tolerates it.
+
+**Frame of reference.** Explorer and Playground are geocentric: the user looks at orbits
+from outside. Observe is topocentric: the user stands somewhere and looks up. That is a
+different projection, a different renderer, and a different mental model.
 
 Deterministic content — eclipses, Moon phase, planetary positions, satellite passes —
-lives in Observe for the user's convenience, because the observer job spans both. It does
-not live there for architectural reasons.
+belongs in Observe because the observer's job spans it, not for architectural reasons.
+
+**What is shared** is narrow and worth stating so it is not overestimated: the astronomy
+model and its validated range, the star catalog, and eventually an orbital-element
+pipeline. Those are libraries, not a shared product.
 
 ---
 
@@ -185,7 +201,7 @@ Each is a separate decision, in this order, and none is authorised by this docum
 
 | Phase | Adds | Gate |
 |---|---|---|
-| 2 | Live orbital-state pipeline | Justified by **Explorer** alone — replaces the reconstructed RAAN/argP/mean-anomaly that currently constrain ground tracks, coverage and constellation views. Cheapest way to acquire ops discipline: no user-facing correctness promise. |
+| 2 | Live orbital-state pipeline | Justified by **Explorer** alone — replaces the reconstructed RAAN/argP/mean-anomaly that currently constrain ground tracks, coverage and constellation views. Cheapest way to acquire ops discipline: no user-facing correctness promise. Shared by both products, so it is built as a library with its own contract rather than inside either. |
 | 3 | Satellite and ISS passes | Nearly free once 2 and phase 1 exist |
 | 4 | Forecast synthesis — aurora, cloud cover | Requires phase 2's operational muscle |
 | 5 | Alerts and notifications | Accounts, push, stored location, privacy obligations; hardest to reverse |
