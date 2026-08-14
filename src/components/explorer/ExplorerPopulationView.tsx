@@ -40,6 +40,13 @@ interface ExplorerPopulationViewProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   snapshotLabel: string;
+  /**
+   * Fragments of one break-up, to be picked out of the whole population. The
+   * rest of the scatter is dimmed rather than removed so the cloud is read
+   * against the population it belongs to.
+   */
+  highlightIds?: ReadonlySet<string>;
+  highlightLabel?: string;
 }
 
 interface PlotGeometry {
@@ -54,6 +61,8 @@ export function ExplorerPopulationView({
   selectedId,
   onSelect,
   snapshotLabel,
+  highlightIds,
+  highlightLabel,
 }: ExplorerPopulationViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -369,6 +378,21 @@ export function ExplorerPopulationView({
     context.rect(PADDING.left, PADDING.top, geometry.plotWidth, geometry.plotHeight);
     context.clip();
 
+    // One break-up's fragments, picked out of the population they are part of.
+    // The population is dimmed rather than filtered away: the cloud's shape only
+    // means something against the background it sits in.
+    if (highlightIds && highlightIds.size > 0) {
+      context.fillStyle = "rgba(4, 9, 16, 0.74)";
+      context.fillRect(PADDING.left, PADDING.top, geometry.plotWidth, geometry.plotHeight);
+      context.fillStyle = "#ffb54a";
+      for (let index = 0; index < points.length; index += 1) {
+        if (!projection.inside[index] || !highlightIds.has(points[index].id)) continue;
+        context.beginPath();
+        context.arc(projection.xs[index], projection.ys[index], 1.8, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+
     const selectedIndex = selectedId ? points.findIndex((point) => point.id === selectedId) : -1;
     if (selectedIndex >= 0 && projection.inside[selectedIndex]) {
       const point = points[selectedIndex];
@@ -421,7 +445,7 @@ export function ExplorerPopulationView({
       context.stroke();
     }
     context.restore();
-  }, [altitudeToY, geometry, hoveredIndex, points, projection, sceneVersion, selectedId]);
+  }, [altitudeToY, geometry, highlightIds, hoveredIndex, points, projection, sceneVersion, selectedId]);
 
   // Hit testing reads the same projected arrays the plot was drawn from, so the
   // mark under the cursor is always the object that gets selected.

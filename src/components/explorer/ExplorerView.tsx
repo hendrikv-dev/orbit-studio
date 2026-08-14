@@ -39,9 +39,11 @@ import {
   Sparkles,
   StepBack,
   StepForward,
+  Orbit,
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { ExplorerDebrisView } from "./ExplorerDebrisView";
 import { ExplorerPopulationView } from "./ExplorerPopulationView";
 import { ExplorerCoverageCaveat, ExplorerCoverageReadout } from "./ExplorerCoverageReadout";
 import { ExplorerCoverageMap } from "./ExplorerCoverageMap";
@@ -60,6 +62,8 @@ import type { SatelliteModel } from "../../lib/scenario";
 import { EARTH_RADIUS_KM } from "../../physics/constants";
 import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
 import { explorerPopulationPoints } from "../../data/explorerPopulation";
+import { explorerFragmentationEvents } from "../../data/explorerFragmentation";
+import type { FragmentationEvent } from "../../data/explorerFragmentation";
 import {
   catalogSatellite,
   explorerCategoryHierarchy,
@@ -194,7 +198,7 @@ function initialExplorerPlaybackRunning(): boolean {
 
 
 /** Explorer draws one state; the mode chooses which representation. */
-type ExplorerViewMode = "globe" | "population";
+type ExplorerViewMode = "globe" | "population" | "debris";
 
 function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
   return (
@@ -1770,6 +1774,26 @@ export function ExplorerView({
     };
   }, [searchOpen]);
   const [viewMode, setViewMode] = useState<ExplorerViewMode>("globe");
+  // Fragmentation is history, not a snapshot: events span 1957 to the present
+  // and include fragments that have long since decayed.
+  const fragmentationEvents = useMemo(
+    () => explorerFragmentationEvents(explorerHistoricalCatalog.objects),
+    [],
+  );
+  const [highlightedEvent, setHighlightedEvent] = useState<FragmentationEvent | null>(null);
+  const highlightedFragmentIds = useMemo(() => {
+    if (!highlightedEvent) return undefined;
+    const ids = new Set<string>();
+    for (const object of explorerHistoricalCatalog.objects) {
+      if (
+        object.fragmentation?.parentRecordId === highlightedEvent.parentRecordId &&
+        object.fragmentation.separationDateIso === highlightedEvent.dateIso
+      ) {
+        ids.add(object.id);
+      }
+    }
+    return ids;
+  }, [highlightedEvent]);
   const coveragePanel = useCoveragePanel(activeSnapshot);
   const [typeFilters, setTypeFilters] = useState<ExplorerCategoryId[]>([]);
   const [colorMode, setColorMode] = useState<ExplorerColorMode>("type");
@@ -2728,6 +2752,16 @@ export function ExplorerView({
           <ScatterChart size={16} />
           <span>Population</span>
         </button>
+        <button
+          aria-pressed={viewMode === "debris"}
+          className={viewMode === "debris" ? "active" : ""}
+          title="Debris and fragmentation history"
+          type="button"
+          onClick={() => setViewMode("debris")}
+        >
+          <Orbit size={16} />
+          <span>Debris</span>
+        </button>
       </div>
 
       {catalogOpen && (
@@ -3323,7 +3357,21 @@ export function ExplorerView({
             points={populationPoints}
             selectedId={scenario.selectedObjectId}
             snapshotLabel={populationSnapshotLabel}
+            highlightIds={highlightedFragmentIds}
+            highlightLabel={highlightedEvent?.parentName}
             onSelect={selectPopulationObject}
+          />
+        )}
+        {viewMode === "debris" && (
+          <ExplorerDebrisView
+            events={fragmentationEvents}
+            objects={explorerHistoricalCatalog.objects}
+            snapshotYear={Number(currentExplorerSnapshot.year)}
+            snapshotLabel={populationSnapshotLabel}
+            onShowInPopulation={(event) => {
+              setHighlightedEvent(event);
+              setViewMode("population");
+            }}
           />
         )}
         {historicalCatalogOnly && viewMode === "globe" && (
