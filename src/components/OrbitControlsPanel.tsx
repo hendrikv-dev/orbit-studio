@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useMobileSheetDrag } from "../lib/useMobileSheetDrag";
+import { MissionPlannerSection } from "./MissionPlannerSection";
 import { EARTH_RADIUS_KM } from "../physics/constants";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
 import { useSimulationStore } from "../state/useSimulationStore";
@@ -348,6 +349,22 @@ export function OrbitControlsPanel({
               invalidMessage={angleMessage(satellite.keplerian.trueAnomalyDeg)}
               onInteractionChange={explain("true-anomaly")}
               onChange={(value) => updateKeplerian(satellite.id, { trueAnomalyDeg: value })}
+            />
+          </ControlSection>
+
+          {/* Mission design: the same orbit expressed as somewhere to go, and
+              what it costs to get there. */}
+          <ControlSection label="Mission">
+            <MissionPlannerSection
+              currentAltitudeKm={altitudeKm}
+              currentInclinationDeg={satellite.keplerian.inclinationDeg}
+              onApply={(targetAltitudeKm, targetInclinationDeg) =>
+                updateKeplerian(satellite.id, {
+                  semiMajorAxisKm: EARTH_RADIUS_KM + targetAltitudeKm,
+                  eccentricity: 0,
+                  inclinationDeg: targetInclinationDeg,
+                })
+              }
             />
           </ControlSection>
 

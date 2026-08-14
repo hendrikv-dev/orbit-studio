@@ -11149,3 +11149,138 @@ button.primary,
     padding-right: var(--explorer-switch-clearance);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Mission planner: a transfer expressed as its cost, inside the orbit controls
+   so planning and flying are the same panel. */
+.mission-planner {
+  /* .orbit-section-fields is a two-column grid; without this the whole planner
+     sits in one column at half the panel's width. */
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mission-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mission-presets button {
+  min-height: 28px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 999px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #cfe0ee;
+  padding: 0 11px;
+  font-size: 0.7rem;
+}
+
+.mission-budget {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.mission-budget > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(103, 148, 184, 0.12);
+  padding-bottom: 3px;
+}
+
+.mission-budget dt {
+  color: #8ea3b5;
+  font-size: 0.7rem;
+}
+
+.mission-budget dd {
+  margin: 0;
+  color: #eaf5ff;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mission-budget-total dt,
+.mission-budget-total dd {
+  color: #ffd79a;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* The counter-intuitive results are the point of the panel, so they are called
+   out rather than left for the reader to derive from the budget. */
+.mission-insight {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  border-left: 3px solid #6fd7f2;
+  border-radius: 0 8px 8px 0;
+  background: rgba(111, 215, 242, 0.08);
+  padding: 8px 10px;
+}
+
+.mission-insight strong {
+  color: #dff3fb;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.mission-insight span {
+  color: #9db6c6;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.mission-apply {
+  min-height: 34px;
+  border: 1px solid rgba(255, 181, 74, 0.5);
+  border-radius: 9px;
+  background: rgba(255, 181, 74, 0.14);
+  color: #ffe6bf;
+  font-size: 0.76rem;
+}
+
+.mission-idle,
+.mission-caveat {
+  margin: 0;
+  color: #7d93a6;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+
+/* The mission sliders do not reuse .orbit-slider-control: that is a two-column
+   grid expecting a paired number input, and a lone range lands in its 78px
+   column. These carry their own layout instead. */
+.mission-slider {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mission-slider-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: #cbd7e4;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mission-slider-label output {
+  color: #eaf5ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mission-slider input[type="range"] {
+  width: 100%;
+  height: 4px;
+  accent-color: #13aef2;
+}
