@@ -4,7 +4,7 @@
 
 Draft for implementation planning. Subordinate to `ORBIT_CONSTITUTION.md`; where this
 document and the Constitution disagree, the Constitution wins. Written after the
-feasibility spike (`?spike=observe` — the route and its component keep the old name until implementation is renamed separately; commit `f8d389d`), and several requirements below
+feasibility spike (`?spike=tracker`, commit `f8d389d`), and several requirements below
 exist because that spike contradicted an earlier estimate.
 
 **Tracker is an Orbit Studio tool, alongside Explorer and Playground.** It serves the
@@ -160,10 +160,12 @@ can be extremely precise; collapsing them would make "live" a synonym for "certa
 | **Now** | What is visible from here at this moment? |
 | **Tonight** | What is worth going outside for tonight? |
 | **Upcoming** | What is coming in the next weeks? |
-| **Calendar** | Where is everything, laid out by date? |
+| **Calendar** | Where is everything, laid out by date? *(deferred past phase 1)* |
 
-`Tonight` is the flagship. `Calendar` is another projection of the same event system, not
-a separate feature, and is deliberately last in prominence.
+`Tonight` is the flagship. `Now · Tonight · Upcoming` covers the initial jobs and is the
+phase 1 view set. **`Calendar` is deferred**: it is another projection of the same event
+system rather than new capability, and it should earn inclusion later rather than consume
+design effort because it is the conventional thing to build.
 
 - **R4.1 — "Tonight" is a location-derived observation period, not a calendar day.** It
   spans the current or next local evening through the following morning: from the start
@@ -205,7 +207,7 @@ tested the technical assumptions; market demand is not being tested here.
 
 ### In scope
 
-- Location (manual entry and, with permission, device geolocation) and time
+- Location and time — see R5.8
 - Solar and lunar eclipses, with local circumstances
 - Moon phase, illumination, rise/set
 - Planetary positions, conjunctions, oppositions
@@ -218,6 +220,13 @@ tested the technical assumptions; market demand is not being tested here.
 
 Satellite passes, aurora, cloud cover, comet brightness, notifications, accounts, and any
 network request whatsoever. Phase 1 ships vendored data but makes no runtime request.
+
+### Location
+
+- **R5.8 — Location is manual entry or permission-based device geolocation, held in
+  memory only.** No account, no server-side storage, and no persistence between sessions
+  in phase 1. Orbit Studio currently collects no user data at all; that property is spent
+  deliberately or not at all.
 
 ### The ranking function
 
@@ -408,9 +417,18 @@ them.
   automatically, and the replacement records what changed. Shower parameters drift as
   streams are re-observed, so a silent update would move ranking outputs with no visible
   cause.
-- **R9.4** — Nominal ZHR from this dataset is a **`forecast`** attribute even though its
-  source is a catalog, per **R3.2**: the peak date and radiant are analytic, the expected
-  rate is not. The distinction is the reason R3.2 exists.
+- **R9.4** — **Provenance and evidence class are different things, and a shower carries
+  several of each.** Coming from an authoritative static table does not make a value an
+  analytic certainty, and one uncertain attribute does not make the whole object a
+  forecast. Within a single shower:
+  - stream identity and orbital elements — `catalog`, from the IAU MDC snapshot
+  - radiant position and peak date — `analytic`, computed for the observer and year
+  - radiant altitude, darkness and Moon conditions tonight — `analytic`
+  - nominal ZHR — `forecast`, regardless of arriving in a catalog
+  - outburst prediction — `forecast`, with a wider horizon than the nominal rate
+
+  Classifying the shower object as `forecast` because one attribute is would recreate at
+  the object level exactly the collapse **R3.2** exists to prevent.
 
 | Source | Use | Terms that matter |
 |---|---|---|
@@ -444,17 +462,15 @@ them.
 
 ---
 
-## 11. Deliberately not decided here
+## 11. Settled, and how later phases are judged
 
-Two questions are open and neither is mine to settle.
+**The orbital-element pipeline is shared Orbit Studio infrastructure.** Neither Explorer
+nor Tracker owns it. The first approved use case funds and drives its implementation;
+after that both consume the same authoritative interface, and neither may fork it or
+reach around it.
 
-**Whether phases 2–5 are worth their operational cost.** Tracker's audience is fixed —
-students and educators, the same as every Orbit Studio tool — so the question is not
-reach versus depth but whether a live-data pipeline, accounts and notifications are
-justified by what they teach. Phase 1 is defensible without answering it, which is part
-of why it is first.
-
-**How a shared orbital-element pipeline is owned.** Explorer wants it to replace
-reconstructed angles; Tracker wants it for passes. It serves two tools, so it is built as
-a library with its own contract rather than inside either — but which tool pays for it
-first, and who owns it after, needs a decision when phase 2 is scheduled.
+**Phases 2–5 stay gated individually.** This document does not justify them and is not
+required to. Each is approved on its own when it is proposed, against one criterion:
+**does the capability materially help a student understand or experience the phenomenon.**
+Engagement is not the test. Neither is completeness, nor the fact that a phase was listed
+here.

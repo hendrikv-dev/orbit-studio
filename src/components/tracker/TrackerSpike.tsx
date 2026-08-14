@@ -12,7 +12,7 @@ import {
 /**
  * FEASIBILITY SPIKE — not a product surface.
  *
- * Exists to answer two questions before an Observe PRD is written:
+ * Exists to answer two questions before a Tracker PRD is written:
  *
  *   1. does the deterministic astronomy layer meet our accuracy and provenance
  *      requirements at acceptable bundle cost?
@@ -64,7 +64,7 @@ interface BrightStar {
   magnitude: number;
 }
 
-export function ObserveSpike() {
+export function TrackerSpike() {
   // Loaded on demand: the catalog is 768 KB and the point of the spike is that
   // an observer page must not pay for anything it is not showing.
   const [stars, setStars] = useState<BrightStar[]>([]);
@@ -134,7 +134,7 @@ export function ObserveSpike() {
 
   return (
     <div style={{ padding: 20, color: "#dfeaf4", fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Observe — feasibility spike</h1>
+      <h1 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Tracker — feasibility spike</h1>
       <p style={{ fontSize: "0.75rem", color: "#8ea3b5", margin: "0 0 14px", maxWidth: "70ch" }}>
         Not a product surface. Proves topocentric transformation, observer location and
         time, horizon, alt-azimuth placement, known bodies and one trajectory. Everything

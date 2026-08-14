@@ -27,7 +27,7 @@ function clearBootIndicatorWhenPainted(): void {
     if (performance.now() - started > 15000) return remove();
     // A canvas-based view announces its own first drawn frame; the DOM cannot
     // tell, because the canvas is present and sized while still blank. Views
-    // without a renderer (the Observe spike) fall back to a drawn SVG.
+    // without a renderer (the Tracker spike) fall back to a drawn SVG.
     if (!document.querySelector("#root canvas")) {
       const drawn = [...document.querySelectorAll("#root svg")].find(
         (node) => node.getBoundingClientRect().width >= 240,
@@ -56,9 +56,9 @@ const mount = (node: React.ReactNode) => {
  * 17 MB satellite catalog, drei and a star catalog before rendering. Anything
  * observer-facing has to be reachable without importing the catalog at all.
  */
-if (new URLSearchParams(window.location.search).get("spike") === "observe") {
-  void import("./components/observe/ObserveSpike").then(({ ObserveSpike }) => {
-    mount(<ObserveSpike />);
+if (new URLSearchParams(window.location.search).get("spike") === "tracker") {
+  void import("./components/tracker/TrackerSpike").then(({ TrackerSpike }) => {
+    mount(<TrackerSpike />);
   });
 } else {
   void import("./App").then(({ App }) => mount(<App />));
