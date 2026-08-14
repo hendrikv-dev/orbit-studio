@@ -9987,7 +9987,16 @@ button.primary,
 
 /* Representation switch. Mirrors the existing floating launcher treatment so it
    reads as part of Explorer rather than a new control system. */
+:root,
+.explorer-shell {
+  /* Width of the representation switch plus a gap; see .explorer-view-switch. */
+  --explorer-switch-clearance: 180px;
+}
+
 .explorer-view-switch {
+  /* Text views clear this switch horizontally on a phone. The clearance lives
+     here so it is updated in the same edit as the button list — adding the
+     fourth view widened the switch and silently broke a hard-coded 140px. */
   position: absolute;
   z-index: 22;
   display: flex;
@@ -10923,7 +10932,7 @@ button.primary,
   }
 
   .explorer-debris-header {
-    padding-right: 140px;
+    padding-right: var(--explorer-switch-clearance);
   }
 }
 
@@ -10952,3 +10961,191 @@ button.primary,
 }
 
 .explorer-debris-key-parent { background: #6fd7f2; }
+
+/* ---------------------------------------------------------------------------
+   Measured orbital lifetime. Same placement rules as the debris lens: it is
+   text and charts, so it clears the floating chrome rather than sitting under
+   it, and its offsets resolve against .explorer-globe. */
+.explorer-lifetime {
+  position: absolute;
+  inset: 148px 0 var(--explorer-population-bottom-inset, 148px) 0;
+  z-index: 6;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(20, 46, 74, 0.38), rgba(3, 7, 12, 0) 62%),
+    #03070c;
+}
+
+.explorer-lifetime-header {
+  padding: 16px 18px 10px;
+}
+
+.explorer-lifetime-header h2 {
+  margin: 0;
+  color: #eaf5ff;
+  font-size: 0.98rem;
+}
+
+.explorer-lifetime-header p {
+  margin: 4px 0 0;
+  max-width: 82ch;
+  color: #8ea3b5;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.explorer-lifetime-population {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 10px;
+  border: 1px solid rgba(117, 142, 160, 0.24);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.explorer-lifetime-population button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #9fb3c4;
+  padding: 0 14px;
+  font-size: 0.73rem;
+}
+
+.explorer-lifetime-population button.active {
+  background: rgba(110, 180, 236, 0.18);
+  color: #dcefff;
+}
+
+.explorer-lifetime-warning {
+  border-left: 3px solid #ffb54a;
+  background: rgba(255, 181, 74, 0.08);
+  padding: 8px 11px;
+  border-radius: 0 8px 8px 0;
+  margin-top: 10px !important;
+  color: #e7d3b4 !important;
+}
+
+.explorer-lifetime-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.85fr);
+  gap: 18px;
+  min-height: 0;
+  padding: 0 18px 16px;
+  overflow-y: auto;
+}
+
+.explorer-lifetime-figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.explorer-lifetime-figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.explorer-lifetime-figure figcaption {
+  margin-top: 2px;
+  color: #7d93a6;
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.explorer-lifetime-grid {
+  stroke: rgba(126, 154, 176, 0.16);
+  stroke-width: 1;
+}
+
+.explorer-lifetime-axis {
+  fill: #7d93a6;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-lifetime-direct {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.explorer-lifetime-crosshair {
+  stroke: rgba(210, 232, 248, 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.explorer-lifetime-readout-title {
+  margin: 0 0 8px;
+  color: #eaf5ff;
+  font-size: 0.8rem;
+}
+
+.explorer-lifetime-readout table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-lifetime-readout th,
+.explorer-lifetime-readout td {
+  border-bottom: 1px solid rgba(103, 148, 184, 0.12);
+  padding: 5px 6px;
+  text-align: right;
+}
+
+.explorer-lifetime-readout thead th {
+  color: #8ea3b5;
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.explorer-lifetime-readout tbody th {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #cfe0ee;
+  font-weight: 500;
+  text-align: left;
+}
+
+.explorer-lifetime-readout td { color: #eaf5ff; }
+
+.explorer-lifetime-key {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.explorer-lifetime-caveat {
+  margin: 12px 0 0;
+  color: #7d93a6;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 899px) {
+  .explorer-lifetime-header { padding: 12px 12px 8px; }
+
+  .explorer-lifetime-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 12px 12px;
+  }
+}
+
+@media (max-width: 743px) {
+  .explorer-lifetime {
+    top: 8px;
+    bottom: 160px;
+  }
+
+  .explorer-lifetime-header {
+    padding-right: var(--explorer-switch-clearance);
+  }
+}

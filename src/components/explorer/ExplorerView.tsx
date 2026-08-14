@@ -39,11 +39,13 @@ import {
   Sparkles,
   StepBack,
   StepForward,
+  Hourglass,
   Orbit,
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { ExplorerDebrisView } from "./ExplorerDebrisView";
+import { ExplorerLifetimeView } from "./ExplorerLifetimeView";
 import { ExplorerPopulationView } from "./ExplorerPopulationView";
 import { ExplorerCoverageCaveat, ExplorerCoverageReadout } from "./ExplorerCoverageReadout";
 import { ExplorerCoverageMap } from "./ExplorerCoverageMap";
@@ -198,7 +200,7 @@ function initialExplorerPlaybackRunning(): boolean {
 
 
 /** Explorer draws one state; the mode chooses which representation. */
-type ExplorerViewMode = "globe" | "population" | "debris";
+type ExplorerViewMode = "globe" | "population" | "debris" | "lifetime";
 
 function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
   return (
@@ -2762,6 +2764,16 @@ export function ExplorerView({
           <Orbit size={16} />
           <span>Debris</span>
         </button>
+        <button
+          aria-pressed={viewMode === "lifetime"}
+          className={viewMode === "lifetime" ? "active" : ""}
+          title="Measured orbital lifetime"
+          type="button"
+          onClick={() => setViewMode("lifetime")}
+        >
+          <Hourglass size={16} />
+          <span>Lifetime</span>
+        </button>
       </div>
 
       {catalogOpen && (
@@ -3360,6 +3372,12 @@ export function ExplorerView({
             highlightIds={highlightedFragmentIds}
             highlightLabel={highlightedEvent?.parentName}
             onSelect={selectPopulationObject}
+          />
+        )}
+        {viewMode === "lifetime" && (
+          <ExplorerLifetimeView
+            objects={explorerHistoricalCatalog.objects}
+            snapshotYear={Number(currentExplorerSnapshot.year)}
           />
         )}
         {viewMode === "debris" && (
