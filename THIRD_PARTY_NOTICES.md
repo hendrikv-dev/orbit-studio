@@ -6,7 +6,7 @@ Orbit Studio's MIT license does not replace the licenses of third-party packages
 This notice is derived from `package-lock.json`, the authoritative dependency graph.
 
 - Lockfile version: 3
-- Lockfile SHA-256: `70e46d4c6639ea526549dfc8fba98c8630f4a1a1487d047761c15d83b9678277`
+- Lockfile SHA-256: `4eb6dc7fd55fd1a66995dc1de07973af0cc3e97a4dd5fbf1e37e4b7f8af6dd12`
 - Locked package entries: 281
 - Runtime package entries: 86
 - Development package entries: 195
