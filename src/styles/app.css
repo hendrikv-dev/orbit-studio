@@ -11277,3 +11277,43 @@ button.primary,
       "timeline";
   }
 }
+
+/* Sort control and list share the left column, so they need a wrapper: the body
+   is a two-column grid and a bare sibling would claim a cell. */
+.explorer-debris-column {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.explorer-debris-sort {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.explorer-debris-sort label {
+  color: #8ea3b5;
+  font-size: 0.72rem;
+}
+
+.explorer-debris-sort select {
+  min-height: 30px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 8px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #eaf5ff;
+  padding: 0 8px;
+  font-size: 0.74rem;
+}
+
+/* The description explains what the ordering means, which is the part that is
+   not obvious from a label alone. */
+.explorer-debris-sort > span {
+  grid-column: 1 / -1;
+  color: #7d93a6;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}

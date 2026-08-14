@@ -168,6 +168,72 @@ function DispersionBar({ event }: { event: FragmentationEvent }) {
   );
 }
 
+/** Below this a "share remaining" figure has no useful denominator. */
+const SHARE_MINIMUM_FRAGMENTS = 25;
+
+type DebrisSortId = "in-orbit" | "produced" | "share" | "newest" | "oldest" | "name";
+
+/**
+ * The default is fragments still in orbit rather than fragments produced,
+ * because those are different questions: the 2021 ASAT test made 1,806 and has
+ * 7 left, while a smaller break-up higher up is still contributing. Both
+ * orderings are offered because both are legitimate — one asks what happened,
+ * the other what is still happening.
+ */
+const DEBRIS_SORTS: {
+  id: DebrisSortId;
+  label: string;
+  description: string;
+  compare: (a: FragmentationEvent, b: FragmentationEvent) => number;
+}[] = [
+  {
+    id: "in-orbit",
+    label: "Still in orbit",
+    description: "Fragments from this break-up that have no recorded decay date",
+    compare: (a, b) => b.inOrbitCount - a.inOrbitCount || b.fragmentCount - a.fragmentCount,
+  },
+  {
+    id: "produced",
+    label: "Fragments produced",
+    description: "Total catalogued fragments, regardless of how many remain",
+    compare: (a, b) => b.fragmentCount - a.fragmentCount || b.inOrbitCount - a.inOrbitCount,
+  },
+  {
+    id: "share",
+    label: "Share remaining",
+    // A retention rate needs a denominator worth dividing by: 43% of events
+    // produced a single fragment, and "1 of 1 remaining" is 100% without
+    // meaning anything. Smaller break-ups sort after the ones that can carry
+    // the statistic rather than being hidden.
+    description: `Proportion still in orbit, among break-ups of ${SHARE_MINIMUM_FRAGMENTS}+ fragments`,
+    compare: (a, b) => {
+      const rank = (event: FragmentationEvent) =>
+        event.fragmentCount >= SHARE_MINIMUM_FRAGMENTS
+          ? event.inOrbitCount / event.fragmentCount
+          : -1;
+      return rank(b) - rank(a) || b.fragmentCount - a.fragmentCount;
+    },
+  },
+  {
+    id: "newest",
+    label: "Most recent",
+    description: "Newest break-up first",
+    compare: (a, b) => b.dateIso.localeCompare(a.dateIso),
+  },
+  {
+    id: "oldest",
+    label: "Oldest",
+    description: "Earliest break-up first",
+    compare: (a, b) => a.dateIso.localeCompare(b.dateIso),
+  },
+  {
+    id: "name",
+    label: "Name",
+    description: "Alphabetical by parent object",
+    compare: (a, b) => a.parentName.localeCompare(b.parentName),
+  },
+];
+
 export function ExplorerDebrisView({
   events,
   objects,
@@ -175,13 +241,14 @@ export function ExplorerDebrisView({
   snapshotLabel,
   onShowInPopulation,
 }: ExplorerDebrisViewProps) {
-  const ranked = useMemo(
-    () =>
-      [...events]
-        .sort((a, b) => b.inOrbitCount - a.inOrbitCount || b.fragmentCount - a.fragmentCount)
-        .slice(0, 120),
-    [events],
-  );
+  const [sort, setSort] = useState<DebrisSortId>("in-orbit");
+  // No truncation. The list was capped at 120 when there was one fixed order and
+  // the cap meant "the 120 that matter"; once the order is the reader's choice
+  // the same cap silently shows a different arbitrary slice for every sort.
+  const ranked = useMemo(() => {
+    const order = DEBRIS_SORTS.find((option) => option.id === sort) ?? DEBRIS_SORTS[0];
+    return [...events].sort(order.compare);
+  }, [events, sort]);
   const [selectedId, setSelectedId] = useState<string | null>(ranked[0]?.id ?? null);
   const selected = ranked.find((event) => event.id === selectedId) ?? ranked[0];
   const survival = useMemo(
@@ -239,14 +306,29 @@ export function ExplorerDebrisView({
           <h2>Fragmentation events</h2>
           <p>
             {totalFragments.toLocaleString()} cataloged fragments from{" "}
-            {events.length.toLocaleString()} recorded break-ups;{" "}
+            {events.length.toLocaleString()} recorded break-ups, all listed;{" "}
             {totalInOrbit.toLocaleString()} still in orbit at {snapshotLabel}.
           </p>
         </div>
       </header>
 
       <div className="explorer-debris-body">
-        <ol className="explorer-debris-list" aria-label="Break-ups by fragments still in orbit">
+        <div className="explorer-debris-column">
+        <div className="explorer-debris-sort">
+          <label htmlFor="debris-sort">Sort by</label>
+          <select id="debris-sort" value={sort}
+                  onChange={(event) => setSort(event.target.value as DebrisSortId)}>
+            {DEBRIS_SORTS.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+          <span>{DEBRIS_SORTS.find((option) => option.id === sort)?.description}</span>
+        </div>
+
+        <ol className="explorer-debris-list"
+            aria-label={`Break-ups sorted by ${
+              DEBRIS_SORTS.find((option) => option.id === sort)?.label ?? "fragments still in orbit"
+            }`}>
           {ranked.map((event) => {
             const share = event.fragmentCount > 0
               ? event.inOrbitCount / event.fragmentCount
@@ -275,6 +357,7 @@ export function ExplorerDebrisView({
             );
           })}
         </ol>
+        </div>
 
         <article className="explorer-debris-detail">
           <h3>{selected.parentName}</h3>
