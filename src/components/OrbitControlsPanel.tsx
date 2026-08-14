@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useMobileSheetDrag } from "../lib/useMobileSheetDrag";
+import { EncounterSection } from "./EncounterSection";
 import { MissionPlannerSection } from "./MissionPlannerSection";
 import { EARTH_RADIUS_KM } from "../physics/constants";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
@@ -366,6 +367,12 @@ export function OrbitControlsPanel({
                 })
               }
             />
+          </ControlSection>
+
+          {/* Explicitly hypothetical, which is why it lives here and not in
+              Explorer. */}
+          <ControlSection label="Encounter">
+            <EncounterSection altitudeKm={altitudeKm} />
           </ControlSection>
 
           <ControlSection label="Appearance">

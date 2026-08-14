@@ -11284,3 +11284,90 @@ button.primary,
   height: 4px;
   accent-color: #13aef2;
 }
+
+/* Encounter: hypothetical impact geometry and avoidance. Shares the mission
+   planner's slider and budget styling; only its own pieces are defined here. */
+.encounter-section {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.encounter-preamble {
+  margin: 0;
+  color: #7d93a6;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+
+.encounter-masses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.encounter-masses label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 5px;
+}
+
+.encounter-masses label > span {
+  grid-column: 1 / -1;
+  color: #cbd7e4;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.encounter-masses input {
+  min-width: 0;
+  min-height: 26px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 7px;
+  background: rgba(8, 14, 22, 0.7);
+  color: #eaf5ff;
+  padding: 0 7px;
+  font-size: 0.73rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.encounter-masses small {
+  color: #7d93a6;
+  font-size: 0.66rem;
+}
+
+.encounter-verdict {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  border-left: 3px solid;
+  border-radius: 0 8px 8px 0;
+  padding: 8px 10px;
+}
+
+.encounter-verdict strong {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.encounter-verdict span {
+  color: #9db6c6;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.encounter-verdict.catastrophic {
+  border-left-color: #ff7a5c;
+  background: rgba(255, 122, 92, 0.09);
+}
+
+.encounter-verdict.catastrophic strong { color: #ffcbbd; }
+
+.encounter-verdict.survivable {
+  border-left-color: #6ad39b;
+  background: rgba(106, 211, 155, 0.08);
+}
+
+.encounter-verdict.survivable strong { color: #cdf0dd; }
