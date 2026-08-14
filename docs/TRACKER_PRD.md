@@ -1,32 +1,36 @@
-# Observe — Product Requirements
+# Tracker — Product Requirements
 
 ## Status and authority
 
 Draft for implementation planning. Subordinate to `ORBIT_CONSTITUTION.md`; where this
 document and the Constitution disagree, the Constitution wins. Written after the
-feasibility spike (`?spike=observe`, commit `f8d389d`), and several requirements below
+feasibility spike (`?spike=observe` — the route and its component keep the old name until implementation is renamed separately; commit `f8d389d`), and several requirements below
 exist because that spike contradicted an earlier estimate.
 
-**Observe is a separate tool, not an Orbit Studio environment.** Orbit Studio is for
-students and educators in aerospace and the space industry, and it has two environments:
-Explorer for what is and was real, Playground for what is possible. Observe serves a
-different person doing a different thing — someone deciding whether to go outside
-tonight — and it is scoped as its own product.
+**Tracker is an Orbit Studio tool, alongside Explorer and Playground.** It serves the
+same audience as every other tool: students and educators in aerospace and the space
+industry. The three tools divide by the question they answer — Explorer for what is and
+was real, Playground for what is possible, Tracker for what can I see from my location,
+when can I see it, and how do I see it.
 
-An earlier draft of this document called it the third environment. That was wrong, and
-the engineering findings had already been pointing at it: R7.1 below records that Observe
-cannot share a bundle entry with the satellite catalog, which is a strained requirement
-inside one app and a natural consequence of two.
+Two earlier drafts of this section were wrong, in opposite directions: the first called
+Tracker a third *environment*, the second called it a separate *product* serving a
+different audience. The second error came from reasoning backwards out of implementation
+— Tracker needs its own bundle, its own renderer and its own feeds, and I read those as
+a product boundary. They are costs, not boundaries. The Constitution now states this
+directly under *Product Boundaries Are Not Implementation Boundaries*, and R7 below is
+retained as an engineering requirement with no bearing on what Tracker is.
 
 It is not yet built. Nothing here authorises the live-data phases; those have their own
 gates.
 
 ---
 
-## 1. What Observe is for
+## 1. What Tracker is for
 
-**Given my location and time, identify and rank the celestial events actually worth
-observing, explain why, and communicate how reliable that assessment is.**
+**Given my location and time, rank what is realistically worth seeing, and explain when
+to look, where to look, how to see it, why it is happening, and how reliable the
+prediction is.**
 
 That sentence is the product. Eclipses, Moon phases, planetary positions and meteor
 showers are *inputs to it*, not the deliverable. A view that lists what is happening,
@@ -47,6 +51,20 @@ expected brightness or activity, duration, viewing direction, rarity. **The expl
 is not a detail view; it is the second half of the product.** A rank without a reason is
 an opinion.
 
+### Scope
+
+Tracker's subject matter, independent of what any phase ships:
+
+- satellite visibility, including the ISS and Starlink trains
+- meteor showers
+- aurora
+- solar and lunar eclipses
+- Moon phases and notable lunar events
+- planetary conjunctions and oppositions
+- other observable celestial phenomena worth going outside for
+
+Phasing below decides the order these arrive in. It does not narrow this list.
+
 ### Differentiation
 
 Orbit Studio cannot win on event coverage. Stellarium, Time and Date, Sky Tonight and
@@ -58,40 +76,39 @@ are things this codebase is already unusually good at:
 2. **Stating how much to trust each claim** — the difference between an eclipse computed
    to the second and an aurora forecast good for ninety minutes.
 
-If a phase of work does not advance one of those two, it is not advancing Observe.
+If a phase of work does not advance one of those two, it is not advancing Tracker.
 
 ---
 
-## 2. Why this is a separate tool
+## 2. Why Tracker is its own tool
 
-Three separations point the same way, and any one of them would be enough.
-
-**Audience.** Orbit Studio serves students and educators in aerospace. Observe serves
-anyone who might look up — a fair number of whom have no interest in orbital mechanics
-and will never open Explorer. Scoping one product for both means serving neither well.
+Not because of how it is built — see the Constitution on implementation boundaries — but
+because it answers a question the other two tools cannot hold.
 
 **Epistemic contract.** Explorer's rule is that nothing hypothetical may be presented as
 historical reality, which forbids an aurora forecast outright. Playground's rule is that
-everything in it is invented, which misrepresents a forecast in the other direction. A
-model prediction with irreducible uncertainty fits neither, and needs a product whose
-organising principle *is* uncertainty rather than one that tolerates it.
+everything in it is the user's own construction, which misrepresents a forecast in the
+other direction. A prediction with irreducible uncertainty fits neither. Tracker's
+contract is that its content is predicted and carries its reliability with it, and that
+contract is the tool's organising principle rather than a feature inside it.
 
 **Frame of reference.** Explorer and Playground are geocentric: the user looks at orbits
-from outside. Observe is topocentric: the user stands somewhere and looks up. That is a
-different projection, a different renderer, and a different mental model.
+from outside. Tracker is topocentric: the user stands somewhere and looks up. Same
+audience, same subject, different vantage — and the vantage is the whole point of the
+question Tracker answers.
 
-Deterministic content — eclipses, Moon phase, planetary positions, satellite passes —
-belongs in Observe because the observer's job spans it, not for architectural reasons.
-
-**What is shared** is narrow and worth stating so it is not overestimated: the astronomy
-model and its validated range, the star catalog, and eventually an orbital-element
-pipeline. Those are libraries, not a shared product.
+**Teaching value.** For a student, Tracker is the tool that connects the other two to the
+sky over their head. Explorer says the ISS is real and in a 420 km orbit at 51.6°;
+Playground says what happens if you change that; Tracker says it crosses your sky at
+21:14 tonight, 68° up in the south-west, bright enough to see from a city, and here is
+why it is lit while you are in darkness. That link is the reason it belongs in Orbit
+Studio rather than beside it.
 
 ---
 
 ## 3. The evidence model
 
-Every claim Observe makes carries two **independent** properties. They are independent
+Every claim Tracker makes carries two **independent** properties. They are independent
 because a real-time measurement can still be highly uncertain and an analytic prediction
 can be extremely precise; collapsing them would make "live" a synonym for "certain".
 
@@ -122,7 +139,7 @@ can be extremely precise; collapsing them would make "live" a synonym for "certa
   `forecast`; an outburst prediction is `forecast` with a wider horizon. These must never
   be rendered as one implied certainty. This requirement is the reason the model exists.
 - **R3.3** — Confidence, where it is scientifically meaningful, is computed from the
-  inputs' classes and stated horizons. Where it is not meaningful, Observe states the
+  inputs' classes and stated horizons. Where it is not meaningful, Tracker states the
   limitation instead of inventing a number.
 - **R3.4** — The mapping from inputs to evidence class is **validated in CI**, in the same
   manner as `provenance:validate` and `licenses:validate`. An item whose class cannot be
@@ -136,7 +153,7 @@ can be extremely precise; collapsing them would make "live" a synonym for "certa
 
 ## 4. Structure
 
-`Observe` with four views over one event system:
+`Tracker` with four views over one event system:
 
 | View | Question |
 |---|---|
@@ -148,14 +165,14 @@ can be extremely precise; collapsing them would make "live" a synonym for "certa
 `Tonight` is the flagship. `Calendar` is another projection of the same event system, not
 a separate feature, and is deliberately last in prominence.
 
-Observe is **not** named Tracker. Satellite tracking is the smallest and least
-differentiated part of the scope, and the name would misdescribe four fifths of the
-content. It is not named Tonight either — solar eclipses are daytime events, passes are
-often pre-dawn, and space weather has no clock.
+One naming note, since the scope is broader than the name suggests: satellite tracking is
+one part of Tracker among many, and most of the content — eclipses, showers, aurora,
+lunar events, conjunctions — is not tracking in the orbital sense. The name is settled;
+the interface should not let it narrow what users expect to find.
 
 ---
 
-## 5. Phase 1 — deterministic Observe
+## 5. Phase 1 — deterministic Tracker
 
 Phase 1 ships with **no backend, no live feed, no account, and no notification**. It is an
 increment, not a validation experiment: at current audience size there is no usage
@@ -217,16 +234,21 @@ accepted explicitly when phase 5 is decided, not discovered during it.
 
 These come from the spike and are requirements, not suggestions.
 
-- **R7.1 — Observe must not share a bundle entry with the satellite catalog.** Measured:
+These are engineering costs and constraints. None of them bears on what Tracker *is* or
+who it serves; a tool that needs its own bundle, renderer and feeds is still one tool
+among several.
+
+- **R7.1 — Tracker must not share a bundle entry with the satellite catalog.** Measured:
   a page drawing one SVG, mounted inside `App` with an early return, transferred 31 MB in
   dev because the early return still evaluates `App`'s whole import graph — the 17 MB
   catalog, drei, and a star catalog. Mounted at the entry instead, the same page
   transferred 1.8 MB. In production the split is `App` at 4,374 KB gzipped against an
   entry of 46 KB plus astronomy at 24 KB and stars at 117 KB. **An observer page costs
-  roughly 187 KB against 4,374 KB.** This is cheap to honour now and expensive after two
-  more products assume otherwise.
+  roughly 187 KB against 4,374 KB.** Cheap to honour now, expensive once more code
+  assumes otherwise. A shared entry point would make Tracker unusable on a phone; it
+  would not make it a different product.
 
-- **R7.2 — Observe extends `src/astronomy/`; it does not sit beside it.** The codebase
+- **R7.2 — Tracker extends `src/astronomy/`; it does not sit beside it.** The codebase
   already declares `CELESTIAL_MODEL_ID = "Astronomy Engine 2.1.19"`, a validated range of
   1600–2200 enforced by throwing, EQJ/ECEF/scene frame conversions, UTC/UT1/TT handling
   with a delta-T model, and a JPL Horizons DE441 + USNO reference fixture. The
@@ -235,8 +257,8 @@ These come from the spike and are requirements, not suggestions.
   bypassing `parseCanonicalSimulationTime()` and its range check. Production code must not.
 
 - **R7.3 — The topocentric layer is the genuine new astronomy work.** `src/astronomy/` is
-  geocentric throughout; there is no `Observer` or `Horizon` usage anywhere in the
-  codebase. Observer position, refraction handling and alt-azimuth conversion belong in a
+  geocentric throughout; there is no `Trackerr` or `Horizon` usage anywhere in the
+  codebase. Trackerr position, refraction handling and alt-azimuth conversion belong in a
   new module under `src/astronomy/`, sharing the existing time scales and frames.
 
 - **R7.4 — No new rendering stack.** The spike drew a horizon, altitude rings, cardinals,
@@ -303,7 +325,7 @@ than rediscovering them.
 - **Ranking quality is unproven and unprovable at current scale.** There is no ground truth
   for "worth observing" and no audience large enough for analytics to arbitrate. Expect to
   tune it by judgement, and say so rather than implying it is measured.
-- **Two streams, one developer.** Observe and the Explorer/Playground stream are
+- **Two streams, one developer.** Tracker and the Explorer/Playground stream are
   independent in dependencies but not in attention. Only one runs at a time.
 - **Open** — how location is obtained and whether it is ever persisted. Orbit Studio
   currently collects no user data at all, which is a property worth spending deliberately
@@ -315,6 +337,15 @@ than rediscovering them.
 
 ## 11. Deliberately not decided here
 
-The overall product goal — reach versus depth — remains open, and it determines whether
-phases 2–5 are worth their operational cost. Phase 1 is defensible under either answer,
-which is part of why it is first.
+Two questions are open and neither is mine to settle.
+
+**Whether phases 2–5 are worth their operational cost.** Tracker's audience is fixed —
+students and educators, the same as every Orbit Studio tool — so the question is not
+reach versus depth but whether a live-data pipeline, accounts and notifications are
+justified by what they teach. Phase 1 is defensible without answering it, which is part
+of why it is first.
+
+**How a shared orbital-element pipeline is owned.** Explorer wants it to replace
+reconstructed angles; Tracker wants it for passes. It serves two tools, so it is built as
+a library with its own contract rather than inside either — but which tool pays for it
+first, and who owns it after, needs a decision when phase 2 is scheduled.
