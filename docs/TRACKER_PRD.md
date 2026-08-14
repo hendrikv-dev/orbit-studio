@@ -165,6 +165,30 @@ can be extremely precise; collapsing them would make "live" a synonym for "certa
 `Tonight` is the flagship. `Calendar` is another projection of the same event system, not
 a separate feature, and is deliberately last in prominence.
 
+- **R4.1 — "Tonight" is a location-derived observation period, not a calendar day.** It
+  spans the current or next local evening through the following morning: from the start
+  of the observer's evening twilight to the end of their morning twilight. It is never
+  midnight-to-midnight, and it is never assumed to be sunset-to-sunrise, because the
+  useful boundary depends on the event — a bright planet is visible in civil twilight, a
+  meteor shower needs astronomical darkness, and a partial solar eclipse happens in
+  daylight.
+- **R4.2** — Each event carries its **own** observable window inside that period,
+  computed from the darkness it actually requires. The period frames the view; it does
+  not clip an event that is best seen outside it.
+- **R4.3** — The definition must hold at the edges, and these are specified rather than
+  left to emerge:
+  - **After midnight.** At 01:00 local, "tonight" still means the evening that has just
+    passed and the morning to come, not the next evening.
+  - **Timezone and DST.** The period is derived from the observer's location and local
+    civil time, including the day a DST transition lengthens or shortens.
+  - **Polar day.** Where astronomical twilight never ends, the period exists but the
+    darkness-dependent events in it are correctly ranked as unobservable, with the
+    reason stated. The view is not empty and does not error.
+  - **Polar night.** Where the Sun never rises, the period is the full local day and
+    darkness is not the limiting factor.
+  - **Pre-dawn events.** An event at 04:30 belongs to the night that is ending, not the
+    one beginning that evening.
+
 One naming note, since the scope is broader than the name suggests: satellite tracking is
 one part of Tracker among many, and most of the content — eclipses, showers, aurora,
 lunar events, conjunctions — is not tracking in the orbital sense. The name is settled;
@@ -186,22 +210,45 @@ tested the technical assumptions; market demand is not being tested here.
 - Moon phase, illumination, rise/set
 - Planetary positions, conjunctions, oppositions
 - Twilight and darkness windows
-- Meteor shower dates and radiant geometry, with rate treated per **R3.2**
+- Meteor shower dates and radiant geometry, from the vendored stream catalog (**R9.1–R9.4**), with rate treated per **R3.2**
 - Topocentric sky view: horizon, alt-azimuth placement, bright stars
 - **Event ranking and its explanation** — the centrepiece
 
 ### Explicitly out of scope in phase 1
 
 Satellite passes, aurora, cloud cover, comet brightness, notifications, accounts, and any
-network request whatsoever.
+network request whatsoever. Phase 1 ships vendored data but makes no runtime request.
 
 ### The ranking function
 
 The one component with no reference implementation, and the actual work of phase 1.
 
-- **R5.1** — Ranking inputs are, at minimum: maximum altitude during the visible window,
-  darkness at that time, Moon interference, event duration, expected brightness or
-  activity, and rarity.
+- **R5.1** — Ranking uses a **common observability framework plus phenomenon-specific
+  factors**, and every input applies only where it is physically relevant. A universal
+  input list would be wrong: Moon interference dominates a meteor shower and is
+  meaningless for a solar eclipse, and darkness is a requirement for one and an
+  impossibility for the other.
+
+  *Common dimensions, applicable to every event:*
+  - **Local visibility** — is it above the horizon from here at all, and for how long
+  - **Geometry** — maximum altitude reached, direction, whether the horizon is clear
+    enough at that bearing
+  - **Timing** — when the observable window falls, and whether it is a reasonable hour
+  - **Rarity** — how often this is available from this location
+
+  *Phenomenon-specific dimensions, applied only to the event types they govern:*
+  - meteor showers — radiant altitude, expected rate, Moon phase and Moon altitude
+    during the peak window, darkness
+  - satellite passes — magnitude, whether the spacecraft is sunlit while the observer is
+    in darkness, angular rate, culmination altitude
+  - solar eclipses — magnitude or obscuration, path proximity, Sun altitude
+  - lunar eclipses — umbral depth, Moon altitude, darkness not required
+  - aurora — geomagnetic activity, observer magnetic latitude, darkness, horizon to the
+    pole-facing direction
+  - conjunctions — angular separation, both objects' magnitudes, twilight conditions
+
+  A phenomenon that is not in the list above must define its own dimensions before it
+  ships. Silently ranking it on the common dimensions alone is a defect.
 - **R5.2** — Every rank is explainable in terms of its inputs, and the explanation is
   generated from the same values the rank used. A ranking whose explanation is written
   separately will drift from it.
@@ -209,6 +256,47 @@ The one component with no reference implementation, and the actual work of phase
   ranked without it and says so, rather than being dropped or silently scored as average.
 - **R5.4** — Rarity must not dominate. A once-a-decade event low on the horizon in
   daylight is not worth going outside for, and a ranking that says otherwise is wrong.
+
+### Observation guidance
+
+Ranking says whether to go outside. Guidance is the other half of Tracker's stated job —
+*how do I see it* — and is a requirement, not supplementary educational material.
+
+- **R5.5** — Every supported event type provides observation guidance covering each of
+  the following that applies to it. An item that cannot answer an applicable field states
+  that, rather than omitting it silently:
+  - **equipment** — naked eye, binoculars, or telescope, and what each adds
+  - **direction and elevation** — where to face and how high to look
+  - **when to start looking** — including any lead time before the event itself
+  - **duration and motion** — how long it lasts and whether it moves visibly
+  - **horizon requirements** — how low a horizon is needed in the relevant direction
+  - **darkness and light-pollution sensitivity** — whether it survives a city sky
+  - **Moon interference** — where the Moon is and whether it will wash the event out
+  - **dark adaptation** — where it materially changes what is seen
+  - **technique** — anything event-specific, such as using averted vision, or watching
+    away from the radiant rather than at it
+- **R5.6** — **Safety instructions are mandatory where applicable and cannot be
+  suppressed by layout, ranking or truncation.** Solar observation is the governing case:
+  any event involving the Sun states the eye-damage risk and the required filtration
+  before any other guidance, including partial phases of a total eclipse and the moments
+  either side of totality.
+
+### Explanation
+
+- **R5.7** — Every event type supports two distinct explanations, because they answer
+  different questions and one does not imply the other:
+  - **Phenomenon** — why this kind of event happens at all, independent of the observer
+  - **Tonight** — why it is visible from this location at this time
+
+  For an ISS pass: the phenomenon is what an orbital pass is; the tonight explanation is
+  why the spacecraft is sunlit while the observer is already in darkness. For the
+  Perseids: the phenomenon is Earth crossing a meteoroid stream left by comet
+  109P/Swift-Tuttle; the tonight explanation is radiant altitude, darkness and Moon
+  conditions.
+
+  This requirement is where Tracker is an Orbit Studio tool rather than a better events
+  list. An implementation that ships ranking and guidance without both explanations has
+  built the astronomy app, not the teaching tool.
 
 ---
 
@@ -218,7 +306,7 @@ Each is a separate decision, in this order, and none is authorised by this docum
 
 | Phase | Adds | Gate |
 |---|---|---|
-| 2 | Live orbital-state pipeline | Justified by **Explorer** alone — replaces the reconstructed RAAN/argP/mean-anomaly that currently constrain ground tracks, coverage and constellation views. Cheapest way to acquire ops discipline: no user-facing correctness promise. Shared by both products, so it is built as a library with its own contract rather than inside either. |
+| 2 | Live orbital-state pipeline | Justified by **Explorer** alone — replaces the reconstructed RAAN/argP/mean-anomaly that currently constrain ground tracks, coverage and constellation views. Cheapest way to acquire operational discipline, because it makes no *time-critical* observation promise — nothing yet claims "the ISS appears at 21:14:32". The correctness obligation is real from the moment Explorer renders those states. Serves both tools, so it is built as a library with its own contract rather than inside either. |
 | 3 | Satellite and ISS passes | Nearly free once 2 and phase 1 exist |
 | 4 | Forecast synthesis — aurora, cloud cover | Requires phase 2's operational muscle |
 | 5 | Alerts and notifications | Accounts, push, stored location, privacy obligations; hardest to reverse |
@@ -257,8 +345,8 @@ among several.
   bypassing `parseCanonicalSimulationTime()` and its range check. Production code must not.
 
 - **R7.3 — The topocentric layer is the genuine new astronomy work.** `src/astronomy/` is
-  geocentric throughout; there is no `Trackerr` or `Horizon` usage anywhere in the
-  codebase. Trackerr position, refraction handling and alt-azimuth conversion belong in a
+  geocentric throughout; there is no `Observer` or `Horizon` usage anywhere in the
+  codebase. Observer position, refraction handling and alt-azimuth conversion belong in a
   new module under `src/astronomy/`, sharing the existing time scales and frames.
 
 - **R7.4 — No new rendering stack.** The spike drew a horizon, altitude rings, cardinals,
@@ -300,14 +388,35 @@ was wrong; 24 KB is the size of a chunk the app already ships.
 
 ## 9. Data sources
 
-Phase 1 requires **none**. Recorded here so later phases inherit the constraints rather
-than rediscovering them.
+**Phase 1 requires no live or runtime external data source.** It does have a vendored one:
+Astronomy Engine computes positions and circumstances but does not know that the Perseids
+exist, so the meteor stream catalog is static data that ships with the app. The rest of
+this table is recorded so later phases inherit the constraints rather than rediscovering
+them.
+
+### The phase 1 vendored dataset
+
+- **R9.1** — Meteor stream elements are vendored, not fetched, and are treated as a
+  `catalog` evidence class per **§3** — a source record with its own epoch, not an
+  analytic result.
+- **R9.2** — The dataset is the **IAU Meteor Data Center** established-shower list, with
+  the **IMO** working list of visual shower parameters for peak dates and nominal rates.
+  Both are pinned to a dated snapshot, checksummed, and registered in
+  `provenance/inventory.json` with rights basis and attribution, in the same manner as
+  GCAT and the NASA fragmentation reference.
+- **R9.3** — Snapshot policy: the vendored copy is replaced deliberately, never
+  automatically, and the replacement records what changed. Shower parameters drift as
+  streams are re-observed, so a silent update would move ranking outputs with no visible
+  cause.
+- **R9.4** — Nominal ZHR from this dataset is a **`forecast`** attribute even though its
+  source is a catalog, per **R3.2**: the peak date and radiant are analytic, the expected
+  rate is not. The distinction is the reason R3.2 exists.
 
 | Source | Use | Terms that matter |
 |---|---|---|
 | Astronomy Engine | Analytic astronomy | MIT; already vendored |
 | HYG v4.1 | Star field | Already vendored and attributed |
-| IMO / IAU MDC | Meteor stream elements | Static table; attribution required |
+| IAU MDC + IMO | Meteor stream elements (**phase 1**) | Vendored static snapshot, not fetched. Pinned, checksummed and registered in provenance; attribution required. See R9.1–R9.4 |
 | CelesTrak | Orbital elements (phase 3) | GP data no more than once per 2-hour cycle; stop on any non-200 and escalate; IP blocking for abuse; caching proxy expected — **this alone forecloses direct browser fetches and therefore requires a backend** |
 | Space-Track | Orbital elements (alternative) | Redistribution to third parties prohibited without express approval (Public Law 108-136 §913). Compute from it; do not mirror it |
 | NOAA SWPC | Aurora (phase 4) | US Government, public domain; OVATION refreshed every 5 min, useful horizon 30–90 min |
