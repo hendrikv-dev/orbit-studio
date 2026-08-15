@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Download, ExternalLink, ScatterChart } from "lucide-react";
 import { buildCsv, downloadCsv } from "../../lib/csvExport";
 import type { ExplorerHistoricalCatalogObject } from "../../data/explorerHistoricalCatalog";
+import { explorerLifetimeBands, survivalAt, type LifetimeBand } from "../../data/explorerLifetime";
 import {
   fragmentSurvivalByYear,
   type FragmentationEvent,
@@ -234,6 +235,122 @@ const DEBRIS_SORTS: {
   },
 ];
 
+/** Single-hue sequential ramp, low altitude to high, matching the band order. */
+const BAND_COLORS = ["#1c6aa8", "#2b83c7", "#4a9cdd", "#6fb4ec", "#8cc4f2", "#a8d5f8", "#c2e2fb"];
+
+/**
+ * Why this event's debris is still up there, or is not.
+ *
+ * The per-event survival curve above shows *that* a cloud persisted; this shows
+ * *why*, by placing the parent's altitude against every other altitude. It is
+ * the general rule arriving after the specific case that provoked the question,
+ * which is the order it has to arrive in to mean anything.
+ *
+ * Only non-maneuvering objects are measured, and here that needs no control:
+ * debris cannot raise its own orbit, so the population that excludes
+ * maneuvering payloads is simply the correct comparison for a fragment cloud.
+ */
+function LifetimeContext({
+  bands,
+  event,
+  snapshotYear,
+}: {
+  bands: readonly LifetimeBand[];
+  event: FragmentationEvent;
+  snapshotYear: number;
+}) {
+  // The fragments' altitude decides their fate, not the parent's. Using the
+  // parent perigee put Kosmos-1408 in a band where 58% survive ten years while
+  // 0.4% of it actually remains: its fragments scattered to a median perigee
+  // 200 km below the parent, which is what the dispersion bar above shows.
+  const fragmentMedianKm = event.fragmentPerigeeKm?.medianKm ?? null;
+  const parentPerigeeKm = event.parentOrbit?.perigeeKm ?? null;
+  if (fragmentMedianKm === null) return null;
+  const active = bands.find(
+    (band) => fragmentMedianKm >= band.lowKm && fragmentMedianKm < band.highKm,
+  );
+  const droppedKm =
+    parentPerigeeKm === null ? null : Math.round(parentPerigeeKm - fragmentMedianKm);
+  const share = event.fragmentCount > 0 ? event.inOrbitCount / event.fragmentCount : null;
+
+  const width = 300;
+  const height = 96;
+  const maxYears = 40;
+  const xOf = (years: number) => (Math.min(years, maxYears) / maxYears) * width;
+  const yOf = (survival: number) => height - survival * height;
+  const pathFor = (band: LifetimeBand) => {
+    const steps: string[] = [];
+    let previous = 1;
+    for (const point of band.curve) {
+      if (point.years > maxYears) break;
+      steps.push(`L ${xOf(point.years).toFixed(1)} ${yOf(previous).toFixed(1)}`);
+      steps.push(`L ${xOf(point.years).toFixed(1)} ${yOf(point.survival).toFixed(1)}`);
+      previous = point.survival;
+    }
+    steps.push(`L ${width} ${yOf(previous).toFixed(1)}`);
+    return `M 0 ${yOf(1)} ${steps.join(" ")}`;
+  };
+
+  return (
+    <section className="explorer-debris-lifetime">
+      {/* The heading has to follow the outcome: Kosmos-1408 has 0.4% left, and
+          "why this cloud persists" is the wrong sentence about it. */}
+      <h4>
+        {share === null
+          ? "How long this cloud lasts"
+          : share > 0.5
+            ? "Why this cloud persists"
+            : share < 0.1
+              ? "Why this cloud cleared"
+              : "How long this cloud lasts"}
+      </h4>
+      {active ? (
+        <p className="explorer-debris-lifetime-lede">
+          These fragments sit at a median perigee of{" "}
+          <strong>{Math.round(fragmentMedianKm).toLocaleString()} km</strong>
+          {droppedKm !== null && droppedKm > 20
+            ? `, ${droppedKm.toLocaleString()} km below the parent`
+            : ""}
+          . Across every non-maneuvering object recorded in the{" "}
+          <strong>{active.label}</strong> band,{" "}
+          <strong>{(survivalAt(active.curve, 10) * 100).toFixed(0)}%</strong> are still in
+          orbit ten years on, and half have{" "}
+          {active.medianYears === null
+            ? `still not decayed within the ${snapshotYear - 1957} years on record`
+            : active.medianYears < 1
+              ? "decayed inside a year"
+              : `decayed by ${active.medianYears} year${active.medianYears === 1 ? "" : "s"}`}
+          . Where the fragments end up, not how violent the break-up was, decides how
+          long the cloud lasts.
+        </p>
+      ) : (
+        <p className="explorer-debris-lifetime-lede">
+          These fragments sit at a median perigee of{" "}
+          {Math.round(fragmentMedianKm).toLocaleString()} km, outside the 200–1,400 km
+          range these measurements cover.
+        </p>
+      )}
+
+      <figure>
+        <svg preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} role="img"
+             aria-label="Fraction still in orbit over 40 years, by perigee band, with this event's band emphasised">
+          {bands.map((band, index) => (
+            <path key={band.id} d={pathFor(band)} fill="none"
+                  stroke={BAND_COLORS[index]}
+                  strokeOpacity={active && band.id === active.id ? 1 : 0.28}
+                  strokeWidth={active && band.id === active.id ? 2.4 : 1.2} />
+          ))}
+        </svg>
+        <figcaption>
+          <span>0 yr</span>
+          <span>Every altitude band, this one highlighted</span>
+          <span>40 yr</span>
+        </figcaption>
+      </figure>
+    </section>
+  );
+}
+
 export function ExplorerDebrisView({
   events,
   objects,
@@ -254,6 +371,12 @@ export function ExplorerDebrisView({
   const survival = useMemo(
     () => (selected ? fragmentSurvivalByYear(objects, selected, snapshotYear) : []),
     [objects, selected, snapshotYear],
+  );
+
+  // Non-maneuvering only: a fragment cloud cannot raise its own orbit.
+  const lifetimeBands = useMemo(
+    () => explorerLifetimeBands(objects, snapshotYear, "non-maneuvering"),
+    [objects, snapshotYear],
   );
 
   const totalInOrbit = events.reduce((sum, event) => sum + event.inOrbitCount, 0);
@@ -286,6 +409,28 @@ export function ExplorerDebrisView({
                 { header: "parent_inclination_deg", value: (event) => event.parentOrbit?.inclinationDeg.toFixed(2) },
                 { header: "fragment_perigee_min_km", value: (event) => event.fragmentPerigeeKm?.minKm.toFixed(1) },
                 { header: "fragment_perigee_median_km", value: (event) => event.fragmentPerigeeKm?.medianKm.toFixed(1) },
+                {
+                  header: "fragment_median_perigee_band_km",
+                  value: (event) => {
+                    const perigee = event.fragmentPerigeeKm?.medianKm;
+                    if (perigee === undefined) return "";
+                    const band = lifetimeBands.find(
+                      (item) => perigee >= item.lowKm && perigee < item.highKm,
+                    );
+                    return band ? `${band.lowKm}-${band.highKm}` : "outside 200-1400";
+                  },
+                },
+                {
+                  header: "band_survival_10yr",
+                  value: (event) => {
+                    const perigee = event.fragmentPerigeeKm?.medianKm;
+                    if (perigee === undefined) return "";
+                    const band = lifetimeBands.find(
+                      (item) => perigee >= item.lowKm && perigee < item.highKm,
+                    );
+                    return band ? survivalAt(band.curve, 10).toFixed(3) : "";
+                  },
+                },
               ],
               [
                 "Orbit Studio - fragmentation events",
@@ -294,6 +439,7 @@ export function ExplorerDebrisView({
                 `Assessed cause: ${fragmentationCauseReference.reportNumber} - ${fragmentationCauseReference.title}`,
                 "cause_standing: assessed | assessed-unknown (investigated, undetermined) | unassessed (outside the cited reference)",
                 "fragments_in_orbit counts objects with no decay date recorded at the snapshot.",
+                "band_survival_10yr: fraction of all non-maneuvering objects in that perigee band still in orbit after 10 years (Kaplan-Meier, censored at current age).",
               ],
             );
             downloadCsv("orbit-studio-fragmentation-events.csv", csv);
@@ -414,6 +560,7 @@ export function ExplorerDebrisView({
 
           <SurvivalCurve series={survival} totalFragments={selected.fragmentCount} />
           <DispersionBar event={selected} />
+          <LifetimeContext bands={lifetimeBands} event={selected} snapshotYear={snapshotYear} />
 
           <button
             className="explorer-debris-population-link"
@@ -428,7 +575,9 @@ export function ExplorerDebrisView({
             Parentage, separation dates and decay dates are sourced from GCAT. Cause
             comes from a separate NASA reference and is shown only where that
             reference assesses this exact break-up. Remaining fragments are those with
-            no decay date recorded at {snapshotLabel}.
+            no decay date recorded at {snapshotLabel}. The altitude-band comparison
+            measures every non-maneuvering object with a recorded near-circular orbit,
+            counting objects still in orbit at their current age rather than as decayed.
           </p>
         </article>
       </div>
