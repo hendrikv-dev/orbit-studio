@@ -11201,3 +11201,19 @@ button.primary,
   font-size: 0.68rem;
   line-height: 1.5;
 }
+
+/* A name that matches an object which has since decayed. Explains an otherwise
+   confusing result — a search for a famous satellite returning only its debris. */
+.explorer-search-historical {
+  margin: 0;
+  border-bottom: 1px solid rgba(103, 148, 184, 0.14);
+  padding: 10px 12px;
+  color: #9db6c6;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.explorer-search-historical strong {
+  color: #eaf5ff;
+  font-weight: 600;
+}

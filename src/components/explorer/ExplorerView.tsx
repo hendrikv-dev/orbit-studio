@@ -62,6 +62,10 @@ import type { SatelliteModel } from "../../lib/scenario";
 import { EARTH_RADIUS_KM } from "../../physics/constants";
 import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
 import { explorerPopulationPoints } from "../../data/explorerPopulation";
+import {
+  historicalOnlyMatches,
+  searchResultDetail,
+} from "../../data/explorerSearchContext";
 import { readExplorerUrlState, writeExplorerUrlState } from "../../lib/explorerUrlState";
 import {
   elementProvenanceLabel,
@@ -2075,7 +2079,11 @@ export function ExplorerView({
       activeLabels.length === 1 ? "filter" : "filters"
     }. It remains visible while selected.`;
   }, [regimeFilter, selectedFilterConflict, selectedObjectTypeFilter.label]);
-  const globalSearchResults = useMemo(
+  const SEARCH_RESULT_LIMIT = 10;
+  // The full match set is kept so the status line can report the real total.
+  // Reporting the sliced length told a reader searching 1,716 fragments that
+  // there were ten of them.
+  const globalSearchMatches = useMemo(
     () =>
       searchActive
         ? prioritizeExplorerSearchResults(
@@ -2087,10 +2095,22 @@ export function ExplorerView({
               constellationId: "all",
             }),
             query,
-          ).slice(0, 10)
+          )
         : [],
     [query, searchActive, snapshotView],
   );
+  const globalSearchResults = useMemo(
+    () => globalSearchMatches.slice(0, SEARCH_RESULT_LIMIT),
+    [globalSearchMatches],
+  );
+  // An exact-name match that decayed out of the current snapshot. Without this
+  // a search for a famous satellite returns only its debris, with nothing
+  // saying why the satellite itself is missing.
+  const historicalSearchMatches = useMemo(() => {
+    if (!searchActive) return [];
+    const present = new Set(snapshotView.records.map((record) => record.id));
+    return historicalOnlyMatches(query, present);
+  }, [query, searchActive, snapshotView]);
   useEffect(() => {
     setHighlightedSearchIndex(0);
   }, [globalSearchResults.length, query, searchOpen]);
@@ -2769,10 +2789,19 @@ export function ExplorerView({
               role="listbox"
             >
               <div className="explorer-search-dropdown-status" role="status">
-                {globalSearchResults.length
-                  ? `${globalSearchResults.length.toLocaleString()} matches`
+                {globalSearchMatches.length
+                  ? globalSearchMatches.length > globalSearchResults.length
+                    ? `Showing ${globalSearchResults.length} of ${globalSearchMatches.length.toLocaleString()} matches`
+                    : `${globalSearchMatches.length.toLocaleString()} ${globalSearchMatches.length === 1 ? "match" : "matches"}`
                   : "No matches"}
               </div>
+              {historicalSearchMatches.map((match) => (
+                <p className="explorer-search-historical" key={match.id}>
+                  <strong>{match.name}</strong> is not in the {activeSnapshot.year} catalog:
+                  it decayed on {match.decayDate?.slice(0, 10)} and was last present in{" "}
+                  {match.lastPresentYear}. The results below are its debris.
+                </p>
+              ))}
               {globalSearchResults.map((entry, index) => (
                 <button
                   aria-selected={index === highlightedSearchIndex}
@@ -2788,12 +2817,15 @@ export function ExplorerView({
                   <i style={{ background: markerStyles.get(entry.id)?.color ?? entry.orbit?.color }} />
                   <span>
                     <strong>{entry.name}</strong>
-                    <small>{explorerResultKindLabel(entry)} · {entry.objectType}</small>
+                    <small>
+                      {explorerResultKindLabel(entry)} · {entry.objectType}
+                      {searchResultDetail(entry) ? ` · ${searchResultDetail(entry)}` : ""}
+                    </small>
                   </span>
                   <ChevronRight size={14} />
                 </button>
               ))}
-              {globalSearchResults.length === 0 && (
+              {globalSearchResults.length === 0 && historicalSearchMatches.length === 0 && (
                 <p>Try a catalog number, operator, category, or constellation name.</p>
               )}
             </div>
