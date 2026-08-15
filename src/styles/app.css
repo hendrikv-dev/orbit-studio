@@ -9989,11 +9989,6 @@ button.primary,
 .explorer-shell {
   /* Width of the representation switch plus a gap; see .explorer-view-switch. */
   --explorer-switch-clearance: 180px;
-  /* The inspector floats over .explorer-globe rather than taking a column from
-     it (absolute, 400px wide, 18px from the edge). The globe and the scatter
-     are happy to run underneath it; the text lenses are not, so they reserve
-     this much when a selection is open. */
-  --explorer-inspector-reserve: 430px;
 }
 
 .explorer-view-switch {
@@ -10989,14 +10984,6 @@ button.primary,
 
 .encounter-verdict.survivable strong { color: #cdf0dd; }
 
-/* Text lenses step aside for the inspector. The globe and the population
-   scatter deliberately do not: they are backdrops and read fine underneath. */
-@media (min-width: 744px) {
-  .explorer-shell:has(.explorer-inspector) .explorer-debris {
-    right: var(--explorer-inspector-reserve);
-  }
-}
-
 .explorer-debris-survival-plot {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -11062,11 +11049,17 @@ button.primary,
    text lens and a selected object cannot share the screen. Desktop reserves
    room; here the sheet stands down while a lens is open. The selection itself
    is kept — the panel returns on Globe or Population. */
-@media (max-width: 743px), (max-width: 960px) and (max-height: 520px) {
-  .explorer-shell:has(.explorer-debris) .explorer-inspector {
-    display: none;
-  }
+/* The inspector describes one selected object; the debris lens describes the
+   whole catalog and carries its own detail panel. Showing both put two
+   unrelated objects on screen at once — an inspector for "deb HAPS" beside a
+   fragmentation panel for Feng Yun 1C. Reserving room for it was treating the
+   overlap and not the cause. The selection is kept: the panel returns on Globe
+   or Population. */
+.explorer-shell:has(.explorer-debris) .explorer-inspector {
+  display: none;
+}
 
+@media (max-width: 743px), (max-width: 960px) and (max-height: 520px) {
   .explorer-shell:has(.explorer-inspector):has(.explorer-debris) {
     grid-template-rows:
       calc(56px + env(safe-area-inset-top, 0px))
