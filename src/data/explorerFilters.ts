@@ -75,3 +75,18 @@ export function explorerFilterConflict(
 export function explorerFilterChangeShouldReframe(selectedObjectId: string | null): boolean {
   return selectedObjectId === null;
 }
+
+/**
+ * Entries the Explorer scene and the population view draw.
+ *
+ * Lives here rather than in the view because the population totals are derived
+ * from it too: when the count used one definition and the plot another, the
+ * label read 33,477 against 33,474 points.
+ */
+export function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
+  return (
+    entry.selectionKind === "satellite" ||
+    entry.selectionKind === "ground-station" ||
+    entry.selectionKind === "constellation"
+  );
+}

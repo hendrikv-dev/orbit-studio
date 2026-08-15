@@ -61,6 +61,10 @@ import { propagateSatellite } from "../../lib/propagation";
 import type { SatelliteModel } from "../../lib/scenario";
 import { EARTH_RADIUS_KM } from "../../physics/constants";
 import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
+import {
+  explorerCountBreakdown,
+  explorerCountReconciliation,
+} from "../../data/explorerCounts";
 import { explorerPopulationPoints } from "../../data/explorerPopulation";
 import {
   historicalOnlyMatches,
@@ -102,6 +106,7 @@ import {
 import {
   explorerEntryMatchesFilters,
   explorerFilterChangeShouldReframe,
+  isExplorerSceneEntry,
   explorerFilterConflict,
   explorerRegimeForEntry,
   type ExplorerRegimeFilter,
@@ -209,14 +214,6 @@ function initialExplorerPlaybackRunning(): boolean {
 
 /** Explorer draws one state; the mode chooses which representation. */
 type ExplorerViewMode = "globe" | "population" | "debris";
-
-function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
-  return (
-    entry.selectionKind === "satellite" ||
-    entry.selectionKind === "ground-station" ||
-    entry.selectionKind === "constellation"
-  );
-}
 
 function isExplorerCatalogResult(entry: ExplorerCatalogEntry): boolean {
   return isExplorerRenderableEntry(entry) || entry.visualRole === "catalog-reference";
@@ -1534,7 +1531,17 @@ function ExplorerTimeline({
           : null,
       ].filter(Boolean).join(" · ")
     : activeCoverage.status === "latest-public-catalog"
-      ? `${visibleRenderableOrbitStateCount.toLocaleString()} reconstructed`
+      // The historical branch above already names the objects it cannot place.
+      // This one did not, so the timeline read "33,468 reconstructed" while the
+      // Explore panel counted 33,489 and nothing accounted for the difference.
+      ? [
+          `${visibleRenderableOrbitStateCount.toLocaleString()} reconstructed ${
+            visibleRenderableOrbitStateCount === 1 ? "orbit" : "orbits"
+          }`,
+          (activeCoverage.catalogOnlyObjectCount ?? 0) > 0
+            ? `${activeCoverage.catalogOnlyObjectCount!.toLocaleString()} unavailable`
+            : null,
+        ].filter(Boolean).join(" · ")
       : `${visibleRenderableOrbitStateCount.toLocaleString()} source-backed`;
   const historicalCatalogOnly = activeCoverage.status === "historical-loaded" &&
     activeCoverage.catalogObjectCount > 0 && activeCoverage.renderableOrbitStateCount === 0;
@@ -2138,6 +2145,13 @@ export function ExplorerView({
   );
   const selectedSatelliteAvailable = scenario.selectedObjectType === "satellite";
   const loadedCatalogObjectCount = snapshotView.catalogObjectCount;
+  // One derivation for every total the interface shows, so the three surfaces
+  // cannot drift into three unexplained numbers again.
+  const countBreakdown = useMemo(() => explorerCountBreakdown(snapshotView), [snapshotView]);
+  const countReconciliation = useMemo(
+    () => explorerCountReconciliation(countBreakdown),
+    [countBreakdown],
+  );
   const loadedRenderableOrbitStateCount = snapshotView.renderableOrbitStateCount;
   const historicalCatalogOnly = explorerHistoricalWarningState({
     catalogObjectCount: loadedCatalogObjectCount,
@@ -2981,7 +2995,11 @@ export function ExplorerView({
           className="explorer-mobile-sheet-drag-region"
           closeLabel="Close Explore"
           dragHandleProps={catalogSheetDrag.dragHandleProps}
-          supporting={`${loadedCatalogObjectCount.toLocaleString()} objects in this snapshot`}
+          supporting={
+            countBreakdown.catalogOnly > 0
+              ? `${countBreakdown.catalogObjects.toLocaleString()} catalog objects · ${countBreakdown.catalogOnly.toLocaleString()} without a usable orbit`
+              : `${countBreakdown.catalogObjects.toLocaleString()} catalog objects`
+          }
           title="Explore"
           onClose={catalogPanel.close}
         />
@@ -3563,6 +3581,7 @@ export function ExplorerView({
             snapshotLabel={populationSnapshotLabel}
             highlightIds={highlightedFragmentIds}
             highlightLabel={highlightedEvent?.parentName}
+            countNote={countReconciliation}
             onSelect={selectPopulationObject}
           />
         )}

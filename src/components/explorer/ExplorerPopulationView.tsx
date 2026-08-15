@@ -47,6 +47,8 @@ interface ExplorerPopulationViewProps {
    */
   highlightIds?: ReadonlySet<string>;
   highlightLabel?: string;
+  /** Why this total differs from the catalog total shown elsewhere. */
+  countNote?: string | null;
 }
 
 interface PlotGeometry {
@@ -63,6 +65,7 @@ export function ExplorerPopulationView({
   snapshotLabel,
   highlightIds,
   highlightLabel,
+  countNote,
 }: ExplorerPopulationViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -562,11 +565,14 @@ export function ExplorerPopulationView({
       <div className="explorer-population-legend">
         <strong>Current orbital population</strong>
         <span>
-          {visibleCount.toLocaleString()} of {points.length.toLocaleString()} shown · {snapshotLabel}
+          {visibleCount.toLocaleString()} of {points.length.toLocaleString()} plotted · {snapshotLabel}
         </span>
         <span className="explorer-population-note">
           Sourced orbit shape only. Positions along each orbit are not shown.
         </span>
+        {countNote ? (
+          <span className="explorer-population-note">{countNote}</span>
+        ) : null}
       </div>
 
       {readout && (
