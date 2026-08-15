@@ -62,6 +62,12 @@ import type { SatelliteModel } from "../../lib/scenario";
 import { EARTH_RADIUS_KM } from "../../physics/constants";
 import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
 import { explorerPopulationPoints } from "../../data/explorerPopulation";
+import { readExplorerUrlState, writeExplorerUrlState } from "../../lib/explorerUrlState";
+import {
+  elementProvenanceLabel,
+  explorerElementProvenance,
+  type ElementProvenance,
+} from "../../data/explorerElementProvenance";
 import { explorerFragmentationEvents } from "../../data/explorerFragmentation";
 import type { FragmentationEvent } from "../../data/explorerFragmentation";
 import {
@@ -1010,6 +1016,16 @@ function ExplorerCoveragePanel({ coverage }: { coverage: CoveragePanel }) {
   return presentation === "expanded" ? createPortal(body, document.body) : body;
 }
 
+/**
+ * Marks a displayed element with where its value came from. Sourced values
+ * carry no badge: the absence is the signal that the number is measured.
+ */
+function ElementSource({ provenance }: { provenance: ElementProvenance }) {
+  const label = elementProvenanceLabel(provenance);
+  if (!label) return null;
+  return <span className={`explorer-element-source is-${provenance}`}>{label}</span>;
+}
+
 function ExplorerInspector({
   activeSnapshot,
   coverage,
@@ -1028,6 +1044,7 @@ function ExplorerInspector({
   const entry = scenario.selectedObjectId
     ? explorerEntryForId(scenario.selectedObjectId, activeSnapshot)
     : undefined;
+  const elementProvenance = explorerElementProvenance(entry?.orbitAvailability);
   const satellite =
     scenario.selectedObjectType === "satellite"
       ? scenario.satellites.find((item) => item.id === scenario.selectedObjectId)
@@ -1258,14 +1275,56 @@ function ExplorerInspector({
                     <div><dt>Apogee</dt><dd>{selectedOrbitFrame ? `${formatNumber(selectedOrbitFrame.apogeeAltitudeKm, 1)} km` : "--"}</dd></div>
                   </dl>
                 </section>
-                <section className="explorer-inspector-data-section">
+<section className="explorer-inspector-data-section">
                   <h3>Orbital elements</h3>
-                  <dl>
-                    <div><dt>Inclination</dt><dd>{formatNumber(satellite.keplerian.inclinationDeg, 2)}°</dd></div>
-                    <div><dt>Eccentricity</dt><dd>{satellite.keplerian.eccentricity.toFixed(5)}</dd></div>
-                    <div><dt>Semi-major axis</dt><dd>{formatNumber(satellite.keplerian.semiMajorAxisKm, 1)} km</dd></div>
-                    <div><dt>RAAN</dt><dd>{formatNumber(satellite.keplerian.raanDeg, 1)}°</dd></div>
+                  {/* All six, and each marked with where it came from. Showing
+                      four of six hid two generated angles while displaying a
+                      third as though it were measured. */}
+                  <dl className="explorer-element-list">
+                    <div>
+                      <dt>Inclination</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.inclinationDeg, 2)}°
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Eccentricity</dt>
+                      <dd>
+                        {satellite.keplerian.eccentricity.toFixed(5)}
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Semi-major axis</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.semiMajorAxisKm, 1)} km
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>RAAN</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.raanDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Argument of perigee</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.argumentOfPeriapsisDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>True anomaly</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.trueAnomalyDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
                   </dl>
+                  <p className="explorer-element-note">{elementProvenance.note}</p>
                 </section>
                 {coverage.primary && (
                   <section className="explorer-inspector-data-section">
@@ -1785,6 +1844,7 @@ export function ExplorerView({
     [],
   );
   const [highlightedEvent, setHighlightedEvent] = useState<FragmentationEvent | null>(null);
+
   const highlightedFragmentIds = useMemo(() => {
     if (!highlightedEvent) return undefined;
     const ids = new Set<string>();
@@ -2169,6 +2229,114 @@ export function ExplorerView({
     selectSatellite,
     setFollowSelectedObject,
   ]);
+
+  /**
+   * Restore the state a link carries, once. Runs after mount so the catalog and
+   * scene exist to select into; a link that names an object no longer in the
+   * catalog restores everything else rather than failing.
+   */
+  const urlStateRestored = useRef(false);
+  const [urlRestoreTick, setUrlRestoreTick] = useState(0);
+  useEffect(() => {
+    if (urlStateRestored.current || typeof window === "undefined") return;
+    urlStateRestored.current = true;
+    const linked = readExplorerUrlState(window.location.search);
+    if (linked.view) setViewMode(linked.view);
+    if (linked.regime) applyExplorerRegimeFilter(linked.regime as ExplorerRegimeFilter);
+    if (linked.year !== null) {
+      const snapshot = explorerTimelineSnapshots.find((item) => Number(item.year) === linked.year);
+      if (snapshot) onSelectSnapshot(snapshot);
+    }
+  }, [applyExplorerRegimeFilter, onSelectSnapshot]);
+
+  /**
+   * The object is restored separately, once the scene has objects to select
+   * into. selectEntry routes to a scene satellite when one exists and falls
+   * back to a catalog-only selection when it does not — so restoring at mount
+   * silently produced the catalog-only path and a panel reading "no
+   * source-backed position is available", for an object that has one.
+   */
+  /**
+   * Restore the linked object, retrying briefly.
+   *
+   * selectEntry routes to a scene satellite when the scene holds one and to a
+   * catalog-only selection otherwise, and the scene hydrates an object shortly
+   * after it is first asked for. A single attempt at mount therefore selected
+   * the catalog record and left the panel without the orbit sections — the
+   * object was named, but Current orbit and Orbital elements were missing.
+   * Re-applying while the selection has not settled lets the scene catch up.
+   */
+  const urlObjectRestored = useRef(false);
+  const urlObjectAttempts = useRef(0);
+  useEffect(() => {
+    if (!urlStateRestored.current || urlObjectRestored.current) return;
+    if (typeof window === "undefined") return;
+    const linked = readExplorerUrlState(window.location.search);
+    if (!linked.object) {
+      urlObjectRestored.current = true;
+      return;
+    }
+    const entry = explorerEntryForId(linked.object, currentExplorerSnapshot);
+    if (!entry) {
+      urlObjectRestored.current = true;
+      return;
+    }
+    const settled =
+      entry.selectionKind !== "satellite" ||
+      (scenario.selectedObjectId === entry.id && scenario.selectedObjectType === "satellite");
+    if (settled) {
+      urlObjectRestored.current = true;
+      if (scenario.selectedObjectId !== entry.id) selectEntry(entry);
+      return;
+    }
+    if (urlObjectAttempts.current >= 8) {
+      // Give up rather than retry forever; the catalog selection still stands.
+      urlObjectRestored.current = true;
+      return;
+    }
+    urlObjectAttempts.current += 1;
+    selectEntry(entry);
+    const timer = window.setTimeout(() => setUrlRestoreTick((tick) => tick + 1), 700);
+    return () => window.clearTimeout(timer);
+  }, [
+    scenario.selectedObjectId,
+    scenario.selectedObjectType,
+    sceneSatelliteIds,
+    selectEntry,
+    urlRestoreTick,
+  ]);
+
+  /**
+   * Reflect state into the address bar. replaceState rather than pushState:
+   * a link has to be copyable, but scrubbing a timeline should not bury the
+   * Back button under a hundred history entries.
+   */
+  useEffect(() => {
+    // Both restores must have finished. Writing earlier overwrote the incoming
+    // ?object= with whatever the scene had selected by default — a runtime
+    // sat-<uuid> — so the restore then read its own clobbered URL and could
+    // never find the object.
+    if (!urlStateRestored.current || !urlObjectRestored.current) return;
+    if (typeof window === "undefined") return;
+    // Only a catalog id survives a reload. Scene-generated ids are meaningless
+    // in a link, so an unresolvable selection writes no object at all.
+    const selectedCatalogId =
+      scenario.selectedObjectId &&
+      explorerEntryForId(scenario.selectedObjectId, currentExplorerSnapshot)
+        ? scenario.selectedObjectId
+        : null;
+    const href = writeExplorerUrlState(window.location.search, {
+      view: viewMode,
+      regime: regimeFilter,
+      object: selectedCatalogId,
+      year: Number(activeSnapshot.year),
+      defaultYear: Number(currentExplorerSnapshot.year),
+    });
+    const next = `${window.location.pathname}${href}${window.location.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(window.history.state, "", next);
+    }
+  }, [activeSnapshot.year, regimeFilter, scenario.selectedObjectId, urlRestoreTick, viewMode]);
 
   // A point in the population view is the same Explorer object the globe would
   // select, so the selection survives switching representation either way.

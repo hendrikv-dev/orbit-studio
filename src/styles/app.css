@@ -11156,3 +11156,48 @@ button.primary,
   color: #7d93a6;
   font-size: 0.66rem;
 }
+
+/* Element provenance. A sourced value carries no badge — its absence is the
+   signal. Anything generated says so beside the number rather than in a caveat
+   on another tab, because the number is what gets read and written down. */
+.explorer-element-list dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.explorer-element-source {
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.explorer-element-source.is-reconstructed {
+  border: 1px solid rgba(255, 181, 74, 0.4);
+  background: rgba(255, 181, 74, 0.12);
+  color: #ffd79a;
+}
+
+.explorer-element-source.is-representative {
+  border: 1px solid rgba(111, 215, 242, 0.35);
+  background: rgba(111, 215, 242, 0.1);
+  color: #b7e6f5;
+}
+
+.explorer-element-source.is-unavailable {
+  border: 1px solid rgba(127, 147, 165, 0.35);
+  background: rgba(127, 147, 165, 0.1);
+  color: #a9bccb;
+}
+
+.explorer-element-note {
+  margin: 8px 0 0;
+  color: #8ea3b5;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
