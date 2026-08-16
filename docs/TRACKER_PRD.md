@@ -1,5 +1,15 @@
 # Tracker — Product Requirements
 
+> **Superseded on product direction by `TRACKER_V1_PRD.md`.** Where the two disagree
+> about *what Tracker should do*, the V1 handoff wins: it is the owner's statement of
+> product direction, and it reorders V1 (satellites and aurora are Confirmed V1 there,
+> deferred to phases 3–4 here) and adds the successful-sighting outcome, the zero-input
+> contract and the cost rule. This document is retained for the parts the handoff does
+> not cover and does not contradict — the evidence model (§3), the architecture
+> constraints (§7), the accuracy obligations (§8) and the source terms (§9). Requirement
+> ids of the form `R5.1` cited in code refer to *this* document; the handoff's
+> requirements are cited as `V1 §4`, `V1 A5` and so on.
+
 ## Status and authority
 
 Draft for implementation planning. Subordinate to `ORBIT_CONSTITUTION.md`; where this

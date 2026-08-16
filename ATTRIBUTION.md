@@ -380,6 +380,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Retain attribution and dependency MIT notices.
 
+## IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers
+
+- Inventory ID: `meteor-stream-parameters-2026-08-16`
+- Category: meteor-stream-parameters
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: International Meteor Organization; IAU Meteor Data Center
+- Version or snapshot: Transcribed working-list parameters, snapshot dated 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://www.ta3.sk/IAUC22DB/MDC2007/
+- Authoritative source: https://www.imo.net/resources/calendar/
+- Rights basis: Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.
+- Rights evidence: https://www.imo.net/resources/calendar/
+- Rights evidence: https://www.ta3.sk/IAUC22DB/MDC2007/
+- Attribution: Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/meteorShowers.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed.
+
 ## Software dependencies
 
 The complete lockfile-derived dependency inventory and runtime notice texts are in

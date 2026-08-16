@@ -11347,3 +11347,312 @@ button.primary,
   font-size: 0.72rem;
   line-height: 1.55;
 }
+
+/* --- Tracker: hero, ranked list and the night chart ------------------------
+   The hero and the list are one system (V1 §3): the list changes the hero, so
+   they share the same band chip and the same vocabulary rather than looking
+   like two features that happen to sit on one page. */
+
+.tracker-hero {
+  border: 1px solid rgba(103, 148, 184, 0.24);
+  border-radius: 14px;
+  background: rgba(6, 12, 20, 0.66);
+  padding: 18px 20px 20px;
+  max-width: 860px;
+}
+
+.tracker-hero-empty h2 { margin: 0 0 8px; font-size: 1.02rem; }
+.tracker-hero-empty p {
+  margin: 0 0 8px;
+  max-width: 70ch;
+  color: #a9bdcd;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+/* Safety is rendered before everything else and is never inside a disclosure
+   control (TRACKER_PRD R5.6). The styling is deliberately loud. */
+.tracker-safety {
+  margin: 0 0 14px;
+  border: 1px solid rgba(255, 143, 96, 0.55);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: rgba(255, 118, 62, 0.12);
+  color: #ffd9c6;
+  padding: 10px 13px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.tracker-hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.tracker-hero-head h2 {
+  margin: 0 0 5px;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+.tracker-hero-summary {
+  margin: 0;
+  max-width: 62ch;
+  color: #cfe0ee;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.tracker-band {
+  flex: none;
+  border: 1px solid rgba(117, 142, 160, 0.3);
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: #b6c9d8;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tracker-band-exceptional {
+  border-color: rgba(63, 214, 168, 0.6);
+  background: rgba(63, 214, 168, 0.14);
+  color: #b7f4de;
+}
+.tracker-band-very-good {
+  border-color: rgba(110, 190, 235, 0.5);
+  background: rgba(110, 190, 235, 0.12);
+  color: #c9e8fa;
+}
+.tracker-band-marginal { color: #8496a5; }
+
+.tracker-chart { margin: 0 0 16px; }
+
+.tracker-chart svg {
+  display: block;
+  width: 100%;
+  height: 132px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+/* HTML, not SVG text: inside a viewBox that does not preserve its aspect ratio
+   the labels come out condensed on a narrow screen. */
+.tracker-chart-axis {
+  position: relative;
+  height: 16px;
+  margin-top: 3px;
+  border-top: 1px solid rgba(117, 142, 160, 0.35);
+}
+
+.tracker-chart-axis span {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  color: #7e93a5;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Strictly darkening, because the caption promises that darker means deeper.
+   The first version had the civil band lighter than the bare twilight behind
+   it, so the shading brightened once and then darkened — which told the reader
+   the opposite of the truth about the first hour after sunset. */
+.tracker-chart-twilight { fill: #16293a; }
+.tracker-chart-band-civil { fill: #102131; }
+.tracker-chart-band-nautical { fill: #0a1725; }
+.tracker-chart-band-astronomical { fill: #050c15; }
+.tracker-chart-moon { fill: rgba(228, 216, 168, 0.62); }
+
+/* The rate is an estimate, so it is drawn as a soft area rather than a crisp
+   line: a line reads as a measured series (V1 §6). */
+.tracker-chart-rate {
+  fill: rgba(63, 214, 168, 0.24);
+  stroke: rgba(63, 214, 168, 0.6);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.tracker-chart-mark {
+  stroke: rgba(255, 236, 176, 0.8);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.tracker-chart-mark-cap { fill: #ffecb0; }
+
+.tracker-chart figcaption {
+  margin-top: 7px;
+  max-width: 78ch;
+  color: #8ea3b5;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.tracker-guidance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px 22px;
+  margin: 0 0 14px;
+}
+
+.tracker-guidance > div {
+  border-top: 1px solid rgba(103, 148, 184, 0.16);
+  padding-top: 7px;
+}
+
+.tracker-guidance dt {
+  color: #8ea3b5;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tracker-guidance dd {
+  margin: 3px 0 0;
+  color: #eaf5ff;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+/* A3: the equipment requirement must be unmistakable before the user commits,
+   so it is coloured rather than set in the same grey as everything else. */
+.tracker-equipment-required {
+  color: #ffd9a8;
+  font-weight: 600;
+}
+
+.tracker-appearance,
+.tracker-technique {
+  margin: 0 0 10px;
+  max-width: 74ch;
+  color: #bed1e0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.tracker-appearance strong,
+.tracker-technique strong { color: #eaf5ff; }
+
+.tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 14px 0 4px;
+}
+
+.tracker-actions button,
+.tracker-use-coordinates,
+.tracker-passive > button {
+  min-height: 36px;
+  border: 1px solid rgba(117, 142, 160, 0.32);
+  border-radius: 9px;
+  background: rgba(122, 141, 158, 0.1);
+  color: #dcebf7;
+  padding: 0 15px;
+  font-size: 0.78rem;
+}
+
+.tracker-actions button:first-child {
+  border-color: rgba(63, 214, 168, 0.5);
+  background: rgba(63, 214, 168, 0.14);
+  color: #c7f5e4;
+}
+
+.tracker-actions button.tracker-seen {
+  border-color: rgba(63, 214, 168, 0.5);
+  color: #b7f4de;
+}
+
+.tracker-use-coordinates { align-self: end; }
+
+.tracker-why { margin-top: 14px; }
+.tracker-why summary {
+  color: #9fb6c8;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.tracker-why h3 {
+  margin: 14px 0 4px;
+  color: #8ea3b5;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tracker-why p,
+.tracker-why li {
+  margin: 0 0 6px;
+  max-width: 76ch;
+  color: #b6c9d8;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.tracker-why ul { margin: 0; padding-left: 18px; }
+
+.tracker-list { max-width: 860px; }
+.tracker-list h2 { margin: 0 0 10px; font-size: 0.95rem; }
+.tracker-list ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+
+.tracker-list button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 14px;
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(103, 148, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(6, 12, 20, 0.5);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.tracker-list button.active {
+  border-color: rgba(63, 214, 168, 0.45);
+  background: rgba(63, 214, 168, 0.08);
+}
+
+.tracker-list-title { color: #eaf5ff; font-size: 0.86rem; }
+.tracker-list-summary {
+  grid-column: 1;
+  color: #8ea3b5;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+.tracker-list-meta {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.7rem;
+}
+
+.tracker-passive { max-width: 860px; }
+.tracker-passive-body { margin-top: 12px; }
+.tracker-passive-body h3 {
+  margin: 14px 0 4px;
+  color: #8ea3b5;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tracker-passive-body p,
+.tracker-passive-body li {
+  margin: 0 0 6px;
+  max-width: 78ch;
+  color: #a9bdcd;
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+.tracker-passive-body ul { margin: 0; padding-left: 18px; }
+
+@media (max-width: 640px) {
+  .tracker-hero { padding: 15px 14px 16px; }
+  .tracker-hero-head { flex-direction: column; gap: 8px; }
+  .tracker-list button { grid-template-columns: 1fr; }
+  .tracker-list-meta { grid-row: auto; grid-column: 1; }
+}

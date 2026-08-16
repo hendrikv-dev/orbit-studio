@@ -1,0 +1,330 @@
+/**
+ * What Tracker ranks, and how.
+ *
+ * V1 §4 is the requirement this file exists to satisfy, and one sentence of it
+ * governs the design:
+ *
+ * > Scientific significance, rarity, visual spectacle, practical opportunity,
+ * > and confidence are different qualities. The implementation must not collapse
+ * > them into an opaque score that produces implausible recommendations.
+ *
+ * So they are kept as separate named qualities on every opportunity, they stay
+ * separate through ranking, and they are all still there afterwards for the
+ * explanation to be generated from (TRACKER_PRD R5.2 — a rank whose explanation
+ * is written separately will drift from it).
+ *
+ * ## Why this is not a weighted sum
+ *
+ * A weighted sum can express "spectacle matters more than rarity". It cannot
+ * express any of the four things V1 §4 actually asks for, because each of them
+ * is a rule about what may *never* happen:
+ *
+ * - An event that cannot be seen from here tonight is not a low-scoring event;
+ *   it is not a candidate. No amount of rarity or spectacle rescues it.
+ * - A telescope target may never outrank a naked-eye target that is itself
+ *   worth going out for — "the default ranking should favor opportunities that
+ *   can be seen without special equipment".
+ * - Rarity may promote, but never dominate: a once-a-decade event low on the
+ *   horizon in twilight is not worth going outside for, and a ranking that says
+ *   otherwise is wrong (R5.4).
+ * - Below a floor, nothing is promoted to the hero position merely to fill it —
+ *   "weak events should not be promoted merely to populate the interface".
+ *
+ * Each of those is a gate or a cap, and the ranking applies them explicitly and
+ * records which ones fired. The continuous part only orders what survives.
+ */
+
+export type OpportunityKind =
+  | "meteors"
+  | "moon"
+  | "planet"
+  | "conjunction"
+  | "lunar-eclipse"
+  | "deep-sky";
+
+/** What you need to see it. Ordered: each tier includes the ones before it. */
+export type Equipment = "eyes" | "binoculars" | "telescope";
+
+export const EQUIPMENT_ORDER: Record<Equipment, number> = {
+  eyes: 0,
+  binoculars: 1,
+  telescope: 2,
+};
+
+/**
+ * The separate qualities. Each is 0–1 and each means something different; the
+ * point of the type is that they are never interchangeable.
+ */
+export interface Qualities {
+  /**
+   * Whether it is actually observable from here tonight — above the horizon,
+   * high enough, dark enough, for long enough. This is the gate, not a weight.
+   */
+  observability: number;
+  /** How striking it is if you do see it. */
+  spectacle: number;
+  /** How likely you are to notice it and know that you have. */
+  recognisability: number;
+  /** How little effort it costs: staying up until 3am is not free. */
+  ease: number;
+  /** How much of this is geometry and how much is a forecast. */
+  confidence: number;
+  /** How rarely this is available from here. Capped in ranking, see below. */
+  rarity: number;
+}
+
+export interface ObservationGuidance {
+  /** What you will actually see, in plain terms. Never an astrophotograph. */
+  appearance: string;
+  /** When to go outside. */
+  whenUtc: string;
+  /** How long the window lasts, in minutes. */
+  durationMinutes: number;
+  /** Which way to face. Null where it does not matter — meteors, for one. */
+  direction: string | null;
+  /** How high to look. */
+  elevation: string;
+  /** How long to give it. */
+  howLong: string;
+  equipment: Equipment;
+  /** Anything specific to this target: averted vision, dark adaptation. */
+  technique: string | null;
+  /**
+   * Mandatory and unsuppressable where it applies (TRACKER_PRD R5.6). Anything
+   * involving the Sun sets this, and every surface must show it before any other
+   * guidance rather than behind a disclosure control.
+   */
+  safety: string | null;
+}
+
+export interface Opportunity {
+  id: string;
+  kind: OpportunityKind;
+  /** What it is called, as a person would say it. */
+  title: string;
+  /** One line: what you can see. */
+  summary: string;
+  qualities: Qualities;
+  guidance: ObservationGuidance;
+  /**
+   * Why this kind of thing happens at all, independent of the observer
+   * (TRACKER_PRD R5.7). Not the same question as `tonight`.
+   */
+  phenomenon: string;
+  /** Why it is visible from here, at this time. The other half of R5.7. */
+  tonight: string;
+  /** Inputs that were unavailable. Ranked without them, and said so (R5.3). */
+  missingInputs: string[];
+  /** Caveats that apply to the numbers actually produced. */
+  limitations: string[];
+}
+
+/** Below this an opportunity is not observable enough to be ranked at all. */
+const OBSERVABILITY_GATE = 0.15;
+
+/** Below this an opportunity may appear in the list but never lead it. */
+const HERO_FLOOR = 0.35;
+
+/**
+ * A naked-eye opportunity at or above this strength cannot be displaced from
+ * the hero position by anything needing equipment, however good it is. Set where
+ * "genuinely worth going out for" starts.
+ */
+const NAKED_EYE_PROTECTION = 0.45;
+
+/**
+ * How far needing equipment demotes an opportunity.
+ *
+ * V1 §4 asks for two things that pull against each other: the default ranking
+ * should favour what can be seen without equipment, and "an equipment-dependent
+ * event may still be prominent". A hard reordering satisfies the first and
+ * breaks the second — and it also produced a list whose numbers contradicted
+ * themselves, an item labelled *exceptional* sitting below one labelled *very
+ * good*, because the order and the label were no longer computed from the same
+ * thing. A demotion satisfies both: naked-eye wins every close call, an
+ * outstanding telescope target still rises, and the hero rule below is the hard
+ * guarantee that the *first* thing offered never assumes equipment.
+ */
+const EQUIPMENT_DEMOTION: Record<Equipment, number> = {
+  eyes: 1,
+  binoculars: 0.85,
+  telescope: 0.7,
+};
+
+/** The most rarity may move an item. One band, never more. */
+const RARITY_CAP = 0.08;
+
+export type Band = "exceptional" | "very good" | "good" | "fair" | "marginal";
+
+export interface RankedOpportunity {
+  opportunity: Opportunity;
+  /** Position in the ranked list, 1-based. */
+  rank: number;
+  band: Band;
+  /** The ordering value. Exposed, never the only thing exposed. */
+  strength: number;
+  /** How much of `strength` came from rarity, after the cap. */
+  rarityContribution: number;
+  /** True where it may take the hero position. */
+  promotable: boolean;
+  /** Which gates and caps fired, in the words used to explain them. */
+  appliedRules: string[];
+}
+
+export interface Ranking {
+  /** Ranked, strongest first. Everything that cleared the observability gate. */
+  ranked: RankedOpportunity[];
+  /**
+   * The opportunity that leads the view, or null where nothing clears the
+   * floor. Null is a real answer and must not be filled by promoting the least
+   * bad option (V1 §5, V1 A7).
+   */
+  hero: RankedOpportunity | null;
+  /** Cleared no gate. Kept, because "not tonight" is worth being able to see. */
+  notTonight: Opportunity[];
+}
+
+/**
+ * The continuous part, applied only to what survives the gates.
+ *
+ * `observability` multiplies rather than adds, because it is a precondition
+ * and not a virtue: something half-observable is genuinely half as worth
+ * recommending, whereas something half as rare is not.
+ */
+function baseStrength(qualities: Qualities): number {
+  const { observability, spectacle, recognisability, ease, confidence } = qualities;
+  const merit = 0.5 * spectacle + 0.25 * recognisability + 0.25 * ease;
+  return observability * merit * (0.6 + 0.4 * confidence);
+}
+
+/**
+ * Thresholds are set so that "exceptional" means it: a total lunar eclipse or a
+ * major shower at maximum in a dark sky, and not a bright planet on an ordinary
+ * evening. Reaching for the strongest word on a routine night is how a product
+ * stops being believed, and V1 §5 forbids overstating brightness or certainty.
+ */
+export function bandFor(strength: number): Band {
+  if (strength >= 0.72) return "exceptional";
+  if (strength >= 0.55) return "very good";
+  if (strength >= 0.38) return "good";
+  if (strength >= 0.22) return "fair";
+  return "marginal";
+}
+
+/**
+ * Rank a night's candidates.
+ *
+ * The order of operations is the specification: gate, score, cap rarity, then
+ * apply the equipment rule to the ordering rather than to the scores. Applying
+ * equipment as a score penalty instead would let a spectacular enough telescope
+ * target creep back above a naked-eye one, which is the outcome V1 §4 forbids.
+ */
+export function rankOpportunities(candidates: Opportunity[]): Ranking {
+  const notTonight: Opportunity[] = [];
+  const scored: RankedOpportunity[] = [];
+
+  for (const opportunity of candidates) {
+    const rules: string[] = [];
+    const { qualities } = opportunity;
+
+    if (qualities.observability < OBSERVABILITY_GATE) {
+      notTonight.push(opportunity);
+      continue;
+    }
+
+    const base = baseStrength(qualities);
+    const rarityContribution = Math.min(RARITY_CAP, qualities.rarity * RARITY_CAP);
+    if (qualities.rarity > 0.5 && rarityContribution >= RARITY_CAP) {
+      rules.push("Rare, but rarity only moves it so far — it still has to be worth seeing.");
+    }
+
+    const equipment = opportunity.guidance.equipment;
+    const strength = (base + rarityContribution) * EQUIPMENT_DEMOTION[equipment];
+    if (equipment !== "eyes") {
+      rules.push(equipment === "telescope" ? "Telescope required." : "Binoculars required.");
+      rules.push("Ranked below what you can see with your eyes alone, which comes first by default.");
+    }
+
+    const promotable = strength >= HERO_FLOOR;
+    if (!promotable) {
+      rules.push(
+        "Kept in the list rather than led with: not strong enough tonight to be worth a special trip.",
+      );
+    }
+
+    scored.push({
+      opportunity,
+      rank: 0,
+      band: bandFor(strength),
+      strength,
+      rarityContribution,
+      promotable,
+      appliedRules: rules,
+    });
+  }
+
+  const ordered = scored.sort((a, b) => b.strength - a.strength);
+  ordered.forEach((entry, index) => {
+    entry.rank = index + 1;
+  });
+
+  // The hard guarantee: the first thing Tracker offers never assumes equipment
+  // the user may not own, as long as there is a naked-eye option genuinely worth
+  // going out for. Below that floor an equipment target may lead, because the
+  // honest answer is then "there is something good, but you will need a
+  // telescope" rather than a weak naked-eye target dressed up as the best of the
+  // night.
+  const nakedEyeHero = ordered.find(
+    (entry) =>
+      entry.promotable &&
+      entry.opportunity.guidance.equipment === "eyes" &&
+      entry.strength >= NAKED_EYE_PROTECTION,
+  );
+  if (nakedEyeHero && ordered[0] !== nakedEyeHero && ordered[0].opportunity.guidance.equipment !== "eyes") {
+    nakedEyeHero.appliedRules.push(
+      "Led with because it needs nothing but your eyes.",
+    );
+  }
+
+  const hero = nakedEyeHero ?? ordered.find((entry) => entry.promotable) ?? null;
+
+  return { ranked: ordered, hero, notTonight };
+}
+
+/**
+ * The explanation, generated from the same values the rank used.
+ *
+ * Written here rather than at each phenomenon so that it cannot drift from the
+ * ranking (R5.2). A phenomenon supplies numbers; this turns the numbers it
+ * actually ranked on into sentences.
+ */
+export function explainRank(entry: RankedOpportunity): string[] {
+  const { qualities } = entry.opportunity;
+  const lines: string[] = [];
+
+  lines.push(
+    qualities.observability >= 0.8
+      ? "Well placed from where you are tonight."
+      : qualities.observability >= 0.5
+        ? "Observable from here tonight, though not ideally placed."
+        : "Only marginally observable from here tonight.",
+  );
+
+  if (qualities.spectacle >= 0.7) lines.push("Genuinely striking to look at.");
+  else if (qualities.spectacle <= 0.35) lines.push("Quiet rather than spectacular.");
+
+  if (qualities.recognisability <= 0.4) {
+    lines.push("Easy to miss unless you know what you are looking for.");
+  }
+
+  if (qualities.ease <= 0.4) lines.push("Takes some effort — the timing or the wait is the cost.");
+
+  if (qualities.confidence >= 0.9) {
+    lines.push("The timing is geometry, so it is as certain as the ephemeris.");
+  } else if (qualities.confidence <= 0.6) {
+    lines.push("Partly a forecast, so treat the numbers as an estimate.");
+  }
+
+  lines.push(...entry.appliedRules);
+  return lines;
+}

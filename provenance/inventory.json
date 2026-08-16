@@ -29,6 +29,7 @@
     "documentedExternalHosts": [
       "127.0.0.1",
       "aa.usno.navy.mil",
+      "apps.apple.com",
       "assets.science.nasa.gov",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
@@ -37,6 +38,7 @@
       "example.invalid",
       "gibs.earthdata.nasa.gov",
       "github.com",
+      "globalmeteornetwork.org",
       "images-assets.nasa.gov",
       "images.nasa.gov",
       "localhost",
@@ -47,6 +49,7 @@
       "raw.githubusercontent.com",
       "reactjs.org",
       "registry.npmjs.org",
+      "research.tudelft.nl",
       "robertpenner.com",
       "science.data.nasa.gov",
       "science.nasa.gov",
@@ -58,10 +61,14 @@
       "www.earthdata.nasa.gov",
       "www.esa.int",
       "www.gps.gov",
+      "www.imo.net",
       "www.nasa.gov",
       "www.naturalearthdata.com",
       "www.nesdis.noaa.gov",
       "www.space-track.org",
+      "www.spaceweather.gov",
+      "www.ta3.sk",
+      "www.ventusky.com",
       "www.w3.org"
     ],
     "prohibitedHistoricalChecksums": [
@@ -1014,6 +1021,51 @@
         "inclusionStatus": "retained-test-only",
         "release1Included": true,
         "restrictions": "Retain attribution and dependency MIT notices."
+      }
+    },
+    {
+      "id": "meteor-stream-parameters-2026-08-16",
+      "category": "meteor-stream-parameters",
+      "repositoryPaths": [
+        "src/data/tracker/meteorShowers.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers",
+        "url": "https://www.imo.net/resources/calendar/",
+        "publicationUrl": "https://www.ta3.sk/IAUC22DB/MDC2007/",
+        "publisher": "International Meteor Organization; IAU Meteor Data Center",
+        "version": "Transcribed working-list parameters, snapshot dated 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/meteorShowers.ts": "39344b784246c9b1a75b7c5465330a0e279122dc3837a8978924e099824aae06"
+      },
+      "processing": [
+        "Twelve established showers are recorded with IAU stream number and code, parent body, solar longitude of maximum, activity interval in solar longitude, J2000 radiant at maximum, geocentric velocity, population index and nominal zenithal hourly rate.",
+        "The values were transcribed into a TypeScript module rather than retrieved as a file. There is therefore no upstream artifact to checksum and no originalSha256 is claimed; the recorded localSha256 pins the transcription, not the source.",
+        "peakWidthDays is not an IMO quantity and is not attributed to one. It is an editorial approximation of each peak's full width at half maximum, adjusted so the activity profile in src/data/tracker/meteorActivity.ts reproduces the published character of each shower. src/data/tracker/meteorShowers.ts states this in the module header.",
+        "Per R9.4, evidence class varies within a record: stream identity and elements are catalog, radiant position and peak date for a given year are analytic, and the nominal zenithal hourly rate is a forecast regardless of arriving in a catalog.",
+        "Per R9.3, the snapshot is replaced deliberately and never automatically, and a replacement records what changed."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.",
+        "evidenceUrls": [
+          "https://www.imo.net/resources/calendar/",
+          "https://www.ta3.sk/IAUC22DB/MDC2007/"
+        ],
+        "attribution": "Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
       }
     }
   ]
