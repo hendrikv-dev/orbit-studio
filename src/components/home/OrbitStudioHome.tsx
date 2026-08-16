@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { signalAppReady } from "../../lib/appReady";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { orbitStudioRepositoryUrl, orbitStudioSponsorUrl } from "../../lib/projectLinks";
 import "./orbit-studio-home.css";
@@ -6,6 +7,7 @@ import "./orbit-studio-home.css";
 interface OrbitStudioHomeProps {
   onOpenExplorer: () => void;
   onOpenPlayground: () => void;
+  onOpenTracker: () => void;
   /** Overrides the default GitHub Sponsors destination. */
   supportUrl?: string;
 }
@@ -19,8 +21,12 @@ const licenseUrl = `${repositoryUrl}/blob/main/LICENSE`;
 export function OrbitStudioHome({
   onOpenExplorer,
   onOpenPlayground,
+  onOpenTracker,
   supportUrl,
 }: OrbitStudioHomeProps) {
+  // A static page: nothing renders asynchronously, so it is ready on mount.
+  useEffect(() => { signalAppReady(); }, []);
+
   const sponsorUrl = supportUrl?.trim() || orbitStudioSponsorUrl;
 
   return (
@@ -44,7 +50,7 @@ export function OrbitStudioHome({
         <p>A free, open-source platform for exploring orbital data and building space simulations.</p>
       </section>
 
-      <section className="orbit-home-apps" aria-label="Available Orbit Studio environments">
+      <section className="orbit-home-apps" aria-label="Available Orbit Studio tools">
         <article className="orbit-home-card orbit-home-card-explorer">
           <div className="orbit-home-card-copy">
             <img
@@ -95,6 +101,23 @@ export function OrbitStudioHome({
               alt="A satellite orbit displayed around Earth in Orbit Studio Playground"
             />
           </button>
+        </article>
+
+        <article className="orbit-home-card orbit-home-card-tracker">
+          <div className="orbit-home-card-copy">
+            <img
+              className="orbit-home-app-logo"
+              src="/brand/orbit-studio-tracker-logo.png"
+              alt="Orbit Studio Tracker"
+            />
+            <h2>See what is worth watching from where you are.</h2>
+            <p>Ranked celestial events for your location, with when to look and how reliable it is.</p>
+            <button type="button" onClick={onOpenTracker}>
+              Open Tracker <ArrowRight aria-hidden="true" size={18} />
+            </button>
+          </div>
+          {/* No preview image yet: it is a screenshot of a tool that does not
+              render anything to screenshot. Added once Tracker draws a sky. */}
         </article>
       </section>
 

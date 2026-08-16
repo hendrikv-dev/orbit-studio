@@ -11217,3 +11217,133 @@ button.primary,
   color: #eaf5ff;
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------------------
+   Orbit Studio Tracker. A separate bundle entry, so it carries its own shell
+   rather than inheriting Explorer's. */
+.tracker-shell {
+  min-height: 100dvh;
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(20, 60, 74, 0.4), rgba(3, 7, 12, 0) 60%),
+    #070b10;
+  color: #e9f2f8;
+  padding: 28px max(20px, env(safe-area-inset-left, 0px)) 40px;
+}
+
+.tracker-header img {
+  display: block;
+  width: auto;
+  height: 46px;
+}
+
+.tracker-header p {
+  margin: 10px 0 0;
+  max-width: 72ch;
+  color: #8ea3b5;
+  font-size: 0.84rem;
+}
+
+.tracker-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.tracker-presets button {
+  min-height: 32px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 999px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #cfe0ee;
+  padding: 0 13px;
+  font-size: 0.74rem;
+}
+
+.tracker-presets button.active {
+  border-color: rgba(63, 214, 168, 0.55);
+  background: rgba(63, 214, 168, 0.14);
+  color: #c7f5e4;
+}
+
+.tracker-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.tracker-fields label {
+  display: grid;
+  gap: 4px;
+  color: #8ea3b5;
+  font-size: 0.72rem;
+}
+
+.tracker-fields input {
+  min-height: 32px;
+  border: 1px solid rgba(117, 142, 160, 0.28);
+  border-radius: 8px;
+  background: rgba(6, 12, 20, 0.7);
+  color: #eaf5ff;
+  padding: 0 9px;
+  font-size: 0.78rem;
+}
+
+.tracker-period {
+  border: 1px solid rgba(103, 148, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(6, 12, 20, 0.6);
+  padding: 16px 18px;
+  max-width: 760px;
+}
+
+.tracker-period h2 {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+}
+
+.tracker-period-frame {
+  margin: 0 0 14px;
+  color: #cfe0ee;
+  font-size: 0.82rem;
+}
+
+.tracker-darkness {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 6px 20px;
+  margin: 0;
+}
+
+.tracker-darkness > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(103, 148, 184, 0.12);
+  padding-bottom: 4px;
+}
+
+.tracker-darkness dt { color: #8ea3b5; font-size: 0.72rem; }
+.tracker-darkness dd {
+  margin: 0;
+  color: #eaf5ff;
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An unreached band is stated rather than omitted: "not reached" is the
+   information, and a missing row would read as a rendering fault. */
+.tracker-darkness .is-absent dd { color: #7d93a6; }
+
+.tracker-note,
+.tracker-footer p {
+  margin: 12px 0 0;
+  max-width: 76ch;
+  color: #8ea3b5;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}

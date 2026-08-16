@@ -1,3 +1,4 @@
+import { signalAppReady } from "../lib/appReady";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import {
@@ -620,7 +621,7 @@ function SceneFirstFrameSignal() {
   useFrame(() => {
     if (announced.current) return;
     announced.current = true;
-    window.dispatchEvent(new CustomEvent("orbit-studio:first-frame"));
+    signalAppReady();
   });
   return null;
 }

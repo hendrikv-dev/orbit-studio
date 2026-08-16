@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { APP_READY_EVENT } from "./lib/appReady";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { sanitizeLocalAppStateOnBoot } from "./lib/appStateReset";
 import "./styles/app.css";
@@ -25,18 +26,11 @@ function clearBootIndicatorWhenPainted(): void {
   const check = () => {
     if (!indicator.isConnected) return;
     if (performance.now() - started > 15000) return remove();
-    // A canvas-based view announces its own first drawn frame; the DOM cannot
-    // tell, because the canvas is present and sized while still blank. Views
-    // without a renderer (the Tracker spike) fall back to a drawn SVG.
-    if (!document.querySelector("#root canvas")) {
-      const drawn = [...document.querySelectorAll("#root svg")].find(
-        (node) => node.getBoundingClientRect().width >= 240,
-      );
-      if (drawn) return requestAnimationFrame(() => requestAnimationFrame(remove));
-    }
+    // Every surface announces itself; the DOM cannot tell. The check loop only
+    // enforces the timeout now.
     requestAnimationFrame(check);
   };
-  window.addEventListener("orbit-studio:first-frame", remove, { once: true });
+  window.addEventListener(APP_READY_EVENT, remove, { once: true });
   requestAnimationFrame(check);
 }
 const mount = (node: React.ReactNode) => {
@@ -56,7 +50,19 @@ const mount = (node: React.ReactNode) => {
  * 17 MB satellite catalog, drei and a star catalog before rendering. Anything
  * observer-facing has to be reachable without importing the catalog at all.
  */
-if (new URLSearchParams(window.location.search).get("spike") === "tracker") {
+const requestedApp = new URLSearchParams(window.location.search).get("app");
+
+/**
+ * Tracker is a sibling entry, not a mode inside App. App imports the 16 MB
+ * satellite catalog, and TRACKER_PRD R7.1 requires an observer page not to pay
+ * for data it never shows, so the two are separated here rather than by a
+ * branch further in.
+ */
+if (requestedApp === "tracker") {
+  void import("./components/tracker/TrackerApp").then(({ TrackerApp }) => {
+    mount(<TrackerApp />);
+  });
+} else if (new URLSearchParams(window.location.search).get("spike") === "tracker") {
   void import("./components/tracker/TrackerSpike").then(({ TrackerSpike }) => {
     mount(<TrackerSpike />);
   });

@@ -446,6 +446,9 @@ export function App() {
       <OrbitStudioHome
         onOpenExplorer={openExplorer}
         onOpenPlayground={openStudio}
+        // A real navigation: Tracker is a separate bundle entry, so it cannot be
+        // reached by changing state inside this one.
+        onOpenTracker={() => window.location.assign(`${window.location.pathname}?app=tracker`)}
         supportUrl={import.meta.env.VITE_SUPPORT_URL}
       />
     );
