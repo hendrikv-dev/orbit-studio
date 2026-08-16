@@ -11219,229 +11219,498 @@ button.primary,
 }
 
 /* ---------------------------------------------------------------------------
-   Orbit Studio Tracker. A separate bundle entry, so it carries its own shell
-   rather than inheriting Explorer's. */
+   Orbit Studio Tracker.
+
+   Rebuilt around the picture. The old layout was a chart with a caption and a
+   column of controls, sitting in the left third of a wide screen; the numbers
+   behind it were fine and its arrangement said "report" when the product is an
+   invitation. So the hero image takes the viewport, the words sit on top of it,
+   and everything analytical moved behind one control. */
+
 .tracker-shell {
   min-height: 100dvh;
-  display: grid;
-  align-content: start;
-  gap: 22px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(20, 60, 74, 0.4), rgba(3, 7, 12, 0) 60%),
-    #070b10;
-  color: #e9f2f8;
-  padding: 28px max(20px, env(safe-area-inset-left, 0px)) 40px;
+  background: #05080e;
+  color: #eaf3fb;
 }
 
-.tracker-header img {
-  display: block;
-  width: auto;
-  height: 46px;
+/* --- the bar: identity and place, nothing else -------------------------- */
+
+.tracker-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px max(18px, env(safe-area-inset-left, 0px));
+  background: rgba(5, 8, 14, 0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(120, 150, 175, 0.14);
 }
 
-.tracker-header p {
-  margin: 10px 0 0;
-  max-width: 72ch;
-  color: #8ea3b5;
+.tracker-bar-logo { display: block; width: auto; height: 30px; }
+
+/* --- place picker -------------------------------------------------------- */
+
+.tracker-place { position: relative; }
+
+.tracker-place-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  max-width: min(60vw, 420px);
+  border: 1px solid rgba(120, 150, 175, 0.26);
+  border-radius: 999px;
+  background: rgba(122, 141, 158, 0.1);
+  color: #eaf3fb;
+  padding: 0 13px;
   font-size: 0.84rem;
 }
 
-.tracker-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 12px;
-}
+.tracker-place-current svg { flex: none; color: #90a8bd; }
+.tracker-place-chevron { opacity: 0.6; }
 
-.tracker-presets button {
-  min-height: 32px;
-  border: 1px solid rgba(117, 142, 160, 0.28);
-  border-radius: 999px;
-  background: rgba(122, 141, 158, 0.08);
-  color: #cfe0ee;
-  padding: 0 13px;
-  font-size: 0.74rem;
-}
-
-.tracker-presets button.active {
-  border-color: rgba(63, 214, 168, 0.55);
-  background: rgba(63, 214, 168, 0.14);
-  color: #c7f5e4;
-}
-
-.tracker-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.tracker-fields label {
-  display: grid;
-  gap: 4px;
-  color: #8ea3b5;
-  font-size: 0.72rem;
-}
-
-.tracker-fields input {
-  min-height: 32px;
-  border: 1px solid rgba(117, 142, 160, 0.28);
-  border-radius: 8px;
-  background: rgba(6, 12, 20, 0.7);
-  color: #eaf5ff;
-  padding: 0 9px;
-  font-size: 0.78rem;
-}
-
-.tracker-period {
-  border: 1px solid rgba(103, 148, 184, 0.2);
-  border-radius: 12px;
-  background: rgba(6, 12, 20, 0.6);
-  padding: 16px 18px;
-  max-width: 760px;
-}
-
-.tracker-period h2 {
-  margin: 0 0 6px;
-  font-size: 0.98rem;
-}
-
-.tracker-period-frame {
-  margin: 0 0 14px;
-  color: #cfe0ee;
-  font-size: 0.82rem;
-}
-
-.tracker-darkness {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 6px 20px;
-  margin: 0;
-}
-
-.tracker-darkness > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px solid rgba(103, 148, 184, 0.12);
-  padding-bottom: 4px;
-}
-
-.tracker-darkness dt { color: #8ea3b5; font-size: 0.72rem; }
-.tracker-darkness dd {
-  margin: 0;
-  color: #eaf5ff;
-  font-size: 0.76rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* An unreached band is stated rather than omitted: "not reached" is the
-   information, and a missing row would read as a rendering fault. */
-.tracker-darkness .is-absent dd { color: #7d93a6; }
-
-.tracker-note,
-.tracker-footer p {
-  margin: 12px 0 0;
-  max-width: 76ch;
-  color: #8ea3b5;
-  font-size: 0.72rem;
-  line-height: 1.55;
-}
-
-/* --- Tracker: hero, ranked list and the night chart ------------------------
-   The hero and the list are one system (V1 §3): the list changes the hero, so
-   they share the same band chip and the same vocabulary rather than looking
-   like two features that happen to sit on one page. */
-
-.tracker-hero {
-  border: 1px solid rgba(103, 148, 184, 0.24);
-  border-radius: 14px;
-  background: rgba(6, 12, 20, 0.66);
-  padding: 18px 20px 20px;
-  max-width: 860px;
-}
-
-.tracker-hero-empty h2 { margin: 0 0 8px; font-size: 1.02rem; }
-.tracker-hero-empty p {
-  margin: 0 0 8px;
-  max-width: 70ch;
-  color: #a9bdcd;
-  font-size: 0.8rem;
-  line-height: 1.6;
-}
-
-/* Safety is rendered before everything else and is never inside a disclosure
-   control (TRACKER_PRD R5.6). The styling is deliberately loud. */
-.tracker-safety {
-  margin: 0 0 14px;
-  border: 1px solid rgba(255, 143, 96, 0.55);
-  border-left-width: 4px;
-  border-radius: 8px;
-  background: rgba(255, 118, 62, 0.12);
-  color: #ffd9c6;
-  padding: 10px 13px;
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-
-.tracker-hero-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.tracker-hero-head h2 {
-  margin: 0 0 5px;
-  font-size: 1.2rem;
-  letter-spacing: -0.01em;
-}
-
-.tracker-hero-summary {
-  margin: 0;
-  max-width: 62ch;
-  color: #cfe0ee;
-  font-size: 0.86rem;
-  line-height: 1.5;
-}
-
-.tracker-band {
-  flex: none;
-  border: 1px solid rgba(117, 142, 160, 0.3);
-  border-radius: 999px;
-  padding: 3px 10px;
-  color: #b6c9d8;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.tracker-place-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tracker-band-exceptional {
+.tracker-place-context {
+  color: #8ba0b3;
+  font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-place-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(92vw, 380px);
+  border: 1px solid rgba(120, 150, 175, 0.24);
+  border-radius: 14px;
+  background: #0a111b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  padding: 10px;
+}
+
+.tracker-place-device {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(63, 214, 168, 0.4);
+  border-radius: 10px;
+  background: rgba(63, 214, 168, 0.1);
+  color: #c7f5e4;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.tracker-place-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  border: 1px solid rgba(120, 150, 175, 0.24);
+  border-radius: 10px;
+  background: rgba(6, 12, 20, 0.8);
+  padding: 0 11px;
+}
+
+.tracker-place-search svg { color: #7d93a6; }
+
+.tracker-place-search input {
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  background: none;
+  color: #eaf3fb;
+  font-size: 0.86rem;
+  outline: none;
+}
+
+.tracker-place-results {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.tracker-place-result {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.tracker-place-result:hover,
+.tracker-place-result:focus-visible { background: rgba(122, 141, 158, 0.13); }
+
+.tracker-place-result-name { color: #eaf3fb; font-size: 0.86rem; }
+.tracker-place-result-name em {
+  margin-left: 7px;
+  color: #7fd8bb;
+  font-size: 0.68rem;
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.tracker-place-result-context { color: #8ba0b3; font-size: 0.74rem; }
+.tracker-place-note { margin: 8px 2px 2px; color: #8ba0b3; font-size: 0.76rem; }
+
+/* --- the hero: the image is the page ------------------------------------- */
+
+/* The scene is taken out of flow so it can never drive the hero's height. As a
+   grid item its viewBox aspect ratio decided the layout, and a 1792px-wide
+   screen produced a 1792px-tall hero with the words somewhere below it. */
+.tracker-hero {
+  position: relative;
+  height: min(74vh, 620px);
+  overflow: hidden;
+}
+
+.tracker-hero-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The text sits on the picture, so it needs its own ground to stay legible
+   against a scene that is bright in places. A gradient rather than a panel:
+   a box would cut the image in half and put us back where we started. */
+.tracker-hero-panel {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 120px max(20px, env(safe-area-inset-left, 0px)) 34px;
+  background: linear-gradient(
+    to top,
+    rgba(4, 7, 12, 0.94) 0%,
+    rgba(4, 7, 12, 0.86) 34%,
+    rgba(4, 7, 12, 0.5) 66%,
+    rgba(4, 7, 12, 0) 100%
+  );
+}
+
+.tracker-hero-eyebrow {
+  margin: 0 0 8px;
+  color: #8fd9c1;
+  font-size: 0.76rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.tracker-hero h1 {
+  margin: 0 0 10px;
+  max-width: 18ch;
+  font-size: clamp(2.1rem, 5.4vw, 3.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+.tracker-hero-summary {
+  margin: 0 0 18px;
+  max-width: 46ch;
+  color: #d3e3f0;
+  font-size: clamp(0.95rem, 1.5vw, 1.14rem);
+  line-height: 1.5;
+}
+
+.tracker-hero-when {
+  margin: 0 0 6px;
+  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tracker-hero-directions {
+  margin: 8px 0 0;
+  max-width: 52ch;
+  color: #d3e3f0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.tracker-hero-conclusion {
+  margin: 12px 0 0;
+  max-width: 56ch;
+  color: #a9c0d2;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.tracker-hero-fineprint {
+  margin: 12px 0 0;
+  max-width: 54ch;
+  color: #8ba0b3;
+  font-size: 0.8rem;
+}
+
+.tracker-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tracker-primary,
+.tracker-secondary {
+  min-height: 46px;
+  border-radius: 999px;
+  padding: 0 22px;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.tracker-primary {
+  border: 0;
+  background: #3fd6a8;
+  color: #04211a;
+}
+.tracker-primary:hover { background: #55e2b8; }
+
+.tracker-secondary {
+  border: 1px solid rgba(160, 190, 210, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eaf3fb;
+}
+.tracker-secondary.tracker-seen {
   border-color: rgba(63, 214, 168, 0.6);
-  background: rgba(63, 214, 168, 0.14);
   color: #b7f4de;
 }
-.tracker-band-very-good {
-  border-color: rgba(110, 190, 235, 0.5);
-  background: rgba(110, 190, 235, 0.12);
-  color: #c9e8fa;
-}
-.tracker-band-marginal { color: #8496a5; }
 
-.tracker-chart { margin: 0 0 16px; }
+.tracker-hero-more { margin-top: 20px; max-width: 68ch; }
+.tracker-hero-more summary {
+  color: #9fd8c4;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.tracker-hero-more dl {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+}
+.tracker-hero-more dt {
+  color: #8ba0b3;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tracker-hero-more dd {
+  margin: 3px 0 0;
+  color: #d3e3f0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+/* The classification of the picture. Passive, but never absent. */
+.tracker-imagery-note {
+  margin: 16px 0 0;
+  color: #8ba0b3;
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+.tracker-imagery-note strong { color: #a9c0d2; }
+
+/* Safety is loud and never inside a disclosure control. */
+.tracker-safety {
+  margin: 0 0 14px;
+  max-width: 60ch;
+  border: 1px solid rgba(255, 143, 96, 0.55);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: rgba(255, 118, 62, 0.14);
+  color: #ffd9c6;
+  padding: 11px 14px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+/* --- conditions chip ----------------------------------------------------- */
+
+.tracker-condition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #c6d8e6;
+  font-size: 0.86rem;
+}
+
+.tracker-condition svg { flex: none; color: #9fb6c8; }
+.tracker-condition-smoky svg,
+.tracker-condition-very-smoky svg { color: #dfae7c; }
+.tracker-condition-precipitating svg,
+.tracker-condition-foggy svg { color: #8fa8bd; }
+.tracker-condition-clear svg { color: #9fd8c4; }
+.tracker-condition-unknown svg { color: #7d93a6; }
+
+.tracker-viewability {
+  border: 1px solid rgba(120, 150, 175, 0.32);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tracker-viewability-excellent { border-color: rgba(63, 214, 168, 0.6); color: #b7f4de; }
+.tracker-viewability-good { border-color: rgba(110, 190, 235, 0.5); color: #c9e8fa; }
+.tracker-viewability-possible { color: #b6c9d8; }
+.tracker-viewability-unlikely { color: #8496a5; }
+.tracker-freshness { color: #8ba0b3; font-size: 0.72rem; }
+
+.tracker-equipment-required { color: #ffce93; font-weight: 600; font-size: 0.76rem; }
+
+/* --- ranked alternatives, as cards --------------------------------------- */
+
+.tracker-more {
+  padding: 34px max(20px, env(safe-area-inset-left, 0px)) 8px;
+}
+
+.tracker-more h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.tracker-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.tracker-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid rgba(120, 150, 175, 0.18);
+  border-radius: 16px;
+  background: #0a111b;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.tracker-card:hover,
+.tracker-card:focus-visible {
+  border-color: rgba(63, 214, 168, 0.45);
+  transform: translateY(-2px);
+}
+
+.tracker-card-media { display: block; aspect-ratio: 16 / 9; }
+.tracker-card-scene { display: block; width: 100%; height: 100%; }
+
+.tracker-card-body {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px 16px;
+}
+
+.tracker-card-title { color: #eaf3fb; font-size: 1.02rem; font-weight: 600; }
+.tracker-card-summary { color: #a9c0d2; font-size: 0.84rem; line-height: 1.45; }
+.tracker-card-when {
+  margin-top: 3px;
+  color: #eaf3fb;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.tracker-card-conclusion {
+  margin-top: 4px;
+  color: #8ba0b3;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* Already set: kept, dimmed, never hidden. */
+.tracker-card-passed { opacity: 0.62; }
+.tracker-card-passed .tracker-card-when { color: #8ba0b3; font-weight: 500; }
+
+/* --- the working, behind one control ------------------------------------- */
+
+.tracker-detail {
+  padding: 26px max(20px, env(safe-area-inset-left, 0px)) 60px;
+}
+
+.tracker-detail > button {
+  min-height: 38px;
+  border: 1px solid rgba(120, 150, 175, 0.24);
+  border-radius: 10px;
+  background: rgba(122, 141, 158, 0.08);
+  color: #a9c0d2;
+  padding: 0 15px;
+  font-size: 0.8rem;
+}
+
+.tracker-detail-body { margin-top: 18px; max-width: 78ch; }
+.tracker-detail-body h3 {
+  margin: 20px 0 6px;
+  color: #8ba0b3;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tracker-detail-body p,
+.tracker-detail-body li {
+  margin: 0 0 7px;
+  color: #a9c0d2;
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+.tracker-detail-body ul { margin: 0; padding-left: 18px; }
+.tracker-detail-coords {
+  color: #6f8496;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+}
+
+/* --- the chart, now a detail rather than the hero ------------------------ */
+
+.tracker-chart { margin: 8px 0 4px; }
 
 .tracker-chart svg {
   display: block;
   width: 100%;
-  height: 132px;
+  height: 118px;
   border-radius: 9px;
   overflow: hidden;
 }
 
-/* HTML, not SVG text: inside a viewBox that does not preserve its aspect ratio
-   the labels come out condensed on a narrow screen. */
+.tracker-chart-twilight { fill: #16293a; }
+.tracker-chart-band-civil { fill: #102131; }
+.tracker-chart-band-nautical { fill: #0a1725; }
+.tracker-chart-band-astronomical { fill: #050c15; }
+.tracker-chart-moon { fill: rgba(228, 216, 168, 0.62); }
+
+.tracker-chart-rate {
+  fill: rgba(63, 214, 168, 0.24);
+  stroke: rgba(63, 214, 168, 0.6);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.tracker-chart-mark {
+  stroke: rgba(255, 236, 176, 0.8);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.tracker-chart-mark-cap { fill: #ffecb0; }
+
 .tracker-chart-axis {
   position: relative;
   height: 16px;
@@ -11458,276 +11727,84 @@ button.primary,
   font-variant-numeric: tabular-nums;
 }
 
-/* Strictly darkening, because the caption promises that darker means deeper.
-   The first version had the civil band lighter than the bare twilight behind
-   it, so the shading brightened once and then darkened — which told the reader
-   the opposite of the truth about the first hour after sunset. */
-.tracker-chart-twilight { fill: #16293a; }
-.tracker-chart-band-civil { fill: #102131; }
-.tracker-chart-band-nautical { fill: #0a1725; }
-.tracker-chart-band-astronomical { fill: #050c15; }
-.tracker-chart-moon { fill: rgba(228, 216, 168, 0.62); }
-
-/* The rate is an estimate, so it is drawn as a soft area rather than a crisp
-   line: a line reads as a measured series (V1 §6). */
-.tracker-chart-rate {
-  fill: rgba(63, 214, 168, 0.24);
-  stroke: rgba(63, 214, 168, 0.6);
-  stroke-width: 1.2;
-  vector-effect: non-scaling-stroke;
-}
-
-.tracker-chart-mark {
-  stroke: rgba(255, 236, 176, 0.8);
-  stroke-width: 1.2;
-  stroke-dasharray: 3 3;
-  vector-effect: non-scaling-stroke;
-}
-.tracker-chart-mark-cap { fill: #ffecb0; }
-
 .tracker-chart figcaption {
   margin-top: 7px;
-  max-width: 78ch;
-  color: #8ea3b5;
-  font-size: 0.7rem;
+  color: #8ba0b3;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
-.tracker-guidance {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px 22px;
-  margin: 0 0 14px;
+/* --- desktop: give the picture the room it was not getting --------------- */
+
+@media (min-width: 900px) {
+  .tracker-hero { height: min(78vh, 760px); }
+
+  /* The panel becomes a column over the left of the image rather than a band
+     across the bottom, so a wide screen shows the sky it is selling. */
+  .tracker-hero-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    inset: 0 auto 0 0;
+    width: min(52%, 660px);
+    padding: 0 44px 56px;
+    background: linear-gradient(
+      to right,
+      rgba(4, 7, 12, 0.95) 0%,
+      rgba(4, 7, 12, 0.88) 55%,
+      rgba(4, 7, 12, 0) 100%
+    );
+  }
+
+  .tracker-more,
+  .tracker-detail { padding-left: 44px; padding-right: 44px; }
+  .tracker-bar { padding-left: 44px; padding-right: 44px; }
+  .tracker-cards { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
 
-.tracker-guidance > div {
-  border-top: 1px solid rgba(103, 148, 184, 0.16);
-  padding-top: 7px;
+@media (min-width: 1440px) {
+  .tracker-hero-panel { width: min(46%, 720px); padding-left: 64px; }
+  .tracker-more,
+  .tracker-detail,
+  .tracker-bar { padding-left: 64px; padding-right: 64px; }
 }
 
-.tracker-guidance dt {
-  color: #8ea3b5;
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
+/* On a phone the hero stacks instead of overlaying.
+   Overlaid, the panel is most of the viewport — the subject ended up directly
+   behind the headline, so the one thing the picture exists to show was the one
+   thing you could not see. Stacked, the image is unobstructed and the words
+   start underneath it. */
+@media (max-width: 720px) {
+  .tracker-bar { gap: 10px; }
+  .tracker-bar-logo { height: 24px; }
 
-.tracker-guidance dd {
-  margin: 3px 0 0;
-  color: #eaf5ff;
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
+  .tracker-hero {
+    display: block;
+    height: auto;
+  }
 
-/* A3: the equipment requirement must be unmistakable before the user commits,
-   so it is coloured rather than set in the same grey as everything else. */
-.tracker-equipment-required {
-  color: #ffd9a8;
-  font-weight: 600;
-}
+  .tracker-hero-scene {
+    position: relative;
+    height: 42vh;
+    min-height: 240px;
+  }
 
-.tracker-appearance,
-.tracker-technique {
-  margin: 0 0 10px;
-  max-width: 74ch;
-  color: #bed1e0;
-  font-size: 0.82rem;
-  line-height: 1.6;
-}
-.tracker-appearance strong,
-.tracker-technique strong { color: #eaf5ff; }
+  .tracker-hero-panel {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    /* Pulled up under the image so the two meet in a fade rather than a seam. */
+    margin-top: -72px;
+    padding: 0 20px 30px;
+    background: linear-gradient(
+      to top,
+      #05080e 0%,
+      #05080e 62%,
+      rgba(5, 8, 14, 0.85) 84%,
+      rgba(5, 8, 14, 0) 100%
+    );
+  }
 
-.tracker-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin: 14px 0 4px;
-}
-
-.tracker-actions button,
-.tracker-use-coordinates,
-.tracker-passive > button {
-  min-height: 36px;
-  border: 1px solid rgba(117, 142, 160, 0.32);
-  border-radius: 9px;
-  background: rgba(122, 141, 158, 0.1);
-  color: #dcebf7;
-  padding: 0 15px;
-  font-size: 0.78rem;
-}
-
-.tracker-actions button:first-child {
-  border-color: rgba(63, 214, 168, 0.5);
-  background: rgba(63, 214, 168, 0.14);
-  color: #c7f5e4;
-}
-
-.tracker-actions button.tracker-seen {
-  border-color: rgba(63, 214, 168, 0.5);
-  color: #b7f4de;
-}
-
-.tracker-use-coordinates { align-self: end; }
-
-.tracker-why { margin-top: 14px; }
-.tracker-why summary {
-  color: #9fb6c8;
-  font-size: 0.76rem;
-  cursor: pointer;
-}
-.tracker-why h3 {
-  margin: 14px 0 4px;
-  color: #8ea3b5;
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.tracker-why p,
-.tracker-why li {
-  margin: 0 0 6px;
-  max-width: 76ch;
-  color: #b6c9d8;
-  font-size: 0.78rem;
-  line-height: 1.6;
-}
-.tracker-why ul { margin: 0; padding-left: 18px; }
-
-.tracker-list { max-width: 860px; }
-.tracker-list h2 { margin: 0 0 10px; font-size: 0.95rem; }
-.tracker-list ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
-
-.tracker-list button {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 4px 14px;
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid rgba(103, 148, 184, 0.18);
-  border-radius: 10px;
-  background: rgba(6, 12, 20, 0.5);
-  padding: 10px 14px;
-  text-align: left;
-}
-
-.tracker-list button.active {
-  border-color: rgba(63, 214, 168, 0.45);
-  background: rgba(63, 214, 168, 0.08);
-}
-
-.tracker-list-title { color: #eaf5ff; font-size: 0.86rem; }
-.tracker-list-summary {
-  grid-column: 1;
-  color: #8ea3b5;
-  font-size: 0.74rem;
-  line-height: 1.45;
-}
-.tracker-list-meta {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 0.7rem;
-}
-
-.tracker-passive { max-width: 860px; }
-.tracker-passive-body { margin-top: 12px; }
-.tracker-passive-body h3 {
-  margin: 14px 0 4px;
-  color: #8ea3b5;
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.tracker-passive-body p,
-.tracker-passive-body li {
-  margin: 0 0 6px;
-  max-width: 78ch;
-  color: #a9bdcd;
-  font-size: 0.76rem;
-  line-height: 1.6;
-}
-.tracker-passive-body ul { margin: 0; padding-left: 18px; }
-
-@media (max-width: 640px) {
-  .tracker-hero { padding: 15px 14px 16px; }
-  .tracker-hero-head { flex-direction: column; gap: 8px; }
-  .tracker-list button { grid-template-columns: 1fr; }
-  .tracker-list-meta { grid-row: auto; grid-column: 1; }
-}
-
-/* --- Tracker: weather conditions -------------------------------------------
-   Sky access is shown beside the phenomenon, never instead of it. The chip
-   carries the condition, the temperature and the time all three apply to, so a
-   camper can decide from one line whether to get up. */
-
-.tracker-condition {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  color: #cfe0ee;
-  font-size: 0.78rem;
-}
-
-.tracker-condition svg { flex: none; color: #9fb6c8; }
-
-/* Smoke takes visual precedence where it is the reason an open sky will
-   disappoint — but the icon shape already differs, so colour is never carrying
-   the meaning on its own. */
-.tracker-condition-smoky svg,
-.tracker-condition-very-smoky svg { color: #d8a878; }
-.tracker-condition-precipitating svg,
-.tracker-condition-foggy svg { color: #8fa8bd; }
-.tracker-condition-clear svg { color: #9fd8c4; }
-
-.tracker-viewability {
-  border: 1px solid rgba(117, 142, 160, 0.3);
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 0.66rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.tracker-viewability-excellent { border-color: rgba(63, 214, 168, 0.55); color: #b7f4de; }
-.tracker-viewability-good { border-color: rgba(110, 190, 235, 0.45); color: #c9e8fa; }
-.tracker-viewability-possible { color: #b6c9d8; }
-.tracker-viewability-unlikely { color: #8496a5; }
-
-.tracker-freshness { color: #8ea3b5; font-size: 0.68rem; }
-
-.tracker-action-line {
-  margin: 0 0 12px;
-  max-width: 70ch;
-  color: #eaf5ff;
-  font-size: 0.88rem;
-  line-height: 1.5;
-}
-
-/* Stated plainly rather than by ranking it lower, so a good phenomenon behind
-   cloud is legible as exactly that. */
-.tracker-sky-limited {
-  margin: -6px 0 12px;
-  max-width: 72ch;
-  color: #a9bdcd;
-  font-size: 0.76rem;
-  line-height: 1.55;
-}
-
-.tracker-list .tracker-condition {
-  grid-column: 1;
-  margin: 2px 0 0;
-  font-size: 0.72rem;
-}
-.tracker-list .tracker-condition svg { width: 14px; height: 14px; }
-
-/* Passive, as V1 §5 requires: "the peak has passed" is worth being able to see
-   and is never worth foregrounding. */
-.tracker-passed {
-  grid-column: 1;
-  margin-top: 2px;
-  color: #8496a5;
-  font-size: 0.72rem;
+  .tracker-hero h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
+  .tracker-cards { grid-template-columns: 1fr; }
 }

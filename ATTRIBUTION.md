@@ -253,7 +253,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-for-factual-educational-or-informational-use
 - Repository paths: `public/moon/nasa-lroc-color-1k.jpg`
-- Production paths: `moon/nasa-lroc-color-1k.jpg`
+- Production paths: `moon/nasa-lroc-color-1k.jpg`, `assets/TrackerApp-*.js`
 - Restrictions and notes: Display-optimized texture, not a precision lunar cartography product; no NASA endorsement implied.
 
 ## Natural Earth 1:110m Land GeoJSON
@@ -424,6 +424,48 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/tracker/weatherProviders.ts`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path.
+
+## Orbit Studio Tracker phenomenon scenes
+
+- Inventory ID: `orbit-studio-tracker-scene-artwork`
+- Category: first-party-illustration
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Orbit Studio
+- Version or snapshot: Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16
+- Retrieval date: 2026-08-16
+- Rights basis: Original work of this project, released under the repository's MIT licence. The only third-party element composited into a scene is the NASA LROC mosaic registered separately as nasa-svs-lroc-color-moon-1k.
+- Rights evidence: https://github.com/hendrikv-dev/orbit-studio
+- Attribution: Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted
+- Repository paths: `src/components/tracker/TrackerScene.tsx`, `src/data/tracker/imagery.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Every scene must keep an ImageryClass and must render it. A scene may not be reclassified as a photograph, and any future photographic hero must be registered here with its own source, licence, credit and perception classification before it ships.
+
+## Photon geocoder over OpenStreetMap data
+
+- Inventory ID: `tracker-place-search-adapter`
+- Category: runtime-place-search
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Komoot GmbH (service); OpenStreetMap contributors (data)
+- Version or snapshot: Runtime API, not a pinned snapshot; queried per search
+- Retrieval date: 2026-08-16
+- Authoritative source: https://photon.komoot.io/
+- Authoritative source: https://photon.komoot.io/api/
+- Rights basis: The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider — and the last of those is barred from the free path by the cost rule.
+- Rights evidence: https://photon.komoot.io/
+- Rights evidence: https://www.openstreetmap.org/copyright
+- Rights evidence: https://opendatacommons.org/licenses/odbl/1-0/
+- Attribution: Place search © OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/geocoding.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to.
 
 ## Software dependencies
 

@@ -132,6 +132,29 @@ export interface Opportunity {
    * different phenomena.
    */
   transparency: TransparencyDemand;
+  /**
+   * A second way to see the same thing, with more equipment.
+   *
+   * Saturn and Saturn's rings were two entries in the list, ranked separately
+   * and reading as unrelated events. They are one thing in the sky: a point you
+   * can find with your eyes, which becomes a ringed planet through a telescope.
+   * Splitting them made the list longer and the night harder to understand.
+   */
+  /**
+   * Facts the hero picture needs that the guidance does not carry.
+   *
+   * The Moon card drew a half-lit disc under the words "a waxing crescent",
+   * because the scene defaulted to a half phase and nothing told it otherwise.
+   * A picture that contradicts its own caption is worse than no picture.
+   */
+  sceneHints?: { illuminatedFraction?: number; waning?: boolean };
+  alsoWith?: {
+    equipment: Equipment;
+    /** "With a telescope" — the lead-in, not a title. */
+    lead: string;
+    appearance: string;
+    technique: string | null;
+  };
 }
 
 /** Below this an opportunity is not observable enough to be ranked at all. */
@@ -428,4 +451,64 @@ export function chooseHero<T extends RankedOpportunity>(
   // answer is then "there is something good, but you will need a telescope"
   // rather than a weak naked-eye target dressed up as the best of the night.
   return nakedEye ?? eligible[0];
+}
+
+
+/**
+ * The one sentence that says how tonight actually looks, for this thing.
+ *
+ * Showing "very good" and "unlikely" side by side is technically complete and
+ * practically useless: the reader has to work out that the first is about the
+ * shower and the second about the clouds. The requirement is to translate them
+ * — "Excellent shower, but clouds make viewing unlikely from this location
+ * tonight" — and translation means one sentence with the relationship in it,
+ * not two labels next to each other.
+ */
+export function viewingConclusion(
+  title: string,
+  kind: OpportunityKind,
+  phenomenonBand: Band,
+  viewingBand: "excellent" | "good" | "possible" | "unlikely",
+  conditionLabel: string,
+  conditionsKnown: boolean,
+  hasPassed: boolean,
+): string {
+  const plural = kind === "meteors";
+  const is = plural ? "are" : "is";
+
+  if (hasPassed) {
+    return `${title} ${is} below the horizon for the rest of tonight.`;
+  }
+  if (!conditionsKnown) {
+    return phenomenonBand === "exceptional" || phenomenonBand === "very good"
+      ? `One of the best things in the sky tonight. No forecast for here, so check the sky yourself before you commit.`
+      : `Worth a look if you are out anyway. No forecast available for here.`;
+  }
+
+  const strong = phenomenonBand === "exceptional" || phenomenonBand === "very good";
+  const weather = conditionLabel.toLowerCase();
+
+  if (viewingBand === "excellent") {
+    if (strong) return `A genuinely good night for it, and the sky is ${weather}. Go.`;
+    // Varied by phenomenon, because the same sentence repeated down four cards
+    // reads as a template rather than a judgement.
+    return kind === "moon"
+      ? `Not a rare sight, but a ${weather} sky and no effort at all.`
+      : kind === "meteors"
+        ? `A quiet night for them, though a ${weather} sky gives you a fair chance.`
+        : `Nothing dramatic, but the sky is ${weather} — an easy one to actually see.`;
+  }
+  if (viewingBand === "good") {
+    return strong
+      ? `Well worth going out for, with ${weather} skies at the best time.`
+      : `A fair target, and ${weather} skies give you a real chance.`;
+  }
+  if (viewingBand === "possible") {
+    return strong
+      ? `Excellent in itself, but ${weather} skies make it a gamble from here tonight.`
+      : `${weather.charAt(0).toUpperCase()}${weather.slice(1)} skies and a quiet target — worth a glance, not a trip.`;
+  }
+  return strong
+    ? `${plural ? "They are" : "It is"} at ${phenomenonBand === "exceptional" ? "its best" : "a good point"}, but ${weather} skies make seeing ${plural ? "them" : "it"} unlikely from here tonight.`
+    : `${weather.charAt(0).toUpperCase()}${weather.slice(1)} skies tonight — save this one for a clearer evening.`;
 }

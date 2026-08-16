@@ -52,8 +52,11 @@
       "images.nasa.gov",
       "localhost",
       "open-meteo.com",
+      "opendatacommons.org",
       "openweathermap.org",
       "orbitaldebris.jsc.nasa.gov",
+      "osm.org",
+      "photon.komoot.io",
       "piotrwitek.github.io",
       "planet4589.org",
       "rapidrefresh.noaa.gov",
@@ -79,6 +82,7 @@
       "www.nasa.gov",
       "www.naturalearthdata.com",
       "www.nesdis.noaa.gov",
+      "www.openstreetmap.org",
       "www.space-track.org",
       "www.spaceweather.gov",
       "www.ta3.sk",
@@ -750,7 +754,8 @@
         "public/moon/nasa-lroc-color-1k.jpg"
       ],
       "productionBundlePaths": [
-        "moon/nasa-lroc-color-1k.jpg"
+        "moon/nasa-lroc-color-1k.jpg",
+        "assets/TrackerApp-*.js"
       ],
       "originalSource": {
         "title": "CGI Moon Kit: LROC WAC Color Mosaic",
@@ -771,7 +776,8 @@
       },
       "processing": [
         "Downloaded from the official NASA SVS asset URL.",
-        "No resizing, cropping, color editing, or recompression."
+        "No resizing, cropping, color editing, or recompression.",
+        "Also used by Tracker as the lunar hero image, clipped to a disc and overlaid with the unlit portion computed for the observer's actual phase. The mosaic itself is unmodified; the shadow is drawn over it. Classified in the interface as a spacecraft mosaic, with a stated naked-eye expectation, so it is never presented as a backyard view."
       ],
       "rights": {
         "verification": "verified",
@@ -1127,6 +1133,96 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path."
+      }
+    },
+    {
+      "id": "orbit-studio-tracker-scene-artwork",
+      "category": "first-party-illustration",
+      "repositoryPaths": [
+        "src/components/tracker/TrackerScene.tsx",
+        "src/data/tracker/imagery.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio Tracker phenomenon scenes",
+        "publisher": "Orbit Studio",
+        "version": "Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/components/tracker/TrackerScene.tsx": "2cf5a7a845242cfce35a39ee7d735752ea8c458b28a9969a1adcb50b33ea3b8d",
+        "src/data/tracker/imagery.ts": "7714121dcc93474f27908546b09193c4f0369efc4cdd9743e9e8a3c68cb7b2d8"
+      },
+      "processing": [
+        "The hero and card imagery is drawn as SVG in this repository rather than sourced photographically. Meteors, planets, conjunctions and the plain night sky are original vector scenes; the Moon and lunar-eclipse scenes composite the separately registered NASA LROC mosaic.",
+        "Drawing rather than photographing is an honesty decision as much as a licensing one. A photograph of a meteor shower is many minutes of exposure stacked together and a photograph of Saturn is a telescope's view; publishing either as the hero teaches a false expectation before any guidance is read.",
+        "Two elements are derived from the same computation the recommendation used rather than composed: the meteor radiant is placed from the shower's actual radiant, and the Moon's terminator is drawn for the observer's actual illuminated fraction and waxing or waning sense.",
+        "Every scene carries an ImageryClass from src/data/tracker/imagery.ts, rendered in the interface together with a naked-eye expectation where the picture and the eye differ. The classifications available are telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation and spacecraft-mosaic.",
+        "No scene is presented as a photograph, none uses saturated colour as a promise of naked-eye appearance, and the meteor scene states explicitly that individual meteors are not predictable."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Original work of this project, released under the repository's MIT licence. The only third-party element composited into a scene is the NASA LROC mosaic registered separately as nasa-svs-lroc-color-moon-1k.",
+        "evidenceUrls": [
+          "https://github.com/hendrikv-dev/orbit-studio"
+        ],
+        "attribution": "Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Every scene must keep an ImageryClass and must render it. A scene may not be reclassified as a photograph, and any future photographic hero must be registered here with its own source, licence, credit and perception classification before it ships."
+      }
+    },
+    {
+      "id": "tracker-place-search-adapter",
+      "category": "runtime-place-search",
+      "repositoryPaths": [
+        "src/data/tracker/geocoding.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Photon geocoder over OpenStreetMap data",
+        "url": "https://photon.komoot.io/api/",
+        "publicationUrl": "https://photon.komoot.io/",
+        "publisher": "Komoot GmbH (service); OpenStreetMap contributors (data)",
+        "version": "Runtime API, not a pinned snapshot; queried per search",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/geocoding.ts": "eaa1350b893f557512a70fc29849812866f98fa70ba8b328f7e452299f1869b7"
+      },
+      "processing": [
+        "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
+        "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
+        "Results are re-ranked locally to favour the categories an observer means \u2014 campsites, parks, reserves, summits, viewpoints and trailheads above street addresses \u2014 because the campground case is the one the location contract exists for.",
+        "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
+        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider \u2014 and the last of those is barred from the free path by the cost rule.",
+        "evidenceUrls": [
+          "https://photon.komoot.io/",
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/"
+        ],
+        "attribution": "Place search \u00a9 OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
       }
     }
   ]

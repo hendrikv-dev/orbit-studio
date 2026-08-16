@@ -123,6 +123,21 @@ function altitudeProfile(observer: Observer, body: Body, times: Date[]): Opportu
   }));
 }
 
+/**
+ * An altitude in fists at arm's length, which is how people actually point.
+ *
+ * A fist held out is close to ten degrees for almost everyone, tall or short,
+ * because the ratio of arm to hand barely varies. "About 40 degrees up" means
+ * nothing to most readers; "four fists above the horizon" can be done standing
+ * in a garden in the dark.
+ */
+export function elevationInFists(altitudeDeg: number): string {
+  const fists = Math.round(altitudeDeg / 10);
+  if (altitudeDeg >= 75) return "almost straight overhead";
+  if (fists <= 1) return "one fist above the horizon at arm's length";
+  return `${fists} fists above the horizon at arm's length`;
+}
+
 /** Hours from local midnight, as a cost. Nobody enjoys a 4am alarm. */
 function timingEase(atUtc: string, period: ObservationPeriod): number {
   const middle = (Date.parse(period.startUtc) + Date.parse(period.endUtc)) / 2;
@@ -214,7 +229,8 @@ function meteorOpportunity(
       whenUtc: night.best.atUtc,
       durationMinutes: 60,
       direction,
-      elevation: "About two-thirds of the way up, not at the radiant — meteors near it are foreshortened to dots.",
+      elevation:
+        "About two-thirds of the way up — and not straight at the radiant. Meteors near it are heading towards you, so they show as dots rather than streaks.",
       howLong: "An hour at least. Rates are averages, and meteors arrive in clumps and gaps.",
       equipment: "eyes",
       technique:
@@ -281,8 +297,10 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
       ? `The ${phaseName}`
       : `The Moon, a ${phaseName}`,
     summary: earthshine
-      ? "A thin crescent with the rest of the disc faintly lit by earthshine."
-      : `${Math.round(fraction * 100)}% lit and ${Math.round(placement.altitudeDeg)}° up at its best.`,
+      ? "A thin crescent, with the dark part glowing faintly — that glow is Earth, shining back."
+      : nearTerminator > 0.5
+        ? "Craters along the day-night line stand up in relief. The best night of the month for binoculars."
+        : "Big, bright and impossible to miss.",
     qualities: {
       observability: Math.min(1, altitudeObservability(placement.altitudeDeg) + 0.3),
       spectacle,
@@ -300,7 +318,7 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
       whenUtc: placement.atUtc,
       durationMinutes: 120,
       direction: compassPoint(placement.azimuthDeg),
-      elevation: `About ${Math.round(placement.altitudeDeg)}° up at its highest.`,
+      elevation: `${elevationInFists(placement.altitudeDeg)[0].toUpperCase()}${elevationInFists(placement.altitudeDeg).slice(1)}.`,
       howLong: "A few minutes with your eyes; longer if you have binoculars.",
       equipment: "eyes",
       technique: nearTerminator > 0.4
@@ -318,6 +336,7 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
     profile: altitudeProfile(observer, Body.Moon, times),
     // The Moon is visible through cloud that would end everything else.
     transparency: "low",
+    sceneHints: { illuminatedFraction: fraction, waning: !waxing },
   };
 }
 
@@ -326,6 +345,8 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
 interface PlanetProfile {
   body: Body;
   name: string;
+  /** Plain language. What someone is being invited to go and see. */
+  invitation: string;
   /** What is actually worth seeing, and with what. */
   telescopeTarget?: { title: string; appearance: string; equipment: "binoculars" | "telescope"; technique: string };
   phenomenon: string;
@@ -335,18 +356,21 @@ const PLANETS: PlanetProfile[] = [
   {
     body: Body.Venus,
     name: "Venus",
+    invitation: "The brightest thing in the sky after the Sun and Moon. You cannot miss it.",
     phenomenon:
       "Venus orbits inside Earth's orbit, so it never strays far from the Sun and shows phases like the Moon. It is the brightest thing in the sky after the Sun and Moon because its cloud deck reflects three-quarters of the light that hits it.",
   },
   {
     body: Body.Mars,
     name: "Mars",
+    invitation: "The orange one. Obviously coloured once you spot it, even from a city.",
     phenomenon:
       "Mars is obviously orange to the naked eye because its surface is covered in iron oxide dust. Its brightness swings enormously — Earth laps it every 26 months, and between those passes it recedes to more than seven times the distance.",
   },
   {
     body: Body.Jupiter,
     name: "Jupiter",
+    invitation: "Bright enough to find in seconds, and steady binoculars show its four moons.",
     telescopeTarget: {
       title: "Jupiter's moons",
       appearance:
@@ -360,6 +384,7 @@ const PLANETS: PlanetProfile[] = [
   {
     body: Body.Saturn,
     name: "Saturn",
+    invitation: "A quiet yellow point to your eyes — and the rings through any small telescope.",
     telescopeTarget: {
       title: "Saturn's rings",
       appearance:
@@ -389,15 +414,25 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
     const observability = altitudeObservability(placement.altitudeDeg);
     if (observability <= 0) continue;
 
+    const target = profile.telescopeTarget;
+    // Saturn and "Saturn's rings" used to be two entries, ranked separately and
+    // reading as unrelated events. They are one thing in the sky: a point you
+    // can find with your eyes, which becomes a ringed planet through a
+    // telescope. One card, two ways to look at it.
     opportunities.push({
       id: `planet-${profile.name.toLowerCase()}`,
       kind: "planet",
       title: profile.name,
-      summary: `Magnitude ${magnitude.toFixed(1)}, ${Math.round(placement.altitudeDeg)}° above the ${compassPoint(placement.azimuthDeg)} horizon at its best.`,
+      summary: profile.invitation,
       qualities: {
         observability,
-        spectacle: brightness * 0.6,
-        // A steady point among twinkling stars — real, but you have to be told.
+        // The telescope view is part of what makes a planet worth the trip, so
+        // it lifts the spectacle of the one entry rather than competing with it
+        // — but only a little. A more generous bump pushed Jupiter on an
+        // ordinary March evening into the "exceptional" band, which is the word
+        // held back for a total lunar eclipse and exactly the overclaiming the
+        // band thresholds were retuned to stop.
+        spectacle: Math.min(0.62, brightness * 0.5 + (target ? 0.12 : 0)),
         recognisability: 0.45 + brightness * 0.4,
         ease: timingEase(placement.atUtc, period),
         confidence: 1,
@@ -408,8 +443,8 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
         whenUtc: placement.atUtc,
         durationMinutes: 90,
         direction: compassPoint(placement.azimuthDeg),
-        elevation: `About ${Math.round(placement.altitudeDeg)}° up.`,
-        howLong: "A minute is enough to find it.",
+        elevation: `About ${Math.round(placement.altitudeDeg)}° up — roughly ${elevationInFists(placement.altitudeDeg)}.`,
+        howLong: "A minute to find it. Longer if you have something to look through.",
         equipment: "eyes",
         technique: null,
         safety: null,
@@ -417,52 +452,25 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
       phenomenon: profile.phenomenon,
       tonight: `Highest at ${formatTime(placement.atUtc)}, ${Math.round(placement.altitudeDeg)}° above the ${compassPoint(placement.azimuthDeg)} horizon, at magnitude ${magnitude.toFixed(1)}.`,
       missingInputs: [],
-      limitations: [],
+      limitations: target
+        ? [
+            "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
+          ]
+        : [],
       profile: altitudeProfile(observer, profile.body, times),
-      // A bright planet punches through a gap in broken cloud.
       transparency: "low",
+      alsoWith: target
+        ? {
+            equipment: target.equipment,
+            lead:
+              target.equipment === "telescope"
+                ? "Through a telescope"
+                : "Through binoculars",
+            appearance: target.appearance,
+            technique: target.technique,
+          }
+        : undefined,
     });
-
-    if (profile.telescopeTarget && observability > 0.25) {
-      const target = profile.telescopeTarget;
-      opportunities.push({
-        id: `telescope-${profile.name.toLowerCase()}`,
-        kind: "planet",
-        title: target.title,
-        // The requirement is carried by its own badge in the list and in the
-        // hero, so repeating it here printed it twice on the same row.
-        summary: `${Math.round(placement.altitudeDeg)}° up at its best, ${compassPoint(placement.azimuthDeg)}.`,
-        qualities: {
-          observability,
-          spectacle: profile.body === Body.Saturn ? 0.85 : 0.6,
-          recognisability: 0.8,
-          ease: timingEase(placement.atUtc, period) * 0.7,
-          confidence: 1,
-          rarity: 0.05,
-        },
-        guidance: {
-          appearance: target.appearance,
-          whenUtc: placement.atUtc,
-          durationMinutes: 90,
-          direction: compassPoint(placement.azimuthDeg),
-          elevation: `About ${Math.round(placement.altitudeDeg)}° up. Higher is better — you are looking through less air.`,
-          howLong: "Ten minutes. The view improves as your eye learns what it is looking at.",
-          equipment: target.equipment,
-          technique: target.technique,
-          safety: null,
-        },
-        phenomenon: profile.phenomenon,
-        tonight: `${profile.name} is highest at ${formatTime(placement.atUtc)}, ${Math.round(placement.altitudeDeg)}° above the ${compassPoint(placement.azimuthDeg)} horizon.`,
-        missingInputs: [],
-        limitations: [
-          "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
-        ],
-        profile: altitudeProfile(observer, profile.body, times),
-        // Detail at magnification needs a steadier, cleaner sky than simply
-        // finding the planet does.
-        transparency: "medium",
-      });
-    }
   }
 
   return opportunities;
@@ -529,7 +537,7 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         id: `conjunction-${first.name}-${second.name}`.replace(/\s+/g, "-").toLowerCase(),
         kind: "conjunction",
         title: `${first.name === "the Moon" ? "The Moon" : first.name} and ${second.name}`,
-        summary: `${best.separation.toFixed(1)}° apart, ${Math.round(best.altitude)}° above the ${compassPoint(best.azimuth)} horizon.`,
+    summary: `${first.name === "the Moon" ? "The Moon" : first.name} and ${second.name} almost touching — ${best.separation < 2 ? "close enough to cover with a fingertip" : "a striking pair"}, low in the ${compassPoint(best.azimuth)}.`,
         qualities: {
           observability: altitudeObservability(best.altitude),
           // A close conjunction is a lovely thing and not a rare one. Rated
@@ -547,7 +555,7 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
           whenUtc: best.at.toISOString(),
           durationMinutes: 60,
           direction: compassPoint(best.azimuth),
-          elevation: `About ${Math.round(best.altitude)}° up.`,
+          elevation: `${elevationInFists(best.altitude)[0].toUpperCase()}${elevationInFists(best.altitude).slice(1)}.`,
           howLong: "A few minutes. It looks much the same for an hour either side.",
           equipment: "eyes",
           technique: best.separation < 2
@@ -597,10 +605,10 @@ function lunarEclipseOpportunity(
         ? "Partial lunar eclipse"
         : "Penumbral lunar eclipse",
     summary: totality
-      ? "The Moon passes fully into Earth's shadow and turns a deep copper red."
+      ? "The Moon slides into Earth's shadow and turns deep copper red. Worth setting an alarm for."
       : partial
-        ? "A dark bite is taken out of the Moon as it crosses Earth's shadow."
-        : "A subtle shading across the Moon — easy to miss unless you know it is happening.",
+        ? "A dark, curved bite creeps across the Moon — the edge of Earth's own shadow."
+        : "A faint shading across the Moon. Subtle, and easy to miss.",
     qualities: {
       observability: Math.min(1, altitudeObservability(position.altitude) + 0.35),
       spectacle: totality ? 0.95 : partial ? 0.7 : 0.25,
@@ -618,7 +626,7 @@ function lunarEclipseOpportunity(
       whenUtc: eclipse.peak.date.toISOString(),
       durationMinutes: Math.round(half * 60),
       direction: compassPoint(position.azimuth),
-      elevation: `About ${Math.round(position.altitude)}° up at mid-eclipse.`,
+      elevation: `${elevationInFists(position.altitude)[0].toUpperCase()}${elevationInFists(position.altitude).slice(1)}, at mid-eclipse.`,
       howLong: "Go out well before the middle. The interesting part is the change, not the moment.",
       equipment: "eyes",
       technique: "No filter, no equipment, no danger — a lunar eclipse is just the Moon, and a dim one at that.",
@@ -633,6 +641,7 @@ function lunarEclipseOpportunity(
     // worth watching while it is happening, wherever the Moon has got to.
     profile: eclipseProfile(eclipse.peak.date, half),
     transparency: "low",
+    sceneHints: { illuminatedFraction: 1 },
   };
 }
 

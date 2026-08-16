@@ -188,6 +188,86 @@ reserved for a total lunar eclipse, for something that happens most months.
   the adapter, and it is the only place a provider's value is reinterpreted
   rather than renamed.
 
+---
+
+# Presentation rebuild — implementation status
+
+The calculations were not touched. The ranking, the meteor model, the weather
+decision model, the centralised selection rules and the two deliberately
+unresolved provenance entries are all as they were; what changed is what the
+reader meets first.
+
+## Acceptance gate
+
+| | Requirement | Status |
+|---|---|---|
+| 1 | First screen dominated by phenomenon-specific imagery | **Met.** Full-bleed scene per phenomenon, distinct for meteors, Moon, eclipse, each planet, conjunctions and a plain night sky. |
+| 2 | A nontechnical reader understands the action in five seconds | **Met.** "Saturn / Best chance 12:30–4:45 AM / Clear · 78°F / Face south. A minute to find it. No equipment needed." |
+| 3 | Primary times local, not UTC | **Met**, with one caveat below. |
+| 4 | Current location and address/campsite selection | **Met.** Device location, and a search that finds campgrounds, parks and trailheads, with a coordinate pin as the remote fallback. |
+| 5 | Condition iconography and event-time temperature | **Met.** Seven states plus an explicit unknown, each a different glyph shape. |
+| 6 | Image-led, visually distinct ranked cards | **Met.** |
+| 7 | Chart and coordinates no longer dominant | **Met.** Both are behind "How this was worked out". |
+| 8 | No infrastructure explanation in the interface | **Met.** The server-cost paragraph is gone from the page; it survives here and in provenance. |
+| 9 | Full desktop viewport used intentionally | **Met.** The scene takes the width; the panel is a column over its left at ≥900px. |
+| 10 | Feels like an invitation | Judgement, not a check — but "The orange one. Obviously coloured once you spot it, even from a city." is the register throughout. |
+
+## Imagery, and why it is drawn rather than photographed
+
+Every scene is original vector art, except the Moon and lunar eclipse, which
+composite the NASA LROC mosaic already registered in provenance and light it for
+the observer's real phase.
+
+That is an honesty decision before a licensing one. A photograph of a meteor
+shower is many minutes of exposure stacked together; a photograph of Saturn is a
+telescope's view. Publishing either as the hero teaches a false expectation
+before a word of guidance is read, and the failure mode the specification warns
+about — a spacecraft image passing as a backyard view — is impossible to commit
+if no scene claims to be a photograph.
+
+Every scene carries a classification that is rendered in the interface, together
+with the naked-eye expectation wherever the picture and the eye differ. Two
+elements are computed rather than composed: the meteor radiant sits where the
+radiant actually is, and the Moon's terminator is drawn for tonight's real
+illuminated fraction.
+
+**If photographic planetary heroes are wanted**, that is a per-image sourcing
+decision. NASA imagery is the obvious route and the repository already carries
+two verified NASA assets, but each one needs its own credit verified and its own
+perception classification before it ships.
+
+## Still approximate: local time for a searched place
+
+The device's own location uses the browser's IANA zone and is exact, daylight
+saving included. Anywhere else, the offset is derived from longitude, because
+turning coordinates into a zone needs a boundary dataset or a provider that
+returns one and neither is on the free path. Where the derived offset matches
+the device's, the device zone is used instead, which fixes the common case of
+searching near home.
+
+It is wrong where politics beat geography — India's half-hour offset, China on
+one zone, Spain an hour off its meridian — and it does not know about daylight
+saving elsewhere. Stated in the interface's own detail, not only here.
+
+## Found by looking, during this phase
+
+- The scene was drawn in a square viewBox, so its intrinsic aspect ratio made
+  the hero **1792 pixels tall** on a wide screen, pushed every word below the
+  fold and rendered the stars as coin-sized discs.
+- Bearings were measured from north, which put the discontinuity exactly at
+  south — where most recommended targets are — and sent Saturn off the right
+  edge of the picture.
+- The Moon's terminator sweep flags were inverted: a four-day-old crescent drew
+  as a gibbous, directly under a caption reading "a waxing crescent". Now
+  asserted for all four cases.
+- Overlaying the panel on the image works on a desktop and fails on a phone,
+  where the panel is most of the viewport and the subject ended up behind the
+  headline. The phone layout stacks instead.
+- Consolidating Saturn and Saturn's rings into one card raised planet spectacle
+  enough to call Jupiter on an ordinary March evening "exceptional" — caught by
+  a test written in the previous phase for exactly that overclaiming.
+- The browser offered the reader's own saved postal address in the place search.
+
 ## Ranking quality
 
 There is no ground truth for "worth observing" and no audience large enough for

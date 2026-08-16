@@ -1,4 +1,5 @@
 import type { SkyCondition, Viewability } from "../../data/tracker/conditions";
+import { formatClockTime, formatTemperature, type PlaceClock } from "../../lib/localTime";
 
 /**
  * The compact event-time condition: an icon, the sky in words, the temperature,
@@ -93,11 +94,17 @@ export function TrackerCondition({
   viewability,
   temperatureC,
   atUtc,
+  clock,
   showFreshness = true,
+  compact = false,
 }: {
   viewability: Viewability;
   temperatureC: number | null;
   atUtc: string;
+  /** Times are the observing place's clock, never UTC. */
+  clock: PlaceClock;
+  /** Drops the time, for the ranked cards which already show their own. */
+  compact?: boolean;
   /**
    * Freshness belongs to the forecast, not to any one item, so the ranked list
    * suppresses it: repeated down five rows it read as five separate warnings
@@ -107,8 +114,8 @@ export function TrackerCondition({
 }) {
   const { reading, band, freshness } = viewability;
   const unknown = reading.condition === "unknown";
-  const time = `${atUtc.slice(11, 16)} UTC`;
-  const temperature = temperatureC === null ? null : `${Math.round(temperatureC)}°C`;
+  const time = formatClockTime(atUtc, clock);
+  const temperature = temperatureC === null ? null : formatTemperature(temperatureC);
 
   // A span rather than a paragraph: this renders inside the list's buttons, and
   // a button may only contain phrasing content.
@@ -126,7 +133,8 @@ export function TrackerCondition({
       <ConditionIcon condition={reading.condition} />
       <span>
         {reading.label}
-        {temperature ? ` · ${temperature}` : ""} at {time}
+        {temperature ? ` · ${temperature}` : ""}
+        {compact ? "" : ` at ${time}`}
       </span>
       {/* The band describes how viewable it is, which is only a claim worth
           making when the sky was actually checked. */}
