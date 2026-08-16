@@ -395,3 +395,37 @@ export function applySkyAccess(
     rank: index + 1,
   }));
 }
+
+
+/**
+ * Choose what leads the view, over a set that may have shrunk since ranking.
+ *
+ * The hero rule lives here rather than at the call site because it has already
+ * been broken once by being reimplemented there. Filtering out the
+ * opportunities that had already set left the interface picking "the first
+ * promotable one", which handed the hero to a telescope target while a
+ * naked-eye target of the same band sat directly beneath it — the exact
+ * outcome `NAKED_EYE_PROTECTION` exists to prevent.
+ *
+ * `excludedIds` covers anything ineligible now for a reason ranking could not
+ * know: chiefly that its window tonight has passed.
+ */
+export function chooseHero<T extends RankedOpportunity>(
+  ranked: T[],
+  excludedIds: ReadonlySet<string> = new Set(),
+): T | null {
+  const eligible = ranked.filter(
+    (entry) => entry.promotable && !excludedIds.has(entry.opportunity.id),
+  );
+  if (eligible.length === 0) return null;
+
+  const nakedEye = eligible.find(
+    (entry) =>
+      entry.opportunity.guidance.equipment === "eyes" &&
+      entry.strength >= NAKED_EYE_PROTECTION,
+  );
+  // Below the protection floor an equipment target may lead, because the honest
+  // answer is then "there is something good, but you will need a telescope"
+  // rather than a weak naked-eye target dressed up as the best of the night.
+  return nakedEye ?? eligible[0];
+}

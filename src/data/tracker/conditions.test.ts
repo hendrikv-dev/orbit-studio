@@ -3,6 +3,7 @@ import {
   actionLine,
   bestViewingWindow,
   forecastFreshness,
+  hasPassedTonight,
   nearestSnapshot,
   readCondition,
   skyAccess,
@@ -275,5 +276,131 @@ describe("the action line", () => {
 
   it("carries the temperature for the recommended time", () => {
     expect(actionLine(window(false, 0), 12)).toMatch(/12°C/);
+  });
+});
+
+describe("when no forecast reached the target time", () => {
+  it("reports the sky as unknown rather than as clear", () => {
+    // Regression: the fallback used to report `clear`, so an unfetched forecast
+    // rendered a sun icon beside the words "conditions unavailable".
+    const window = bestViewingWindow(
+      [{ atUtc: "2026-08-16T22:00:00.000Z", relative: 1 }],
+      [],
+      "low",
+      0.8,
+      NOW,
+    )!;
+    expect(window.viewability.reading.condition).toBe("unknown");
+    expect(window.viewability.reading.condition).not.toBe("clear");
+  });
+
+  it("says so in the action line rather than implying the sky was checked", () => {
+    const window = bestViewingWindow(
+      [{ atUtc: "2026-08-16T22:00:00.000Z", relative: 1 }],
+      [],
+      "low",
+      0.8,
+      NOW,
+    )!;
+    const line = actionLine(window, null);
+    expect(line).toMatch(/no forecast/i);
+    expect(line).not.toMatch(/clear|cloudy|sky opens/i);
+  });
+
+  it("still recommends the phenomenon, because absence is not a reason to hide it", () => {
+    const window = bestViewingWindow(
+      [{ atUtc: "2026-08-16T22:00:00.000Z", relative: 1 }],
+      [],
+      "low",
+      0.8,
+      NOW,
+    )!;
+    expect(window.viewability.band).toBe("good");
+  });
+});
+
+describe("a night already in progress", () => {
+  const profile = (hours: number[]): OpportunitySample[] =>
+    hours.map((hour, index) => ({
+      atUtc: `2026-08-16T${String(hour).padStart(2, "0")}:00:00.000Z`,
+      // Best early, so the unclamped answer would be in the past.
+      relative: 1 - index * 0.15,
+    }));
+
+  it("never recommends a moment that has already gone", () => {
+    // Sydney at 3am was being told to go outside at 17:41 the previous
+    // evening — and no forecast existed for it either, because forecasts do
+    // not cover the past.
+    const window = bestViewingWindow(
+      profile([18, 19, 20, 21, 22]),
+      [],
+      "low",
+      0.8,
+      new Date("2026-08-16T20:30:00Z"),
+    );
+    expect(Date.parse(window!.peakUtc)).toBeGreaterThanOrEqual(
+      Date.parse("2026-08-16T20:30:00Z"),
+    );
+  });
+
+  it("leaves a future night alone", () => {
+    const window = bestViewingWindow(
+      profile([18, 19, 20, 21, 22]),
+      [],
+      "low",
+      0.8,
+      new Date("2026-08-16T09:00:00Z"),
+    );
+    expect(window!.peakUtc).toMatch(/T18:00/);
+  });
+
+  it("still works when a past night is browsed deliberately", () => {
+    const window = bestViewingWindow(
+      profile([18, 19, 20, 21, 22]),
+      [],
+      "low",
+      0.8,
+      new Date("2026-09-01T00:00:00Z"),
+    );
+    expect(window!.peakUtc).toMatch(/T18:00/);
+  });
+
+  it("gives up once the night is genuinely over", () => {
+    const window = bestViewingWindow(
+      profile([18, 19, 20]),
+      [],
+      "low",
+      0.8,
+      new Date("2026-08-16T19:59:00Z"),
+    );
+    expect(window!.peakUtc).toMatch(/T20:00/);
+  });
+});
+
+describe("telling 'already set' apart from 'rained off'", () => {
+  const setting: OpportunitySample[] = [
+    { atUtc: "2026-08-16T18:00:00.000Z", relative: 1 },
+    { atUtc: "2026-08-16T19:00:00.000Z", relative: 0.4 },
+    { atUtc: "2026-08-16T20:00:00.000Z", relative: 0 },
+    { atUtc: "2026-08-16T21:00:00.000Z", relative: 0 },
+  ];
+
+  it("knows when nothing is left of it tonight", () => {
+    // A null window means either "rained off" or "already set", and the two
+    // need different words. Without the distinction, an object that had set
+    // fell back to advertising its own best moment — hours in the past.
+    expect(hasPassedTonight(setting, new Date("2026-08-16T20:30:00Z"))).toBe(true);
+  });
+
+  it("is false while some of it is still ahead", () => {
+    expect(hasPassedTonight(setting, new Date("2026-08-16T18:30:00Z"))).toBe(false);
+  });
+
+  it("is false for a night not yet begun", () => {
+    expect(hasPassedTonight(setting, new Date("2026-08-16T12:00:00Z"))).toBe(false);
+  });
+
+  it("is false for a night browsed after the fact", () => {
+    expect(hasPassedTonight(setting, new Date("2026-09-01T00:00:00Z"))).toBe(false);
   });
 });

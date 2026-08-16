@@ -11722,3 +11722,12 @@ button.primary,
   font-size: 0.72rem;
 }
 .tracker-list .tracker-condition svg { width: 14px; height: 14px; }
+
+/* Passive, as V1 §5 requires: "the peak has passed" is worth being able to see
+   and is never worth foregrounding. */
+.tracker-passed {
+  grid-column: 1;
+  margin-top: 2px;
+  color: #8496a5;
+  font-size: 0.72rem;
+}

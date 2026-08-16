@@ -31,6 +31,13 @@ function ConditionIcon({ condition }: { condition: SkyCondition }) {
   };
 
   switch (condition) {
+    case "unknown":
+      // A dashed circle: the shape of a sky, with nothing known inside it.
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="7.5" strokeDasharray="2.5 3" />
+        </svg>
+      );
     case "clear":
       return (
         <svg {...common}>
@@ -99,6 +106,7 @@ export function TrackerCondition({
   showFreshness?: boolean;
 }) {
   const { reading, band, freshness } = viewability;
+  const unknown = reading.condition === "unknown";
   const time = `${atUtc.slice(11, 16)} UTC`;
   const temperature = temperatureC === null ? null : `${Math.round(temperatureC)}°C`;
 
@@ -109,15 +117,23 @@ export function TrackerCondition({
       className={`tracker-condition tracker-condition-${reading.condition}`}
       // The accessible text names the specific sky state and the time it is
       // for, because the icon carries no text and "weather" would be useless.
-      aria-label={`${reading.label}${temperature ? `, ${temperature}` : ""} at ${time}. Viewing ${band}.`}
+      aria-label={
+        unknown
+          ? `No forecast available for ${time}.`
+          : `${reading.label}${temperature ? `, ${temperature}` : ""} at ${time}. Viewing ${band}.`
+      }
     >
       <ConditionIcon condition={reading.condition} />
       <span>
         {reading.label}
         {temperature ? ` · ${temperature}` : ""} at {time}
       </span>
-      <span className={`tracker-viewability tracker-viewability-${band}`}>{band}</span>
-      {showFreshness && freshness !== "current" ? (
+      {/* The band describes how viewable it is, which is only a claim worth
+          making when the sky was actually checked. */}
+      {unknown ? null : (
+        <span className={`tracker-viewability tracker-viewability-${band}`}>{band}</span>
+      )}
+      {!unknown && showFreshness && freshness !== "current" ? (
         <span className="tracker-freshness">
           {freshness === "stale" ? "forecast is out of date" : "forecast is a few hours old"}
         </span>

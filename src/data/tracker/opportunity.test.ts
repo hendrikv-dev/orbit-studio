@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applySkyAccess,
   bandFor,
+  chooseHero,
   explainRank,
   rankOpportunities,
   type Equipment,
@@ -271,5 +272,35 @@ describe("once the sky is known", () => {
     const adjusted = applySkyAccess(ranking.ranked, new Map());
     expect(adjusted.map((entry) => entry.opportunity.id)).toEqual(["a", "b"]);
     expect(adjusted[0].skyAccess).toBeNull();
+  });
+});
+
+describe("choosing the hero from what is left", () => {
+  it("still refuses to lead with equipment when the eye has a good option", () => {
+    // Regression: filtering out what had already set left the interface picking
+    // "the first promotable one", which handed the hero to a telescope target
+    // while a naked-eye target of the same band sat directly beneath it.
+    const ranking = rankOpportunities([
+      candidate("rings", { spectacle: 0.85, recognisability: 0.8 }, "telescope"),
+      candidate("saturn", { spectacle: 0.6 }),
+      candidate("venus", { spectacle: 0.9 }),
+    ]);
+    const hero = chooseHero(ranking.ranked, new Set(["venus"]));
+    expect(hero!.opportunity.id).toBe("saturn");
+    expect(hero!.opportunity.guidance.equipment).toBe("eyes");
+  });
+
+  it("lets equipment lead once nothing naked-eye is worth going out for", () => {
+    const ranking = rankOpportunities([
+      candidate("rings", { spectacle: 0.9, recognisability: 0.85 }, "telescope"),
+      candidate("faint", { spectacle: 0.15, recognisability: 0.25, ease: 0.3 }),
+    ]);
+    const hero = chooseHero(ranking.ranked);
+    expect(hero!.opportunity.id).toBe("rings");
+  });
+
+  it("returns nothing rather than leading with something that has set", () => {
+    const ranking = rankOpportunities([candidate("venus", { spectacle: 0.9 })]);
+    expect(chooseHero(ranking.ranked, new Set(["venus"]))).toBeNull();
   });
 });

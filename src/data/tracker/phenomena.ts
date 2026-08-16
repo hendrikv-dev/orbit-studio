@@ -429,7 +429,9 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
         id: `telescope-${profile.name.toLowerCase()}`,
         kind: "planet",
         title: target.title,
-        summary: `${target.equipment === "telescope" ? "Telescope" : "Binoculars"} required. ${Math.round(placement.altitudeDeg)}° up at its best.`,
+        // The requirement is carried by its own badge in the list and in the
+        // hero, so repeating it here printed it twice on the same row.
+        summary: `${Math.round(placement.altitudeDeg)}° up at its best, ${compassPoint(placement.azimuthDeg)}.`,
         qualities: {
           observability,
           spectacle: profile.body === Body.Saturn ? 0.85 : 0.6,
@@ -530,11 +532,15 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         summary: `${best.separation.toFixed(1)}° apart, ${Math.round(best.altitude)}° above the ${compassPoint(best.azimuth)} horizon.`,
         qualities: {
           observability: altitudeObservability(best.altitude),
-          spectacle: 0.35 + 0.45 * closeness,
+          // A close conjunction is a lovely thing and not a rare one. Rated
+          // higher, a 1.7° Moon–Venus pairing came out "exceptional", the same
+          // word reserved for a total lunar eclipse — and the Moon passes a
+          // bright planet most months.
+          spectacle: 0.25 + 0.35 * closeness,
           recognisability: 0.7 + 0.25 * closeness,
           ease: timingEase(best.at.toISOString(), period),
           confidence: 1,
-          rarity: 0.35 + 0.4 * closeness,
+          rarity: 0.15 + 0.3 * closeness,
         },
         guidance: {
           appearance: `Two points close together — ${best.separation.toFixed(1)}° is about ${best.separation < 1.5 ? "a fingernail" : best.separation < 3 ? "a finger" : "two fingers"} held at arm's length.`,

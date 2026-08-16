@@ -439,9 +439,12 @@ export function meteorNight(
   const start = Date.parse(period.startUtc);
   const end = Date.parse(period.endUtc);
 
+  // What the *rate* leaves out, which is not the same as what the product
+  // leaves out: cloud is handled separately as sky access, and the number here
+  // stays a clear-sky ceiling either way. Listing cloud as unaccounted-for on a
+  // page that visibly accounts for it was simply false.
   const missingInputs = [
     "Light pollution at your location, which usually matters more than anything else here.",
-    "Cloud cover.",
   ];
 
   if (period.kind === "polar-day") {

@@ -152,10 +152,13 @@ describe("what the observer actually gets", () => {
     expect(low).toBeLessThan(high);
   });
 
-  it("names light pollution and cloud as missing rather than assuming them", () => {
+  it("names light pollution as missing rather than assuming it away", () => {
+    // Cloud is deliberately not on this list. It is not part of the rate — the
+    // number stays a clear-sky ceiling — but the product does account for it,
+    // as sky access, so claiming here that it is unaccounted-for was false.
     const quiet = night(LONDON, "2026-03-05T22:00:00Z");
     expect(quiet.missingInputs.join(" ")).toMatch(/light pollution/i);
-    expect(quiet.missingInputs.join(" ")).toMatch(/cloud/i);
+    expect(quiet.missingInputs.join(" ")).not.toMatch(/cloud/i);
   });
 
   it("counts every active shower, not only the famous one", () => {

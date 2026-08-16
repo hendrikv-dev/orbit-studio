@@ -24,6 +24,14 @@
 
 /** What the sky looks like, in the vocabulary the interface uses. */
 export type SkyCondition =
+  /**
+   * No forecast reached this instant. Distinct from every other value because
+   * the alternative is drawing one: the fallback used to report `clear`, so an
+   * unfetched forecast rendered a sun icon beside the words "conditions
+   * unavailable". Absence has to be its own state or it gets rounded to the
+   * nearest thing that is.
+   */
+  | "unknown"
   | "clear"
   | "somewhat-cloudy"
   | "cloudy"
@@ -314,6 +322,24 @@ export interface BestWindow {
   movedByWeather: boolean;
 }
 
+/**
+ * What a viewing recommendation looks like with no forecast behind it.
+ *
+ * The band still reflects the phenomenon, because "the sky is unknown" is not a
+ * reason to stop recommending anything — provider failure degrades to an
+ * unadjusted recommendation rather than hiding the event. What it must not do
+ * is imply the sky was checked.
+ */
+function UNKNOWN_CONDITIONS(phenomenonStrength: number): Viewability {
+  return {
+    band: phenomenonStrength >= 0.45 ? "good" : "possible",
+    access: 1,
+    reading: { condition: "unknown", label: "Conditions unavailable", smokeDominant: false },
+    freshness: "stale",
+    limitedBySky: false,
+  };
+}
+
 /** Windows shorter than this are not worth sending anyone outside for. */
 const MINIMUM_WINDOW_MINUTES = 20;
 
@@ -336,7 +362,25 @@ export function bestViewingWindow(
 ): BestWindow | null {
   if (profile.length === 0) return null;
 
-  const scored = profile.map((sample) => {
+  // Never recommend a moment that has already gone.
+  //
+  // The observation period runs sunset to sunrise, so someone opening Tracker
+  // at 3am is correctly placed in the night that is ending — but the best
+  // moment of that night may be five hours behind them. Sydney at 03:15 local
+  // was being told to go outside at 17:41 the previous evening, and no
+  // forecast existed for it either, because forecasts do not cover the past.
+  //
+  // Only applied when `now` falls inside the profile. Browsing a past night
+  // deliberately still works, and a future night is untouched.
+  const first = Date.parse(profile[0].atUtc);
+  const last = Date.parse(profile[profile.length - 1].atUtc);
+  const inProgress = now.getTime() > first && now.getTime() < last;
+  const remaining = inProgress
+    ? profile.filter((sample) => Date.parse(sample.atUtc) >= now.getTime())
+    : profile;
+  if (remaining.length === 0) return null;
+
+  const scored = remaining.map((sample) => {
     const snapshot = nearestSnapshot(conditions, sample.atUtc);
     const access = snapshot ? skyAccess(snapshot, demand) : 1;
     return { sample, snapshot, access, combined: sample.relative * access };
@@ -361,7 +405,7 @@ export function bestViewingWindow(
     // Too brief to recommend as a window; still report the instant.
   }
 
-  const peakBySkyIgnored = profile.reduce((top, sample) =>
+  const peakBySkyIgnored = remaining.reduce((top, sample) =>
     sample.relative > top.relative ? sample : top,
   );
 
@@ -371,16 +415,30 @@ export function bestViewingWindow(
     peakUtc: best.sample.atUtc,
     viewability: best.snapshot
       ? viewability(best.snapshot, demand, phenomenonStrength, now)
-      : {
-          band: phenomenonStrength >= 0.45 ? "good" : "possible",
-          access: 1,
-          reading: { condition: "clear", label: "Conditions unavailable", smokeDominant: false },
-          freshness: "stale",
-          limitedBySky: false,
-        },
+      : UNKNOWN_CONDITIONS(phenomenonStrength),
     movedByWeather:
       Math.abs(Date.parse(best.sample.atUtc) - Date.parse(peakBySkyIgnored.atUtc)) > 30 * 60_000,
   };
+}
+
+/**
+ * True where a phenomenon's useful time tonight is entirely behind the
+ * observer.
+ *
+ * `bestViewingWindow` returning null is ambiguous on its own — it means either
+ * "rained off" or "already set" — and the two need different words. Without
+ * this, an opportunity whose window had passed fell back to displaying its own
+ * best moment, which is how Venus came to be recommended for 07:41 to someone
+ * standing outside at 17:19.
+ */
+export function hasPassedTonight(profile: OpportunitySample[], now: Date): boolean {
+  if (profile.length === 0) return false;
+  const last = Date.parse(profile[profile.length - 1].atUtc);
+  const first = Date.parse(profile[0].atUtc);
+  if (now.getTime() <= first || now.getTime() >= last) return false;
+  return !profile.some(
+    (sample) => Date.parse(sample.atUtc) >= now.getTime() && sample.relative > 0,
+  );
 }
 
 /** The forecast nearest an instant, or null where none is close enough. */
@@ -422,6 +480,12 @@ export function actionLine(window: BestWindow, temperatureC: number | null): str
   const temperature = temperatureC === null ? "" : ` · ${Math.round(temperatureC)}°C`;
   const span = `${clock(window.startUtc)}–${clock(window.endUtc)} UTC`;
   const opens = band === "excellent" || band === "good";
+
+  if (reading.condition === "unknown") {
+    // Nothing is known about the sky, so the line says when the *phenomenon* is
+    // best and claims nothing else.
+    return `Best for the ${span} window${temperature}. No forecast available for here.`;
+  }
 
   if (window.movedByWeather) {
     // "When the sky opens" is only true if it actually does. Moving to the

@@ -148,6 +148,35 @@ the interface's own conditions detail rather than only here.
   watching on the user's behalf, which is a backend, which is the cost rule
   again.
 
+## Found by running it in a real browser
+
+Five defects that the tests did not catch, because the tests asserted the rules
+and these were all cases the rules did not reach:
+
+1. **The recommendation pointed into the past.** The observation period runs
+   sunset to sunrise, so Sydney at 03:15 local is correctly placed in the night
+   that is ending — but the best moment of that night was five hours behind.
+   Venus was being recommended for 17:41 the previous evening, and no forecast
+   existed for it either, because forecasts do not cover the past.
+2. **"Already set" and "rained off" were the same state.** Both produced no
+   window, and an opportunity with no window silently fell back to advertising
+   its own best moment, which is how the above surfaced. They are now different
+   states with different words, and something that has set is kept in the list
+   but cannot lead.
+3. **The hero rule was reimplemented at the call site and broke.** Excluding
+   what had already set left the interface picking "the first promotable one",
+   which handed the hero to Saturn's rings while Saturn — naked eye, same band —
+   sat directly beneath it. The rule now lives in one function.
+4. **An unfetched forecast rendered a sun icon** beside the words "conditions
+   unavailable", because the fallback reported `clear`. Absence is now its own
+   state.
+5. **The detail panel listed cloud cover as not taken into account**, on a page
+   that visibly accounts for it. True of the meteor rate, false of the product.
+
+Two smaller ones: the coordinate fields stayed on London while the Sydney chip
+was lit, and a 1.7° Moon–Venus conjunction came out "exceptional" — the word
+reserved for a total lunar eclipse, for something that happens most months.
+
 ## Where the weather numbers are weakest
 
 - The sky-access curves and the transparency demands are judgement, fitted to

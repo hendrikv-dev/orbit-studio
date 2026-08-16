@@ -10,6 +10,7 @@ import { meteorNight, type MeteorNight } from "../../data/tracker/meteorActivity
 import { tonightsOpportunities } from "../../data/tracker/phenomena";
 import {
   applySkyAccess,
+  chooseHero,
   explainRank,
   rankOpportunities,
   type Ranking,
@@ -20,6 +21,7 @@ import { TrackerCondition } from "./TrackerCondition";
 import {
   actionLine,
   bestViewingWindow,
+  hasPassedTonight,
   nearestSnapshot,
   skyAccess,
   type BestWindow,
@@ -166,8 +168,17 @@ export function TrackerApp() {
     const now = new Date();
     const windows = new Map<string, BestWindow>();
     const access = new Map<string, number>();
+    const passed = new Set<string>();
     for (const entry of night.ranking.ranked) {
       const { opportunity } = entry;
+      if (hasPassedTonight(opportunity.profile, now)) {
+        passed.add(opportunity.id);
+        // Nothing left of it tonight, so it cannot be recommended at all. It
+        // stays in the list — V1 §5 keeps "the peak has passed" passive rather
+        // than hiding it — but it sinks below everything still to come.
+        access.set(opportunity.id, 0);
+        continue;
+      }
       const window = bestViewingWindow(
         opportunity.profile,
         snapshots,
@@ -181,7 +192,7 @@ export function TrackerApp() {
         if (snapshot) access.set(opportunity.id, skyAccess(snapshot, opportunity.transparency));
       }
     }
-    return { ranked: applySkyAccess(night.ranking.ranked, access), windows };
+    return { ranked: applySkyAccess(night.ranking.ranked, access), windows, passed };
   }, [night, snapshots]);
 
   const selected: SkyAdjustedOpportunity | null = useMemo(() => {
@@ -190,8 +201,9 @@ export function TrackerApp() {
       const found = withSky.ranked.find((entry) => entry.opportunity.id === selectedId);
       if (found) return found;
     }
-    const heroId = night?.ranking.hero?.opportunity.id;
-    return withSky.ranked.find((entry) => entry.opportunity.id === heroId) ?? null;
+    // The hero must be something still to come, and the rest of the hero rule
+    // still applies to whatever is left. Both live in chooseHero.
+    return chooseHero(withSky.ranked, withSky.passed);
   }, [withSky, selectedId, night]);
 
   return (
@@ -221,6 +233,7 @@ export function TrackerApp() {
               entry={selected}
               night={night}
               window={withSky?.windows.get(selected.opportunity.id) ?? null}
+              passed={withSky?.passed.has(selected.opportunity.id) ?? false}
               snapshots={snapshots}
               seen={seen.includes(selected.opportunity.id)}
               onSeen={() =>
@@ -248,6 +261,7 @@ export function TrackerApp() {
           <TrackerRankedList
             ranked={withSky?.ranked ?? []}
             windows={withSky?.windows ?? new Map()}
+            passed={withSky?.passed ?? new Set()}
             snapshots={snapshots}
             selectedId={selected?.opportunity.id ?? null}
             onSelect={setSelectedId}
@@ -293,8 +307,20 @@ function TrackerLocation({
   onWhen: (value: string) => void;
   onPick: (latitude: number, longitude: number, label: string) => void;
 }) {
-  const [latitude, setLatitude] = useState(51.4779);
-  const [longitude, setLongitude] = useState(-0.0015);
+  // Seeded from whatever is actually selected, so the fields are not still
+  // reading London while the Sydney chip is lit. They are an editable view of
+  // the current location, not a separate one.
+  const [latitude, setLatitude] = useState(
+    location.status === "resolved" ? location.latitude : 51.4779,
+  );
+  const [longitude, setLongitude] = useState(
+    location.status === "resolved" ? location.longitude : -0.0015,
+  );
+  useEffect(() => {
+    if (location.status !== "resolved") return;
+    setLatitude(location.latitude);
+    setLongitude(location.longitude);
+  }, [location]);
 
   return (
     <section className="tracker-location" aria-label="Where and when">
@@ -371,6 +397,7 @@ function TrackerHero({
   entry,
   night,
   window,
+  passed,
   snapshots,
   seen,
   onSeen,
@@ -378,6 +405,7 @@ function TrackerHero({
   entry: SkyAdjustedOpportunity;
   night: Night;
   window: BestWindow | null;
+  passed: boolean;
   snapshots: ConditionSnapshot[];
   seen: boolean;
   onSeen: () => void;
@@ -411,6 +439,13 @@ function TrackerHero({
           {entry.band}
         </span>
       </div>
+
+      {passed ? (
+        <p className="tracker-action-line">
+          Already set for tonight — it was best around {timeOnly(guidance.whenUtc)} UTC. The
+          times below are for the night as a whole.
+        </p>
+      ) : null}
 
       {window ? (
         <>
@@ -553,12 +588,14 @@ function TrackerHero({
 function TrackerRankedList({
   ranked,
   windows,
+  passed,
   snapshots,
   selectedId,
   onSelect,
 }: {
   ranked: SkyAdjustedOpportunity[];
   windows: Map<string, BestWindow>;
+  passed: Set<string>;
   snapshots: ConditionSnapshot[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -583,6 +620,9 @@ function TrackerRankedList({
               <span className="tracker-list-title">{entry.opportunity.title}</span>
               <span className="tracker-list-summary">{entry.opportunity.summary}</span>
               {(() => {
+                if (passed.has(entry.opportunity.id)) {
+                  return <span className="tracker-passed">Already set tonight</span>;
+                }
                 const window = windows.get(entry.opportunity.id);
                 if (!window) return null;
                 const snapshot = nearestSnapshot(snapshots, window.peakUtc);
@@ -658,11 +698,19 @@ function TrackerPassive({
             <p>{night.period.limitation}</p>
           ) : null}
 
-          <h3>What was not taken into account</h3>
+          <h3>What the meteor rate estimate leaves out</h3>
           <ul>
             {night.meteors.missingInputs.map((line) => (
               <li key={line}>{line}</li>
             ))}
+            {weather.status === "ready" ? (
+              <li>
+                Cloud is not in the rate itself — the number stays a clear-sky ceiling, and the
+                forecast is applied separately as sky access.
+              </li>
+            ) : (
+              <li>Cloud cover, because no forecast could be fetched for this location.</li>
+            )}
           </ul>
 
           {night.ranking.notTonight.length > 0 ? (
