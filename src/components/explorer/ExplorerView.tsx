@@ -1458,8 +1458,11 @@ function ExplorerInspector({
               <h3>Catalog record</h3>
               <dl>
                 <div><dt>Object type</dt><dd>{entry.objectType}</dd></div>
-                <div><dt>Operator</dt><dd>{entry.operator}</dd></div>
-                <div><dt>Region</dt><dd>{entry.country}</dd></div>
+                {/* GCAT records an owner organisation as a short code and has no
+                    table of full names, so the code is shown as a code rather than
+                    passed off as a name. The state beside it is resolved. */}
+                <div><dt>Operator code</dt><dd>{entry.operator}</dd></div>
+                <div><dt>State</dt><dd>{entry.country}</dd></div>
                 <div><dt>Launch year</dt><dd>{entry.launched}</dd></div>
                 {entry.catalogNumber && <div><dt>NORAD catalog</dt><dd>{entry.catalogNumber}</dd></div>}
                 {entry.internationalDesignator && (

@@ -66,6 +66,10 @@ ROW_SCHEMA = [
     "parentJcat",
     "separationDatePrecision",
     "separationDateUncertain",
+    # GCAT's State column: the responsible state, distinct from the Owner
+    # organisation code. Without it the interface had no country to show and
+    # fell back to the owner code, so a record read "Operator KVR / Region KVR".
+    "stateCode",
 ]
 
 
@@ -267,7 +271,8 @@ def web_rows(
             r.mean_anomaly_deg_reconstructed,
             NULLIF(TRIM(COALESCE(s.parent, '')), '-'),
             o.separation_date_precision,
-            o.separation_date_uncertain
+            o.separation_date_uncertain,
+            o.state_code
         FROM objects o
         LEFT JOIN reconstruction_parameters r USING (jcat)
         LEFT JOIN source_rows s USING (jcat)
@@ -305,6 +310,7 @@ def web_rows(
         parent_jcat,
         separation_date_precision,
         separation_date_uncertain,
+        state_code,
     ) in query_rows:
         class_counts[object_class] += 1
         first_year, last_year = ranges.get(jcat, (None, None))
@@ -357,6 +363,7 @@ def web_rows(
                 parent_jcat,
                 separation_date_precision,
                 1 if separation_date_uncertain else 0,
+                state_code,
             ]
         )
 

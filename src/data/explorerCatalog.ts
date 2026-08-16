@@ -1,3 +1,4 @@
+import { explorerStateName } from "./explorerStateNames";
 import { EARTH_RADIUS_KM } from "../physics/constants";
 import {
   createConstellation,
@@ -1332,8 +1333,10 @@ function historicalEntryForObject(
     internationalDesignator: object.internationalDesignator,
     categoryId,
     objectType: object.objectType ?? "Catalog object",
-    operator: object.owner ?? "Historical catalog",
-    country: object.owner ?? "Historical catalog",
+    // Owner and state are different fields. Both used to read from `owner`, so
+    // a record showed the same organisation code twice, once labelled Region.
+    operator: object.owner ?? "Not recorded",
+    country: explorerStateName(object.stateCode) ?? "Not recorded",
     launched: object.launchDate ? String(yearFromIso(object.launchDate)) : "Source record",
     launchDate: object.launchDate,
     decayDate: object.decayDate,

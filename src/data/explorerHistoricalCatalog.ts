@@ -91,6 +91,8 @@ export interface ExplorerHistoricalCatalogObject {
     semantics: "present_at_period_end";
   };
   owner?: string;
+  /** GCAT's responsible state code, distinct from the owner organisation. */
+  stateCode?: string;
   status?: string;
   /**
    * Source-reported orbital envelope. These values constrain an educational
@@ -326,6 +328,7 @@ type SatelliteWebCatalogRow = [
   separationDatePrecision: "second" | "minute" | "day" | "month" | "year" | null,
   /** 1 where GCAT marks the separation date itself as uncertain. */
   separationDateUncertain: 0 | 1,
+  stateCode: string | null,
 ];
 
 interface SatelliteWebCatalogPeriod {
@@ -477,6 +480,7 @@ function historicalObjectForRow(
   const parentJcat = row[20];
   const separationDatePrecision = row[21];
   const separationDateUncertain = row[22] === 1;
+  const stateCode = row[23];
   const sourceObjectClass = sourceObjectClassForCode[objectClassCode];
   const numericCatalogNumber = satcatNumber && /^\d+$/.test(satcatNumber)
     ? satcatNumber
@@ -519,6 +523,7 @@ function historicalObjectForRow(
           }
         : undefined,
     owner: ownerCode ?? undefined,
+    stateCode: stateCode ?? undefined,
     status: statusRaw ?? undefined,
     orbitalSummary: finiteOrbitSummary(row),
     sources: [source],

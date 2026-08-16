@@ -285,7 +285,7 @@
         "data/satellite-source-of-truth/scripts/build.py": "11fab2676d7fccdf3c54788c3c12766f24e68c3c9c61fb699c1ba5fe0ba06f5b",
         "data/satellite-source-of-truth/scripts/update_from_gcat.py": "15bfee17f4bfb29009d6775f52dd95022068d56818831ca2634a06f6c88d4d5e",
         "data/satellite-source-of-truth/scripts/verify.py": "e47ddb7a815f1d66f40f0c406527af6bf83e331e72baea3a176f4da9a2a6d196",
-        "src/data/generated/satelliteCatalog.web.json": "163e179417664610d48786814d70db4d3cc80fee2edd84bbbe9f3a15e75d5133"
+        "src/data/generated/satelliteCatalog.web.json": "68d20bf4e01d91b017cf230641f0d5a1ab14201d7f472b402b0a3b79646a93bb"
       },
       "processing": [
         "The verified v1.0.0 package preserves the immutable 2026-06-27 GCAT satcat snapshot, its exact original checksum, normalized 69,703-record products, SQLite query database, 1957-2026 annual presence, reconstruction candidates, quality ledger, schemas, build scripts, and package checksums.",
