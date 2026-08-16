@@ -78,6 +78,87 @@ Ranked by how much they could mislead someone:
    means retrieving the IAU MDC and IMO lists from their publication URLs under
    their stated terms.
 
+---
+
+# Weather-aware visibility — implementation status
+
+Measured against `Tracker_Weather_Visibility_Next_Step.md`.
+
+## Acceptance criteria
+
+| | Criterion | Status |
+|---|---|---|
+| 1 | Continue with device location after permission | **Met.** |
+| 2 | Find an address, campground, park or place | **Not met.** No place search. See below. |
+| 3 | Pin or coordinates resolve a remote location | **Met.** Latitude/longitude entry resolves anywhere. |
+| 4 | A selected place persists until explicitly changed | **Met.** Nothing re-reads the device location after the first attempt. |
+| 5 | Times, ranking, visuals, conditions and reminders all use the selected location | **Partly met.** All of them use the selected location. All of them are in UTC rather than the selected place's local time. See below. |
+| 6 | Changing cloud or smoke changes the window and may change the ranking | **Met**, and tested both ways. |
+| 7 | Phenomenon-first, no weather dashboard | **Met.** One chip and one line; the phenomenon still owns the screen. |
+| 8 | A clear interval after the peak is recommended over the peak | **Met.** This is the criterion the whole decision model exists for, and it is asserted directly. |
+| 9 | Condition icon, accessible label, event-time temperature, and the time they apply to | **Met.** |
+| 10 | Short, actionable, phenomenon-tied explanation | **Met.** |
+| 11 | Poor conditions stay passive, no scolding | **Met**, and asserted — the action line is checked against a list of discouraging phrasings. |
+| 12 | Smoke visually distinct; "clear but smoky" representable | **Met** in the model, the vocabulary and the icons. No smoke data is fetched, so nothing currently triggers it. |
+| 13 | Rare events stay discoverable behind cloud | **Met.** Sky access is capped at a quarter of an item's strength, which cannot bury a rare event. |
+| 14 | No exact probability | **Met.** Bands only, and a test asserts no percentage appears in the result. |
+| 15 | No free-user request reaches a paid or metered provider | **Met**, enforced by the router rather than by convention, and tested. |
+| 16 | Provider failure degrades to an unadjusted recommendation | **Met.** The phenomenon still ranks and the details say conditions were unavailable. |
+| 17 | Still requires only location | **Met.** No weather or smoke preferences were added. |
+
+## The identification problem
+
+Both preferred no-fee sources require a `User-Agent` identifying the calling
+application. **A browser cannot send one.** It is a forbidden header name in the
+Fetch standard, so the browser discards whatever is set and sends its own.
+Verified against an echo service from the app's own page:
+
+```
+fetch(url, { headers: { "User-Agent": "orbit-studio-tracker/0.2" } })
+→ received: "Mozilla/5.0 (Linux; Android 14; Pixel 8) … Chrome/148"
+```
+
+The requests succeed — both APIs send permissive CORS headers and returned 200 —
+so this is a terms question rather than a technical one, and it is the
+operator's to answer. The clean resolution is a caching proxy, which also
+satisfies the caching both providers ask for. A proxy is a server, a server is a
+running cost, and the cost rule then applies. It is the same collision the
+satellite and aurora requirements run into, arriving from a different direction.
+
+Shipped as direct browser calls in the meantime, with the constraint stated in
+the interface's own conditions detail rather than only here.
+
+## Also not built
+
+- **Place search (criterion 2).** Presets and coordinates only. Every free
+  geocoder carries the same identification and rate-limit constraints as the
+  weather sources, so this lands on the same proxy decision. The adapter shape
+  is not yet written, so nothing is prejudged.
+- **Local time (criterion 5).** Everything is UTC. Converting to the *selected*
+  place's local time — not the device's — needs a coordinate-to-timezone lookup,
+  which is either a vendored boundary dataset or another metered provider. This
+  is the most user-visible gap in the weather step: planning a trip to Tromsø
+  and reading times in UTC is a real cost.
+- **Smoke.** The snapshot carries column and surface smoke, the model uses both,
+  the vocabulary and icons express them, and no adapter fills them. HRRR-Smoke
+  and CAMS are raw-model ingestion rather than point APIs, which is a pipeline
+  rather than an adapter. Missing smoke reads as unknown, never as clean air.
+- **Reminders that respond to conditions.** The calendar file is written once
+  and cannot be updated when the forecast changes. Doing that needs something
+  watching on the user's behalf, which is a backend, which is the cost rule
+  again.
+
+## Where the weather numbers are weakest
+
+- The sky-access curves and the transparency demands are judgement, fitted to
+  nothing. This is exactly why the output is a band and why criterion 14 exists.
+- `movedByWeather` triggers on a shift of more than half an hour, which is a
+  threshold rather than a finding.
+- Fog arrives from MET Norway as an area fraction and is converted to a nominal
+  visibility so the shared model can read it. The conversion is a judgement in
+  the adapter, and it is the only place a provider's value is reinterpreted
+  rather than renamed.
+
 ## Ranking quality
 
 There is no ground truth for "worth observing" and no audience large enough for

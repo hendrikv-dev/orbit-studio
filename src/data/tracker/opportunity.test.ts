@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applySkyAccess,
   bandFor,
   explainRank,
   rankOpportunities,
@@ -217,5 +218,58 @@ describe("against real nights", () => {
     const ranking = rank(51.4779, -0.0015, "2026-08-12T22:00:00Z");
     const appearances = ranking.ranked.map((entry) => entry.opportunity.guidance.appearance);
     expect(appearances.join(" ")).not.toMatch(/vivid|blazing|dazzling/i);
+  });
+});
+
+describe("once the sky is known", () => {
+  it("reorders comparable evenings but does not bury a rare one", () => {
+    // Conditions may reorder events whose intrinsic value is reasonably close,
+    // and rare events must stay discoverable even when clouds reduce them.
+    const ranking = rankOpportunities([
+      candidate("eclipse", { spectacle: 1, recognisability: 1, rarity: 1 }),
+      candidate("planet", { spectacle: 0.55 }),
+      candidate("moon", { spectacle: 0.5 }),
+    ]);
+    const adjusted = applySkyAccess(
+      ranking.ranked,
+      new Map([
+        ["eclipse", 0.1],
+        ["planet", 1],
+        ["moon", 1],
+      ]),
+    );
+    // The eclipse is clouded out and still in the list.
+    expect(adjusted.map((entry) => entry.opportunity.id)).toContain("eclipse");
+    // Two close calls swapped; the eclipse did not fall to last.
+    const eclipse = adjusted.find((entry) => entry.opportunity.id === "eclipse")!;
+    expect(eclipse.rank).toBeLessThan(3);
+  });
+
+  it("swaps two items that were nearly level", () => {
+    const ranking = rankOpportunities([
+      candidate("a", { spectacle: 0.62 }),
+      candidate("b", { spectacle: 0.6 }),
+    ]);
+    expect(ranking.ranked[0].opportunity.id).toBe("a");
+    const adjusted = applySkyAccess(ranking.ranked, new Map([["a", 0], ["b", 1]]));
+    expect(adjusted[0].opportunity.id).toBe("b");
+  });
+
+  it("leaves the phenomenon's own strength untouched, so both halves survive", () => {
+    const ranking = rankOpportunities([candidate("a", { spectacle: 0.9 })]);
+    const before = ranking.ranked[0].strength;
+    const adjusted = applySkyAccess(ranking.ranked, new Map([["a", 0]]));
+    expect(adjusted[0].strength).toBe(before);
+    expect(adjusted[0].skyAccess).toBe(0);
+  });
+
+  it("changes nothing where no forecast is available", () => {
+    const ranking = rankOpportunities([
+      candidate("a", { spectacle: 0.8 }),
+      candidate("b", { spectacle: 0.4 }),
+    ]);
+    const adjusted = applySkyAccess(ranking.ranked, new Map());
+    expect(adjusted.map((entry) => entry.opportunity.id)).toEqual(["a", "b"]);
+    expect(adjusted[0].skyAccess).toBeNull();
   });
 });

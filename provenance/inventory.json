@@ -29,26 +29,38 @@
     "documentedExternalHosts": [
       "127.0.0.1",
       "aa.usno.navy.mil",
+      "ads.atmosphere.copernicus.eu",
+      "api.met.no",
+      "api.weather.gov",
       "apps.apple.com",
       "assets.science.nasa.gov",
+      "atmosphere.copernicus.eu",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
       "creativecommons.org",
+      "docs.airnowapi.org",
+      "docs.api.met.no",
       "docs.pmnd.rs",
       "example.invalid",
+      "firms.modaps.eosdis.nasa.gov",
+      "geojson.org",
       "gibs.earthdata.nasa.gov",
       "github.com",
       "globalmeteornetwork.org",
+      "httpbin.org",
       "images-assets.nasa.gov",
       "images.nasa.gov",
       "localhost",
+      "open-meteo.com",
       "openweathermap.org",
       "orbitaldebris.jsc.nasa.gov",
       "piotrwitek.github.io",
       "planet4589.org",
+      "rapidrefresh.noaa.gov",
       "raw.githubusercontent.com",
       "reactjs.org",
       "registry.npmjs.org",
+      "registry.opendata.aws",
       "research.tudelft.nl",
       "robertpenner.com",
       "science.data.nasa.gov",
@@ -56,9 +68,11 @@
       "ssd-api.jpl.nasa.gov",
       "ssd.jpl.nasa.gov",
       "svs.gsfc.nasa.gov",
+      "weather-gov.github.io",
       "www.apache.org",
       "www.dailymotion.com",
       "www.earthdata.nasa.gov",
+      "www.ecmwf.int",
       "www.esa.int",
       "www.gps.gov",
       "www.imo.net",
@@ -69,7 +83,8 @@
       "www.spaceweather.gov",
       "www.ta3.sk",
       "www.ventusky.com",
-      "www.w3.org"
+      "www.w3.org",
+      "www.weather.gov"
     ],
     "prohibitedHistoricalChecksums": [
       {
@@ -1066,6 +1081,52 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
+      }
+    },
+    {
+      "id": "tracker-weather-forecast-adapters",
+      "category": "runtime-weather-forecast",
+      "repositoryPaths": [
+        "src/data/tracker/weatherProviders.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "MET Norway Locationforecast 2.0 and the US National Weather Service API",
+        "url": "https://api.met.no/weatherapi/locationforecast/2.0/",
+        "publicationUrl": "https://docs.api.met.no/doc/locationforecast/HowTO.html",
+        "publisher": "Norwegian Meteorological Institute; NOAA National Weather Service",
+        "version": "Runtime API, not a pinned snapshot; queried live per observing location",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/weatherProviders.ts": "680d4c3d290e63caca8d123a19dae80470e1555b3e1c30fbefb032d707e8e202"
+      },
+      "processing": [
+        "This is Tracker's first runtime external request. Forecasts are fetched from the browser at the observer's selected location and are never bundled, stored on a server, or attributed to a user.",
+        "Requests are keyed and cached by forecast grid cell, coordinates rounded to two decimal places, rather than by user. Rounding is both a caching requirement of the providers and a deliberate limit on the precision of the location that is transmitted.",
+        "Routing prefers the National Weather Service inside the United States for its finer grid and falls back to MET Norway globally. Both are declared public-no-fee; the router will not return a cost-bearing adapter on the free path.",
+        "Provider schemas are normalised into one internal ConditionSnapshot. MET Norway's fog area fraction is converted to a nominal visibility in metres, which is the only place a provider's value is reinterpreted rather than renamed.",
+        "No smoke or air-quality source is fetched. Those snapshot fields stay null, and the model treats null as unknown rather than as clean air."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot \u2014 User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
+        "evidenceUrls": [
+          "https://api.met.no/doc/TermsOfService",
+          "https://www.weather.gov/documentation/services-web-api",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path."
       }
     }
   ]

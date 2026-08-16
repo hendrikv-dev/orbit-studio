@@ -10,6 +10,7 @@ import {
 import type { ObservationPeriod } from "./observationPeriod";
 import { meteorNight, cadenceDescription, compassPoint, describeCharacter } from "./meteorActivity";
 import type { Opportunity } from "./opportunity";
+import type { OpportunitySample } from "./conditions";
 
 /**
  * The phenomena Tracker can offer tonight, each turned into an `Opportunity`.
@@ -99,6 +100,27 @@ function bestPlacement(observer: Observer, body: Body, times: Date[]): Placement
 function altitudeObservability(altitudeDeg: number): number {
   if (altitudeDeg <= 5) return 0;
   return Math.min(1, (altitudeDeg - 5) / 35);
+}
+
+/**
+ * How good a positional target is across the night, relative to its own best.
+ *
+ * Altitude is the whole story for a planet or the Moon: the same object is a
+ * different proposition at 8° and at 50°, because of what it is being seen
+ * through. Normalising to its own best is what lets weather be applied against
+ * the shape of the night rather than a single instant.
+ */
+function altitudeProfile(observer: Observer, body: Body, times: Date[]): OpportunitySample[] {
+  const raw = times.map((at) => ({
+    atUtc: at.toISOString(),
+    altitude: horizontal(observer, body, at).altitude,
+  }));
+  const peak = raw.reduce((best, entry) => Math.max(best, entry.altitude), 0);
+  if (peak <= 0) return [];
+  return raw.map((entry) => ({
+    atUtc: entry.atUtc,
+    relative: Math.max(0, entry.altitude) / peak,
+  }));
 }
 
 /** Hours from local midnight, as a cost. Nobody enjoys a 4am alarm. */
@@ -203,6 +225,17 @@ function meteorOpportunity(
     tonight,
     missingInputs: night.missingInputs,
     limitations: night.limitations,
+    profile: (() => {
+      const peak = night.samples.reduce((best, sample) => Math.max(best, sample.totalPerHour), 0);
+      if (peak <= 0) return [];
+      return night.samples.map((sample) => ({
+        atUtc: sample.atUtc,
+        relative: sample.totalPerHour / peak,
+      }));
+    })(),
+    // The most demanding thing here. Faint meteors are the majority of any
+    // stream, and they are the first thing thin cloud or smoke takes away.
+    transparency: "high",
   };
 }
 
@@ -282,6 +315,9 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
     limitations: fraction > 0.6
       ? ["A Moon this bright washes out everything faint tonight, including meteors."]
       : [],
+    profile: altitudeProfile(observer, Body.Moon, times),
+    // The Moon is visible through cloud that would end everything else.
+    transparency: "low",
   };
 }
 
@@ -382,6 +418,9 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
       tonight: `Highest at ${formatTime(placement.atUtc)}, ${Math.round(placement.altitudeDeg)}° above the ${compassPoint(placement.azimuthDeg)} horizon, at magnitude ${magnitude.toFixed(1)}.`,
       missingInputs: [],
       limitations: [],
+      profile: altitudeProfile(observer, profile.body, times),
+      // A bright planet punches through a gap in broken cloud.
+      transparency: "low",
     });
 
     if (profile.telescopeTarget && observability > 0.25) {
@@ -416,6 +455,10 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
         limitations: [
           "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
         ],
+        profile: altitudeProfile(observer, profile.body, times),
+        // Detail at magnification needs a steadier, cleaner sky than simply
+        // finding the planet does.
+        transparency: "medium",
       });
     }
   }
@@ -511,6 +554,8 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         tonight: `Closest useful view at ${formatTime(best.at.toISOString())}, ${best.separation.toFixed(1)}° apart and ${Math.round(best.altitude)}° up.`,
         missingInputs: [],
         limitations: [],
+        profile: altitudeProfile(observer, first.body, times),
+        transparency: "low",
       });
     }
   }
@@ -578,7 +623,24 @@ function lunarEclipseOpportunity(
     tonight: `Mid-eclipse at ${formatTime(eclipse.peak.date.toISOString())}, with the Moon ${Math.round(position.altitude)}° above the ${compassPoint(position.azimuth)} horizon from where you are.`,
     missingInputs: [],
     limitations: [],
+    // Fixed to the eclipse itself rather than to altitude: an eclipse is only
+    // worth watching while it is happening, wherever the Moon has got to.
+    profile: eclipseProfile(eclipse.peak.date, half),
+    transparency: "low",
   };
+}
+
+/** A window centred on mid-eclipse, tapering to its edges. */
+function eclipseProfile(peak: Date, halfDurationHours: number): OpportunitySample[] {
+  const samples: OpportunitySample[] = [];
+  const span = Math.max(0.5, halfDurationHours) * 3_600_000;
+  for (let offset = -span; offset <= span; offset += SAMPLE_INTERVAL_MINUTES * MS_PER_MINUTE) {
+    samples.push({
+      atUtc: new Date(peak.getTime() + offset).toISOString(),
+      relative: 1 - Math.abs(offset) / (span * 1.6),
+    });
+  }
+  return samples;
 }
 
 /* ------------------------------------------------------------------ public */

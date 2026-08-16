@@ -11656,3 +11656,69 @@ button.primary,
   .tracker-list button { grid-template-columns: 1fr; }
   .tracker-list-meta { grid-row: auto; grid-column: 1; }
 }
+
+/* --- Tracker: weather conditions -------------------------------------------
+   Sky access is shown beside the phenomenon, never instead of it. The chip
+   carries the condition, the temperature and the time all three apply to, so a
+   camper can decide from one line whether to get up. */
+
+.tracker-condition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #cfe0ee;
+  font-size: 0.78rem;
+}
+
+.tracker-condition svg { flex: none; color: #9fb6c8; }
+
+/* Smoke takes visual precedence where it is the reason an open sky will
+   disappoint — but the icon shape already differs, so colour is never carrying
+   the meaning on its own. */
+.tracker-condition-smoky svg,
+.tracker-condition-very-smoky svg { color: #d8a878; }
+.tracker-condition-precipitating svg,
+.tracker-condition-foggy svg { color: #8fa8bd; }
+.tracker-condition-clear svg { color: #9fd8c4; }
+
+.tracker-viewability {
+  border: 1px solid rgba(117, 142, 160, 0.3);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tracker-viewability-excellent { border-color: rgba(63, 214, 168, 0.55); color: #b7f4de; }
+.tracker-viewability-good { border-color: rgba(110, 190, 235, 0.45); color: #c9e8fa; }
+.tracker-viewability-possible { color: #b6c9d8; }
+.tracker-viewability-unlikely { color: #8496a5; }
+
+.tracker-freshness { color: #8ea3b5; font-size: 0.68rem; }
+
+.tracker-action-line {
+  margin: 0 0 12px;
+  max-width: 70ch;
+  color: #eaf5ff;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Stated plainly rather than by ranking it lower, so a good phenomenon behind
+   cloud is legible as exactly that. */
+.tracker-sky-limited {
+  margin: -6px 0 12px;
+  max-width: 72ch;
+  color: #a9bdcd;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.tracker-list .tracker-condition {
+  grid-column: 1;
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+}
+.tracker-list .tracker-condition svg { width: 14px; height: 14px; }

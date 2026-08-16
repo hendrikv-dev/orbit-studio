@@ -9,12 +9,23 @@ import {
 import { meteorNight, type MeteorNight } from "../../data/tracker/meteorActivity";
 import { tonightsOpportunities } from "../../data/tracker/phenomena";
 import {
+  applySkyAccess,
   explainRank,
   rankOpportunities,
-  type RankedOpportunity,
   type Ranking,
+  type SkyAdjustedOpportunity,
 } from "../../data/tracker/opportunity";
 import { TrackerNightChart } from "./TrackerNightChart";
+import { TrackerCondition } from "./TrackerCondition";
+import {
+  actionLine,
+  bestViewingWindow,
+  nearestSnapshot,
+  skyAccess,
+  type BestWindow,
+  type ConditionSnapshot,
+} from "../../data/tracker/conditions";
+import { adapterFor, conditionsFor, type WeatherAdapter } from "../../data/tracker/weatherProviders";
 
 /**
  * Orbit Studio Tracker.
@@ -61,6 +72,7 @@ export function TrackerApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPassive, setShowPassive] = useState(false);
   const [seen, setSeen] = useState<string[]>([]);
+  const [weather, setWeather] = useState<WeatherState>({ status: "idle" });
 
   // V1 A1: location is the only thing asked for, and it is asked for once, on
   // arrival. A refusal is not an error state — it falls through to manual entry
@@ -101,6 +113,31 @@ export function TrackerApp() {
 
   const resolved = location.status === "resolved" ? location : null;
 
+  // Conditions are fetched for the *selected* location, never the device's, so
+  // planning a trip somewhere else gives that place's sky rather than this
+  // one's. A failure is not an error screen: the phenomenon recommendation
+  // stands unadjusted and the details say conditions were unavailable.
+  useEffect(() => {
+    if (!resolved) return;
+    const adapter = adapterFor(resolved.latitude, resolved.longitude);
+    if (!adapter) {
+      setWeather({ status: "unavailable", reason: "No free forecast source covers that location." });
+      return;
+    }
+    const controller = new AbortController();
+    setWeather({ status: "loading" });
+    conditionsFor(adapter, resolved.latitude, resolved.longitude, controller.signal)
+      .then((snapshots) => setWeather({ status: "ready", snapshots, adapter }))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setWeather({
+          status: "unavailable",
+          reason: error instanceof Error ? error.message : "The forecast could not be fetched.",
+        });
+      });
+    return () => controller.abort();
+  }, [resolved]);
+
   const night = useMemo(() => {
     if (!resolved) return null;
     try {
@@ -119,14 +156,43 @@ export function TrackerApp() {
     }
   }, [resolved, whenIso]);
 
-  const selected: RankedOpportunity | null = useMemo(() => {
+  const snapshots = weather.status === "ready" ? weather.snapshots : EMPTY_SNAPSHOTS;
+
+  // One pass computing, for each opportunity, when to actually go outside given
+  // both the phenomenon and the sky. Both halves are kept; only the ordering
+  // sees the weather.
+  const withSky = useMemo(() => {
     if (!night) return null;
+    const now = new Date();
+    const windows = new Map<string, BestWindow>();
+    const access = new Map<string, number>();
+    for (const entry of night.ranking.ranked) {
+      const { opportunity } = entry;
+      const window = bestViewingWindow(
+        opportunity.profile,
+        snapshots,
+        opportunity.transparency,
+        entry.strength,
+        now,
+      );
+      if (window) {
+        windows.set(opportunity.id, window);
+        const snapshot = nearestSnapshot(snapshots, window.peakUtc);
+        if (snapshot) access.set(opportunity.id, skyAccess(snapshot, opportunity.transparency));
+      }
+    }
+    return { ranked: applySkyAccess(night.ranking.ranked, access), windows };
+  }, [night, snapshots]);
+
+  const selected: SkyAdjustedOpportunity | null = useMemo(() => {
+    if (!withSky) return null;
     if (selectedId) {
-      const found = night.ranking.ranked.find((entry) => entry.opportunity.id === selectedId);
+      const found = withSky.ranked.find((entry) => entry.opportunity.id === selectedId);
       if (found) return found;
     }
-    return night.ranking.hero;
-  }, [night, selectedId]);
+    const heroId = night?.ranking.hero?.opportunity.id;
+    return withSky.ranked.find((entry) => entry.opportunity.id === heroId) ?? null;
+  }, [withSky, selectedId, night]);
 
   return (
     <main className="tracker-shell">
@@ -154,6 +220,8 @@ export function TrackerApp() {
             <TrackerHero
               entry={selected}
               night={night}
+              window={withSky?.windows.get(selected.opportunity.id) ?? null}
+              snapshots={snapshots}
               seen={seen.includes(selected.opportunity.id)}
               onSeen={() =>
                 setSeen((current) =>
@@ -178,13 +246,16 @@ export function TrackerApp() {
           )}
 
           <TrackerRankedList
-            ranking={night.ranking}
+            ranked={withSky?.ranked ?? []}
+            windows={withSky?.windows ?? new Map()}
+            snapshots={snapshots}
             selectedId={selected?.opportunity.id ?? null}
             onSelect={setSelectedId}
           />
 
           <TrackerPassive
             night={night}
+            weather={weather}
             expanded={showPassive}
             onToggle={() => setShowPassive((current) => !current)}
           />
@@ -193,10 +264,16 @@ export function TrackerApp() {
 
       <footer className="tracker-footer">
         <p>
-          Everything on this page is computed on your device from an analytic ephemeris and a
-          vendored meteor stream catalogue. Nothing is sent anywhere, and no account exists.
-          Satellite passes and aurora are not here yet: both need live data Tracker does not
-          fetch, and inventing them from what is in the bundle would be worse than their absence.
+          What is in the sky is computed on your device from an analytic ephemeris and a vendored
+          meteor stream catalogue. The forecast is not: your location, rounded to about a
+          kilometre, is sent to a public weather service to fetch it, and the result is cached by
+          grid cell rather than against you. There is no account and nothing else leaves the page.
+        </p>
+        <p>
+          Satellite passes and aurora are not here yet. Both need a live feed whose terms need a
+          server in front of them, and a server is a running cost — which is a decision to make
+          rather than something to slip in. Inventing either from what is in the bundle would be
+          worse than their absence.
         </p>
       </footer>
     </main>
@@ -281,20 +358,38 @@ interface Night {
   meteors: MeteorNight;
 }
 
+type WeatherState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready"; snapshots: ConditionSnapshot[]; adapter: WeatherAdapter }
+  | { status: "unavailable"; reason: string };
+
+/** Stable identity, so the memo below does not rerun on every render. */
+const EMPTY_SNAPSHOTS: ConditionSnapshot[] = [];
+
 function TrackerHero({
   entry,
   night,
+  window,
+  snapshots,
   seen,
   onSeen,
 }: {
-  entry: RankedOpportunity;
+  entry: SkyAdjustedOpportunity;
   night: Night;
+  window: BestWindow | null;
+  snapshots: ConditionSnapshot[];
   seen: boolean;
   onSeen: () => void;
 }) {
   const { opportunity } = entry;
   const { guidance } = opportunity;
   const isMeteors = opportunity.kind === "meteors";
+
+  // The recommended time is the sky-aware one where a forecast exists, and the
+  // phenomenon's own best where it does not.
+  const whenUtc = window?.peakUtc ?? guidance.whenUtc;
+  const atBest = nearestSnapshot(snapshots, whenUtc);
 
   return (
     <section className="tracker-hero" aria-label="Tonight's recommendation">
@@ -317,17 +412,39 @@ function TrackerHero({
         </span>
       </div>
 
+      {window ? (
+        <>
+          <TrackerCondition
+            viewability={window.viewability}
+            temperatureC={atBest?.temperatureC ?? null}
+            atUtc={whenUtc}
+          />
+          {/* One short conclusion, next to the action. Never a forecast card. */}
+          <p className="tracker-action-line">{actionLine(window, atBest?.temperatureC ?? null)}</p>
+          {window.viewability.limitedBySky ? (
+            <p className="tracker-sky-limited">
+              {opportunity.title} {opportunity.kind === "meteors" ? "are" : "is"} worth seeing
+              tonight — it is the sky that is in the way, not the {opportunity.kind === "meteors" ? "shower" : "target"}.
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
       <TrackerNightChart
         period={night.period}
         rateSamples={isMeteors ? night.meteors.samples : undefined}
-        highlightUtc={guidance.whenUtc}
+        highlightUtc={whenUtc}
         highlightLabel="the best time to be outside"
       />
 
       <dl className="tracker-guidance">
         <div>
           <dt>Go outside</dt>
-          <dd>{timeOnly(guidance.whenUtc)} UTC</dd>
+          <dd>
+            {window
+              ? `${timeOnly(window.startUtc)}–${timeOnly(window.endUtc)} UTC`
+              : `${timeOnly(guidance.whenUtc)} UTC`}
+          </dd>
         </div>
         <div>
           <dt>Face</dt>
@@ -376,7 +493,7 @@ function TrackerHero({
               ]
                 .filter(Boolean)
                 .join("\n\n"),
-              startUtc: guidance.whenUtc,
+              startUtc: whenUtc,
               durationMinutes: guidance.durationMinutes,
               remindMinutesBefore: 20,
             })
@@ -406,6 +523,15 @@ function TrackerHero({
             <li key={line}>{line}</li>
           ))}
         </ul>
+        {window?.movedByWeather ? (
+          <>
+            <h3>Why not the peak</h3>
+            <p>
+              The phenomenon is strongest at {timeOnly(guidance.whenUtc)} UTC, but the forecast
+              has the sky opening later. The time above is where the two together are best.
+            </p>
+          </>
+        ) : null}
         {opportunity.limitations.length > 0 ? (
           <>
             <h3>What this estimate does not account for</h3>
@@ -425,15 +551,19 @@ function TrackerHero({
 }
 
 function TrackerRankedList({
-  ranking,
+  ranked,
+  windows,
+  snapshots,
   selectedId,
   onSelect,
 }: {
-  ranking: Ranking;
+  ranked: SkyAdjustedOpportunity[];
+  windows: Map<string, BestWindow>;
+  snapshots: ConditionSnapshot[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  if (ranking.ranked.length === 0) return null;
+  if (ranked.length === 0) return null;
   return (
     <section className="tracker-list" aria-label="Tonight, ranked">
       {/* The list holds everything, including whatever is currently in the hero,
@@ -443,7 +573,7 @@ function TrackerRankedList({
           list of the others while showing the hero at the top of it. */}
       <h2>Tonight, ranked</h2>
       <ol>
-        {ranking.ranked.map((entry) => (
+        {ranked.map((entry) => (
           <li key={entry.opportunity.id}>
             <button
               type="button"
@@ -452,6 +582,19 @@ function TrackerRankedList({
             >
               <span className="tracker-list-title">{entry.opportunity.title}</span>
               <span className="tracker-list-summary">{entry.opportunity.summary}</span>
+              {(() => {
+                const window = windows.get(entry.opportunity.id);
+                if (!window) return null;
+                const snapshot = nearestSnapshot(snapshots, window.peakUtc);
+                return (
+                  <TrackerCondition
+                    viewability={window.viewability}
+                    temperatureC={snapshot?.temperatureC ?? null}
+                    atUtc={window.peakUtc}
+                    showFreshness={false}
+                  />
+                );
+              })()}
               <span className="tracker-list-meta">
                 {/* A3: the requirement is unmistakable in the list itself, before
                     the user commits to opening anything. */}
@@ -483,10 +626,12 @@ function TrackerRankedList({
  */
 function TrackerPassive({
   night,
+  weather,
   expanded,
   onToggle,
 }: {
   night: Night;
+  weather: WeatherState;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -529,6 +674,37 @@ function TrackerPassive({
               </p>
             </>
           ) : null}
+
+          <h3>Conditions</h3>
+          {weather.status === "ready" ? (
+            <>
+              <p>{weather.adapter.source.attribution}</p>
+              <p>
+                Forecast issued {weather.snapshots[0]?.issuedUtc.slice(0, 16).replace("T", " ")} UTC,
+                cached by forecast grid cell rather than by user. This source costs nothing to
+                query, which is why it is on the free path.
+              </p>
+              <p>
+                Their terms ask a caller to identify its application in a request header. A browser
+                cannot: the header is on the Fetch standard's forbidden list, so whatever is set is
+                discarded and the browser sends its own. Resolving that properly needs a caching
+                proxy, which is a server, which costs money — so it is a decision rather than an
+                oversight.
+              </p>
+            </>
+          ) : weather.status === "unavailable" ? (
+            <p>
+              Conditions unavailable — {weather.reason} Everything above is the phenomenon on its
+              own, with no weather adjustment applied.
+            </p>
+          ) : (
+            <p>Fetching the forecast…</p>
+          )}
+          <p>
+            Smoke is not yet fetched from anywhere. Where a smoke forecast is missing it is treated
+            as unknown rather than as clean air, so a smoky sky currently reads as whatever the
+            cloud cover says.
+          </p>
 
           <h3>Where the numbers come from</h3>
           <p>

@@ -34,6 +34,8 @@
  * records which ones fired. The continuous part only orders what survives.
  */
 
+import type { OpportunitySample, TransparencyDemand } from "./conditions";
+
 export type OpportunityKind =
   | "meteors"
   | "moon"
@@ -117,6 +119,19 @@ export interface Opportunity {
   missingInputs: string[];
   /** Caveats that apply to the numbers actually produced. */
   limitations: string[];
+  /**
+   * How good the phenomenon itself is across the night, each value relative to
+   * its own best. Weather is applied against this rather than against the
+   * single recommended instant, because the point of combining them is to find
+   * a clear gap that is not the peak.
+   */
+  profile: OpportunitySample[];
+  /**
+   * How much this needs a genuinely transparent sky. The Moon survives cloud
+   * that ends a meteor watch, so the same forecast means different things to
+   * different phenomena.
+   */
+  transparency: TransparencyDemand;
 }
 
 /** Below this an opportunity is not observable enough to be ranked at all. */
@@ -327,4 +342,56 @@ export function explainRank(entry: RankedOpportunity): string[] {
 
   lines.push(...entry.appliedRules);
   return lines;
+}
+
+/**
+ * How much sky access may move an item in the list.
+ *
+ * The follow-on specification allows conditions to "reorder events whose
+ * intrinsic value is reasonably close" — and no more than that. A rare event
+ * must stay discoverable behind cloud rather than dropping out of the list, so
+ * the adjustment is bounded to a quarter of an item's strength: enough to swap
+ * two comparable evenings, never enough to bury a total lunar eclipse because
+ * the forecast is poor.
+ */
+const SKY_ACCESS_SWING = 0.25;
+
+export interface SkyAdjustedOpportunity extends RankedOpportunity {
+  /** Sky access at this item's best moment, 0–1, or null where unknown. */
+  skyAccess: number | null;
+  /** Where it sat before the weather was applied. */
+  rankBeforeConditions: number;
+}
+
+/**
+ * Re-order a ranking once the sky is known.
+ *
+ * The phenomenon's own strength is left untouched — this returns a separate
+ * ordering value rather than overwriting `strength`, so "the shower is
+ * excellent and the sky is shut" is still expressible afterwards. That
+ * separation is the whole requirement, and folding the weather back into
+ * `strength` would quietly destroy it.
+ */
+export function applySkyAccess(
+  ranked: RankedOpportunity[],
+  accessById: Map<string, number>,
+): SkyAdjustedOpportunity[] {
+  const adjusted = ranked.map((entry) => {
+    const access = accessById.get(entry.opportunity.id) ?? null;
+    const factor = access === null ? 1 : 1 - SKY_ACCESS_SWING + SKY_ACCESS_SWING * access;
+    return {
+      ...entry,
+      skyAccess: access,
+      rankBeforeConditions: entry.rank,
+      // `strength` deliberately keeps its phenomenon-only meaning; only the
+      // ordering below sees the weather.
+      ordering: entry.strength * factor,
+    };
+  });
+
+  adjusted.sort((a, b) => b.ordering - a.ordering);
+  return adjusted.map(({ ordering: _ordering, ...entry }, index) => ({
+    ...entry,
+    rank: index + 1,
+  }));
 }

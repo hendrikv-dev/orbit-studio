@@ -402,6 +402,29 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed.
 
+## MET Norway Locationforecast 2.0 and the US National Weather Service API
+
+- Inventory ID: `tracker-weather-forecast-adapters`
+- Category: runtime-weather-forecast
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Norwegian Meteorological Institute; NOAA National Weather Service
+- Version or snapshot: Runtime API, not a pinned snapshot; queried live per observing location
+- Retrieval date: 2026-08-16
+- Authoritative source: https://docs.api.met.no/doc/locationforecast/HowTO.html
+- Authoritative source: https://api.met.no/weatherapi/locationforecast/2.0/
+- Rights basis: MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.
+- Rights evidence: https://api.met.no/doc/TermsOfService
+- Rights evidence: https://www.weather.gov/documentation/services-web-api
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/weatherProviders.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path.
+
 ## Software dependencies
 
 The complete lockfile-derived dependency inventory and runtime notice texts are in
