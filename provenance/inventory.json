@@ -35,12 +35,16 @@
       "apps.apple.com",
       "assets.science.nasa.gov",
       "atmosphere.copernicus.eu",
+      "cdn.esahubble.org",
+      "cdn.eso.org",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
       "creativecommons.org",
       "docs.airnowapi.org",
       "docs.api.met.no",
       "docs.pmnd.rs",
+      "esahubble.org",
+      "eso.org",
       "example.invalid",
       "firms.modaps.eosdis.nasa.gov",
       "geojson.org",
@@ -77,6 +81,7 @@
       "www.earthdata.nasa.gov",
       "www.ecmwf.int",
       "www.esa.int",
+      "www.eso.org",
       "www.gps.gov",
       "www.imo.net",
       "www.nasa.gov",
@@ -1146,25 +1151,24 @@
         "assets/TrackerApp-*.js"
       ],
       "originalSource": {
-        "title": "Orbit Studio Tracker phenomenon scenes",
+        "title": "Orbit Studio Tracker imagery policy and lunar phase composite",
         "publisher": "Orbit Studio",
         "version": "Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16",
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "src/components/tracker/TrackerScene.tsx": "2cf5a7a845242cfce35a39ee7d735752ea8c458b28a9969a1adcb50b33ea3b8d",
-        "src/data/tracker/imagery.ts": "7714121dcc93474f27908546b09193c4f0369efc4cdd9743e9e8a3c68cb7b2d8"
+        "src/components/tracker/TrackerScene.tsx": "dff02b0da295325d04817ec33c85f369829e51665a4106cb6eb41b58537e8149",
+        "src/data/tracker/imagery.ts": "53b26a7b9c9ce5992959fc44080f20efa65627823d923a35bed95e633eb50de8"
       },
       "processing": [
-        "The hero and card imagery is drawn as SVG in this repository rather than sourced photographically. Meteors, planets, conjunctions and the plain night sky are original vector scenes; the Moon and lunar-eclipse scenes composite the separately registered NASA LROC mosaic.",
-        "Drawing rather than photographing is an honesty decision as much as a licensing one. A photograph of a meteor shower is many minutes of exposure stacked together and a photograph of Saturn is a telescope's view; publishing either as the hero teaches a false expectation before any guidance is read.",
-        "Two elements are derived from the same computation the recommendation used rather than composed: the meteor radiant is placed from the shower's actual radiant, and the Moon's terminator is drawn for the observer's actual illuminated fraction and waxing or waning sense.",
-        "Every scene carries an ImageryClass from src/data/tracker/imagery.ts, rendered in the interface together with a naked-eye expectation where the picture and the eye differ. The classifications available are telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation and spacecraft-mosaic.",
-        "No scene is presented as a photograph, none uses saturated colour as a promise of naked-eye appearance, and the meteor scene states explicitly that individual meteors are not predictable."
+        "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
+        "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
+        "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
+        "Every image carries an ImageryClass from src/data/tracker/imagery.ts \u2014 telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic \u2014 rendered together with a naked-eye expectation wherever the picture and the eye differ."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Original work of this project, released under the repository's MIT licence. The only third-party element composited into a scene is the NASA LROC mosaic registered separately as nasa-svs-lroc-color-moon-1k.",
+        "licenseOrBasis": "Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.",
         "evidenceUrls": [
           "https://github.com/hendrikv-dev/orbit-studio"
         ],
@@ -1176,7 +1180,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Every scene must keep an ImageryClass and must render it. A scene may not be reclassified as a photograph, and any future photographic hero must be registered here with its own source, licence, credit and perception classification before it ships."
+        "restrictions": "Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships."
       }
     },
     {
@@ -1223,6 +1227,108 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
+      }
+    },
+    {
+      "id": "eso-night-sky-photography",
+      "category": "night-sky-photography",
+      "repositoryPaths": [
+        "public/sky/eso-potw1033a-perseids-over-the-vlt.webp",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "public/sky/eso-potw2031a-spheres-on-spheres.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/eso-potw1033a-perseids-over-the-vlt.webp",
+        "sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "sky/eso-potw2031a-spheres-on-spheres.webp"
+      ],
+      "originalSource": {
+        "title": "ESO public image releases used as Tracker hero photography",
+        "url": "https://www.eso.org/public/images/",
+        "publicationUrl": "https://www.eso.org/public/images/",
+        "publisher": "European Southern Observatory",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "public/sky/eso-potw1033a-perseids-over-the-vlt.webp": "8e70c4ec7c74a978076d9e39b2e7eeb834c402bbdef9cac80befc2042770e39b",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec",
+        "public/sky/eso-potw2031a-spheres-on-spheres.webp": "6e020e62b903862ae4d5e0b795f94e387e5e6a7132ce642c66cfb2b48c61aeb2"
+      },
+      "processing": [
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "eso-potw1033a-perseids-over-the-vlt.webp \u2014 \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/, presented in the interface as a long-exposure photograph.",
+        "eso-potw2136a-eclipsed-moon-at-paranal.webp \u2014 \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph.",
+        "eso-potw2031a-spheres-on-spheres.webp \u2014 \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/, presented in the interface as a long-exposure photograph.",
+        "None of these images contains identifiable people, so the licence's restriction on commercial use of such images does not apply."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.",
+        "evidenceUrls": [
+          "https://www.eso.org/public/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESO. Individual photographer credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
+      }
+    },
+    {
+      "id": "esa-hubble-planetary-photography",
+      "category": "planetary-photography",
+      "repositoryPaths": [
+        "public/sky/esahubble-heic1917a-saturn.webp",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "public/sky/esahubble-heic1609a-mars.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/esahubble-heic1917a-saturn.webp",
+        "sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "sky/esahubble-heic1609a-mars.webp"
+      ],
+      "originalSource": {
+        "title": "ESA/Hubble planetary portraits used as Tracker hero photography",
+        "url": "https://esahubble.org/images/",
+        "publicationUrl": "https://esahubble.org/images/",
+        "publisher": "ESA/Hubble and NASA",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "public/sky/esahubble-heic1917a-saturn.webp": "3d67752df20339b6f48e3da5f80569ebcce34cb0b59b6b05ec6bdf37a05d0224",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc",
+        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b"
+      },
+      "processing": [
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "esahubble-heic1917a-saturn.webp \u2014 \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic2017a-jupiter-and-europa.webp \u2014 \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1609a-mars.webp \u2014 \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
+        "These are space-telescope images and are the exact case the perception classification exists for: each is labelled a space-telescope image and carries a written naked-eye expectation, so that nothing implies a Hubble portrait is what an observer will see through a garden telescope."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
+        "evidenceUrls": [
+          "https://esahubble.org/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
       }
     }
   ]

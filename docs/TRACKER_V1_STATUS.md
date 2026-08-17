@@ -212,29 +212,46 @@ reader meets first.
 | 9 | Full desktop viewport used intentionally | **Met.** The scene takes the width; the panel is a column over its left at ≥900px. |
 | 10 | Feels like an invitation | Judgement, not a check — but "The orange one. Obviously coloured once you spot it, even from a city." is the register throughout. |
 
-## Imagery, and why it is drawn rather than photographed
+## Imagery: licensed photography
 
-Every scene is original vector art, except the Moon and lunar eclipse, which
-composite the NASA LROC mosaic already registered in provenance and light it for
-the observer's real phase.
+The hero and card imagery is photography, sourced under licences that permit
+this use and registered with verified rights. An earlier version drew every
+scene as vector art; that was honest and it was flat, and a product whose whole
+purpose is to get somebody outside cannot afford to look like a diagram.
 
-That is an honesty decision before a licensing one. A photograph of a meteor
-shower is many minutes of exposure stacked together; a photograph of Saturn is a
-telescope's view. Publishing either as the hero teaches a false expectation
-before a word of guidance is read, and the failure mode the specification warns
-about — a spacecraft image passing as a backyard view — is impossible to commit
-if no scene claims to be a photograph.
+| Scene | Photograph | Credit | Licence |
+|---|---|---|---|
+| Meteors, welcome | The 2010 Perseids over the VLT | ESO/S. Guisard | CC BY 4.0 |
+| Lunar eclipse | Eclipsed Moon at Paranal | Y. Beletsky (LCO)/ESO | CC BY 4.0 |
+| Conjunctions, Venus, default | Spheres on Spheres | Y. Beletsky (LCO)/ESO | CC BY 4.0 |
+| Saturn | Latest Saturn Portrait | NASA, ESA, A. Simon (GSFC), M. H. Wong (UC Berkeley) | CC BY 4.0 |
+| Jupiter | Jupiter and Europa, August 2020 | NASA, ESA, A. Simon, M. H. Wong and the OPAL team | CC BY 4.0 |
+| Mars | Mars in opposition 2016 | NASA, ESA, Hubble Heritage Team (STScI/AURA), J. Bell, M. Wolff | CC BY 4.0 |
+| The Moon | NASA LROC WAC mosaic, lit for tonight's phase | NASA's Scientific Visualization Studio | NASA media guidelines |
 
-Every scene carries a classification that is rendered in the interface, together
-with the naked-eye expectation wherever the picture and the eye differ. Two
-elements are computed rather than composed: the meteor radiant sits where the
-radiant actually is, and the Moon's terminator is drawn for tonight's real
-illuminated fraction.
+ESO and ESA/Hubble both release their public images under CC BY 4.0 as a
+blanket policy. Total weight of the seven images is 428 KB.
 
-**If photographic planetary heroes are wanted**, that is a per-image sourcing
-decision. NASA imagery is the obvious route and the repository already carries
-two verified NASA assets, but each one needs its own credit verified and its own
-perception classification before it ships.
+**The credit is rendered on the image, and that is a licence term rather than a
+design choice.** Both publishers require it to be presented clearly and visibly
+and not hidden or separated from the material, so it cannot move behind a
+disclosure control.
+
+The Moon is the one composite, and deliberately so: a stock photograph of a full
+Moon on a night the Moon is a crescent is a lie the reader can check by looking
+up. It draws the real LROC surface with tonight's actual terminator over it.
+
+**The honesty problem a beautiful photograph creates** is handled by the same
+classification system as before, now doing more work. A Hubble portrait of
+Saturn is the exact case the specification warns about, so it is labelled a
+space-telescope image and carries the sentence that says a garden telescope
+shows a small pale oval. The picture may be beautiful; the expectation has to be
+true.
+
+Two treatments, because the two kinds of picture behave differently in a frame:
+a landscape under the sky fills it, and a planet on black must not be cropped or
+Saturn loses its rings — so it floats on a dark ground, screen-blended so the
+black field disappears into it.
 
 ## Still approximate: local time for a searched place
 
@@ -254,12 +271,15 @@ saving elsewhere. Stated in the interface's own detail, not only here.
 - The scene was drawn in a square viewBox, so its intrinsic aspect ratio made
   the hero **1792 pixels tall** on a wide screen, pushed every word below the
   fold and rendered the stars as coin-sized discs.
-- Bearings were measured from north, which put the discontinuity exactly at
-  south — where most recommended targets are — and sent Saturn off the right
-  edge of the picture.
 - The Moon's terminator sweep flags were inverted: a four-day-old crescent drew
   as a gibbous, directly under a caption reading "a waxing crescent". Now
-  asserted for all four cases.
+  asserted for all four cases, and still the one composite in the set.
+- The first crop of the Perseid photograph cut out the meteor — the one thing
+  the picture is named for.
+- The Hubble portraits are objects on a black field, so a plain image put a
+  visible black rectangle inside every card until they were screen-blended.
+- The credit was positioned against the hero rather than the picture, so it
+  floated over the copy the moment the phone layout stopped overlaying them.
 - Overlaying the panel on the image works on a desktop and fails on a phone,
   where the panel is most of the viewport and the subject ended up behind the
   headline. The phone layout stacks instead.

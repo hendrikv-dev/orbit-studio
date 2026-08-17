@@ -425,7 +425,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path.
 
-## Orbit Studio Tracker phenomenon scenes
+## Orbit Studio Tracker imagery policy and lunar phase composite
 
 - Inventory ID: `orbit-studio-tracker-scene-artwork`
 - Category: first-party-illustration
@@ -434,7 +434,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Publisher or rights holder: Orbit Studio
 - Version or snapshot: Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16
 - Retrieval date: 2026-08-16
-- Rights basis: Original work of this project, released under the repository's MIT licence. The only third-party element composited into a scene is the NASA LROC mosaic registered separately as nasa-svs-lroc-color-moon-1k.
+- Rights basis: Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.
 - Rights evidence: https://github.com/hendrikv-dev/orbit-studio
 - Attribution: Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).
 - Public source redistribution: source-safe
@@ -442,7 +442,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Modification status: permitted
 - Repository paths: `src/components/tracker/TrackerScene.tsx`, `src/data/tracker/imagery.ts`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: Every scene must keep an ImageryClass and must render it. A scene may not be reclassified as a photograph, and any future photographic hero must be registered here with its own source, licence, credit and perception classification before it ships.
+- Restrictions and notes: Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships.
 
 ## Photon geocoder over OpenStreetMap data
 
@@ -466,6 +466,50 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/tracker/geocoding.ts`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to.
+
+## ESO public image releases used as Tracker hero photography
+
+- Inventory ID: `eso-night-sky-photography`
+- Category: night-sky-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: European Southern Observatory
+- Version or snapshot: Public release images, retrieved 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://www.eso.org/public/images/
+- Authoritative source: https://www.eso.org/public/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.
+- Rights evidence: https://www.eso.org/public/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESO. Individual photographer credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/eso-potw1033a-perseids-over-the-vlt.webp`, `public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `public/sky/eso-potw2031a-spheres-on-spheres.webp`
+- Production paths: `sky/eso-potw1033a-perseids-over-the-vlt.webp`, `sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `sky/eso-potw2031a-spheres-on-spheres.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+
+## ESA/Hubble planetary portraits used as Tracker hero photography
+
+- Inventory ID: `esa-hubble-planetary-photography`
+- Category: planetary-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: ESA/Hubble and NASA
+- Version or snapshot: Public release images, retrieved 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://esahubble.org/images/
+- Authoritative source: https://esahubble.org/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.
+- Rights evidence: https://esahubble.org/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/esahubble-heic1917a-saturn.webp`, `public/sky/esahubble-heic2017a-jupiter-and-europa.webp`, `public/sky/esahubble-heic1609a-mars.webp`
+- Production paths: `sky/esahubble-heic1917a-saturn.webp`, `sky/esahubble-heic2017a-jupiter-and-europa.webp`, `sky/esahubble-heic1609a-mars.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
 
 ## Software dependencies
 

@@ -256,6 +256,8 @@ export function TrackerApp() {
           <TrackerScene
             imagery={heroImageryFor("none", "night-sky")}
             className="tracker-hero-scene"
+            priority
+            showCredit
           />
           <div className="tracker-hero-panel">
             <p className="tracker-hero-eyebrow">
@@ -321,7 +323,12 @@ function TrackerWelcome({
 }) {
   return (
     <section className="tracker-hero tracker-hero-welcome">
-      <TrackerScene imagery={heroImageryFor("welcome", "meteors")} className="tracker-hero-scene" />
+      <TrackerScene
+        imagery={heroImageryFor("welcome", "meteors")}
+        className="tracker-hero-scene"
+        priority
+        showCredit
+      />
       <div className="tracker-hero-panel">
         <h1>Something is worth seeing tonight</h1>
         <p className="tracker-hero-summary">
@@ -392,21 +399,14 @@ function TrackerHero({
       <TrackerScene
         className="tracker-hero-scene"
         imagery={imagery}
-        bearingDeg={
-          opportunity.kind === "meteors"
-            ? (headline?.radiantAzimuthDeg ?? 45)
-            : bearingFromDirection(guidance.direction)
-        }
-        altitudeDeg={
-          opportunity.kind === "meteors" ? (headline?.radiantAltitudeDeg ?? 50) : 42
-        }
+        priority
+        showCredit
         illuminatedFraction={
           opportunity.sceneHints?.illuminatedFraction ??
           bestSample?.moonIlluminatedFraction ??
           0.5
         }
         waning={opportunity.sceneHints?.waning ?? false}
-        intensity={bestSample?.totalPerHour ?? 8}
       />
 
       <div className="tracker-hero-panel">
@@ -569,8 +569,6 @@ function TrackerCard({
         <TrackerScene
           className="tracker-card-scene"
           imagery={imagery}
-          bearingDeg={bearingFromDirection(opportunity.guidance.direction)}
-          altitudeDeg={38}
           illuminatedFraction={opportunity.sceneHints?.illuminatedFraction ?? 0.5}
           waning={opportunity.sceneHints?.waning ?? false}
         />
@@ -706,39 +704,6 @@ function TrackerDetail({
 }
 
 /* --------------------------------------------------------------- helpers */
-
-const COMPASS_BEARINGS: Record<string, number> = {
-  "north-northeast": 22.5,
-  "east-northeast": 67.5,
-  "east-southeast": 112.5,
-  "south-southeast": 157.5,
-  "south-southwest": 202.5,
-  "west-southwest": 247.5,
-  "west-northwest": 292.5,
-  "north-northwest": 337.5,
-  northeast: 45,
-  southeast: 135,
-  southwest: 225,
-  northwest: 315,
-  north: 0,
-  east: 90,
-  south: 180,
-  west: 270,
-};
-
-/**
- * The scene needs a bearing; the guidance carries a compass word.
- *
- * Longest names first, because "north" is a substring of "north-northeast" and
- * matching the short one would point every intercardinal direction due north.
- */
-function bearingFromDirection(direction: string | null): number {
-  if (!direction) return 180;
-  for (const [word, bearing] of Object.entries(COMPASS_BEARINGS)) {
-    if (direction.includes(word)) return bearing;
-  }
-  return 180;
-}
 
 /** "Face northeast." — from guidance that may already be a fuller sentence. */
 function facingSentence(direction: string): string {

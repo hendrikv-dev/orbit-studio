@@ -11377,8 +11377,31 @@ button.primary,
    screen produced a 1792px-tall hero with the words somewhere below it. */
 .tracker-hero {
   position: relative;
-  height: min(74vh, 620px);
+  height: min(80vh, 680px);
   overflow: hidden;
+}
+
+/* --- the two image treatments -------------------------------------------
+   A landscape under the sky fills the frame. A planet on black must not be
+   cropped — crop Saturn to a wide strip and it loses its rings — so it floats
+   on a dark ground with room around it instead. */
+
+.tracker-media { position: relative; overflow: hidden; }
+.tracker-media img,
+.tracker-media svg { display: block; width: 100%; height: 100%; }
+
+.tracker-media-subject {
+  background:
+    radial-gradient(120% 90% at 62% 42%, #12212f 0%, #080d15 55%, #05080e 100%);
+}
+
+/* The Hubble portraits are objects on a black field, so a plain <img> puts a
+   visible black rectangle inside the card. Screen-blending drops the black into
+   the ground and leaves the planet — the seam disappears and nothing about the
+   subject is altered. */
+.tracker-media-subject img {
+  padding: 5%;
+  mix-blend-mode: screen;
 }
 
 .tracker-hero-scene {
@@ -11386,8 +11409,29 @@ button.primary,
   inset: 0;
   width: 100%;
   height: 100%;
-  display: block;
 }
+
+/* Photographs get a gentle lift so they read as photography rather than as a
+   dim texture behind type. */
+.tracker-media-photo img { filter: saturate(1.04) contrast(1.03); }
+
+/* The credit is a licence condition: ESO and ESA/Hubble both require it to be
+   clearly visible and not separated from the image. It sits on the picture. */
+.tracker-credit {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 3;
+  margin: 0;
+  max-width: min(70ch, 66vw);
+  color: rgba(226, 238, 248, 0.62);
+  font-size: 0.66rem;
+  line-height: 1.45;
+  text-align: right;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+.tracker-credit a { color: rgba(226, 238, 248, 0.82); text-decoration: none; }
+.tracker-credit a:hover { text-decoration: underline; }
 
 /* The text sits on the picture, so it needs its own ground to stay legible
    against a scene that is bright in places. A gradient rather than a panel:
@@ -11612,8 +11656,10 @@ button.primary,
   transform: translateY(-2px);
 }
 
-.tracker-card-media { display: block; aspect-ratio: 16 / 9; }
-.tracker-card-scene { display: block; width: 100%; height: 100%; }
+.tracker-card-media { display: block; aspect-ratio: 3 / 2; overflow: hidden; }
+.tracker-card-scene { width: 100%; height: 100%; }
+.tracker-card:hover .tracker-card-scene img { transform: scale(1.04); }
+.tracker-card-scene img { transition: transform 420ms ease; }
 
 .tracker-card-body {
   display: grid;
@@ -11737,7 +11783,17 @@ button.primary,
 /* --- desktop: give the picture the room it was not getting --------------- */
 
 @media (min-width: 900px) {
-  .tracker-hero { height: min(78vh, 760px); }
+  .tracker-hero { height: min(84vh, 820px); }
+
+  /* A planet portrait is centred in its own frame, so on a desktop the frame is
+     pushed to the right of the panel rather than sitting behind it. */
+  .tracker-hero:has(.tracker-media-subject) .tracker-hero-scene {
+    left: auto;
+    width: 62%;
+  }
+  .tracker-hero:has(.tracker-media-subject) {
+    background: radial-gradient(90% 120% at 78% 45%, #101d2a 0%, #070c14 60%, #05080e 100%);
+  }
 
   /* The panel becomes a column over the left of the image rather than a band
      across the bottom, so a wide screen shows the sky it is selling. */
@@ -11746,12 +11802,15 @@ button.primary,
     flex-direction: column;
     justify-content: flex-end;
     inset: 0 auto 0 0;
-    width: min(52%, 660px);
-    padding: 0 44px 56px;
+    width: min(62%, 780px);
+    padding: 0 44px 60px;
+    /* Wider and heavier than a decorative scrim needs to be, because the type
+       now sits on a real photograph rather than a dim gradient. */
     background: linear-gradient(
-      to right,
-      rgba(4, 7, 12, 0.95) 0%,
-      rgba(4, 7, 12, 0.88) 55%,
+      100deg,
+      rgba(4, 7, 12, 0.97) 0%,
+      rgba(4, 7, 12, 0.93) 38%,
+      rgba(4, 7, 12, 0.72) 62%,
       rgba(4, 7, 12, 0) 100%
     );
   }
@@ -11763,7 +11822,7 @@ button.primary,
 }
 
 @media (min-width: 1440px) {
-  .tracker-hero-panel { width: min(46%, 720px); padding-left: 64px; }
+  .tracker-hero-panel { width: min(56%, 840px); padding-left: 64px; }
   .tracker-more,
   .tracker-detail,
   .tracker-bar { padding-left: 64px; padding-right: 64px; }
@@ -11785,8 +11844,17 @@ button.primary,
 
   .tracker-hero-scene {
     position: relative;
-    height: 42vh;
-    min-height: 240px;
+    height: 48vh;
+    min-height: 260px;
+  }
+
+  /* Lifted clear of where the panel fades up into the image. At the desktop
+     offset it sat exactly under the headline. */
+  .tracker-hero-scene .tracker-credit {
+    bottom: 88px;
+    left: 20px;
+    right: 20px;
+    text-align: left;
   }
 
   .tracker-hero-panel {
