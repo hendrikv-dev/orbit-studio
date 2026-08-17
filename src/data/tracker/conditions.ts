@@ -112,6 +112,14 @@ export interface ConditionReading {
   /** The label, which names both states where both apply. */
   label: string;
   /**
+   * The same sky as a noun phrase, for sentences rather than chips.
+   *
+   * A label is written to sit beside a temperature — "Rain or snow · 8°C" — and
+   * reads as nonsense the moment a sentence puts a noun after it: "rain or snow
+   * skies make seeing them unlikely". The two forms are different jobs.
+   */
+  phrase: string;
+  /**
    * True where smoke is the reason an otherwise open sky will disappoint. The
    * interface uses this to give smoke visual precedence, because "clear" and
    * "clear but smoky" are different evenings and the ordinary cloud icon
@@ -133,10 +141,15 @@ export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
   const smoky = smoke !== null && smoke >= SMOKY_COLUMN;
 
   if (snapshot.precipitating) {
-    return { condition: "precipitating", label: "Rain or snow", smokeDominant: false };
+    return {
+      condition: "precipitating",
+      label: "Rain or snow",
+      phrase: "rain or snow",
+      smokeDominant: false,
+    };
   }
   if (snapshot.visibilityM !== null && snapshot.visibilityM < FOG_VISIBILITY_M) {
-    return { condition: "foggy", label: "Fog", smokeDominant: false };
+    return { condition: "foggy", label: "Fog", phrase: "fog", smokeDominant: false };
   }
 
   const cloud = snapshot.cloudCoverPercent;
@@ -148,6 +161,14 @@ export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
         : cloud >= SOMEWHAT_CLOUDY_PERCENT
           ? "Somewhat cloudy"
           : "Clear";
+  const cloudPhrase =
+    cloud >= OVERCAST_PERCENT
+      ? "an overcast sky"
+      : cloud >= CLOUDY_PERCENT
+        ? "cloud"
+        : cloud >= SOMEWHAT_CLOUDY_PERCENT
+          ? "patchy cloud"
+          : "a clear sky";
 
   if (verySmoky || smoky) {
     const heavy = verySmoky ? "very smoky" : "smoky";
@@ -158,6 +179,7 @@ export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
     return {
       condition: verySmoky ? "very-smoky" : "smoky",
       label: dominant ? `${cloudWord} but ${heavy}` : `${cloudWord}, ${heavy}`,
+      phrase: verySmoky ? "heavy smoke" : "smoke",
       smokeDominant: dominant,
     };
   }
@@ -172,6 +194,7 @@ export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
             ? "somewhat-cloudy"
             : "clear",
     label: cloudWord,
+    phrase: cloudPhrase,
     smokeDominant: false,
   };
 }
@@ -334,7 +357,12 @@ function UNKNOWN_CONDITIONS(phenomenonStrength: number): Viewability {
   return {
     band: phenomenonStrength >= 0.45 ? "good" : "possible",
     access: 1,
-    reading: { condition: "unknown", label: "Conditions unavailable", smokeDominant: false },
+    reading: {
+      condition: "unknown",
+      label: "Conditions unavailable",
+      phrase: "an unknown sky",
+      smokeDominant: false,
+    },
     freshness: "stale",
     limitedBySky: false,
   };

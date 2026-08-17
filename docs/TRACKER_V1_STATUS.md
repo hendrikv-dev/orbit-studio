@@ -288,6 +288,87 @@ saving elsewhere. Stated in the interface's own detail, not only here.
   a test written in the previous phase for exactly that overclaiming.
 - The browser offered the reader's own saved postal address in the place search.
 
+---
+
+# Location onboarding — the reported failure, and what it was
+
+Both halves were reproduced in the production build in Chrome before anything
+was changed, and both had a single cause each.
+
+## A full street address returned "Nothing found"
+
+`geocoding.ts` kept only results carrying a `name`. **A street address has no
+name** — Photon returns houses with `housenumber` and `street` and nothing else.
+
+Measured against the live API:
+
+| Query | Photon returned | The filter kept | The interface said |
+|---|---|---|---|
+| `16 Ash Grove, Leeds` | 2 correct houses | 0 | "Nothing found" |
+| `1247 Elmwood Avenue, Buffalo` | 8 | 8, all nearby *named* POIs | the wrong place |
+
+That one filter produced both reported symptoms: the empty state, and the
+resolution to something near the address instead of the address. Results are now
+labelled from `housenumber` + `street` where there is no name, tagged
+**Address**, and carry the postcode so two close matches can be told apart. A
+query beginning with a house number is treated as an address lookup, so the
+observer-category boost can no longer float a park above the address typed.
+
+## "Use my current location" did nothing
+
+The permission was already `denied` in this Chrome. **Chrome does not re-prompt
+after a block**, so `getCurrentPosition` invoked its error callback immediately;
+the single error path set the state to denied, which is what it already was; and
+nothing changed on screen. The button was not broken so much as mute.
+
+`src/lib/geolocation.ts` now separates the states and, crucially, asks the
+Permissions API *before* asking for a position — so a browser that cannot prompt
+says so instead of pretending a request is about to happen.
+
+| State | What the reader gets |
+|---|---|
+| Prompting | "Waiting for your browser…", control disabled |
+| Locating | "Finding you…", control disabled |
+| Granted | The place, its accuracy and its coordinates, to confirm |
+| Denied | Named steps for **this** browser, plus the search leading the panel |
+| Unavailable | Says it is the device, offers Try again |
+| Timeout | Says it took too long, offers Try again |
+| Unsupported | Says why, including an insecure page |
+
+Recovery text is per browser because the control is somewhere different in each
+and is not in the page at all. Where the browser has blocked the site, the
+search field moves to the top of the panel: leading with a control that cannot
+work, above three paragraphs explaining why, is what made the original feel
+broken.
+
+## The selected place is now confirmed
+
+Nothing is computed until the reader agrees. Choosing a result shows its name,
+context and coordinates with **Yes, use this** / **Choose another**. A geocoder
+returns what is near what was typed; only the reader knows whether that is where
+they will be standing, and the silent wrong-place resolution is exactly what was
+reported.
+
+## Found while verifying, not by tests
+
+- The panel opened downward from a trigger low in the hero, putting its own
+  results below the fold with nothing able to scroll to them. It opens upward
+  there now and is height-capped everywhere.
+- With no viewing window at all — the case where the weather is *worst* — the
+  conclusion sentence was built from an empty condition label and read
+  "Excellent in itself, but skies make it a gamble".
+- Fixing that exposed the next layer: `Rain or snow` is written to sit beside a
+  temperature and reads as nonsense with a noun after it. Conditions now carry a
+  separate noun phrase for sentences.
+
+## What was verified how
+
+The denied path was exercised against this Chrome's real blocked permission.
+Prompting, locating, granted, timeout and unavailable were driven through the
+real interface with the browser API stubbed, because a browser will not produce
+a timeout or a hardware failure on request, and the permission cannot be reset
+from the page.
+
 ## Ranking quality
 
 There is no ground truth for "worth observing" and no audience large enough for

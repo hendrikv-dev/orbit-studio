@@ -18,7 +18,7 @@
 
 export interface PlaceResult {
   id: string;
-  /** What to show: "Yosemite Valley Backpacker Campground". */
+  /** What to show: "Yosemite Valley Campground", or "16 Ash Tree Grove". */
   name: string;
   /** Enough to tell two similarly named places apart: county, region, country. */
   context: string;
@@ -26,6 +26,8 @@ export interface PlaceResult {
   longitude: number;
   /** camp_site, park, peak, city… used only to pick an icon and to sort. */
   kind: string | null;
+  /** True where this is a street address rather than a named place. */
+  isAddress: boolean;
 }
 
 export interface GeocodingSourceInfo {
@@ -64,8 +66,40 @@ const KIND_PRIORITY: Record<string, number> = {
   hamlet: 2,
 };
 
-function contextOf(properties: Record<string, unknown>): string {
+/**
+ * A label for a result that has no name.
+ *
+ * **A street address is not a named place.** Photon returns houses with
+ * `housenumber` and `street` and no `name` at all, so requiring a name threw
+ * every address away — "16 Ash Grove, Leeds" returned two correct houses and
+ * the interface reported "Nothing found", while queries that happened to sit
+ * near a named building resolved to the building instead of the address. That
+ * one filter produced both halves of the reported fault.
+ */
+function labelFor(properties: Record<string, unknown>): { label: string; isAddress: boolean } {
+  const name = typeof properties.name === "string" ? properties.name.trim() : "";
+  if (name) return { label: name, isAddress: false };
+
+  const houseNumber = typeof properties.housenumber === "string" ? properties.housenumber : "";
+  const street = typeof properties.street === "string" ? properties.street : "";
+  if (street) {
+    return { label: [houseNumber, street].filter(Boolean).join(" "), isAddress: true };
+  }
+  // A postcode or a locality with nothing else is still somewhere to stand.
+  const fallback = ["postcode", "city", "county", "state"]
+    .map((key) => (typeof properties[key] === "string" ? (properties[key] as string) : ""))
+    .find(Boolean);
+  return { label: fallback ?? "", isAddress: Boolean(fallback) };
+}
+
+/** Leading house number in a query, which signals the reader wants an address. */
+function queriedHouseNumber(query: string): string | null {
+  return /^\s*(\d+[a-z]?)\b/i.exec(query)?.[1]?.toLowerCase() ?? null;
+}
+
+function contextOf(properties: Record<string, unknown>, label: string): string {
   const parts = [
+    properties.postcode,
     properties.district,
     properties.city,
     properties.county,
@@ -74,8 +108,8 @@ function contextOf(properties: Record<string, unknown>): string {
   ]
     .filter((part): part is string => typeof part === "string" && part.length > 0)
     // A place whose name is also its city should not read "Tromsø, Tromsø".
-    .filter((part, index, all) => all.indexOf(part) === index && part !== properties.name);
-  return parts.slice(0, 3).join(", ");
+    .filter((part, index, all) => all.indexOf(part) === index && part !== label);
+  return parts.slice(0, 4).join(", ");
 }
 
 export const photonAdapter: GeocodingAdapter = {
@@ -86,36 +120,56 @@ export const photonAdapter: GeocodingAdapter = {
     cost: "public-no-fee",
   },
   async search(query, signal) {
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8`;
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=12`;
     const response = await fetch(url, { signal });
     if (!response.ok) throw new Error(`Place search responded ${response.status}`);
     const body = await response.json();
     const features: { properties: Record<string, unknown>; geometry: { coordinates: number[] } }[] =
       body?.features ?? [];
 
-    return features
-      .filter((feature) => typeof feature.properties?.name === "string")
+    const wantedNumber = queriedHouseNumber(query);
+
+    const places = features
       .map((feature, index) => {
         const properties = feature.properties;
+        const { label, isAddress } = labelFor(properties);
+        if (!label) return null;
         const kind = typeof properties.osm_value === "string" ? properties.osm_value : null;
+        const houseNumber =
+          typeof properties.housenumber === "string" ? properties.housenumber.toLowerCase() : null;
         return {
-          id: `${properties.osm_type ?? "x"}${properties.osm_id ?? index}`,
-          name: String(properties.name),
-          context: contextOf(properties),
-          // GeoJSON is [longitude, latitude], which is the reverse of every
-          // other coordinate in this codebase and the easiest thing here to
-          // get backwards.
-          longitude: feature.geometry.coordinates[0],
-          latitude: feature.geometry.coordinates[1],
-          kind,
+          place: {
+            id: `${properties.osm_type ?? "x"}${properties.osm_id ?? index}`,
+            name: label,
+            context: contextOf(properties, label),
+            // GeoJSON is [longitude, latitude], the reverse of every other
+            // coordinate in this codebase and the easiest thing here to invert.
+            longitude: feature.geometry.coordinates[0],
+            latitude: feature.geometry.coordinates[1],
+            kind,
+            isAddress,
+          } satisfies PlaceResult,
+          index,
+          matchesNumber: wantedNumber !== null && houseNumber === wantedNumber,
         };
       })
-      .map((place, index) => ({ place, index }))
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+    return places
       .sort((a, b) => {
-        const rank = (entry: typeof a) => KIND_PRIORITY[entry.place.kind ?? ""] ?? 3;
-        return rank(a) - rank(b) || a.index - b.index;
+        // A query that starts with a house number is an address lookup, and the
+        // observer-category nudge below would otherwise float a park above the
+        // very address that was typed.
+        if (a.matchesNumber !== b.matchesNumber) return a.matchesNumber ? -1 : 1;
+        if (wantedNumber === null) {
+          const rank = (entry: typeof a) => KIND_PRIORITY[entry.place.kind ?? ""] ?? 3;
+          const difference = rank(a) - rank(b);
+          if (difference !== 0) return difference;
+        }
+        return a.index - b.index;
       })
-      .map((entry) => entry.place);
+      .map((entry) => entry.place)
+      .slice(0, 8);
   },
 };
 

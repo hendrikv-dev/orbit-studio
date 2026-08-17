@@ -28,6 +28,7 @@ import {
   bestViewingWindow,
   hasPassedTonight,
   nearestSnapshot,
+  readCondition,
   skyAccess,
   type BestWindow,
   type ConditionSnapshot,
@@ -62,12 +63,6 @@ import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
  * midnight, not their own.
  */
 
-type LocationState =
-  | { status: "idle" }
-  | { status: "locating" }
-  | { status: "resolved"; place: SelectedPlace }
-  | { status: "denied" };
-
 interface Night {
   period: ObservationPeriod;
   ranking: Ranking;
@@ -83,43 +78,19 @@ type WeatherState =
 const EMPTY_SNAPSHOTS: ConditionSnapshot[] = [];
 
 export function TrackerApp() {
-  const [location, setLocation] = useState<LocationState>({ status: "idle" });
+  const [place, setPlace] = useState<SelectedPlace | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [seen, setSeen] = useState<string[]>([]);
   const [weather, setWeather] = useState<WeatherState>({ status: "idle" });
 
-  const requestDeviceLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setLocation({ status: "denied" });
-      return;
-    }
-    setLocation({ status: "locating" });
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        setLocation({
-          status: "resolved",
-          place: {
-            name: "Where you are",
-            context: "Current location",
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            fromDevice: true,
-          },
-        }),
-      () => setLocation({ status: "denied" }),
-      { timeout: 8000, maximumAge: 600_000 },
-    );
-  };
-
-  // Asked once, on arrival. A hand-picked place is never overwritten by it —
-  // somebody planning a trip would lose the plan on the next render.
+  // Nothing is asked for on arrival any more. The welcome screen offers the
+  // choice and TrackerPlace owns every state it can end in, so there is no
+  // second, silent copy of the permission logic here to drift from it.
   useEffect(() => {
-    requestDeviceLocation();
     signalAppReady();
   }, []);
 
-  const place = location.status === "resolved" ? location.place : null;
 
   const clock: PlaceClock = useMemo(() => {
     if (!place) return deviceClock();
@@ -213,22 +184,10 @@ export function TrackerApp() {
           src="/brand/orbit-studio-tracker-logo.png"
           alt="Orbit Studio Tracker"
         />
-        <TrackerPlace
-          place={place}
-          locating={location.status === "locating"}
-          permissionDenied={location.status === "denied"}
-          onUseCurrentLocation={requestDeviceLocation}
-          onSelect={(chosen) => setLocation({ status: "resolved", place: chosen })}
-        />
+        <TrackerPlace place={place} onSelect={setPlace} />
       </header>
 
-      {!place ? (
-        <TrackerWelcome
-          locating={location.status === "locating"}
-          denied={location.status === "denied"}
-          onUseCurrentLocation={requestDeviceLocation}
-        />
-      ) : null}
+      {!place ? <TrackerWelcome onSelect={setPlace} /> : null}
 
       {night && place && selected ? (
         <TrackerHero
@@ -312,15 +271,7 @@ export function TrackerApp() {
 
 /* --------------------------------------------------------------- welcome */
 
-function TrackerWelcome({
-  locating,
-  denied,
-  onUseCurrentLocation,
-}: {
-  locating: boolean;
-  denied: boolean;
-  onUseCurrentLocation: () => void;
-}) {
+function TrackerWelcome({ onSelect }: { onSelect: (place: SelectedPlace) => void }) {
   return (
     <section className="tracker-hero tracker-hero-welcome">
       <TrackerScene
@@ -335,17 +286,11 @@ function TrackerWelcome({
           Tell Tracker where you are, and it will say what to look for, when to go out, and which
           way to face.
         </p>
-        <div className="tracker-hero-actions">
-          <button type="button" className="tracker-primary" onClick={onUseCurrentLocation}>
-            {locating ? "Finding you…" : "Use my current location"}
-          </button>
+        {/* The same control as the bar, inline and open, so the first screen
+            ends in an action rather than in a button that points elsewhere. */}
+        <div className="tracker-welcome-place">
+          <TrackerPlace place={null} onSelect={onSelect} />
         </div>
-        {denied ? (
-          <p className="tracker-hero-fineprint">
-            Location is blocked in your browser. Search for a place instead, using the control at
-            the top of the page.
-          </p>
-        ) : null}
       </div>
     </section>
   );
@@ -384,13 +329,18 @@ function TrackerHero({
   const headline = night.meteors.headline;
   const bestSample = night.meteors.best;
 
+  // Where there is no viewing window the sky is still known, and the sentence
+  // still has to name it. Reading the label off a null window produced
+  // "Excellent in itself, but skies make it a gamble" — the one case where the
+  // weather is worst is the case the wording dropped it.
+  const reading = viewingWindow?.viewability.reading ?? (atBest ? readCondition(atBest) : null);
   const conclusion = viewingConclusion(
     opportunity.title,
     opportunity.kind,
     entry.band,
-    viewingWindow?.viewability.band ?? "possible",
-    viewingWindow?.viewability.reading.label ?? "",
-    conditionsKnown && Boolean(atBest),
+    viewingWindow?.viewability.band ?? (reading ? "unlikely" : "possible"),
+    reading?.phrase ?? "",
+    conditionsKnown && Boolean(reading),
     passed,
   );
 
@@ -547,15 +497,23 @@ function TrackerCard({
 }) {
   const { opportunity } = entry;
   const imagery = heroImageryFor(opportunity.id, opportunity.kind);
-  const atBest = viewingWindow ? nearestSnapshot(snapshots, viewingWindow.peakUtc) : null;
+  const atBest = nearestSnapshot(
+    snapshots,
+    viewingWindow?.peakUtc ?? opportunity.guidance.whenUtc,
+  );
 
+  // Where there is no viewing window the sky is still known, and the sentence
+  // still has to name it. Reading the label off a null window produced
+  // "Excellent in itself, but skies make it a gamble" — the one case where the
+  // weather is worst is the case the wording dropped it.
+  const reading = viewingWindow?.viewability.reading ?? (atBest ? readCondition(atBest) : null);
   const conclusion = viewingConclusion(
     opportunity.title,
     opportunity.kind,
     entry.band,
-    viewingWindow?.viewability.band ?? "possible",
-    viewingWindow?.viewability.reading.label ?? "",
-    conditionsKnown && Boolean(atBest),
+    viewingWindow?.viewability.band ?? (reading ? "unlikely" : "possible"),
+    reading?.phrase ?? "",
+    conditionsKnown && Boolean(reading),
     passed,
   );
 

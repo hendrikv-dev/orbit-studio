@@ -1201,14 +1201,15 @@
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "src/data/tracker/geocoding.ts": "eaa1350b893f557512a70fc29849812866f98fa70ba8b328f7e452299f1869b7"
+        "src/data/tracker/geocoding.ts": "628b8ef9bb72ab5c4b6837e27daa18acbd927b8b3bc091e53285006f577c68a9"
       },
       "processing": [
         "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
         "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
         "Results are re-ranked locally to favour the categories an observer means \u2014 campsites, parks, reserves, summits, viewpoints and trailheads above street addresses \u2014 because the campground case is the one the location contract exists for.",
         "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
-        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather."
+        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather.",
+        "Results without a `name` are labelled from housenumber and street rather than discarded. Requiring a name dropped every street address, which is why a valid full address reported no matches while queries near a named building resolved to the building instead."
       ],
       "rights": {
         "verification": "unresolved",

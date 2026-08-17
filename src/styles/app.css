@@ -11876,3 +11876,135 @@ button.primary,
   .tracker-hero h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
   .tracker-cards { grid-template-columns: 1fr; }
 }
+
+/* --- location onboarding states ------------------------------------------
+   Every path through this has to end somewhere the reader can act on. The
+   version this replaces had a button that, in a browser which had already
+   blocked the site, produced no prompt, no error and no way out. */
+
+.tracker-place-device[disabled] { opacity: 0.75; }
+
+.tracker-place-status {
+  margin: 9px 0 0;
+  border: 1px solid rgba(120, 150, 175, 0.24);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: rgba(122, 141, 158, 0.08);
+  padding: 10px 12px;
+}
+
+.tracker-place-status p { margin: 0; color: #cfe0ee; font-size: 0.8rem; line-height: 1.5; }
+
+.tracker-place-status ol {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #a9c0d2;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.tracker-place-status button {
+  margin-top: 9px;
+  min-height: 32px;
+  border: 1px solid rgba(120, 150, 175, 0.3);
+  border-radius: 8px;
+  background: rgba(122, 141, 158, 0.12);
+  color: #dcebf7;
+  padding: 0 12px;
+  font-size: 0.78rem;
+}
+
+/* Blocked is the one state the page cannot fix for the reader, so it is the
+   one that gets the strongest colour and a numbered way out. */
+.tracker-place-status-denied { border-left-color: #ffb27a; }
+.tracker-place-status-timeout,
+.tracker-place-status-unavailable { border-left-color: #8fbcd8; }
+.tracker-place-status-unsupported { border-left-color: #9aa8b6; }
+
+/* Confirmation. Nothing is computed until the reader agrees this is the place
+   they will actually be standing in. */
+.tracker-place-confirm { padding: 4px 4px 2px; }
+.tracker-place-confirm-lead {
+  margin: 0 0 8px;
+  color: #8ba0b3;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tracker-place-confirm-name {
+  margin: 0;
+  color: #eaf3fb;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.tracker-place-confirm-context {
+  margin: 4px 0 0;
+  color: #8ba0b3;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.tracker-place-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.tracker-place-confirm-actions .tracker-primary,
+.tracker-place-confirm-actions .tracker-secondary {
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 0.84rem;
+}
+
+.tracker-place-count { color: #9fb6c8; }
+
+/* The welcome screen carries the picker inline, so it opens downward into the
+   page rather than up out of the bar. */
+.tracker-welcome-place { margin-top: 20px; }
+/* Opens upward. The welcome trigger sits low in the hero with an empty page
+   beneath it, so a downward panel put its own results below the fold with
+   nothing able to scroll to them. */
+.tracker-welcome-place .tracker-place-panel {
+  left: 0;
+  right: auto;
+  top: auto;
+  bottom: calc(100% + 10px);
+  max-height: min(58vh, 520px);
+}
+.tracker-welcome-place .tracker-place-current {
+  min-height: 46px;
+  max-width: none;
+  border-radius: 999px;
+  background: #3fd6a8;
+  border-color: transparent;
+  color: #04211a;
+  font-size: 0.94rem;
+  font-weight: 600;
+  padding: 0 20px;
+}
+.tracker-welcome-place .tracker-place-current svg { color: #04211a; }
+
+/* The panel has to fit the window it opens in. On the welcome screen the
+   trigger sits low in the hero and the page below it is empty, so a panel
+   taller than the remaining space put its results somewhere nothing could
+   scroll to. */
+.tracker-place-panel {
+  max-height: min(72vh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tracker-place-body { display: flex; flex-direction: column; }
+.tracker-place-order-device { order: 1; }
+.tracker-place-order-search { order: 2; }
+
+/* Blocked: the search is the only path that can work, so it leads and the
+   explanation follows it. */
+.tracker-place-body.is-blocked .tracker-place-order-search { order: 0; margin-top: 0; }
+.tracker-place-body.is-blocked .tracker-place-order-device { order: 3; margin-top: 10px; }
+.tracker-place-body.is-blocked .tracker-place-status { order: 4; }
+.tracker-place-body .tracker-place-results,
+.tracker-place-body .tracker-place-note { order: 2; }
+.tracker-place-body.is-blocked .tracker-place-results,
+.tracker-place-body.is-blocked .tracker-place-note { order: 1; }

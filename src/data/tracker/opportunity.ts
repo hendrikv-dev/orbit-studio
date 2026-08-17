@@ -469,46 +469,45 @@ export function viewingConclusion(
   kind: OpportunityKind,
   phenomenonBand: Band,
   viewingBand: "excellent" | "good" | "possible" | "unlikely",
-  conditionLabel: string,
+  /** The sky as a noun phrase — "cloud", "rain or snow" — not as a chip label. */
+  skyPhrase: string,
   conditionsKnown: boolean,
   hasPassed: boolean,
 ): string {
   const plural = kind === "meteors";
   const is = plural ? "are" : "is";
+  const them = plural ? "them" : "it";
 
   if (hasPassed) {
     return `${title} ${is} below the horizon for the rest of tonight.`;
   }
-  if (!conditionsKnown) {
+  if (!conditionsKnown || !skyPhrase) {
     return phenomenonBand === "exceptional" || phenomenonBand === "very good"
-      ? `One of the best things in the sky tonight. No forecast for here, so check the sky yourself before you commit.`
-      : `Worth a look if you are out anyway. No forecast available for here.`;
+      ? "One of the best things in the sky tonight. No forecast for here, so check the sky yourself before you commit."
+      : "Worth a look if you are out anyway. No forecast available for here.";
   }
 
   const strong = phenomenonBand === "exceptional" || phenomenonBand === "very good";
-  const weather = conditionLabel.toLowerCase();
 
   if (viewingBand === "excellent") {
-    if (strong) return `A genuinely good night for it, and the sky is ${weather}. Go.`;
-    // Varied by phenomenon, because the same sentence repeated down four cards
-    // reads as a template rather than a judgement.
+    if (strong) return `A genuinely good night for it, and ${skyPhrase} to see it through. Go.`;
     return kind === "moon"
-      ? `Not a rare sight, but a ${weather} sky and no effort at all.`
+      ? `Not a rare sight, but ${skyPhrase} and no effort at all.`
       : kind === "meteors"
-        ? `A quiet night for them, though a ${weather} sky gives you a fair chance.`
-        : `Nothing dramatic, but the sky is ${weather} — an easy one to actually see.`;
+        ? `A quiet night for them, though ${skyPhrase} gives you a fair chance.`
+        : `Nothing dramatic, but ${skyPhrase} makes this an easy one to actually see.`;
   }
   if (viewingBand === "good") {
     return strong
-      ? `Well worth going out for, with ${weather} skies at the best time.`
-      : `A fair target, and ${weather} skies give you a real chance.`;
+      ? `Well worth going out for, with ${skyPhrase} at the best time.`
+      : `A fair target, and ${skyPhrase} gives you a real chance.`;
   }
   if (viewingBand === "possible") {
     return strong
-      ? `Excellent in itself, but ${weather} skies make it a gamble from here tonight.`
-      : `${weather.charAt(0).toUpperCase()}${weather.slice(1)} skies and a quiet target — worth a glance, not a trip.`;
+      ? `Excellent in itself, but ${skyPhrase} makes it a gamble from here tonight.`
+      : `A quiet target under ${skyPhrase} — worth a glance, not a trip.`;
   }
   return strong
-    ? `${plural ? "They are" : "It is"} at ${phenomenonBand === "exceptional" ? "its best" : "a good point"}, but ${weather} skies make seeing ${plural ? "them" : "it"} unlikely from here tonight.`
-    : `${weather.charAt(0).toUpperCase()}${weather.slice(1)} skies tonight — save this one for a clearer evening.`;
+    ? `${plural ? "They are" : "It is"} at ${phenomenonBand === "exceptional" ? "its best" : "a good point"}, but ${skyPhrase} makes seeing ${them} unlikely from here tonight.`
+    : `${skyPhrase.charAt(0).toUpperCase()}${skyPhrase.slice(1)} tonight — save this one for a clearer evening.`;
 }
