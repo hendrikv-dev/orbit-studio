@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { signalAppReady } from "../../lib/appReady";
 import { downloadCalendarFile } from "../../lib/trackerCalendar";
 import {
-  clockForLongitude,
+  clockForCoordinates,
   deviceClock,
   formatClockRange,
   formatClockTime,
@@ -144,7 +144,11 @@ function TrackerScreen() {
 
   const clock: PlaceClock = useMemo(() => {
     if (!place) return deviceClock();
-    return place.fromDevice ? deviceClock() : clockForLongitude(place.longitude);
+    // The device knows its own zone exactly; anywhere else is resolved from
+    // coordinates rather than guessed from longitude.
+    return place.fromDevice
+      ? deviceClock()
+      : clockForCoordinates(place.latitude, place.longitude);
   }, [place]);
 
   const weather = useConditions(place);
@@ -692,8 +696,8 @@ function TrackerDetail({
             )}
             {clock.approximate ? (
               <li>
-                Times for a searched place are derived from its longitude, so they can be an hour
-                out where daylight saving or an unusual time zone applies.
+                No time zone is recorded for these coordinates, so times here are estimated from
+                longitude and can be an hour out.
               </li>
             ) : null}
           </ul>

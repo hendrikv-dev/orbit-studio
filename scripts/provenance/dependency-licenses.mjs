@@ -16,6 +16,12 @@ const supportedLicenses = new Set([
   "0BSD",
   "Apache-2.0",
   "BSD-3-Clause",
+  // CC0 1.0 Universal: a public-domain dedication rather than a licence. The
+  // owner relinquishes copyright and related rights entirely, so it imposes no
+  // condition at all — weaker than CC-BY-4.0, which is already allowed and does
+  // require attribution. Reached the tree via @photostructure/tz-lookup, whose
+  // timezone boundaries derive from Evan Siroky's timezone-boundary-builder.
+  "CC0-1.0",
   "CC-BY-4.0",
   "ISC",
   "MIT",

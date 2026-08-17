@@ -253,18 +253,27 @@ a landscape under the sky fills it, and a planet on black must not be cropped or
 Saturn loses its rings — so it floats on a dark ground, screen-blended so the
 black field disappears into it.
 
-## Still approximate: local time for a searched place
+## Local time is now exact
 
-The device's own location uses the browser's IANA zone and is exact, daylight
-saving included. Anywhere else, the offset is derived from longitude, because
-turning coordinates into a zone needs a boundary dataset or a provider that
-returns one and neither is on the free path. Where the derived offset matches
-the device's, the device zone is used instead, which fixes the common case of
-searching near home.
+Resolved from coordinates to an IANA zone with `@photostructure/tz-lookup`
+(CC0, ~73 KB), so `Intl` handles daylight saving and every political oddity.
 
-It is wrong where politics beat geography — India's half-hour offset, China on
-one zone, Spain an hour off its meridian — and it does not know about daylight
-saving elsewhere. Stated in the interface's own detail, not only here.
+This closes what was recorded here as a known defect. The offset used to be
+derived from longitude — how zones were laid out, not how they ended up — and
+was wrong wherever politics beat geography. Asserted against the exact cases
+that failed:
+
+| Place | Zone | Was |
+|---|---|---|
+| Mumbai | `Asia/Kolkata` | half an hour out |
+| Madrid | `Europe/Madrid` | an hour out |
+| Leeds, London | `Europe/London` | no daylight saving |
+| Joshua Tree | `America/Los_Angeles` | no daylight saving |
+| Tromsø, Sydney | `Europe/Oslo`, `Australia/Sydney` | — |
+
+The dataset is lossily compressed, so a point within a few hundred metres of a
+zone boundary can resolve to its neighbour. Where no zone is recorded at all the
+longitude fallback remains, flagged approximate in the detail.
 
 ## Found by looking, during this phase
 

@@ -1,3 +1,5 @@
+import tzLookup from "@photostructure/tz-lookup";
+
 /**
  * Times in the language of the place being observed from.
  *
@@ -6,25 +8,23 @@
  * they are standing — and if they are planning a trip, in the clock time of the
  * place they are going, not the one they are sitting in.
  *
- * ## How the zone is decided, and where that is approximate
+ * ## How the zone is decided
  *
- * Two cases, and they are not equally good:
+ * Coordinates are resolved to an IANA zone from a vendored boundary dataset, so
+ * `Intl` handles daylight saving and every political oddity for us.
  *
- * - **The device's own location.** The browser knows its IANA zone, so the
- *   answer is exact, including daylight saving.
- * - **Anywhere else.** Turning coordinates into an IANA zone needs a boundary
- *   dataset or a provider that returns one, and neither is available on the
- *   free path. So the offset is derived from longitude, which is how time zones
- *   were laid out in the first place and is right for most of the world.
+ * This replaces an approximation that was documented as a known defect: the
+ * offset used to be derived from longitude, which is how time zones were laid
+ * out but not how they ended up. It was wrong wherever politics beat geography
+ * — India's half-hour offset, Spain an hour off its meridian, all of China on
+ * one zone — and it knew nothing about daylight saving. A time silently an hour
+ * out is worse than no time at all, and this is a stargazing app, where the
+ * whole output is a time.
  *
- * It is wrong where politics beat geography — India's half-hour offset, China
- * on one zone, Spain an hour off its meridian — and it does not know about
- * daylight saving. Where the derived offset matches the device's current one,
- * the device zone is used instead, which quietly fixes the common case of
- * searching for somewhere near home.
- *
- * The approximation is stated in the interface's own detail rather than only
- * here, because a time that is silently an hour out is worse than no time.
+ * The dataset is lossily compressed to keep it small, so a point within a few
+ * hundred metres of a zone boundary can resolve to the neighbouring zone. That
+ * matters far less than the hour it removes, and nowhere anybody observes from
+ * is likely to sit on the line.
  */
 
 export interface PlaceClock {
@@ -49,20 +49,40 @@ export function deviceClock(): PlaceClock {
 }
 
 /**
- * The clock at a place known only by its coordinates.
+ * The clock at a place, from its coordinates.
  *
- * Falls back to the device zone when the derived offset matches it, so
- * searching for a campsite two valleys away keeps daylight saving right.
+ * The lookup is offline and synchronous. Where it cannot answer — the middle of
+ * an ocean, or coordinates outside the dataset — the longitude approximation is
+ * kept as a fallback and flagged as approximate, so the caller can still say
+ * something rather than nothing.
  */
-export function clockForLongitude(longitudeDeg: number, now = new Date()): PlaceClock {
-  const derivedHours = Math.round(longitudeDeg / 15);
-  const offsetMinutes = derivedHours * MINUTES_PER_HOUR;
-  const deviceOffset = -now.getTimezoneOffset();
-  if (offsetMinutes === deviceOffset) {
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timeZone) return { timeZone, offsetMinutes, approximate: false };
+export function clockForCoordinates(
+  latitudeDeg: number,
+  longitudeDeg: number,
+): PlaceClock {
+  try {
+    const timeZone = tzLookup(latitudeDeg, longitudeDeg);
+    if (timeZone) {
+      return { timeZone, offsetMinutes: offsetOf(timeZone), approximate: false };
+    }
+  } catch {
+    // Out of range, or a coordinate the dataset does not cover.
   }
-  return { timeZone: null, offsetMinutes, approximate: true };
+  return {
+    timeZone: null,
+    offsetMinutes: Math.round(longitudeDeg / 15) * MINUTES_PER_HOUR,
+    approximate: true,
+  };
+}
+
+/** Current offset of a named zone, in minutes east of UTC. */
+function offsetOf(timeZone: string, at = new Date()): number {
+  // Formatting the same instant in the zone and in UTC and differencing them is
+  // the only way to get an offset out of Intl, and it follows daylight saving
+  // because the formatter does.
+  const inZone = new Date(at.toLocaleString("en-US", { timeZone }));
+  const inUtc = new Date(at.toLocaleString("en-US", { timeZone: "UTC" }));
+  return Math.round((inZone.getTime() - inUtc.getTime()) / 60_000);
 }
 
 function shifted(iso: string, clock: PlaceClock): Date {
