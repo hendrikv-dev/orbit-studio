@@ -338,7 +338,14 @@ function PlacePanel({
         <Label className="tracker-visually-hidden">Search for a place to observe from</Label>
         <div className="tracker-place-search">
           <Search size={15} aria-hidden />
-          <Input placeholder="Address, campsite, park, trailhead, town…" autoComplete="off" />
+          {/* Focused on open. Without it the dialog itself took focus, so the
+              first thing typed went nowhere and a keyboard user had to tab past
+              the location button to reach the field they came for. */}
+          <Input
+            autoFocus
+            placeholder="Address, campsite, park, trailhead, town…"
+            autoComplete="off"
+          />
         </div>
         <Text slot="description" className="tracker-visually-hidden">
           Type at least three characters, or paste a latitude and longitude.

@@ -33,7 +33,8 @@ import {
   type BestWindow,
   type ConditionSnapshot,
 } from "../../data/tracker/conditions";
-import { adapterFor, conditionsFor, type WeatherAdapter } from "../../data/tracker/weatherProviders";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { adapterFor, conditionsFor } from "../../data/tracker/weatherProviders";
 import { heroImageryFor, IMAGERY_CLASS_LABEL } from "../../data/tracker/imagery";
 import { TrackerScene } from "./TrackerScene";
 import { TrackerCondition } from "./TrackerCondition";
@@ -69,54 +70,84 @@ interface Night {
   meteors: MeteorNight;
 }
 
-type WeatherState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ready"; snapshots: ConditionSnapshot[]; adapter: WeatherAdapter }
-  | { status: "unavailable"; reason: string };
-
 const EMPTY_SNAPSHOTS: ConditionSnapshot[] = [];
 
+/**
+ * One client for the page.
+ *
+ * The forecast is worth keeping for an hour — it is a grid-cell forecast, not a
+ * per-user one, and both providers ask callers to cache. `retry` is bounded
+ * because a provider that is down stays down for longer than a reader will
+ * wait, and a retry storm against a free service is the wrong way to treat it.
+ */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 60_000,
+      gcTime: 2 * 60 * 60_000,
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+/**
+ * Tonight's sky over the selected place.
+ *
+ * Replaces a hand-rolled effect that had one gap worth naming: there was no
+ * loading state at all, so for about 300 ms after a place was chosen the
+ * interface asserted "Conditions unavailable" — a wrong answer rather than an
+ * absent one. `isPending` distinguishes "not asked yet" from "asked and
+ * failed", which is the distinction the reader needed and the effect could not
+ * express.
+ */
+function useConditions(place: SelectedPlace | null) {
+  const adapter = place ? adapterFor(place.latitude, place.longitude) : null;
+  return useQuery({
+    queryKey: [
+      "conditions",
+      adapter?.source.id ?? "none",
+      // Rounded, so two observers in the same forecast cell share one entry and
+      // a precise location is never used as a cache key.
+      place ? place.latitude.toFixed(2) : null,
+      place ? place.longitude.toFixed(2) : null,
+    ],
+    enabled: Boolean(place && adapter),
+    queryFn: async ({ signal }) => {
+      if (!place || !adapter) throw new Error("No location");
+      const snapshots = await conditionsFor(adapter, place.latitude, place.longitude, signal);
+      return { snapshots, adapter };
+    },
+  });
+}
+
 export function TrackerApp() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TrackerScreen />
+    </QueryClientProvider>
+  );
+}
+
+function TrackerScreen() {
   const [place, setPlace] = useState<SelectedPlace | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [seen, setSeen] = useState<string[]>([]);
-  const [weather, setWeather] = useState<WeatherState>({ status: "idle" });
 
-  // Nothing is asked for on arrival any more. The welcome screen offers the
-  // choice and TrackerPlace owns every state it can end in, so there is no
-  // second, silent copy of the permission logic here to drift from it.
+  // Asked once, on arrival. A hand-picked place is never overwritten by it —
+  // somebody planning a trip would lose the plan on the next render.
   useEffect(() => {
     signalAppReady();
   }, []);
-
 
   const clock: PlaceClock = useMemo(() => {
     if (!place) return deviceClock();
     return place.fromDevice ? deviceClock() : clockForLongitude(place.longitude);
   }, [place]);
 
-  useEffect(() => {
-    if (!place) return;
-    const adapter = adapterFor(place.latitude, place.longitude);
-    if (!adapter) {
-      setWeather({ status: "unavailable", reason: "no free forecast source covers that location." });
-      return;
-    }
-    const controller = new AbortController();
-    setWeather({ status: "loading" });
-    conditionsFor(adapter, place.latitude, place.longitude, controller.signal)
-      .then((snapshots) => setWeather({ status: "ready", snapshots, adapter }))
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted) return;
-        setWeather({
-          status: "unavailable",
-          reason: cause instanceof Error ? cause.message : "the forecast could not be fetched.",
-        });
-      });
-    return () => controller.abort();
-  }, [place]);
+  const weather = useConditions(place);
 
   const night = useMemo(() => {
     if (!place) return null;
@@ -132,7 +163,11 @@ export function TrackerApp() {
     }
   }, [place]);
 
-  const snapshots = weather.status === "ready" ? weather.snapshots : EMPTY_SNAPSHOTS;
+  const snapshots = weather.data?.snapshots ?? EMPTY_SNAPSHOTS;
+  // "Not asked yet" is not "asked and failed". Conflating them is what made the
+  // interface claim conditions were unavailable while it was still fetching.
+  const conditionsPending = weather.isPending || weather.isFetching;
+  const conditionsReady = weather.isSuccess;
 
   const withSky = useMemo(() => {
     if (!night) return null;
@@ -198,7 +233,8 @@ export function TrackerApp() {
           viewingWindow={withSky?.windows.get(selected.opportunity.id) ?? null}
           passed={withSky?.passed.has(selected.opportunity.id) ?? false}
           snapshots={snapshots}
-          conditionsKnown={weather.status === "ready"}
+          conditionsKnown={conditionsReady}
+          conditionsPending={conditionsPending}
           seen={seen.includes(selected.opportunity.id)}
           onSeen={() =>
             setSeen((current) =>
@@ -244,7 +280,8 @@ export function TrackerApp() {
                 viewingWindow={withSky.windows.get(entry.opportunity.id) ?? null}
                 passed={withSky.passed.has(entry.opportunity.id)}
                 snapshots={snapshots}
-                conditionsKnown={weather.status === "ready"}
+                conditionsKnown={conditionsReady}
+          conditionsPending={conditionsPending}
                 onSelect={() => {
                   setSelectedId(entry.opportunity.id);
                   globalThis.scrollTo({ top: 0, behavior: "smooth" });
@@ -259,6 +296,7 @@ export function TrackerApp() {
         <TrackerDetail
           night={night}
           weather={weather}
+          conditionsReady={conditionsReady}
           clock={clock}
           place={place}
           expanded={showDetail}
@@ -307,6 +345,7 @@ function TrackerHero({
   passed,
   snapshots,
   conditionsKnown,
+  conditionsPending,
   seen,
   onSeen,
 }: {
@@ -318,6 +357,7 @@ function TrackerHero({
   passed: boolean;
   snapshots: ConditionSnapshot[];
   conditionsKnown: boolean;
+  conditionsPending: boolean;
   seen: boolean;
   onSeen: () => void;
 }) {
@@ -381,7 +421,12 @@ function TrackerHero({
             : `Best around ${formatClockTime(guidance.whenUtc, clock)}`}
         </p>
 
-        {viewingWindow ? (
+        {conditionsPending ? (
+          <p className="tracker-condition tracker-condition-pending" role="status">
+            <span className="tracker-skeleton" aria-hidden />
+            Checking the sky over {place.name}…
+          </p>
+        ) : viewingWindow ? (
           <TrackerCondition
             viewability={viewingWindow.viewability}
             temperatureC={atBest?.temperatureC ?? null}
@@ -401,7 +446,7 @@ function TrackerHero({
               : "Telescope required."}
         </p>
 
-        <p className="tracker-hero-conclusion">{conclusion}</p>
+        {conditionsPending ? null : <p className="tracker-hero-conclusion">{conclusion}</p>}
 
         <div className="tracker-hero-actions">
           <button
@@ -485,6 +530,7 @@ function TrackerCard({
   passed,
   snapshots,
   conditionsKnown,
+  conditionsPending,
   onSelect,
 }: {
   entry: SkyAdjustedOpportunity;
@@ -493,6 +539,7 @@ function TrackerCard({
   passed: boolean;
   snapshots: ConditionSnapshot[];
   conditionsKnown: boolean;
+  conditionsPending: boolean;
   onSelect: () => void;
 }) {
   const { opportunity } = entry;
@@ -542,7 +589,12 @@ function TrackerCard({
               : formatClockTime(opportunity.guidance.whenUtc, clock)}
           {atBest && !passed ? ` · ${formatTemperature(atBest.temperatureC)}` : ""}
         </span>
-        {viewingWindow && !passed ? (
+        {conditionsPending ? (
+          <span className="tracker-condition tracker-condition-pending">
+            <span className="tracker-skeleton" aria-hidden />
+            Checking the sky…
+          </span>
+        ) : viewingWindow && !passed ? (
           <TrackerCondition
             viewability={viewingWindow.viewability}
             temperatureC={null}
@@ -552,7 +604,9 @@ function TrackerCard({
             compact
           />
         ) : null}
-        <span className="tracker-card-conclusion">{conclusion}</span>
+        {conditionsPending ? null : (
+          <span className="tracker-card-conclusion">{conclusion}</span>
+        )}
         {opportunity.guidance.equipment !== "eyes" ? (
           <span className="tracker-equipment-required">
             {opportunity.guidance.equipment === "telescope"
@@ -577,13 +631,15 @@ function TrackerCard({
 function TrackerDetail({
   night,
   weather,
+  conditionsReady,
   clock,
   place,
   expanded,
   onToggle,
 }: {
   night: Night;
-  weather: WeatherState;
+  weather: ReturnType<typeof useConditions>;
+  conditionsReady: boolean;
   clock: PlaceClock;
   place: SelectedPlace;
   expanded: boolean;
@@ -626,7 +682,7 @@ function TrackerDetail({
             {night.meteors.missingInputs.map((line) => (
               <li key={line}>{line}</li>
             ))}
-            {weather.status === "ready" ? (
+            {conditionsReady ? (
               <li>
                 Cloud is not in the meteor rate itself — that number is a clear-sky ceiling, and
                 the forecast is applied separately.
@@ -649,8 +705,13 @@ function TrackerDetail({
             working list and the IAU Meteor Data Center established-shower list. Rates are an
             estimate built on those, quoted as a dark-sky ceiling rather than a prediction.
           </p>
-          {weather.status === "ready" ? <p>{weather.adapter.source.attribution}</p> : null}
-          {weather.status === "unavailable" ? <p>Conditions unavailable — {weather.reason}</p> : null}
+          {weather.data ? <p>{weather.data.adapter.source.attribution}</p> : null}
+          {weather.isError ? (
+            <p>
+              Conditions unavailable —{" "}
+              {weather.error instanceof Error ? weather.error.message : "the forecast failed."}
+            </p>
+          ) : null}
           <p>Place search © OpenStreetMap contributors, ODbL. Geocoding by Photon.</p>
           <p className="tracker-detail-coords">
             {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}

@@ -6,9 +6,9 @@ Orbit Studio's MIT license does not replace the licenses of third-party packages
 This notice is derived from `package-lock.json`, the authoritative dependency graph.
 
 - Lockfile version: 3
-- Lockfile SHA-256: `83231ee563945ec11ac1a3057107388934fc99248f76e9c6330a9919acadc32b`
-- Locked package entries: 293
-- Runtime package entries: 98
+- Lockfile SHA-256: `5799d90d064be2eef7466432cb9bc3478e5525bc007b77f9d24a783a6073310f`
+- Locked package entries: 295
+- Runtime package entries: 100
 - Development package entries: 195
 - Optional platform package entries: 0
 
@@ -195,6 +195,8 @@ This notice is derived from `package-lock.json`, the authoritative dependency gr
 - `@rollup/rollup-win32-ia32-msvc@4.61.0` — development
 - `@rollup/rollup-win32-x64-gnu@4.61.0` — development
 - `@rollup/rollup-win32-x64-msvc@4.61.0` — development
+- `@tanstack/query-core@5.101.4` — runtime
+- `@tanstack/react-query@5.101.4` — runtime
 - `@tweenjs/tween.js@23.1.3` — runtime
 - `@types/babel__core@7.20.5` — development
 - `@types/babel__generator@7.27.0` — development
@@ -520,6 +522,34 @@ Applies to: `suspend-react@0.1.3 (LICENSE)`
 MIT License
 
 Copyright (c) 2021 Paul Henschel
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### Notice `277d2a8e459713d6c596bab89ef857cb8b2433223fa9edb49ccc403a6ceb08ee`
+
+Applies to: `@tanstack/query-core@5.101.4 (LICENSE)`, `@tanstack/react-query@5.101.4 (LICENSE)`
+
+```text
+MIT License
+
+Copyright (c) 2021-present Tanner Linsley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -12071,3 +12071,29 @@ button.primary,
 
 .tracker-place-results:empty { display: none; }
 .tracker-place-messages:empty { display: none; }
+
+/* A pending sky is not an unavailable sky. The interface used to assert the
+   second while it was still doing the first. */
+.tracker-condition-pending { color: #9fb6c8; }
+
+.tracker-skeleton {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(159, 182, 200, 0.28);
+  border-top-color: rgba(159, 182, 200, 0.85);
+  animation: tracker-spin 900ms linear infinite;
+}
+
+@keyframes tracker-spin { to { transform: rotate(360deg); } }
+
+/* Motion is decoration here; the words carry the state on their own. */
+@media (prefers-reduced-motion: reduce) {
+  .tracker-skeleton { animation: none; border-top-color: rgba(159, 182, 200, 0.28); }
+  .tracker-card,
+  .tracker-card-scene img { transition: none; }
+  .tracker-card:hover,
+  .tracker-card:focus-visible { transform: none; }
+  .tracker-card:hover .tracker-card-scene img { transform: none; }
+}
