@@ -1,4 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  ComboBox,
+  DialogTrigger,
+  Input,
+  Label,
+  ListBox,
+  ListBoxItem,
+  Popover,
+  Dialog,
+  Text,
+} from "react-aria-components";
+import { Crosshair, MapPin, Search, ChevronDown } from "lucide-react";
 import {
   geocoderFor,
   parseCoordinates,
@@ -16,23 +29,25 @@ import {
 /**
  * Choosing where you are standing, or where you are going.
  *
- * This is onboarding: for most readers it is the only thing between arriving
- * and being told what to look at, so every path through it has to end somewhere
- * the reader can act on.
+ * Built on React Aria rather than by hand, because the hand-built version was
+ * not operable without a mouse. An audit of it found: no combobox role, no
+ * accessible name (the placeholder was doing that job, which it cannot), no
+ * `aria-expanded` or `aria-activedescendant`, results appearing with no live
+ * region to announce them, no arrow-key navigation, and Escape doing nothing.
+ * This is onboarding — for a keyboard or screen-reader user it was the entire
+ * product, and it did not work.
  *
- * It previously did not. Two faults, both reproduced before being fixed:
+ * React Aria's `ComboBox` supplies all of that, and its `Popover` positions
+ * itself against the viewport. That second part removes a bug rather than a
+ * risk: the panel used to open downward from a trigger low in the hero and put
+ * its own results below the fold, and the fix for it was a hardcoded "open
+ * upward on the welcome screen" that would have broken again at the next
+ * viewport size.
  *
- * - A full street address returned "Nothing found", because the adapter kept
- *   only results with a `name` and a house has none. Fixed in `geocoding.ts`.
- * - "Use my current location" did nothing visible in a browser that had already
- *   blocked the site. Chrome does not re-prompt after a block, so the callback
- *   fired instantly, the state moved from denied to denied, and the button
- *   looked inert. Now the permission is checked before asking, every phase is
- *   rendered, and a block produces the steps for the browser in use.
- *
- * A chosen place is also confirmed before anything is computed from it. A
- * geocoder will happily return something near what was typed, and the reader is
- * the only one who can say whether it is the right place.
+ * What stays bespoke is the part that is actually about this product: the
+ * geolocation state machine, the address-aware ranking, and the confirmation
+ * step. Nothing is computed from a place until the reader agrees it is the
+ * right one.
  */
 
 export interface SelectedPlace {
@@ -49,6 +64,8 @@ export interface SelectedPlace {
 interface Props {
   place: SelectedPlace | null;
   onSelect: (place: SelectedPlace) => void;
+  /** The welcome screen renders a larger, primary-styled trigger. */
+  prominent?: boolean;
 }
 
 const KIND_HINT: Record<string, string> = {
@@ -64,8 +81,46 @@ const KIND_HINT: Record<string, string> = {
   trailhead: "Trailhead",
 };
 
-export function TrackerPlace({ place, onSelect }: Props) {
-  const [open, setOpen] = useState(false);
+export function TrackerPlace({ place, onSelect, prominent = false }: Props) {
+  return (
+    <DialogTrigger>
+      <Button
+        className={
+          prominent
+            ? "tracker-place-current tracker-place-current-prominent"
+            : "tracker-place-current"
+        }
+      >
+        <MapPin size={15} aria-hidden />
+        <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
+        {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}
+        <ChevronDown size={15} aria-hidden className="tracker-place-chevron" />
+      </Button>
+      {/* Popover measures the space available and sets its own max-height, so
+          the panel must not carry a taller one of its own — that override was
+          what let the contents spill back out of it.
+          The prominent trigger sits low in the hero by design, so it opens
+          upward from the start rather than relying on a flip. */}
+      <Popover
+        className="tracker-place-popover"
+        placement={prominent ? "top start" : "bottom end"}
+        offset={8}
+      >
+        <Dialog className="tracker-place-panel" aria-label="Choose where you are">
+          {({ close }) => <PlacePanel onSelect={onSelect} close={close} />}
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  );
+}
+
+function PlacePanel({
+  onSelect,
+  close,
+}: {
+  onSelect: (place: SelectedPlace) => void;
+  close: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -77,7 +132,6 @@ export function TrackerPlace({ place, onSelect }: Props) {
   const [blockedUpFront, setBlockedUpFront] = useState(false);
   /** A place chosen but not yet confirmed. Nothing is computed from it yet. */
   const [pending, setPending] = useState<SelectedPlace | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Whether asking can even produce a prompt, known before the button is
   // pressed, so a blocked browser can be told the truth rather than offered a
@@ -90,7 +144,7 @@ export function TrackerPlace({ place, onSelect }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, []);
 
   // Debounced, because a geocoder that is free to use is still somebody's
   // server and a request per keystroke is not a reasonable way to treat it.
@@ -132,15 +186,6 @@ export function TrackerPlace({ place, onSelect }: Props) {
     };
   }, [query]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
-
   const useCurrentLocation = async () => {
     setGeo({ phase: "idle", outcome: null });
     const outcome = await requestPosition((phase) =>
@@ -160,251 +205,185 @@ export function TrackerPlace({ place, onSelect }: Props) {
     }
   };
 
-  const confirm = (chosen: SelectedPlace) => {
-    onSelect(chosen);
-    setPending(null);
-    setOpen(false);
-    setQuery("");
-    setResults([]);
-    setGeo({ phase: "idle", outcome: null });
-  };
-
   const pin = parseCoordinates(query.trim());
   const busy = geo.phase === "prompting" || geo.phase === "locating";
 
+  // A coordinate pair is offered as an ordinary option, so one list and one set
+  // of arrow keys covers every way of naming a place.
+  const options = useMemo(() => {
+    if (pin) {
+      return [
+        {
+          id: "pin",
+          name: `${pin.latitude.toFixed(3)}, ${pin.longitude.toFixed(3)}`,
+          context: "Use these coordinates",
+          latitude: pin.latitude,
+          longitude: pin.longitude,
+          kind: null,
+          isAddress: false,
+        } satisfies PlaceResult,
+      ];
+    }
+    return results;
+  }, [pin, results]);
+
+  if (pending) {
+    return (
+      /* Nothing is computed until the reader agrees this is the place. A
+         geocoder returns what is near what was typed, and only the reader knows
+         whether that is where they will be standing. */
+      <div className="tracker-place-confirm">
+        <p className="tracker-place-confirm-lead">Use this place?</p>
+        <p className="tracker-place-confirm-name">{pending.name}</p>
+        <p className="tracker-place-confirm-context">
+          {pending.context}
+          {pending.context ? " · " : ""}
+          {pending.latitude.toFixed(4)}, {pending.longitude.toFixed(4)}
+        </p>
+        <div className="tracker-place-confirm-actions">
+          {/* `autoFocus` rather than a ref and an effect: focusing the node
+              directly took it outside React Aria's focus scope, and Escape then
+              dropped focus onto the body instead of returning it to the
+              trigger. */}
+          <Button
+            autoFocus
+            className="tracker-primary"
+            onPress={() => {
+              onSelect(pending);
+              close();
+            }}
+          >
+            Yes, use this
+          </Button>
+          <Button className="tracker-secondary" onPress={() => setPending(null)}>
+            Choose another
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="tracker-place" ref={containerRef}>
-      <button
-        type="button"
-        className="tracker-place-current"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
+    <div className={blockedUpFront ? "tracker-place-body is-blocked" : "tracker-place-body"}>
+      {/* When the browser has blocked the site, the search is the only path
+          that can work, so it is ordered first. Leading with a control that
+          cannot function — above three paragraphs explaining why — is what made
+          the original feel broken. */}
+      <Button
+        className="tracker-place-device tracker-place-order-device"
+        onPress={() => void useCurrentLocation()}
+        isDisabled={busy}
       >
-        <PinIcon />
-        <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
-        {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}
-        <ChevronIcon />
-      </button>
+        <Crosshair size={15} aria-hidden />
+        {geo.phase === "prompting"
+          ? "Waiting for your browser…"
+          : geo.phase === "locating"
+            ? "Finding you…"
+            : blockedUpFront
+              ? "Location is blocked"
+              : "Use my current location"}
+      </Button>
 
-      {open ? (
-        <div className="tracker-place-panel">
-          {pending ? (
-            /* Nothing is computed until the reader agrees this is the place.
-               A geocoder returns what is near what was typed, and only the
-               reader knows whether that is where they will be standing. */
-            <div className="tracker-place-confirm">
-              <p className="tracker-place-confirm-lead">Use this place?</p>
-              <p className="tracker-place-confirm-name">{pending.name}</p>
-              <p className="tracker-place-confirm-context">
-                {pending.context}
-                {pending.context ? " · " : ""}
-                {pending.latitude.toFixed(4)}, {pending.longitude.toFixed(4)}
-              </p>
-              <div className="tracker-place-confirm-actions">
-                <button type="button" className="tracker-primary" onClick={() => confirm(pending)}>
-                  Yes, use this
-                </button>
-                <button
-                  type="button"
-                  className="tracker-secondary"
-                  onClick={() => setPending(null)}
-                >
-                  Choose another
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={blockedUpFront ? "tracker-place-body is-blocked" : "tracker-place-body"}>
-              {/* When the browser has blocked the site, the search is the only
-                  path that can work, so it goes first. Leading with a control
-                  that cannot function — above three paragraphs explaining why —
-                  is how the original made itself feel broken. */}
-              <button
-                type="button"
-                className="tracker-place-device tracker-place-order-device"
-                onClick={() => void useCurrentLocation()}
-                disabled={busy}
-              >
-                <CrosshairIcon />
-                {geo.phase === "prompting"
-                  ? "Waiting for your browser…"
-                  : geo.phase === "locating"
-                    ? "Finding you…"
-                    : blockedUpFront
-                      ? "Location is blocked"
-                      : "Use my current location"}
-              </button>
-
-              {/* Every outcome is rendered. The silence this replaces was the
-                  whole of the reported fault. */}
-              {geo.outcome && geo.phase !== "granted" ? (
-                <div
-                  className={`tracker-place-status tracker-place-status-${geo.phase}`}
-                  role="status"
-                >
-                  <p>{geo.outcome.message}</p>
-                  {geo.outcome.recovery ? (
-                    <ol>
-                      {geo.outcome.recovery.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ol>
-                  ) : null}
-                  {geo.outcome.retryable ? (
-                    <button type="button" onClick={() => void useCurrentLocation()}>
-                      Try again
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {/* Known to be blocked before anything is pressed. */}
-              {blockedUpFront && !geo.outcome ? (
-                <div className="tracker-place-status tracker-place-status-denied" role="status">
-                  <p>
-                    Your browser is blocking location for this site, so it will not ask. You can
-                    unblock it, or just search for a place below.
-                  </p>
-                  <ol>
-                    {recoverySteps(detectBrowser()).map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
-
-              <label className="tracker-place-search tracker-place-order-search">
-                <SearchIcon />
-                <input
-                  type="search"
-                  // Off, deliberately: the browser offers the reader's own saved
-                  // postal address here, which is never the campsite they are
-                  // searching for and reads as the app having guessed wrong.
-                  autoComplete="off"
-                  value={query}
-                  placeholder="Address, campsite, park, trailhead, town…"
-                  onChange={(event) => setQuery(event.target.value)}
-                  autoFocus
-                />
-              </label>
-
-              {pin ? (
-                <button
-                  type="button"
-                  className="tracker-place-result"
-                  onClick={() =>
-                    setPending({
-                      name: `${pin.latitude.toFixed(3)}, ${pin.longitude.toFixed(3)}`,
-                      context: "Dropped pin",
-                      latitude: pin.latitude,
-                      longitude: pin.longitude,
-                      fromDevice: false,
-                    })
-                  }
-                >
-                  <span className="tracker-place-result-name">
-                    {pin.latitude.toFixed(3)}, {pin.longitude.toFixed(3)}
-                  </span>
-                  <span className="tracker-place-result-context">Use these coordinates</span>
-                </button>
-              ) : null}
-
-              {searching ? <p className="tracker-place-note">Searching…</p> : null}
-              {searchError ? <p className="tracker-place-note">{searchError}</p> : null}
-              {!searching && !searchError && query.trim().length >= 3 && !pin && results.length === 0 ? (
-                <p className="tracker-place-note">
-                  No match for that. Try adding a town or postcode — or if you are somewhere with
-                  no address at all, paste its latitude and longitude.
-                </p>
-              ) : null}
-
-              {results.length > 0 ? (
-                <p className="tracker-place-note tracker-place-count">
-                  {results.length === 1 ? "One match" : `${results.length} close matches`} — pick
-                  the right one:
-                </p>
-              ) : null}
-
-              <ul className="tracker-place-results">
-                {results.map((result) => (
-                  <li key={result.id}>
-                    <button
-                      type="button"
-                      className="tracker-place-result"
-                      onClick={() =>
-                        setPending({
-                          name: result.name,
-                          context: result.context,
-                          latitude: result.latitude,
-                          longitude: result.longitude,
-                          fromDevice: false,
-                        })
-                      }
-                    >
-                      <span className="tracker-place-result-name">
-                        {result.name}
-                        {result.kind && KIND_HINT[result.kind] ? (
-                          <em>{KIND_HINT[result.kind]}</em>
-                        ) : result.isAddress ? (
-                          <em>Address</em>
-                        ) : null}
-                      </span>
-                      <span className="tracker-place-result-context">{result.context}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {geo.outcome && geo.phase !== "granted" ? (
+        <div className={`tracker-place-status tracker-place-status-${geo.phase}`} role="status">
+          <p>{geo.outcome.message}</p>
+          {geo.outcome.recovery ? (
+            <ol>
+              {geo.outcome.recovery.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          ) : null}
+          {geo.outcome.retryable ? (
+            <Button onPress={() => void useCurrentLocation()}>Try again</Button>
+          ) : null}
         </div>
       ) : null}
+
+      {blockedUpFront && !geo.outcome ? (
+        <div className="tracker-place-status tracker-place-status-denied" role="status">
+          <p>
+            Your browser is blocking location for this site, so it will not ask. You can unblock
+            it, or just search for a place below.
+          </p>
+          <ol>
+            {recoverySteps(detectBrowser()).map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
+      <ComboBox
+        className="tracker-place-combobox tracker-place-order-search"
+        items={options}
+        inputValue={query}
+        onInputChange={setQuery}
+        allowsEmptyCollection
+        menuTrigger="focus"
+        onSelectionChange={(key) => {
+          const chosen = options.find((entry) => entry.id === key);
+          if (!chosen) return;
+          setPending({
+            name: chosen.name,
+            context: chosen.context,
+            latitude: chosen.latitude,
+            longitude: chosen.longitude,
+            fromDevice: false,
+          });
+        }}
+      >
+        {/* A real label. The placeholder was doing this job before, which it
+            cannot: it disappears on the first keystroke and is not a name. */}
+        <Label className="tracker-visually-hidden">Search for a place to observe from</Label>
+        <div className="tracker-place-search">
+          <Search size={15} aria-hidden />
+          <Input placeholder="Address, campsite, park, trailhead, town…" autoComplete="off" />
+        </div>
+        <Text slot="description" className="tracker-visually-hidden">
+          Type at least three characters, or paste a latitude and longitude.
+        </Text>
+
+        {/* Announced by the combobox itself as the collection changes. */}
+        <ListBox className="tracker-place-results" renderEmptyState={() => null}>
+          {(item: PlaceResult) => (
+            <ListBoxItem
+              id={item.id}
+              textValue={`${item.name}, ${item.context}`}
+              className="tracker-place-result"
+            >
+              <span className="tracker-place-result-name">
+                {item.name}
+                {item.kind && KIND_HINT[item.kind] ? (
+                  <em>{KIND_HINT[item.kind]}</em>
+                ) : item.isAddress ? (
+                  <em>Address</em>
+                ) : null}
+              </span>
+              <span className="tracker-place-result-context">{item.context}</span>
+            </ListBoxItem>
+          )}
+        </ListBox>
+      </ComboBox>
+
+      {/* Status messages live outside the listbox so they are announced as
+          status rather than offered as options. */}
+      <div className="tracker-place-messages" role="status" aria-live="polite">
+        {searching ? <p className="tracker-place-note">Searching…</p> : null}
+        {searchError ? <p className="tracker-place-note">{searchError}</p> : null}
+        {!searching && !searchError && query.trim().length >= 3 && !pin && results.length === 0 ? (
+          <p className="tracker-place-note">
+            No match for that. Try adding a town or postcode — or if you are somewhere with no
+            address at all, paste its latitude and longitude.
+          </p>
+        ) : null}
+        {options.length > 0 && !pin ? (
+          <p className="tracker-place-note tracker-place-count">
+            {options.length === 1 ? "One match" : `${options.length} close matches`} — pick the
+            right one.
+          </p>
+        ) : null}
+      </div>
     </div>
-  );
-}
-
-const iconProps = {
-  width: 15,
-  height: 15,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.7,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
-
-function PinIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z" />
-      <circle cx="12" cy="10" r="2.5" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg {...iconProps} className="tracker-place-chevron">
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
-
-function CrosshairIcon() {
-  return (
-    <svg {...iconProps}>
-      <circle cx="12" cy="12" r="7" />
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg {...iconProps}>
-      <circle cx="11" cy="11" r="6.5" />
-      <path d="M16 16l4.5 4.5" />
-    </svg>
   );
 }

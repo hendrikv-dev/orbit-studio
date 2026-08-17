@@ -12008,3 +12008,66 @@ button.primary,
 .tracker-place-body .tracker-place-note { order: 2; }
 .tracker-place-body.is-blocked .tracker-place-results,
 .tracker-place-body.is-blocked .tracker-place-note { order: 1; }
+
+/* --- place picker, on React Aria ------------------------------------------
+   The panel is a Popover, so its position is computed against the viewport and
+   the hardcoded "open upward on the welcome screen" rule is gone with it. */
+
+.tracker-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tracker-place-popover { width: min(92vw, 400px); }
+
+/* Inherits the popover's computed height rather than declaring its own. A
+   fixed max-height here let the panel overflow the popover that had already
+   measured the space for it. */
+.tracker-place-popover .tracker-place-panel {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(120, 150, 175, 0.24);
+  border-radius: 14px;
+  background: #0a111b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  padding: 10px;
+  outline: none;
+}
+
+.tracker-place-current-prominent {
+  min-height: 46px;
+  max-width: none;
+  border-radius: 999px;
+  background: #3fd6a8;
+  border-color: transparent;
+  color: #04211a;
+  font-size: 0.94rem;
+  font-weight: 600;
+  padding: 0 20px;
+}
+.tracker-place-current-prominent svg { color: #04211a; }
+
+.tracker-place-combobox { display: block; }
+
+/* Selection and keyboard focus are now distinct states, and both are visible.
+   The hand-built list showed neither. */
+.tracker-place-result[data-focused],
+.tracker-place-result[data-hovered] {
+  background: rgba(122, 141, 158, 0.16);
+}
+.tracker-place-result[data-focus-visible] {
+  outline: 2px solid #3fd6a8;
+  outline-offset: -2px;
+}
+.tracker-place-result[data-selected] { background: rgba(63, 214, 168, 0.12); }
+
+.tracker-place-results:empty { display: none; }
+.tracker-place-messages:empty { display: none; }

@@ -9,6 +9,11 @@ export const projectRoot = path.resolve(scriptDirectory, "../..");
 export const dependencyNoticePath = path.join(projectRoot, "THIRD_PARTY_NOTICES.md");
 
 const supportedLicenses = new Set([
+  // BSD Zero Clause: OSI-approved and strictly more permissive than MIT, which
+  // is already allowed — it grants the same rights and drops the attribution
+  // requirement. Reached the tree as a transitive dependency of
+  // react-aria-components (tslib, via @swc/helpers and aria-hidden).
+  "0BSD",
   "Apache-2.0",
   "BSD-3-Clause",
   "CC-BY-4.0",

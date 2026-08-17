@@ -289,7 +289,7 @@ function TrackerWelcome({ onSelect }: { onSelect: (place: SelectedPlace) => void
         {/* The same control as the bar, inline and open, so the first screen
             ends in an action rather than in a button that points elsewhere. */}
         <div className="tracker-welcome-place">
-          <TrackerPlace place={null} onSelect={onSelect} />
+          <TrackerPlace place={null} onSelect={onSelect} prominent />
         </div>
       </div>
     </section>
