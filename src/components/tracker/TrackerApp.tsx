@@ -215,8 +215,20 @@ function TrackerScreen() {
     ? withSky.ranked.filter((entry) => entry.opportunity.id !== selected?.opportunity.id)
     : [];
 
+  // The tab title is how this page is found again in a row of tabs, in history
+  // and in a shared link. "Orbit Studio" on every view told nobody anything.
+  useEffect(() => {
+    const lead = selected?.opportunity.title;
+    document.title = lead
+      ? `${lead} tonight — Orbit Studio Tracker`
+      : "Orbit Studio Tracker";
+  }, [selected]);
+
   return (
     <main className="tracker-shell">
+      <a className="tracker-skip" href="#tracker-more">
+        Skip to tonight's list
+      </a>
       <header className="tracker-bar">
         <img
           className="tracker-bar-logo"
@@ -273,7 +285,7 @@ function TrackerScreen() {
       ) : null}
 
       {alternatives.length > 0 && withSky ? (
-        <section className="tracker-more" aria-label="Also tonight">
+        <section className="tracker-more" id="tracker-more" aria-label="Also tonight">
           <h2>Also tonight</h2>
           <div className="tracker-cards">
             {alternatives.map((entry) => (

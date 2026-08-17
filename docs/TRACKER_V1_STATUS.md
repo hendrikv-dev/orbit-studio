@@ -378,6 +378,72 @@ real interface with the browser API stubbed, because a browser will not produce
 a timeout or a hardware failure on request, and the permission cannot be reset
 from the page.
 
+---
+
+# UX audit, and what was done about it
+
+Audited with axe-core 4.10.2 in the production build, plus DOM and CSS
+introspection for the things automated checks cannot infer. Worth recording that
+axe found only one violation type on its own: custom widgets defeat automated
+checking, and the most serious problems below are the ones it could not see.
+
+## What was wrong
+
+**The place picker was not operable without a mouse.** No combobox role, no
+accessible name (the placeholder was doing that job, which it cannot), no
+`aria-expanded` or `aria-activedescendant`, results appearing with no live
+region, no arrow-key navigation, Escape doing nothing. WCAG 4.1.2, 2.1.1, 2.4.3.
+
+**No focus indicator on the ranked cards.** A global input reset had set
+`outline: none` and nothing replaced it. WCAG 2.4.7.
+
+**Six colour-contrast violations**, all from `opacity: 0.62` on "already set"
+cards: body text at 4.39:1 and the time at 3.28:1 against 4.5:1. WCAG 1.4.3.
+
+**No async state at all** — a ~300 ms assertion of "Conditions unavailable"
+while the forecast was still in flight.
+
+Plus: the image credit was a 160×12 px target (WCAG 2.5.8), reduced motion was
+honoured nowhere in the tracker, there was no skip link, and every view had the
+same `document.title`.
+
+## What replaced it, rather than being written again
+
+| Problem | Resource | Licence |
+|---|---|---|
+| Combobox, focus, Escape, announcements, popover placement | react-aria-components | Apache-2.0 |
+| Loading, error, retry, caching | @tanstack/react-query | MIT |
+| Coordinates to IANA time zone | @photostructure/tz-lookup | CC0-1.0 |
+| Icons — already a dependency, 22 hand-drawn paths removed | lucide-react | ISC |
+
+Two licences had to be added to the supported set, each with its reason
+recorded: **0BSD** (tslib, under react-aria) and **CC0-1.0** (tz-lookup). Both
+are more permissive than MIT, which was already allowed.
+
+Cost: the Tracker bundle went from 40 kB to 386 kB, 129 kB gzipped. Against
+Explorer's 17 MB that is affordable, and it buys onboarding that works without a
+mouse and times that are right.
+
+## Fixed in the token pass
+
+- Focus rings on everything interactive, including React Aria's own
+  `data-focus-visible` state.
+- "Already set" cards de-emphasised through the image at 45% rather than the
+  whole card, so text stays at full contrast. Verified by forcing the state onto
+  a live card and re-running axe: zero violations.
+- Credit link padded to a 149×27 target.
+- `prefers-reduced-motion` and `prefers-contrast` both honoured.
+- A skip link to the ranked list, and a title that names tonight's
+  recommendation.
+
+## Still open
+
+- The ranked list and the hero are one system, but there is no way back to the
+  hero from a card except selecting it.
+- Now, Upcoming and Calendar are still not built.
+- No accessibility check runs in CI. `@axe-core/playwright` is the obvious
+  addition and Playwright is already a devDependency.
+
 ## Ranking quality
 
 There is no ground truth for "worth observing" and no audience large enough for
