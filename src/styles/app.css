@@ -13825,9 +13825,26 @@ button.primary,
   min-height: 0;
 }
 @media (min-width: 1040px) {
-  .tk-month { grid-template-columns: minmax(420px, 1.15fr) minmax(300px, 0.85fr); }
+  /* Both tracks floored at zero so neither can be sized by its content.
+  
+     This is the actual cause of the calendar changing width between selected
+     dates: a grid item's automatic minimum is its min-content, so the detail
+     pane's longest word set a wider minimum than its fr share and took the
+     difference from the calendar. Selecting "Partial lunar eclipse" therefore
+     produced a narrower month than selecting "Meteors" — equal cells within
+     each state, different geometry between them.
+  
+     With minmax(0, …) on both, the split is a pure function of the container
+     width. Nothing inside either pane can move it. */
+  .tk-month { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); }
 }
-.tk-month-grid-wrap { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; min-height: 0; }
+.tk-month-grid-wrap {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
 .tk-month-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .tk-month-name { margin: 0; font-family: var(--tk-display); font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
 .tk-month-step {
@@ -13940,10 +13957,18 @@ button.primary,
   border-left: 1px solid var(--tk-line);
   padding-left: clamp(18px, 2vw, 30px);
   min-height: 0;
+  /* The one that mattered. Without it the pane's min-content width governed
+     the split and the calendar resized whenever the selected event's copy
+     changed length. */
+  min-width: 0;
   overflow: hidden;
   align-content: center;
   display: grid;
 }
+/* Long titles wrap rather than setting a floor for the whole pane. */
+.tk-month-detail .tk-feature-name,
+.tk-month-detail .tk-feature-why,
+.tk-month-detail .tk-feature-summary { overflow-wrap: anywhere; }
 .tk-month-detail .tk-feature-name { font-size: clamp(1.4rem, 3.2vh, 2rem); }
 
 /* ==================================================== one geometry contract
