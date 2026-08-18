@@ -15,8 +15,10 @@ import {
 } from "../../data/tracker/observationPeriod";
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
-import { skyPathFor } from "../../data/tracker/skyPath";
+import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import { TrackerSkyChart } from "./TrackerSkyChart";
+import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
+import { TrackerOrientation } from "./TrackerOrientation";
 import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerCalendar } from "./TrackerCalendar";
 import {
@@ -460,6 +462,12 @@ function TrackerHero({
   // has no position worth drawing, which is a real answer rather than a reason
   // to invent one.
   const path = skyPathFor(opportunity, viewingWindow);
+  // Where to face, which for a shower is deliberately not where the radiant is.
+  const gaze = gazeRegionFor(opportunity, path);
+  const brightestRadiant =
+    path?.kind === "radiant"
+      ? path.points.reduce((top, point) => (point.relative > top.relative ? point : top))
+      : undefined;
 
   return (
     <section className="tracker-hero tk-observe" aria-label="Tonight's recommendation">
@@ -591,7 +599,29 @@ function TrackerHero({
       {/* The observing column: what the sky is doing, then the photograph as
           context for it rather than as the surface everything is printed on. */}
       <aside className="tk-observe-side">
-        {path ? (
+        {/* Composed per phenomenon rather than forced through one projection.
+            A shower has two separate questions — when is it best, and where do
+            I look — and they need different axes: quality against time for the
+            first, a compass for the second. A planet has one question, and
+            bearing against altitude answers it directly. */}
+        {path?.kind === "radiant" ? (
+          <>
+            <TrackerMeteorTimeline
+              path={path}
+              meteors={night.meteors}
+              clock={clock}
+              windowStartUtc={path.windowStartUtc}
+              windowEndUtc={path.windowEndUtc}
+            />
+            {gaze ? (
+              <TrackerOrientation
+                gaze={gaze}
+                radiantAzimuthDeg={brightestRadiant?.azimuthDeg}
+                radiantAltitudeDeg={brightestRadiant?.altitudeDeg}
+              />
+            ) : null}
+          </>
+        ) : path ? (
           <TrackerSkyChart
             path={path}
             clock={clock}

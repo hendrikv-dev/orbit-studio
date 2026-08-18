@@ -117,3 +117,101 @@ export function highestPoint(path: SkyPath): SkyPoint {
     point.altitudeDeg > best.altitudeDeg ? point : best,
   );
 }
+
+/* ------------------------------------------------------- where to actually look */
+
+/**
+ * A region of sky to face, which is not the same thing as an object's position.
+ *
+ * For a planet the two coincide: the thing is at a bearing and an altitude, and
+ * that is where you point. For a meteor shower they must not. The radiant sets
+ * the rate — a shower with its radiant near the horizon produces few meteors
+ * however clear the sky — but staring at the radiant is the worst thing you can
+ * do with your eyes, because meteors near it are travelling almost straight at
+ * you and appear as motionless dots rather than streaks.
+ *
+ * So this is a separate value with a separate meaning, and the separation is in
+ * the model rather than in a component's head. A native compass on a phone
+ * would consume exactly this: a bearing to face, how much slop is acceptable,
+ * and how high to tilt. It must never be handed a radiant and told it is a
+ * heading.
+ */
+export interface GazeRegion {
+  /** Bearing to face, degrees clockwise from north. */
+  centerAzimuthDeg: number;
+  /**
+   * How wide the useful region is, in degrees either side of centre.
+   *
+   * Broad for meteors — the advice is genuinely "keep this part of the sky in
+   * view", not "point here" — and narrow for a target you are trying to find.
+   */
+  azimuthSpreadDeg: number;
+  /** How high to look, and how forgiving that is. */
+  centerAltitudeDeg: number;
+  altitudeSpreadDeg: number;
+  /** Why this is the answer, in the words the interface can use. */
+  reason: string;
+}
+
+/**
+ * How far from the radiant to look.
+ *
+ * Meteors are longest and most visible some way from the radiant, and the usual
+ * observing advice is roughly 40 degrees off it. Kept as a named constant
+ * because it is a judgement about human vision rather than a derived quantity.
+ */
+const RADIANT_STANDOFF_DEG = 40;
+
+/**
+ * Comfortable observing altitude.
+ *
+ * High enough to be clear of horizon murk and local obstructions, low enough
+ * that a person is not staring at the zenith with their neck bent — which is
+ * what actually ends meteor watches.
+ */
+const COMFORTABLE_ALTITUDE_DEG = 60;
+
+/**
+ * Where to face, for an opportunity, at the moment that matters.
+ *
+ * Returns null where the question does not apply — a total lunar eclipse is
+ * wherever the Moon is and the reader will find it without help.
+ */
+export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): GazeRegion | null {
+  if (!path || path.points.length === 0) return null;
+
+  if (path.kind === "radiant") {
+    // Judged at the best moment rather than averaged: that is when the reader
+    // will be outside, and a radiant moves enough across a night that the mean
+    // bearing can point somewhere the radiant never was.
+    const best = path.points.reduce((top, point) =>
+      point.relative > top.relative ? point : top,
+    );
+    // Offset away from the radiant, along the horizon, towards the darker sky.
+    // Which side barely matters — what matters is not being aimed at it.
+    const center = (best.azimuthDeg + RADIANT_STANDOFF_DEG + 360) % 360;
+    return {
+      centerAzimuthDeg: center,
+      // Deliberately wide. Narrow guidance here would be false precision and
+      // would also be bad advice: peripheral vision catches most meteors.
+      azimuthSpreadDeg: 55,
+      centerAltitudeDeg: COMFORTABLE_ALTITUDE_DEG,
+      altitudeSpreadDeg: 25,
+      reason:
+        "Meteors near the radiant come almost straight at you and show as dots. Keep it in view, but look off to one side of it.",
+    };
+  }
+
+  const best = path.points.reduce((top, point) =>
+    point.relative > top.relative ? point : top,
+  );
+  return {
+    centerAzimuthDeg: best.azimuthDeg,
+    // Tight: this is a thing to find, and being 40 degrees out means not
+    // finding it.
+    azimuthSpreadDeg: 8,
+    centerAltitudeDeg: Math.max(0, best.altitudeDeg),
+    altitudeSpreadDeg: 5,
+    reason: `${opportunity.title} is there at its best.`,
+  };
+}
