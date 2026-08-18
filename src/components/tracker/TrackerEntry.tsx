@@ -64,7 +64,7 @@ export function TrackerEntry({ onSelect }: { onSelect: (place: SelectedPlace) =>
       <div className="tk-entry-preview" aria-label="What Tracker produces">
         <div className="tk-section-head">
           <h2>Tonight</h2>
-          <span className="tk-tag">Example — your list is computed once you pick a place</span>
+          <span className="tk-tag">Your list appears once you pick a place</span>
         </div>
         <ol className="tk-preview-list">
           {PREVIEW.map((entry) => (

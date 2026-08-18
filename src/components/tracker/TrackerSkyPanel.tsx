@@ -210,7 +210,6 @@ export function TrackerSkyPanel({ arc, example = false, className }: Props) {
       <figcaption className="tk-sky-caption">
         {example ? (
           <>
-            <span className="tk-tag">Example</span>
             Every recommendation is drawn like this: where it rises, how high it gets, which way to
             face, and the window worth going out for.
           </>

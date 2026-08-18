@@ -12210,6 +12210,22 @@ button.primary,
   --tk-line: rgba(126, 156, 190, 0.16);
   --tk-line-strong: rgba(126, 156, 190, 0.3);
 
+  /* ---------------------------------------------------------------- type
+
+     Space Grotesk carries identity and controls, IBM Plex Sans carries reading,
+     Space Mono carries measurements. The serif that was here before read as
+     literary — a books-and-wine voice on a product about pointing at the sky.
+     This is the register the subject actually belongs to: instruments,
+     mission displays, technical documentation. Precise rather than ornamental,
+     and without tipping into retro-futurism or novelty "space" lettering.
+
+     Numbers are the reason for the third family. Times, altitudes and rates are
+     compared against each other constantly, and a monospaced cut aligns them
+     into columns without any of the surrounding prose becoming a terminal. */
+  --tk-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --tk-body: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --tk-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
   /* Warm white against cold surfaces, so the type does not read as clinical. */
   --tk-ink: #f2efe8;
   --tk-ink-soft: #c3cbd8;
@@ -12237,11 +12253,9 @@ button.primary,
   /* An editorial serif for display, the UI sans for everything functional.
      The giant geometric sans headline was doing most of the work of making
      this look like a template. */
-  --tk-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
-    Georgia, "Times New Roman", serif;
-
   background: var(--tk-void);
   color: var(--tk-ink);
+  font-family: var(--tk-body);
 }
 
 /* --- shared type ---------------------------------------------------------- */
@@ -13577,4 +13591,63 @@ button.primary,
   outline: none;
   border-radius: 6px;
   box-shadow: 0 0 0 2px var(--tk-void), 0 0 0 4px var(--tk-accent);
+}
+
+/* ======================================================== the type scale
+
+   Three families, each with a job. Display carries identity and anything the
+   reader acts on; body carries reading; mono carries anything that is a
+   measurement and gets compared against another measurement. */
+
+.tracker-shell { font-family: var(--tk-body); }
+
+/* Identity and controls. Tighter than the serif was, and set at weights that
+   hold up against a dark ground without going thin. */
+.tracker-shell h1,
+.tracker-shell h2,
+.tk-display,
+.tracker-nav-item,
+.tk-verdict,
+.tracker-primary,
+.tracker-secondary,
+.tk-mode-item,
+.tracker-card-title,
+.tk-night-lead,
+.tk-cal-month,
+.tk-now-name {
+  font-family: var(--tk-display);
+  letter-spacing: -0.015em;
+}
+.tracker-shell h1 { font-weight: 600; }
+.tracker-shell h2 { font-weight: 600; }
+.tk-tonight .tracker-card-title { font-weight: 600; letter-spacing: -0.02em; }
+
+/* Measurements. Times, altitudes, rates and temperatures line up in columns
+   and are read against each other, which is the whole reason for a third
+   family — and the reason it stops at numbers rather than spreading into the
+   prose and turning the interface into a terminal. */
+.tk-fact-strong,
+.tk-nightbar b,
+.tracker-card-when,
+.tk-night-day,
+.tk-now-until,
+.tk-now-state,
+.tk-chart-guidelabel,
+.tk-chart-compass,
+.tk-timeline-peaklabel,
+.tk-cal-daynum,
+.tracker-place-context {
+  font-family: var(--tk-mono);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uppercase micro-labels read better in the display face with air in them. */
+.tk-fact dt,
+.tk-nightbar,
+.tracker-hero-eyebrow,
+.tk-eyebrow,
+.tracker-more h2 {
+  font-family: var(--tk-display);
+  letter-spacing: 0.1em;
 }

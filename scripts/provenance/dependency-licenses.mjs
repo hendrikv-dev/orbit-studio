@@ -25,6 +25,15 @@ const supportedLicenses = new Set([
   "CC-BY-4.0",
   "ISC",
   "MIT",
+  // SIL Open Font License 1.1, the standard licence for open typefaces and the
+  // one Space Grotesk, IBM Plex Sans and Space Mono all ship under. It permits
+  // bundling, embedding and redistribution, including in a commercial product.
+  // Its two real conditions are both satisfied here: the fonts are not sold on
+  // their own — they are shipped as part of an application — and neither the
+  // font files nor their reserved names are modified. A derivative typeface
+  // would have to be renamed and released under OFL itself, which is why this
+  // sits in the allowlist rather than being waved through as "permissive".
+  "OFL-1.1",
 ]);
 
 /**

@@ -46,7 +46,6 @@ import { adapterFor, conditionsFor } from "../../data/tracker/weatherProviders";
 import { heroImageryFor, IMAGERY_CLASS_LABEL } from "../../data/tracker/imagery";
 import { TrackerScene } from "./TrackerScene";
 import { TrackerCondition } from "./TrackerCondition";
-import { TrackerNightChart } from "./TrackerNightChart";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { TrackerEntry } from "./TrackerEntry";
 
@@ -884,9 +883,9 @@ function TrackerDetail({
   onToggle: () => void;
 }) {
   return (
-    <section className="tracker-detail" aria-label="How this was worked out">
+    <section className="tracker-detail" aria-label="Why Tracker recommends this">
       <button type="button" onClick={onToggle} aria-expanded={expanded}>
-        {expanded ? "Hide the working" : "How this was worked out"}
+        {expanded ? "Close" : "Why Tracker recommends this"}
       </button>
       {expanded ? (
         <div className="tracker-detail-body">
@@ -903,17 +902,10 @@ function TrackerDetail({
             <p>{night.period.limitation}</p>
           )}
 
-          {night.meteors.samples.length > 0 ? (
-            <>
-              <h3>Meteor activity across the night</h3>
-              <TrackerNightChart
-                period={night.period}
-                rateSamples={night.meteors.samples}
-                highlightUtc={night.meteors.best?.atUtc}
-                highlightLabel="the best time to be outside"
-              />
-            </>
-          ) : null}
+          {/* The meteor activity chart lived here as well as in the main
+              composition, so opening this put two of the same visualisation on
+              one screen — the second one explaining the first. There is one
+              primary timing graphic, and it is the one above. */}
 
           <h3>What the estimates leave out</h3>
           <ul>

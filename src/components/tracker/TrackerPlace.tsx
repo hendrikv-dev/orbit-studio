@@ -230,7 +230,7 @@ function PlacePanel({
       return [
         {
           id: "pin",
-          name: `${pin.latitude.toFixed(3)}, ${pin.longitude.toFixed(3)}`,
+          name: "Where you are",
           context: "Use these coordinates",
           latitude: pin.latitude,
           longitude: pin.longitude,
@@ -250,10 +250,12 @@ function PlacePanel({
       <div className="tracker-place-confirm">
         <p className="tracker-place-confirm-lead">Use this place?</p>
         <p className="tracker-place-confirm-name">{pending.name}</p>
+        {/* The resolved place, not the coordinates. A pair of decimals is the
+            geocoder's answer, not the reader's — it tells them nothing about
+            whether Tracker understood which park they meant. Coordinates stay
+            available in the provenance panel, where precision is the point. */}
         <p className="tracker-place-confirm-context">
-          {pending.context}
-          {pending.context ? " · " : ""}
-          {pending.latitude.toFixed(4)}, {pending.longitude.toFixed(4)}
+          {pending.context || "Location found"}
         </p>
         <div className="tracker-place-confirm-actions">
           {/* `autoFocus` rather than a ref and an effect: focusing the node

@@ -3,6 +3,17 @@ import ReactDOM from "react-dom/client";
 import { APP_READY_EVENT } from "./lib/appReady";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { sanitizeLocalAppStateOnBoot } from "./lib/appStateReset";
+// Typefaces, self-hosted rather than linked. A font CDN is a third-party
+// request on every load, a privacy leak, and a silent fallback to the system
+// stack whenever it is blocked — which for a dark interface read at night is a
+// visible change, not a graceful degradation.
+//
+// Variable weights for the two text families so the whole scale comes from one
+// file each; Space Mono has no variable cut and ships as two static weights.
+import "@fontsource-variable/space-grotesk";
+import "@fontsource-variable/ibm-plex-sans";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
 import "./styles/app.css";
 
 sanitizeLocalAppStateOnBoot();
