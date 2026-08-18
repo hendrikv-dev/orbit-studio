@@ -115,7 +115,7 @@ export function TrackerMonth({ place, clock }: Props) {
             </div>
           ))}
           {Array.from({ length: firstWeekday }, (_, index) => (
-            <div key={`pad-${index}`} aria-hidden />
+            <div key={`pad-${index}`} className="tk-day-pad" aria-hidden />
           ))}
           {Array.from({ length: dayCount }, (_, index) => {
             const day = index + 1;

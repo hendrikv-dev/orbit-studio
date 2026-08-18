@@ -24,7 +24,7 @@ import {
 import { TrackerFinder } from "./TrackerFinder";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerSkyPlate } from "./TrackerSkyPlate";
-import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
+import { TrackerNightRibbon } from "./TrackerNightRibbon";
 import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerNow } from "./TrackerNow";
 import {
@@ -682,9 +682,9 @@ function TrackerHero({
                in the experience. */
             title={
               path.kind === "radiant"
-                ? "How the shower builds through the night"
+                ? "When to go out"
                 : path.kind === "rate"
-                  ? "How many to expect through the night"
+                  ? "When to go out"
                   : `Where to find ${opportunity.title.replace(/^The /, "")}`
             }
             caption={
@@ -698,8 +698,11 @@ function TrackerHero({
             {path.kind === "target" ? (
               <TrackerFinder path={path} label={opportunity.title} />
             ) : path.kind === "radiant" || path.kind === "rate" ? (
-              <TrackerMeteorTimeline
-                path={path}
+              /* The footage is the centre for a shower; the ribbon says when.
+                 A plotted rate curve above or below it made the graph the
+                 subject again, which is the thing that was meant to change. */
+              <TrackerNightRibbon
+                period={night.period}
                 meteors={night.meteors}
                 clock={clock}
                 windowStartUtc={path.windowStartUtc}

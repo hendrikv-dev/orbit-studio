@@ -13853,6 +13853,8 @@ button.primary,
    content, so one long label would widen its column and shift the rest of the
    week. minmax(0, 1fr) removes that floor, which is what actually holds the
    matrix rigid. */
+.tk-day-pad { min-width: 0; min-height: 0; }
+
 .tk-month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -13870,24 +13872,38 @@ button.primary,
 }
 /* An ordinary date is a number. No border, no fill, no badge — which is what
    lets the handful of marked dates read as marked. */
+/* Every date is the same permanent cell.
+   
+   Equal grid tracks were not enough: ordinary days had no box at all while
+   marked and selected days grew one, so the visible footprint still changed
+   with state even though the tracks did not. The box now always exists — it is
+   the calendar's structure — and state changes only what is painted inside it.
+   
+   Reserved space for the annotation is part of that: the label row is always
+   there, empty on an ordinary day, so a date does not grow when it gains an
+   event. */
 .tk-day {
   display: grid;
-  align-content: start;
-  gap: 3px;
-  border: 0;
-  background: none;
-  padding: 5px 6px;
+  grid-template-rows: auto 1fr;
+  gap: 2px;
+  border: 1px solid var(--tk-line);
+  border-radius: 8px;
+  background: var(--tk-panel-sunk, rgba(255, 255, 255, 0.012));
+  padding: 6px 8px;
   text-align: left;
   color: inherit;
   font: inherit;
-  /* Both minimums matter. Without min-width a long label sets the column's
-     width; without min-height a two-line label sets the row's. Either one
-     breaks the invariant. */
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
-.tk-day-num { font-family: var(--tk-mono); font-size: 0.76rem; color: var(--tk-ink-faint); font-variant-numeric: tabular-nums; }
+.tk-day-num {
+  font-family: var(--tk-mono);
+  font-size: 0.86rem;
+  color: var(--tk-ink-dim);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
 .tk-day.is-marked { cursor: pointer; }
 .tk-day.is-marked .tk-day-num { color: var(--tk-ink); }
 /* The label adapts inside the cell rather than the cell growing to fit it.
@@ -13901,8 +13917,8 @@ button.primary,
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--tk-display);
-  font-size: 0.56rem;
-  letter-spacing: 0.09em;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--tk-blue-lit);
   border-left: 2px solid var(--tk-blue-lit);
@@ -13911,13 +13927,14 @@ button.primary,
 }
 .tk-day[data-kind="eclipse"] .tk-day-mark,
 .tk-day[data-kind="shower-peak"] .tk-day-mark { color: var(--tk-accent); border-left-color: var(--tk-accent); }
-/* Selection is painted, never laid out. A border or padding change here would
-   alter the cell's box and shift the week. */
+/* Selection is painted, never laid out. Border width, padding and radius are
+   identical to every other cell; only colour changes, so nothing moves. */
 .tk-day[aria-current="date"] {
-  background: var(--tk-panel);
-  border-radius: 8px;
-  box-shadow: inset 0 0 0 1px var(--tk-line-strong);
+  background: var(--tk-panel-lift);
+  border-color: var(--tk-accent);
 }
+.tk-day[aria-current="date"] .tk-day-num { color: var(--tk-ink); }
+.tk-day.is-marked:hover { border-color: var(--tk-line-strong); }
 
 .tk-month-detail {
   border-left: 1px solid var(--tk-line);
@@ -14089,4 +14106,92 @@ button.primary,
   letter-spacing: 0.01em;
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+/* ======================================================== the night ribbon
+
+   One line, laid out in proportion to real time. Marks sit where they actually
+   fall, so the spacing is information rather than layout. No axes, no
+   gridlines, no legend, no plotted curve. */
+
+.tk-ribbon { display: grid; gap: 14px; }
+.tk-ribbon-track {
+  position: relative;
+  height: 46px;
+  margin-top: 8px;
+}
+.tk-ribbon-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10px;
+  height: 1px;
+  background: var(--tk-line-strong);
+}
+/* The window worth going out for is the only thing given the accent. */
+.tk-ribbon-window {
+  position: absolute;
+  top: 6px;
+  height: 9px;
+  border-radius: 5px;
+  background: var(--tk-accent);
+}
+.tk-ribbon-moon {
+  position: absolute;
+  top: 19px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(226, 214, 176, 0.5);
+}
+.tk-ribbon-mark {
+  position: absolute;
+  top: 22px;
+  display: grid;
+  gap: 1px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.tk-ribbon-mark[data-edge="start"] { transform: none; }
+.tk-ribbon-mark[data-edge="end"] { transform: translateX(-100%); }
+.tk-ribbon-mark b {
+  font-family: var(--tk-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--tk-ink);
+  font-variant-numeric: tabular-nums;
+}
+.tk-ribbon-mark i {
+  font-style: normal;
+  font-family: var(--tk-display);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tk-ink-faint);
+}
+/* The sentence carries the judgement, because that is what a reader takes
+   outside — not a shape. */
+.tk-ribbon-verdict {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--tk-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.tk-ribbon-verdict b {
+  font-family: var(--tk-mono);
+  color: var(--tk-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The experience surface is the centre for a shower, so it takes the height
+   the chart used to. */
+.tk-observe-side:has(.tk-ribbon) .tk-exp { max-height: min(52vh, 460px); }
+
+/* Tonight sits up against the night bar rather than floating in the middle
+   of the viewport. */
+.tk-tonight > .tracker-hero.tk-observe { align-content: start; padding-top: clamp(12px, 2vh, 24px); }
+@media (min-width: 1180px) {
+  .tk-tonight .tk-observe-main,
+  .tk-tonight .tk-observe-side,
+  .tk-tonight > .tracker-more { align-self: start; }
 }
