@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { planMonth } from "../../data/tracker/schedule";
+import { distinguishingOpportunity, planMonth } from "../../data/tracker/schedule";
 import type { PlaceClock } from "../../lib/localTime";
 import type { SelectedPlace } from "./TrackerPlace";
 
@@ -98,7 +98,9 @@ export function TrackerCalendar({ place, clock }: Props) {
         {Array.from({ length: dayCount }, (_, index) => {
           const day = index + 1;
           const plan = byDate.get(key(day));
-          const lead = plan?.ranking.ranked[0] ?? null;
+          // Same comparison Upcoming sorts by, so a square and the list
+          // agree about what a night is for.
+          const lead = plan ? distinguishingOpportunity(plan) : null;
           return (
             <div
               key={day}

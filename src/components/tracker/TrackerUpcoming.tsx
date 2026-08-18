@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import {
   DEFAULT_HORIZON_NIGHTS,
+  distinguishingOpportunity,
+  nightDistinction,
   planNights,
   type NightPlan,
 } from "../../data/tracker/schedule";
@@ -60,18 +62,14 @@ export function TrackerUpcoming({ place, clock, onOpenNight, horizonNights }: Pr
     [place.latitude, place.longitude, horizonNights, clock.timeZone],
   );
 
-  // Ordered by what each night's best thing is worth, because what makes one
-  // night worth choosing over another is its best thing rather than its
-  // average. The date order is still available and is what the calendar is for.
+  // Ordered by what distinguishes each night, not by its best opportunity's
+  // strength. Sorting on strength put a Moon phase at the top of nearly all
+  // thirty nights — true, and useless for choosing one.
   const byWorth = useMemo(
     () =>
       [...plans]
         .filter((plan) => plan.ranking.ranked.length > 0)
-        .sort((left, right) => {
-          const l = left.ranking.ranked[0];
-          const r = right.ranking.ranked[0];
-          return r.strength - l.strength;
-        }),
+        .sort((left, right) => nightDistinction(right) - nightDistinction(left)),
     [plans],
   );
 
@@ -88,9 +86,14 @@ export function TrackerUpcoming({ place, clock, onOpenNight, horizonNights }: Pr
 
       <ol className="tk-night-list">
         {byWorth.map((plan) => {
-          const lead = plan.ranking.ranked[0];
+          // The opportunity that earned the night its place, which on the night
+          // of an eclipse is not the top-ranked target. Showing the ranked lead
+          // would have the list assert one thing and be sorted by another.
+          const lead = distinguishingOpportunity(plan)!;
           const date = labelFor(plan.dateKey);
-          const others = plan.ranking.ranked.slice(1, 4);
+          const others = plan.ranking.ranked
+            .filter((entry) => entry.opportunity.id !== lead.opportunity.id)
+            .slice(0, 3);
           return (
             <li key={plan.dateKey}>
               <button

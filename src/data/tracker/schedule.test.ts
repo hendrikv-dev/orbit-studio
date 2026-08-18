@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_HORIZON_NIGHTS, planMonth, planNight, planNights } from "./schedule";
+import {
+  DEFAULT_HORIZON_NIGHTS,
+  distinguishingOpportunity,
+  nightDistinction,
+  planMonth,
+  planNight,
+  planNights,
+} from "./schedule";
 
 // Joshua Tree: mid-latitude, real observing site, no polar edge cases.
 const LAT = 34.135;
@@ -63,5 +70,31 @@ describe("the shared schedule layer", () => {
     const plans = planNights(LAT, LON, new Date("2026-08-16T22:00:00Z"), 20, ZONE);
     const leads = new Set(plans.map((plan) => plan.ranking.ranked[0]?.opportunity.id));
     expect(leads.size).toBeGreaterThan(1);
+  });
+
+  it("ranks a rare event above a night whose best thing is a routine Moon", () => {
+    // The defect this primitive exists for: ordering nights by their best
+    // opportunity's strength put a Moon phase at the top of nearly all thirty
+    // and gave a partial lunar eclipse the same standing as a routine Tuesday.
+    // Every night has a Moon; what makes a night worth choosing is what the
+    // nights either side of it do not have.
+    const plans = planNights(LAT, LON, new Date("2026-08-17T22:00:00Z"), 30, ZONE);
+    const eclipse = plans.find((plan) =>
+      plan.ranking.ranked.some((entry) => entry.opportunity.kind === "lunar-eclipse"),
+    );
+    expect(eclipse).toBeDefined();
+
+    const routine = plans.filter(
+      (plan) =>
+        plan !== eclipse &&
+        distinguishingOpportunity(plan)?.opportunity.kind === "moon",
+    );
+    expect(routine.length).toBeGreaterThan(0);
+    for (const plan of routine) {
+      expect(nightDistinction(eclipse!)).toBeGreaterThan(nightDistinction(plan));
+    }
+
+    // And the night is presented by the thing that earned it its place.
+    expect(distinguishingOpportunity(eclipse!)?.opportunity.kind).toBe("lunar-eclipse");
   });
 });

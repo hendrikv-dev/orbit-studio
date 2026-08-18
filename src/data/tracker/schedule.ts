@@ -157,12 +157,69 @@ export function planMonth(
 }
 
 /**
+ * How much rarity counts when comparing nights rather than opportunities.
+ *
+ * Inside one night, ranking caps rarity's contribution at RARITY_CAP, and that
+ * is right: a rare thing badly placed is still badly placed, and rarity must
+ * not be able to override observability. Across nights the question inverts.
+ * Every night has a Moon, and on most of them it is genuinely a good target —
+ * so ordering nights by their best opportunity's strength put a waxing gibbous
+ * at the top of nearly all thirty, gave a partial lunar eclipse the same band
+ * as a routine Tuesday, and left the view unable to answer the only question
+ * it exists to answer: which of these nights should I choose?
+ *
+ * What distinguishes a night is what you cannot see on the others. So rarity is
+ * uncapped here and weighted heavily, deliberately and in one place.
+ */
+const CROSS_NIGHT_RARITY_WEIGHT = 1.6;
+
+/**
+ * What makes this night different from the nights either side of it.
+ *
+ * Deliberately not the same comparison ranking makes. Ranking answers "given
+ * that I am going out tonight, what should I look at"; this answers "which
+ * night should I go out". A Moon that is very good on all thirty nights is a
+ * fine answer to the first and no answer at all to the second.
+ */
+export function nightDistinction(plan: NightPlan): number {
+  return plan.ranking.ranked.reduce(
+    (best, entry) =>
+      Math.max(
+        best,
+        entry.strength * (1 + entry.opportunity.qualities.rarity * CROSS_NIGHT_RARITY_WEIGHT),
+      ),
+    0,
+  );
+}
+
+/**
+ * The opportunity that earned the night its place, which is not always the
+ * top-ranked one.
+ *
+ * On the night of an eclipse the ranked list may still lead with the Moon as a
+ * target; the reason to pick that night out of a month is the eclipse. Showing
+ * the ranked lead there would have the view assert one thing and be sorted by
+ * another.
+ */
+export function distinguishingOpportunity(plan: NightPlan): Ranking["ranked"][number] | null {
+  let best: Ranking["ranked"][number] | null = null;
+  let bestValue = -1;
+  for (const entry of plan.ranking.ranked) {
+    const value =
+      entry.strength * (1 + entry.opportunity.qualities.rarity * CROSS_NIGHT_RARITY_WEIGHT);
+    if (value > bestValue) {
+      bestValue = value;
+      best = entry;
+    }
+  }
+  return best;
+}
+
+/**
  * The single best thing across a set of nights.
  *
  * Upcoming ranks nights against each other, which ranking itself does not do —
- * it ranks opportunities inside one night. The comparison is on the leading
- * opportunity's strength, because what makes a night worth choosing over
- * another is its best thing, not its average.
+ * it ranks opportunities inside one night.
  */
 export function leadOf(plan: NightPlan): Ranking["ranked"][number] | null {
   return plan.ranking.ranked[0] ?? null;
