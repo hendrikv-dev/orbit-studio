@@ -11,16 +11,14 @@ import {
   type PlaceClock,
 } from "../../lib/localTime";
 import {
-  trackerObservationPeriod,
   type ObservationPeriod,
 } from "../../data/tracker/observationPeriod";
-import { meteorNight, type MeteorNight } from "../../data/tracker/meteorActivity";
-import { tonightsOpportunities } from "../../data/tracker/phenomena";
+import { type MeteorNight } from "../../data/tracker/meteorActivity";
+import { planNight } from "../../data/tracker/schedule";
 import {
   applySkyAccess,
   chooseHero,
   partitionByAvailability,
-  rankOpportunities,
   viewingConclusion,
   type Ranking,
   type SkyAdjustedOpportunity,
@@ -155,19 +153,16 @@ function TrackerScreen() {
 
   const weather = useConditions(place);
 
-  const night = useMemo(() => {
-    if (!place) return null;
-    try {
-      const period = trackerObservationPeriod(place.latitude, place.longitude, new Date());
-      const ranking = rankOpportunities(
-        tonightsOpportunities(place.latitude, place.longitude, period),
-      );
-      const meteors = meteorNight(place.latitude, place.longitude, period);
-      return { period, ranking, meteors };
-    } catch {
-      return null;
-    }
-  }, [place]);
+  // Tonight is one question asked of the shared schedule layer, not its own
+  // pipeline. It used to be computed inline here, which is why there was
+  // nowhere for a second night to come from.
+  const night = useMemo(
+    () =>
+      place
+        ? planNight(place.latitude, place.longitude, new Date(), clock.timeZone)
+        : null,
+    [place, clock.timeZone],
+  );
 
   const snapshots = weather.data?.snapshots ?? EMPTY_SNAPSHOTS;
   // "Not asked yet" is not "asked and failed". Conflating them is what made the
