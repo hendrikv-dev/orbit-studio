@@ -298,30 +298,59 @@ function TrackerScreen() {
               best moment falls, when it ends. Four times a reader otherwise has
               to dig out of a paragraph, and the line the composition hangs
               from. */}
-          <ul className="tk-nightbar">
-            <li>
-              Sunset <b>{formatClockTime(night.period.startUtc, clock)}</b>
-            </li>
-            {night.period.darkness.astronomical ? (
-              <li>
-                Dark <b>{formatClockTime(night.period.darkness.astronomical.startUtc, clock)}</b>
-              </li>
-            ) : null}
-            {selected && withSky?.windows.get(selected.opportunity.id) ? (
-              <li className="is-peak">
-                {selected.opportunity.title} best{" "}
-                <b>
-                  {formatClockTime(
-                    withSky.windows.get(selected.opportunity.id)!.peakUtc,
-                    clock,
-                  )}
-                </b>
-              </li>
-            ) : null}
-            <li>
-              Dawn <b>{formatClockTime(night.period.endUtc, clock)}</b>
-            </li>
-          </ul>
+          {/* A real proportional timeline, not four labels spread across a
+              rule. It looked like a timeline and behaved like a list, so the
+              distance between sunset and dark carried no meaning while
+              appearing to. Every mark now sits at its true fraction of the
+              night, and the observing window is drawn as the span it actually
+              occupies. */}
+          {(() => {
+            const from = Date.parse(night.period.startUtc);
+            const to = Date.parse(night.period.endUtc);
+            const span = Math.max(1, to - from);
+            const at = (utc: string) =>
+              Math.max(0, Math.min(100, ((Date.parse(utc) - from) / span) * 100));
+            const dark = night.period.darkness.astronomical?.startUtc ?? null;
+            const window = selected ? withSky?.windows.get(selected.opportunity.id) : null;
+            return (
+              <div className="tk-nightbar" role="img" aria-label={`The night runs from ${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}.`}>
+                {/* One positioning context for the track and the marks, so a
+                    mark at 50% and the track's midpoint are the same place.
+                    Positioning them against the padded box instead put every
+                    label slightly off the time it named. */}
+                <div className="tk-nightbar-inner">
+                <div className="tk-nightbar-track">
+                  {dark ? (
+                    <span
+                      className="tk-nightbar-dark"
+                      style={{ left: `${at(dark)}%`, right: 0 }}
+                    />
+                  ) : null}
+                  {window ? (
+                    <span
+                      className="tk-nightbar-window"
+                      style={{
+                        left: `${at(window.startUtc)}%`,
+                        width: `${Math.max(1.5, at(window.endUtc) - at(window.startUtc))}%`,
+                      }}
+                    />
+                  ) : null}
+                </div>
+                <span className="tk-nightbar-mark" style={{ left: "0%" }}>
+                  <b>{formatClockTime(night.period.startUtc, clock)}</b> Sunset
+                </span>
+                {dark ? (
+                  <span className="tk-nightbar-mark" style={{ left: `${at(dark)}%` }}>
+                    <b>{formatClockTime(dark, clock)}</b> Dark
+                  </span>
+                ) : null}
+                <span className="tk-nightbar-mark is-end" style={{ left: "100%" }}>
+                  <b>{formatClockTime(night.period.endUtc, clock)}</b> Dawn
+                </span>
+                </div>
+              </div>
+            );
+          })()}
       {selected ? (
         <TrackerHero
           entry={selected}
@@ -498,6 +527,11 @@ function TrackerHero({
   // Where to face, which for a shower is deliberately not where the radiant is.
   const gaze = gazeRegionFor(opportunity, path);
   const experience = experienceFor(opportunity.kind);
+  // Has the observing window actually begun? Falls back to the recommended
+  // instant where no window was computed, so the rule holds for every branch
+  // rather than only the ones that produce a window.
+  const opensAt = viewingWindow ? viewingWindow.startUtc : guidance.whenUtc;
+  const windowOpened = Date.now() >= Date.parse(opensAt);
   // Two dimensions, two vocabularies. One GOOD/EXCELLENT scale for both
   // produced screens where a target was "not worth a special trip" beside a
   // badge reading GOOD — the badge describing the weather, the sentence
@@ -638,14 +672,24 @@ function TrackerHero({
           >
             Remind me
           </button>
-          <button
-            type="button"
-            className={seen ? "tracker-secondary tracker-seen" : "tracker-secondary"}
-            onClick={onSeen}
-            aria-pressed={seen}
-          >
-            {seen ? "You saw it" : "I saw it"}
-          </button>
+          {/* "I saw it" only once there is something to have seen.
+          
+              It was offered whatever the clock said, so a reader could report
+              having seen a shower four hours before its window opened. The
+              window is real local time, not the calendar date: before it opens
+              the only honest action is a reminder, and once it has opened —
+              including after it closes, since people log a sighting on the way
+              back indoors — the report makes sense. */}
+          {windowOpened ? (
+            <button
+              type="button"
+              className={seen ? "tracker-secondary tracker-seen" : "tracker-secondary"}
+              onClick={onSeen}
+              aria-pressed={seen}
+            >
+              {seen ? "You saw it" : "I saw it"}
+            </button>
+          ) : null}
         </div>
 
         {/* "What will I realistically see" is the one thing the disclosure

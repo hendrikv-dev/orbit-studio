@@ -13484,87 +13484,49 @@ button.primary,
   }
   .tk-tonight > .tracker-hero.tk-observe { display: contents; }
 
-  .tk-tonight > .tk-nightbar { grid-column: 1 / -1; grid-row: 1; padding-left: 0; padding-right: 0; }
-  .tk-tonight .tk-observe-main { grid-column: 1; grid-row: 2; align-self: center; }
-  .tk-tonight .tk-observe-side { grid-column: 2; grid-row: 2; align-self: center; }
-  .tk-tonight > .tracker-more {
-    grid-column: 3;
-    grid-row: 2;
-    align-self: center;
-    border-top: 0;
-    padding: 0;
-  }
-  .tk-tonight > .tracker-unavailable,
-  .tk-tonight > .tracker-detail { grid-column: 1 / -1; grid-row: 3; padding-left: 0; padding-right: 0; }
-
-  .tk-tonight .tracker-cards { flex-direction: column; overflow: visible; gap: 2px; }
-  .tk-tonight .tracker-card { width: auto; max-width: 100%; }
-}
-
-/* Graduated, not tiled. The first alternative sits on a panel; the ones below
-   it lose the panel and lose contrast, so rank is legible before any word is
-   read. Equal cards asserted that everything mattered equally. */
-.tk-tonight .tracker-more h2 {
-  font-family: var(--body, inherit);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tk-ink-faint);
-}
-.tk-tonight .tracker-card {
-  border: 0;
-  background: none;
-  border-radius: 12px;
-  padding: 12px 14px;
-  gap: 3px;
-}
-.tk-tonight .tracker-card:first-child {
-  background: var(--tk-panel);
-  box-shadow: inset 0 0 0 1px var(--tk-line);
-}
-.tk-tonight .tracker-card:nth-child(2) { opacity: 0.74; }
-.tk-tonight .tracker-card:nth-child(3) { opacity: 0.52; }
-
-/* Event names keep the editorial face wherever they appear, so a secondary
-   opportunity reads as the same kind of thing as the lead. */
-.tk-tonight .tracker-card-title {
-  font-family: var(--tk-display);
-  font-size: 1.22rem;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-}
-.tk-tonight .tracker-card-summary {
-  display: block;
-  color: var(--tk-ink-dim);
-  font-size: 0.78rem;
-  line-height: 1.42;
-}
-.tk-tonight .tracker-card-when { font-size: 0.72rem; color: var(--tk-ink-faint); }
-
-/* ------------------------------------------- the night, as a progression strip
-
-   Sunset, full dark, the night's peak moment and dawn, laid along the top. It
-   replaces having to read four separate times out of a paragraph, and it gives
-   the composition its horizon line. */
+  .tk-tonight > /* The night as a proportional strip. Quiet, but honest: a mark's position is
+   its time. */
 .tk-nightbar {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 18px;
+  position: relative;
+  height: 30px;
   margin: 0;
-  padding: 0 clamp(20px, 3vw, 44px) 4px;
+  padding: 0 clamp(20px, 3vw, 44px);
   border-bottom: 1px solid var(--tk-line);
-  list-style: none;
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
+}
+.tk-nightbar-inner { position: relative; height: 100%; }
+.tk-nightbar-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(126, 166, 207, 0.14);
+}
+/* Full darkness, drawn as the stretch it occupies rather than a label. */
+.tk-nightbar-dark { position: absolute; top: 0; bottom: 0; background: rgba(126, 166, 207, 0.26); border-radius: 2px; }
+.tk-nightbar-window { position: absolute; top: -2px; height: 8px; border-radius: 4px; background: var(--tk-accent); }
+.tk-nightbar-mark {
+  position: absolute;
+  top: 15px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--tk-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--tk-ink-faint);
 }
-.tk-nightbar li { display: flex; gap: 7px; padding-bottom: 10px; }
-.tk-nightbar b { color: var(--tk-ink-soft); font-weight: 600; }
-.tk-nightbar .is-peak { color: var(--tk-accent); }
-.tk-nightbar .is-peak b { color: var(--tk-accent); }
+.tk-nightbar-mark:first-of-type { transform: none; }
+.tk-nightbar-mark.is-end { transform: translateX(-100%); }
+.tk-nightbar-mark b {
+  font-family: var(--tk-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tk-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ================================ observing guidance as a state, not an append
 
@@ -14126,26 +14088,35 @@ button.primary,
    No plotting frame, no gridlines, no legend. */
 .tk-finder { margin: 0; }
 .tk-finder svg { display: block; width: 100%; height: auto; }
-.tk-finder-ref { stroke: rgba(150, 186, 222, 0.16); stroke-width: 1; stroke-dasharray: 1 6; }
-.tk-finder-reflabel { fill: var(--tk-ink-faint); font-size: 10px; font-family: var(--tk-mono); }
-.tk-finder-track { fill: none; stroke: rgba(126, 166, 207, 0.4); stroke-width: 2; }
-.tk-finder-track-lit { fill: none; stroke: var(--tk-accent); stroke-width: 3.4; stroke-linecap: round; }
-.tk-finder-drop { stroke: rgba(226, 238, 248, 0.2); stroke-width: 1; stroke-dasharray: 2 4; }
+.tk-finder-ground { fill: #05070d; }
+.tk-finder-horizon { stroke: rgba(150, 186, 222, 0.45); stroke-width: 1.4; }
+.tk-finder-halo { fill: rgba(226, 238, 248, 0.1); }
 .tk-finder-object { fill: var(--tk-ink); }
-.tk-finder-alt {
+/* The instruction, written on the ground you are facing. It is the largest
+   thing in the drawing because it is the thing you act on. */
+.tk-finder-facing {
   fill: var(--tk-ink);
-  font-family: var(--tk-mono);
-  font-size: 15px;
-  font-weight: 700;
-}
-.tk-finder-horizon { stroke: rgba(150, 186, 222, 0.5); stroke-width: 1.4; }
-.tk-finder-compass {
-  fill: var(--tk-ink-faint);
   font-family: var(--tk-display);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
-.tk-finder-compass.is-facing { fill: var(--tk-ink); font-weight: 600; }
+.tk-finder-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 10px 2px 0;
+  color: var(--tk-ink-soft);
+  font-size: 0.92rem;
+}
+/* Degrees stay available and stop organising anything. */
+.tk-finder-precise {
+  font-family: var(--tk-mono);
+  font-size: 0.72rem;
+  color: var(--tk-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
 
 /* The where-to-look fact carries a sentence, so it spans and stacks its
    secondary precision underneath rather than being squeezed into a column

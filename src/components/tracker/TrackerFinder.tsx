@@ -1,39 +1,28 @@
-import { highestPoint, type SkyPath } from "../../data/tracker/skyPath";
+import { describeAltitude, describeDirection, highestPoint, type SkyPath } from "../../data/tracker/skyPath";
 
 /**
- * Where to face, and how high — as an instrument rather than a plot.
+ * Where to turn and how far up to tilt your head.
  *
- * The chart this replaces put a 13° arc in the corner of a large empty
- * rectangle with dashed guides and an axis, and asked the reader to decode a
- * graph in order to learn "south-west, low down". The area was mostly frame.
+ * The version this replaces was still a plot: 30/60-degree gridlines, an
+ * altitude axis, a curve through the data and a numeric point on it. The
+ * geometry was real and the presentation was a chart, so a reader had to
+ * interpret it before they could act on it — which is exactly what the words
+ * beside it had stopped asking them to do.
  *
- * This is built from the same real altitude/azimuth samples. What changed is
- * the question it answers: not "plot altitude against bearing" but "which way
- * do I turn, and how far up do I tilt my head". So it is a horizon with the
- * object on it — the compass runs along the bottom because that is the thing
- * you physically turn to, the height is read against a small elevation scale,
- * and the arc shows only the part of the path worth being outside for.
+ * This says the same thing the sentence says. A horizon you can see, the
+ * direction to face written large on it, and the target sitting at a believable
+ * height in an open field of sky. There is no grid, no axis, no plotted path
+ * and no data point. The degrees are still there, small, underneath — precision
+ * for anyone who wants it and ignorable for everyone who does not.
  *
- * Nothing is drawn that a reader cannot act on. There is no plotting frame, no
- * gridlines and no legend.
+ * The real altitude and azimuth still drive every position. Only the drawing
+ * changed.
  */
 
 const WIDTH = 560;
-const HEIGHT = 180;
-const HORIZON_Y = 138;
-const PAD_X = 26;
+const HEIGHT = 210;
+const HORIZON_Y = 150;
 
-const POINTS = [
-  { deg: 0, label: "N" },
-  { deg: 45, label: "NE" },
-  { deg: 90, label: "E" },
-  { deg: 135, label: "SE" },
-  { deg: 180, label: "S" },
-  { deg: 225, label: "SW" },
-  { deg: 270, label: "W" },
-  { deg: 315, label: "NW" },
-  { deg: 360, label: "N" },
-];
 
 interface Props {
   path: SkyPath;
@@ -45,45 +34,14 @@ export function TrackerFinder({ path, label }: Props) {
   if (visible.length === 0) return null;
 
   const peak = highestPoint(path);
+  const facing = describeDirection(peak.azimuthDeg, peak.altitudeDeg);
+  const height = describeAltitude(peak.altitudeDeg);
 
-  // The dial spans a window around where the object actually is, wide enough
-  // to place it against named directions but not so wide that a low object
-  // becomes a smear at one end.
-  const azimuths = visible.map((point) => point.azimuthDeg);
-  const centre = azimuths.reduce((sum, value) => sum + value, 0) / azimuths.length;
-  const halfSpan = 78;
-  const toX = (deg: number) => {
-    let delta = ((deg - centre + 540) % 360) - 180;
-    delta = Math.max(-halfSpan, Math.min(halfSpan, delta));
-    return WIDTH / 2 + (delta / halfSpan) * (WIDTH / 2 - PAD_X);
-  };
-  // Altitude is compressed above 60°, because the difference between 70° and
-  // 80° does not change what a person does and the difference between 5° and
-  // 15° very much does.
-  const toY = (altitudeDeg: number) => {
-    const clamped = Math.max(0, Math.min(90, altitudeDeg));
-    const eased = Math.sqrt(clamped / 90);
-    return HORIZON_Y - eased * (HORIZON_Y - 34);
-  };
-
-  const line = (points: typeof path.points) =>
-    points.length === 0
-      ? ""
-      : `M ${points.map((p) => `${toX(p.azimuthDeg).toFixed(1)},${toY(p.altitudeDeg).toFixed(1)}`).join(" L ")}`;
-
-  const lit = visible.filter(
-    (point) =>
-      (!path.windowStartUtc || point.atUtc >= path.windowStartUtc) &&
-      (!path.windowEndUtc || point.atUtc <= path.windowEndUtc),
-  );
-
-  const near = POINTS.filter((point) => {
-    const delta = Math.abs((((point.deg - centre + 540) % 360) - 180));
-    return delta <= halfSpan - 6;
-  });
-
-  const peakX = toX(peak.azimuthDeg);
-  const peakY = toY(peak.altitudeDeg);
+  // Height in the field, eased so the low end has room. The difference between
+  // 5 and 15 degrees changes what a person does — over a rooftop or behind it —
+  // while 70 and 80 do not, so the scale spends its space where the decision is.
+  const eased = Math.sqrt(Math.max(0, Math.min(90, peak.altitudeDeg)) / 90);
+  const y = HORIZON_Y - eased * (HORIZON_Y - 46);
 
   return (
     <figure className="tk-finder">
@@ -91,54 +49,35 @@ export function TrackerFinder({ path, label }: Props) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={`${label} is ${Math.round(peak.altitudeDeg)} degrees above the horizon at its best, towards the ${near.length ? near.reduce((closest, entry) => Math.abs(toX(entry.deg) - peakX) < Math.abs(toX(closest.deg) - peakX) ? entry : closest).label : "horizon"}.`}
+        aria-label={`${facing}. ${height}. ${label} reaches ${Math.round(peak.altitudeDeg)} degrees.`}
       >
-        {/* Elevation reference: two marks, not a grid. A fist at arm's length
-            is about ten degrees, which is how people actually measure this. */}
-        {[30, 60].map((altitude) => (
-          <g key={altitude}>
-            <line
-              x1={PAD_X}
-              x2={WIDTH - PAD_X}
-              y1={toY(altitude)}
-              y2={toY(altitude)}
-              className="tk-finder-ref"
-            />
-            <text x={PAD_X - 4} y={toY(altitude) + 3} textAnchor="end" className="tk-finder-reflabel">
-              {altitude}°
-            </text>
-          </g>
-        ))}
+        {/* A band of sky, darkening towards the horizon the way it actually
+            does. It is the field the target sits in, not a plotting area. */}
+        <defs>
+          <linearGradient id="tk-finder-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(126, 166, 207, 0.13)" />
+            <stop offset="100%" stopColor="rgba(126, 166, 207, 0.02)" />
+          </linearGradient>
+        </defs>
+        <rect x={0} y={10} width={WIDTH} height={HORIZON_Y - 10} fill="url(#tk-finder-sky)" rx={10} />
 
-        <path d={line(visible)} className="tk-finder-track" />
-        <path d={line(lit)} className="tk-finder-track-lit" />
+        {/* The target. One mark, at a believable height, with a soft halo so it
+            reads as a thing in the sky rather than a plotted point. */}
+        <circle cx={WIDTH / 2} cy={y} r={17} className="tk-finder-halo" />
+        <circle cx={WIDTH / 2} cy={y} r={5.5} className="tk-finder-object" />
 
-        {/* The object at its best, with its height called out where it sits. */}
-        <line x1={peakX} x2={peakX} y1={peakY} y2={HORIZON_Y} className="tk-finder-drop" />
-        <circle cx={peakX} cy={peakY} r={5} className="tk-finder-object" />
-        <text x={peakX} y={peakY - 13} textAnchor="middle" className="tk-finder-alt">
-          {Math.round(peak.altitudeDeg)}°
-        </text>
-
-        {/* The horizon is the ground line, and the compass sits on it, because
-            the bearing is the thing you turn your body to. */}
+        {/* Ground, and the direction to face written on it. */}
+        <rect x={0} y={HORIZON_Y} width={WIDTH} height={HEIGHT - HORIZON_Y} className="tk-finder-ground" rx={4} />
         <line x1={0} x2={WIDTH} y1={HORIZON_Y} y2={HORIZON_Y} className="tk-finder-horizon" />
-        {near.map((point) => (
-          <text
-            key={`${point.label}-${point.deg}`}
-            x={toX(point.deg)}
-            y={HORIZON_Y + 22}
-            textAnchor="middle"
-            className={
-              Math.abs(toX(point.deg) - peakX) < 34
-                ? "tk-finder-compass is-facing"
-                : "tk-finder-compass"
-            }
-          >
-            {point.label}
-          </text>
-        ))}
+        <text x={WIDTH / 2} y={HORIZON_Y + 30} textAnchor="middle" className="tk-finder-facing">
+          {facing}
+        </text>
       </svg>
+
+      <figcaption className="tk-finder-caption">
+        {height}
+        <span className="tk-finder-precise">{Math.round(peak.altitudeDeg)}° above the horizon</span>
+      </figcaption>
     </figure>
   );
 }
