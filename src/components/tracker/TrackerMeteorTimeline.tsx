@@ -27,9 +27,9 @@ import { formatClockTime, type PlaceClock } from "../../lib/localTime";
  */
 
 const WIDTH = 640;
-const HEIGHT = 200;
+const HEIGHT = 250;
 const PLOT_TOP = 16;
-const PLOT_BOTTOM = 150;
+const PLOT_BOTTOM = 196;
 const PAD_X = 38;
 
 interface Props {
@@ -110,11 +110,7 @@ export function TrackerMeteorTimeline({
   const hours = samples.filter((_, index) => index % Math.ceil(samples.length / 6) === 0);
 
   return (
-    <figure className="tk-timeline">
-      <figcaption className="tk-timeline-title">
-        How the shower builds through the night
-      </figcaption>
-      <svg
+    <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
@@ -227,8 +223,6 @@ export function TrackerMeteorTimeline({
             {formatClockTime(sample.atUtc, clock)}
           </text>
         ))}
-      </svg>
-
-    </figure>
+    </svg>
   );
 }

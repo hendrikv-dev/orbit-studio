@@ -18,9 +18,11 @@ import { planNight } from "../../data/tracker/schedule";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerSkyChart } from "./TrackerSkyChart";
+import { TrackerSkyPlate } from "./TrackerSkyPlate";
 import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
 import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerCalendar } from "./TrackerCalendar";
+import { TrackerNow } from "./TrackerNow";
 import {
   applySkyAccess,
   chooseHero,
@@ -158,11 +160,11 @@ function TrackerScreen() {
   }, [place]);
 
   const [view, setView] = useState<TrackerView>("tonight");
-  // Now and Tonight are the same night seen from two distances: Now asks what
-  // is worth stepping outside for in the next couple of hours, Tonight asks
-  // what the whole night is worth planning around. They share the composition
-  // below and differ in what they admit.
-  const showsNight = view === "now" || view === "tonight";
+  // Now and Tonight are the same night asked two different questions. Now was
+  // previously gated on this same boolean, which meant the tab existed and
+  // rendered Tonight unchanged — navigation asserting a product and shipping a
+  // duplicate.
+  const showsNight = view === "tonight";
   const weather = useConditions(place);
 
   // Tonight is one question asked of the shared schedule layer, not its own
@@ -276,6 +278,18 @@ function TrackerScreen() {
       </header>
 
       {!place ? <TrackerEntry onSelect={setPlace} /> : null}
+
+      {place && view === "now" && withSky ? (
+        <TrackerNow
+          entries={withSky.ranked}
+          windows={withSky.windows}
+          clock={clock}
+          onSelect={(id) => {
+            setSelectedId(id);
+            setView("tonight");
+          }}
+        />
+      ) : null}
 
       {place && view === "upcoming" ? (
         <TrackerUpcoming place={place} clock={clock} onOpenNight={() => setView("tonight")} />
@@ -623,42 +637,52 @@ function TrackerHero({
             I look — and they need different axes: quality against time for the
             first, a compass for the second. A planet has one question, and
             bearing against altitude answers it directly. */}
-        {path?.kind === "radiant" ? (
-          <>
-            <TrackerMeteorTimeline
-              path={path}
-              meteors={night.meteors}
-              clock={clock}
-              windowStartUtc={path.windowStartUtc}
-              windowEndUtc={path.windowEndUtc}
-            />
-            <div className="tk-observe-pair">
-              <figure className="tk-observe-media">
-                <TrackerScene
-                  className="tk-observe-scene"
-                  imagery={imagery}
-                  priority
-                  showCredit
-                  illuminatedFraction={
-                    opportunity.sceneHints?.illuminatedFraction ??
-                    bestSample?.moonIlluminatedFraction ??
-                    0.5
-                  }
-                  waning={opportunity.sceneHints?.waning ?? false}
-                />
-              </figure>
-            </div>
-          </>
-        ) : path ? (
-          <TrackerSkyChart
-            path={path}
-            clock={clock}
+        {/* One frame, one ground, one caption voice — parameterised by what the
+            phenomenon actually is. A shower's quality is a function of time; a
+            planet's is a function of where it is. The drawing inside differs;
+            everything around it does not. */}
+        {path ? (
+          <TrackerSkyPlate
             tone={opportunity.kind}
-            label={opportunity.title}
-          />
+            imageSrc={imagery.treatment === "photo" ? (imagery.src ?? undefined) : undefined}
+            creditName={imagery.treatment === "photo" ? imagery.credit : undefined}
+            creditHref={imagery.treatment === "photo" ? imagery.sourceUrl : undefined}
+            creditLicence={imagery.treatment === "photo" ? imagery.licence : undefined}
+            title={
+              path.kind === "radiant"
+                ? "How the shower builds through the night"
+                : `Where to find ${opportunity.title.replace(/^The /, "")}`
+            }
+            caption={
+              path.kind === "radiant"
+                ? "The radiant climbs as the night goes on, and the rate climbs with it. The bright section is the window worth going out for."
+                : "Its path from where you are. The bright section is the window worth going out for."
+            }
+          >
+            {path.kind === "radiant" ? (
+              <TrackerMeteorTimeline
+                path={path}
+                meteors={night.meteors}
+                clock={clock}
+                windowStartUtc={path.windowStartUtc}
+                windowEndUtc={path.windowEndUtc}
+              />
+            ) : (
+              <TrackerSkyChart
+                path={path}
+                clock={clock}
+                tone={opportunity.kind}
+                label={opportunity.title}
+              />
+            )}
+          </TrackerSkyPlate>
         ) : null}
 
-        {path?.kind === "radiant" ? null : (
+        {/* Subject imagery — a planet portrait, the Moon at tonight's phase —
+            keeps its own frame, because it is a picture of the thing rather
+            than the sky the thing is in. Photographs of sky are the plate's
+            ground instead of a second box below it. */}
+        {imagery.treatment !== "photo" ? (
           <figure className="tk-observe-media">
             <TrackerScene
               className="tk-observe-scene"
@@ -673,7 +697,7 @@ function TrackerHero({
               waning={opportunity.sceneHints?.waning ?? false}
             />
           </figure>
-        )}
+        ) : null}
       </aside>
     </section>
   );

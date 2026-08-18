@@ -13040,3 +13040,188 @@ button.primary,
 .tk-timeline-peaklabel { fill: var(--tk-ink); font-size: 11px; font-weight: 600; }
 
 .tk-observe-pair { display: grid; gap: 16px; }
+
+/* ============================================================== the sky plate
+
+   One frame for every sky drawing, with the photograph as its ground rather
+   than a separate box beneath it. The picture is dimmed and washed hard enough
+   that the annotation always wins: it is the surface, never the subject. */
+
+.tk-plate { margin: 0; }
+
+.tk-plate-frame {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: 16px;
+  background: var(--tk-void);
+  padding: 16px 18px 14px;
+  box-shadow:
+    0 1px 0 rgba(226, 238, 248, 0.05) inset,
+    0 30px 60px -30px rgba(0, 0, 0, 0.7);
+}
+
+.tk-plate-ground { position: absolute; inset: 0; z-index: -2; }
+.tk-plate-ground img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 42%;
+  opacity: 0.5;
+}
+/* Two washes: a flat one to hold contrast everywhere, and a vertical one so
+   the caption end of the plate is darkest, where the small type sits. */
+.tk-plate-ground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 13, 0.5) 0%, rgba(5, 7, 13, 0.62) 46%, rgba(4, 6, 11, 0.9) 100%);
+}
+
+.tk-plate-title {
+  position: relative;
+  margin: 0 0 2px;
+  color: var(--tk-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.tk-plate-drawing { position: relative; }
+.tk-plate-drawing svg { display: block; width: 100%; height: auto; }
+
+.tk-plate-credit {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  margin: 0;
+  color: rgba(226, 238, 248, 0.46);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+}
+.tk-plate-credit a { color: rgba(226, 238, 248, 0.62); text-decoration: none; }
+.tk-plate-credit a:hover { color: var(--tk-ink); }
+
+.tk-plate-caption {
+  margin: 10px 2px 0;
+  max-width: 64ch;
+  color: var(--tk-ink-dim);
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+/* Over a photograph the drawing needs a little more presence than it did on
+   flat panel colour. */
+.tk-plate .tk-chart-path { stroke: rgba(186, 212, 238, 0.6); stroke-width: 2.4; }
+.tk-plate .tk-chart-path-lit { stroke-width: 3.8; }
+.tk-plate .tk-chart-guide { stroke: rgba(198, 220, 242, 0.26); }
+.tk-plate .tk-chart-guidelabel,
+.tk-plate .tk-chart-compass { fill: rgba(226, 238, 248, 0.72); }
+.tk-plate .tk-chart-horizon { stroke: rgba(198, 220, 242, 0.55); }
+.tk-plate .tk-chart-ground,
+.tk-plate .tk-timeline-area { fill: rgba(4, 6, 11, 0.55); }
+.tk-plate .tk-timeline-twilight { fill: rgba(226, 238, 248, 0.07); }
+
+/* ------------------------------------------------- composition and figures
+
+   Times, temperatures and altitudes are read in columns and compared against
+   each other, so they are set in tabular figures. Proportional digits made the
+   fact row and the ranked list shift under their own numbers. */
+.tk-facts,
+.tk-night-list,
+.tk-cal-grid,
+.tracker-card-when,
+.tk-timeline,
+.tk-plate {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The fact row sat ragged because the Sky cell stacks an icon, a sentence and
+   a chip while its neighbours hold one line. Equal rows, aligned baselines. */
+.tk-facts { align-items: stretch; }
+.tk-fact { align-content: start; row-gap: 7px; }
+.tk-fact dd { display: flex; align-items: center; min-height: 22px; }
+.tk-fact-strong {
+  font-size: 1.02rem;
+  line-height: 1.25;
+  /* Long ranges stayed on one line rather than breaking mid-time. */
+  white-space: nowrap;
+}
+.tk-fact .tracker-condition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+@media (max-width: 1180px) {
+  .tk-fact-strong { font-size: 0.94rem; white-space: normal; }
+}
+
+/* The reading column ran out well before the observing column did, leaving a
+   quarter of the viewport empty. Anchoring the columns to the top of the grid
+   and letting the aside run its own length closes it without stretching
+   paragraphs to fill space they do not want. */
+@media (min-width: 1040px) {
+  .tracker-hero.tk-observe { grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr); }
+  .tk-observe-main { position: sticky; top: 84px; }
+}
+
+/* ---------------------------------------------------------------------- now */
+
+.tk-now-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; max-width: 900px; }
+.tk-now-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  padding: 14px 16px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-now-row:hover { border-color: var(--tk-line-strong); background: var(--tk-panel-lift); }
+.tk-now-state {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tk-ink-dim);
+}
+.tk-now-row.is-open { border-left: 3px solid var(--tk-accent); }
+.tk-now-row.is-open .tk-now-state { color: var(--tk-accent); font-weight: 600; }
+.tk-now-body { display: grid; gap: 3px; min-width: 0; }
+.tk-now-name { color: var(--tk-ink); font-size: 0.98rem; font-weight: 600; }
+.tk-now-note { color: var(--tk-ink-dim); font-size: 0.82rem; line-height: 1.45; }
+.tk-now-until { color: var(--tk-ink-faint); font-size: 0.78rem; white-space: nowrap; }
+
+.tk-now-next {
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
+  align-items: baseline;
+  gap: 14px;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  padding: 14px 18px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.tk-now-next:hover { border-color: var(--tk-line-strong); }
+.tk-now-next-label {
+  font-size: 0.64rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--tk-ink-faint);
+}
+.tk-now-next-name { color: var(--tk-ink); font-weight: 600; }
+.tk-now-next-time { font-family: var(--tk-display); font-size: 1.15rem; color: var(--tk-ink); }

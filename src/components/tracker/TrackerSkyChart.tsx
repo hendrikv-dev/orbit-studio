@@ -20,8 +20,8 @@ import { formatClockTime, type PlaceClock } from "../../lib/localTime";
  */
 
 const WIDTH = 640;
-const HEIGHT = 260;
-const HORIZON_Y = 208;
+const HEIGHT = 300;
+const HORIZON_Y = 244;
 const SKY_TOP = 26;
 const PAD_X = 34;
 
@@ -140,8 +140,7 @@ export function TrackerSkyChart({ path, clock, tone = "neutral", label }: Props)
   };
 
   return (
-    <figure className="tk-chart" data-tone={tone}>
-      <svg
+    <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
@@ -220,21 +219,6 @@ export function TrackerSkyChart({ path, clock, tone = "neutral", label }: Props)
             </text>
           </g>
         ))}
-      </svg>
-
-      <figcaption className="tk-chart-caption">
-        {path.kind === "radiant" ? (
-          <>
-            <span className="tk-chart-key" /> Where the meteors come from, climbing through the
-            night. Watch the sky around it, not the point itself.
-          </>
-        ) : (
-          <>
-            <span className="tk-chart-key" /> Its path from where you are. The bright section is
-            the window worth going out for.
-          </>
-        )}
-      </figcaption>
-    </figure>
+    </svg>
   );
 }
