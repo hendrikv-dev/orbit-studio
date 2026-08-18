@@ -12857,3 +12857,92 @@ button.primary,
   .tk-cal-grid { gap: 3px; }
   .tk-cal-cell { min-height: 72px; padding: 6px; }
 }
+
+/* ====================================================== observing composition
+
+   Tonight's primary recommendation. The photograph used to be the page: a
+   full-bleed image with the text laid over whichever half of it happened to be
+   dark, which made the layout a property of the picture rather than of the
+   information. Two deliberate columns instead — the reading column, and the
+   observing column that says what to actually do outside. */
+
+.tracker-hero.tk-observe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  max-width: 1480px;
+  margin: 0 auto;
+  min-height: 0;
+  padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 40px) 40px;
+  background: none;
+}
+.tk-observe .tracker-hero-scene { display: none; }
+
+@media (min-width: 1040px) {
+  .tracker-hero.tk-observe {
+    /* The observing column is the wider of the two. A sky path needs
+       horizontal room to be read as a path; a paragraph does not need more
+       than about 60 characters and gets worse with more. */
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    gap: 44px;
+  }
+}
+
+.tk-observe-main { display: block; position: static; max-width: 62ch; padding: 0; }
+.tk-observe-side { display: grid; gap: 16px; min-width: 0; }
+
+.tk-chart {
+  margin: 0;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: var(--tk-panel);
+  padding: 14px 16px 12px;
+}
+.tk-chart svg { display: block; width: 100%; height: auto; }
+
+.tk-chart-guide { stroke: rgba(150, 186, 222, 0.22); stroke-width: 1; stroke-dasharray: 3 5; }
+.tk-chart-guidelabel { fill: var(--tk-ink-faint); font-size: 10px; }
+.tk-chart-path { fill: none; stroke: rgba(126, 166, 207, 0.45); stroke-width: 2; }
+/* The lit section is the window worth going out for, and is the only part of
+   the drawing given the accent. */
+.tk-chart-path-lit { fill: none; stroke: var(--tk-accent); stroke-width: 3.4; stroke-linecap: round; }
+.tk-chart-drop { stroke: rgba(226, 238, 248, 0.24); stroke-width: 1; stroke-dasharray: 2 4; }
+.tk-chart-peak { fill: var(--tk-ink); font-size: 15px; font-weight: 600; }
+.tk-chart-mark { fill: var(--tk-ink-soft); }
+.tk-chart-marklabel { fill: var(--tk-ink-dim); font-size: 10px; letter-spacing: 0.04em; }
+.tk-chart-horizon { stroke: rgba(126, 166, 207, 0.5); stroke-width: 1.2; }
+.tk-chart-ground { fill: #04060b; }
+.tk-chart-tick { stroke: rgba(126, 166, 207, 0.34); stroke-width: 1; }
+.tk-chart-compass {
+  fill: var(--tk-ink-dim);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.tk-chart-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 10px 0 0;
+  color: var(--tk-ink-dim);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.tk-chart-key {
+  flex: none;
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--tk-accent);
+  transform: translateY(-3px);
+}
+
+.tk-observe-media {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  aspect-ratio: 16 / 9;
+}
+.tk-observe-scene { position: absolute; inset: 0; }

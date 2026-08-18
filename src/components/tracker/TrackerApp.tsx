@@ -15,6 +15,8 @@ import {
 } from "../../data/tracker/observationPeriod";
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
+import { skyPathFor } from "../../data/tracker/skyPath";
+import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerCalendar } from "./TrackerCalendar";
 import {
@@ -454,22 +456,20 @@ function TrackerHero({
     passed,
   );
 
-  return (
-    <section className="tracker-hero" aria-label="Tonight's recommendation">
-      <TrackerScene
-        className="tracker-hero-scene"
-        imagery={imagery}
-        priority
-        showCredit
-        illuminatedFraction={
-          opportunity.sceneHints?.illuminatedFraction ??
-          bestSample?.moonIlluminatedFraction ??
-          0.5
-        }
-        waning={opportunity.sceneHints?.waning ?? false}
-      />
+  // The geometry, drawn from the samples themselves. Null where the phenomenon
+  // has no position worth drawing, which is a real answer rather than a reason
+  // to invent one.
+  const path = skyPathFor(opportunity, viewingWindow);
 
-      <div className="tracker-hero-panel">
+  return (
+    <section className="tracker-hero tk-observe" aria-label="Tonight's recommendation">
+      {/* Two columns, both load-bearing. The photograph used to be the page —
+          a full-bleed image with the text laid over its dark half — which made
+          the layout a function of where the picture happened to be dark. It is
+          now one element among several, sized and placed deliberately, and the
+          sky drawing sits beside it as the thing that actually tells you what
+          to do outside. */}
+      <div className="tk-observe-main">
         {/* Safety is rendered before anything else and has no disclosure
             control. Nothing sets it yet; the position is reserved so that
             adding a solar event cannot quietly bury it. */}
@@ -587,6 +587,34 @@ function TrackerHero({
           </p>
         </details>
       </div>
+
+      {/* The observing column: what the sky is doing, then the photograph as
+          context for it rather than as the surface everything is printed on. */}
+      <aside className="tk-observe-side">
+        {path ? (
+          <TrackerSkyChart
+            path={path}
+            clock={clock}
+            tone={opportunity.kind}
+            label={opportunity.title}
+          />
+        ) : null}
+
+        <figure className="tk-observe-media">
+          <TrackerScene
+            className="tk-observe-scene"
+            imagery={imagery}
+            priority
+            showCredit
+            illuminatedFraction={
+              opportunity.sceneHints?.illuminatedFraction ??
+              bestSample?.moonIlluminatedFraction ??
+              0.5
+            }
+            waning={opportunity.sceneHints?.waning ?? false}
+          />
+        </figure>
+      </aside>
     </section>
   );
 }
