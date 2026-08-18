@@ -647,7 +647,7 @@ export function cadenceRangeDescription(lowPerHour: number, highPerHour: number)
   // Close enough that a range would be false precision.
   if (Math.round(slow) === Math.round(fast)) return cadenceDescription(lowPerHour);
   if (slow < 1.5) return "roughly one a minute";
-  return `one every ${Math.round(fast)}-${Math.round(slow)} minutes`;
+  return `one every ${Math.round(fast)}\u2013${Math.round(slow)} minutes`;
 }
 
 export function cadenceDescription(perHour: number): string {

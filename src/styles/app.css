@@ -12662,3 +12662,198 @@ button.primary,
 }
 .tracker-unavailable-name { color: var(--tk-ink-soft); font-size: 0.9rem; }
 .tracker-unavailable-note { color: var(--tk-ink-faint); font-size: 0.78rem; }
+
+/* ============================================================ application shell
+
+   The navigation is the thing that makes Tracker read as one product rather
+   than an onboarding screen followed by a page. It is present from the moment
+   there is a place to compute for. */
+
+.tracker-nav {
+  display: flex;
+  gap: 2px;
+  margin-right: auto;
+  margin-left: 26px;
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  background: var(--tk-panel);
+  padding: 3px;
+}
+.tracker-nav-item {
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  padding: 7px 15px;
+  color: var(--tk-ink-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+.tracker-nav-item:hover { color: var(--tk-ink); }
+.tracker-nav-item[aria-current="page"] {
+  background: var(--tk-panel-lift);
+  box-shadow: inset 0 0 0 1px var(--tk-line-strong);
+  color: var(--tk-ink);
+}
+
+/* Shared frame for the views that are not the night composition. Full desktop
+   width, not a mobile column adrift in a monitor. */
+.tk-view {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 40px) 56px;
+}
+.tk-view-head { margin-bottom: 26px; }
+.tk-view-head .tk-display { margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.4rem); }
+.tk-view-lede {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--tk-ink-dim);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ upcoming */
+
+.tk-night-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-night {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  padding: 13px 15px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-night:hover { border-color: var(--tk-line-strong); background: var(--tk-panel-lift); }
+.tk-night-date {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  border-right: 1px solid var(--tk-line);
+  padding-right: 14px;
+}
+.tk-night-weekday,
+.tk-night-month {
+  color: var(--tk-ink-faint);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-night-day {
+  font-family: var(--tk-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--tk-ink);
+}
+.tk-night-body { display: grid; gap: 3px; min-width: 0; }
+.tk-night-lead { color: var(--tk-ink); font-size: 0.95rem; font-weight: 600; }
+.tk-night-summary {
+  color: var(--tk-ink-dim);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.tk-night-also {
+  color: var(--tk-ink-faint);
+  font-size: 0.73rem;
+  letter-spacing: 0.01em;
+}
+.tk-night-band,
+.tk-cal-band {
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--tk-ink-dim);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tk-night-band[data-band="exceptional"],
+.tk-cal-band[data-band="exceptional"] { border-color: var(--tk-accent); color: var(--tk-accent); }
+.tk-night-band[data-band="excellent"],
+.tk-cal-band[data-band="excellent"] { border-color: var(--tk-blue-lit); color: var(--tk-blue-lit); }
+
+/* ------------------------------------------------------------------ calendar */
+
+.tk-cal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.tk-cal-month {
+  margin: 0;
+  font-family: var(--tk-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+.tk-cal-step {
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  background: var(--tk-panel);
+  padding: 8px 15px;
+  color: var(--tk-ink-soft);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.tk-cal-step:hover { border-color: var(--tk-line-strong); color: var(--tk-ink); }
+
+.tk-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.tk-cal-weekday {
+  padding: 4px 2px;
+  color: var(--tk-ink-faint);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.tk-cal-pad { min-height: 96px; }
+.tk-cal-cell {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-height: 96px;
+  border: 1px solid var(--tk-line);
+  border-radius: 9px;
+  background: var(--tk-panel);
+  padding: 8px 9px;
+}
+.tk-cal-daynum { color: var(--tk-ink-dim); font-size: 0.76rem; }
+.tk-cal-lead {
+  color: var(--tk-ink);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+.tk-cal-quiet { color: var(--tk-ink-faint); font-size: 0.8rem; }
+.tk-cal-cell .tk-cal-band { justify-self: start; }
+
+@media (max-width: 900px) {
+  .tracker-nav { margin-left: 12px; }
+  .tracker-nav-item { padding: 7px 10px; font-size: 0.8rem; }
+  .tk-cal-grid { gap: 3px; }
+  .tk-cal-cell { min-height: 72px; padding: 6px; }
+}

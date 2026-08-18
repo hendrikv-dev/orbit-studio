@@ -15,6 +15,8 @@ import {
 } from "../../data/tracker/observationPeriod";
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
+import { TrackerUpcoming } from "./TrackerUpcoming";
+import { TrackerCalendar } from "./TrackerCalendar";
 import {
   applySkyAccess,
   chooseHero,
@@ -151,6 +153,12 @@ function TrackerScreen() {
       : clockForCoordinates(place.latitude, place.longitude);
   }, [place]);
 
+  const [view, setView] = useState<TrackerView>("tonight");
+  // Now and Tonight are the same night seen from two distances: Now asks what
+  // is worth stepping outside for in the next couple of hours, Tonight asks
+  // what the whole night is worth planning around. They share the composition
+  // below and differ in what they admit.
+  const showsNight = view === "now" || view === "tonight";
   const weather = useConditions(place);
 
   // Tonight is one question asked of the shared schedule layer, not its own
@@ -239,6 +247,24 @@ function TrackerScreen() {
           src="/brand/orbit-studio-tracker-logo.png"
           alt="Orbit Studio Tracker"
         />
+        {/* The application's own navigation, present from the moment there is a
+            place to compute for. These are four different questions over one
+            shared schedule layer, not four sorts of the same list. */}
+        {place ? (
+          <nav className="tracker-nav" aria-label="Tracker views">
+            {VIEWS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                className="tracker-nav-item"
+                aria-current={view === entry.id ? "page" : undefined}
+                onClick={() => setView(entry.id)}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </nav>
+        ) : null}
         {/* The bar carries the location only once there is one. Before that the
             entry screen owns the single control, rather than two instances of
             the same component competing for the same job. */}
@@ -247,7 +273,13 @@ function TrackerScreen() {
 
       {!place ? <TrackerEntry onSelect={setPlace} /> : null}
 
-      {night && place && selected ? (
+      {place && view === "upcoming" ? (
+        <TrackerUpcoming place={place} clock={clock} onOpenNight={() => setView("tonight")} />
+      ) : null}
+
+      {place && view === "calendar" ? <TrackerCalendar place={place} clock={clock} /> : null}
+
+      {showsNight && night && place && selected ? (
         <TrackerHero
           entry={selected}
           night={night}
@@ -269,7 +301,7 @@ function TrackerScreen() {
         />
       ) : null}
 
-      {night && place && !selected ? (
+      {showsNight && night && place && !selected ? (
         <section className="tracker-hero tracker-hero-quiet" aria-label="Tonight">
           <TrackerScene
             imagery={heroImageryFor("none", "night-sky")}
@@ -291,7 +323,7 @@ function TrackerScreen() {
         </section>
       ) : null}
 
-      {alternatives.length > 0 && withSky ? (
+      {showsNight && alternatives.length > 0 && withSky ? (
         <section className="tracker-more" id="tracker-more" aria-label="Also tonight">
           <h2>Also tonight</h2>
           <div className="tracker-cards">
@@ -315,7 +347,7 @@ function TrackerScreen() {
         </section>
       ) : null}
 
-      {unavailable.length > 0 ? (
+      {showsNight && unavailable.length > 0 ? (
         <section className="tracker-unavailable" aria-label="Not observable tonight">
           <h2>Below the horizon</h2>
           {/* Context, not a recommendation. These used to sit in the ranked
@@ -337,7 +369,7 @@ function TrackerScreen() {
         </section>
       ) : null}
 
-      {night && place ? (
+      {showsNight && night && place ? (
         <TrackerDetail
           night={night}
           weather={weather}
@@ -351,6 +383,26 @@ function TrackerScreen() {
     </main>
   );
 }
+
+/* ------------------------------------------------------------------- views */
+
+export type TrackerView = "now" | "tonight" | "upcoming" | "calendar";
+
+/**
+ * The four views, and what each is actually for.
+ *
+ * They share the schedule layer, the ranking primitives and the components
+ * below. What separates them is the question asked, and the questions are
+ * genuinely different: "should I step outside in the next hour", "what is
+ * tonight worth", "which night this month should I plan for", "what happens
+ * on a given date". Four sorts of one list would answer only the second.
+ */
+const VIEWS: { id: TrackerView; label: string }[] = [
+  { id: "now", label: "Now" },
+  { id: "tonight", label: "Tonight" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "calendar", label: "Calendar" },
+];
 
 /* ------------------------------------------------------------------- hero */
 
