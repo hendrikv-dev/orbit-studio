@@ -250,3 +250,43 @@ export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): G
     reason: `${opportunity.title} is there at its best.`,
   };
 }
+
+/* --------------------------------------------------- saying it in English */
+
+/**
+ * Altitude as a person would describe it, not as a number.
+ *
+ * "13°" is precise and means nothing to somebody standing in a garden. A fist
+ * held at arm's length covers about ten degrees for almost everyone, because
+ * the ratio of arm length to hand size barely varies between adults — which
+ * makes it the one measuring instrument every reader already owns.
+ *
+ * The degrees do not go away; they become the secondary precision beside this.
+ */
+export function describeAltitude(altitudeDeg: number): string {
+  if (altitudeDeg < 5) return "right down at the horizon";
+  if (altitudeDeg < 15) return "about one fist above the horizon";
+  if (altitudeDeg < 28) return "about two fists up";
+  if (altitudeDeg < 42) return "about a third of the way up";
+  if (altitudeDeg < 58) return "about halfway up the sky";
+  if (altitudeDeg < 72) return "high up, two-thirds of the way";
+  return "almost straight overhead";
+}
+
+/**
+ * A bearing as an instruction.
+ *
+ * "Face south-west" is something you can do with your body; "azimuth 231°" is
+ * not. Low objects get "low in the …" because where to look and how high are
+ * one movement rather than two.
+ */
+export function describeDirection(azimuthDeg: number, altitudeDeg: number): string {
+  const names = [
+    "north", "north-east", "east", "south-east",
+    "south", "south-west", "west", "north-west",
+  ];
+  const name = names[Math.round((((azimuthDeg % 360) + 360) % 360) / 45) % 8];
+  if (altitudeDeg >= 70) return "Look almost straight up";
+  if (altitudeDeg < 15) return `Low in the ${name}`;
+  return `Face ${name}`;
+}

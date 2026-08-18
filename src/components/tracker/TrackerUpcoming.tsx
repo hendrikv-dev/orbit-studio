@@ -1,15 +1,15 @@
 import { useState } from "react";
 import type { PlaceClock } from "../../lib/localTime";
 import type { SelectedPlace } from "./TrackerPlace";
-import { TrackerCurated } from "./TrackerCurated";
+import { TrackerHighlights } from "./TrackerHighlights";
 import { TrackerMonth } from "./TrackerMonth";
 
 /**
  * Future planning, in two ways of looking at the same thing.
  *
- * Curated asks which event is worth planning around; Calendar asks what falls
+ * Highlights asks which event is worth planning around; Calendar asks what falls
  * on which date. Both are driven by one notability layer, so a date marked in
- * the month is a date Curated would feature — they cannot disagree about what
+ * the month is a date Highlights would feature — they cannot disagree about what
  * matters.
  *
  * This component used to render the future-night list itself and grew a mode
@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function TrackerUpcoming({ place, clock }: Props) {
-  const [mode, setMode] = useState<"curated" | "calendar">("curated");
+  const [mode, setMode] = useState<"highlights" | "calendar">("highlights");
 
   return (
     <section className="tk-view tk-upcoming" aria-label="Upcoming">
@@ -32,16 +32,16 @@ export function TrackerUpcoming({ place, clock }: Props) {
       <div className="tk-upcoming-bar">
         <div>
           <h1 className="tk-upcoming-title">
-            {mode === "curated" ? "Worth planning for" : "The month ahead"}
+            {mode === "highlights" ? "Worth planning for" : "The month ahead"}
           </h1>
           <p className="tk-upcoming-lede">
-            {mode === "curated"
+            {mode === "highlights"
               ? `The next month from ${place.name}, by significance.`
               : `Marked dates are the ones worth knowing about from ${place.name}.`}
           </p>
         </div>
         <div className="tk-mode" role="tablist" aria-label="How to browse">
-          {(["curated", "calendar"] as const).map((entry) => (
+          {(["highlights", "calendar"] as const).map((entry) => (
             <button
               key={entry}
               type="button"
@@ -50,14 +50,14 @@ export function TrackerUpcoming({ place, clock }: Props) {
               className="tk-mode-item"
               onClick={() => setMode(entry)}
             >
-              {entry === "curated" ? "Curated" : "Calendar"}
+              {entry === "highlights" ? "Highlights" : "Calendar"}
             </button>
           ))}
         </div>
       </div>
 
-      {mode === "curated" ? (
-        <TrackerCurated place={place} clock={clock} />
+      {mode === "highlights" ? (
+        <TrackerHighlights place={place} clock={clock} />
       ) : (
         <TrackerMonth place={place} clock={clock} />
       )}

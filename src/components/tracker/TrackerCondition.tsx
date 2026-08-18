@@ -136,11 +136,19 @@ export function TrackerCondition({
         {temperature ? ` · ${temperature}` : ""}
         {compact ? "" : ` at ${time}`}
       </span>
-      {/* The band describes how viewable it is, which is only a claim worth
-          making when the sky was actually checked. */}
-      {unknown ? null : (
-        <span className={`tracker-viewability tracker-viewability-${band}`}>{band}</span>
-      )}
+      {/* The viewability band is not rendered here any more.
+      
+          It graded the same thing the recommendation grades, on a different
+          scale, in the same visual language — so a target could read "Good if
+          you're already outside" beside a badge saying GOOD, where the badge
+          was about the forecast and the sentence was about the target, and
+          nothing distinguished them. A reader had to know the scoring model to
+          tell which dimension each word belonged to.
+      
+          Conditions now speak only in conditions language — "Clear", "Somewhat
+          cloudy", the temperature and the hour — and the recommendation owns
+          the judgement. The band is still computed and still drives ranking; it
+          is simply not shown twice under two meanings. */}
       {!unknown && showFreshness && freshness !== "current" ? (
         <span className="tracker-freshness">
           {freshness === "stale" ? "forecast is out of date" : "forecast is a few hours old"}

@@ -54,7 +54,7 @@ const KIND_LABEL: Record<NotableEvent["kind"], string> = {
   "best-placement": "Opposition",
 };
 
-export function TrackerCurated({ place, clock, horizonNights }: Props) {
+export function TrackerHighlights({ place, clock, horizonNights }: Props) {
   const events = useMemo(() => {
     const plans = planNights(
       place.latitude,
@@ -73,7 +73,7 @@ export function TrackerCurated({ place, clock, horizonNights }: Props) {
 
   if (!featured) {
     return (
-      <div className="tk-curated tk-curated-empty">
+      <div className="tk-highlights tk-highlights-empty">
         <h1 className="tk-display">Nothing to put in the diary</h1>
         <p className="tk-view-lede">
           No eclipse, shower peak or close pairing falls in the next month from {place.name}.
@@ -90,7 +90,7 @@ export function TrackerCurated({ place, clock, horizonNights }: Props) {
   const imagery = heroImageryFor(opportunity.id, opportunity.kind);
 
   return (
-    <div className="tk-curated">
+    <div className="tk-highlights">
       <article className="tk-feature">
         <div className="tk-feature-text">
           <p className="tk-feature-kind">

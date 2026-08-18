@@ -646,3 +646,43 @@ export function verdictFor(input: VerdictInput): Verdict {
 
   return "NOT WORTH A SPECIAL TRIP";
 }
+
+/* ------------------------------------------- two vocabularies, not one word */
+
+/**
+ * How strongly Tracker recommends going out.
+ *
+ * Kept deliberately apart from how the sky looks. The interface previously used
+ * one GOOD/EXCELLENT scale for both, which produced states that read as
+ * self-contradictory — a target described as not worth a special trip sitting
+ * beside a badge saying GOOD, where the badge was talking about the weather and
+ * the sentence was talking about the target. A reader had to reverse-engineer
+ * the scoring model to tell which was which.
+ *
+ * These are the words for the recommendation. The forecast has its own.
+ */
+export type RecommendationLevel =
+  | "Exceptional"
+  | "Worth going out for"
+  | "Good if you're already outside"
+  | "Only if conditions improve"
+  | "Not worth a special trip";
+
+export function recommendationFor(
+  band: Band,
+  unavailable: boolean,
+  skyAccess: number | null,
+): RecommendationLevel {
+  if (unavailable) return "Not worth a special trip";
+  // Conditions can veto, because sending somebody out under thick cloud for
+  // something excellent is still sending them out for nothing.
+  if (skyAccess !== null && skyAccess < 0.45) {
+    return band === "exceptional" || band === "very good"
+      ? "Only if conditions improve"
+      : "Not worth a special trip";
+  }
+  if (band === "exceptional") return "Exceptional";
+  if (band === "very good") return "Worth going out for";
+  if (band === "good") return "Good if you're already outside";
+  return "Not worth a special trip";
+}

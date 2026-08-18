@@ -15,8 +15,12 @@ import {
 } from "../../data/tracker/observationPeriod";
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
-import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
-import { compassPoint } from "../../data/tracker/meteorActivity";
+import {
+  describeAltitude,
+  describeDirection,
+  gazeRegionFor,
+  skyPathFor,
+} from "../../data/tracker/skyPath";
 import { TrackerFinder } from "./TrackerFinder";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerSkyPlate } from "./TrackerSkyPlate";
@@ -28,6 +32,7 @@ import {
   chooseHero,
   partitionByAvailability,
   verdictFor,
+  recommendationFor,
   viewingConclusion,
   type Ranking,
   type SkyAdjustedOpportunity,
@@ -493,6 +498,15 @@ function TrackerHero({
   // Where to face, which for a shower is deliberately not where the radiant is.
   const gaze = gazeRegionFor(opportunity, path);
   const experience = experienceFor(opportunity.kind);
+  // Two dimensions, two vocabularies. One GOOD/EXCELLENT scale for both
+  // produced screens where a target was "not worth a special trip" beside a
+  // badge reading GOOD — the badge describing the weather, the sentence
+  // describing the target, and nothing saying which was which.
+  const recommendation = recommendationFor(
+    entry.band,
+    passed,
+    viewingWindow ? viewingWindow.viewability.access : null,
+  );
   const verdict = verdictFor({
     band: entry.band,
     unavailable: passed,
@@ -526,14 +540,14 @@ function TrackerHero({
         <p
           className="tk-verdict"
           data-tone={
-            verdict === "GO OUT NOW" || verdict === "WORTH STAYING UP FOR"
+            recommendation === "Exceptional" || recommendation === "Worth going out for"
               ? "go"
-              : verdict === "NOT WORTH A SPECIAL TRIP" || verdict === "BELOW THE HORIZON"
+              : recommendation === "Not worth a special trip"
                 ? "no"
                 : "hold"
           }
         >
-          {verdict}
+          {recommendation}
         </p>
 
         <p className="tracker-hero-eyebrow">
@@ -555,16 +569,19 @@ function TrackerHero({
                 : formatClockTime(guidance.whenUtc, clock)}
             </dd>
           </div>
+          {/* Said the way a person would say it, with the degrees kept beside
+              it as secondary precision. "Face south-west, about one fist above
+              the horizon" is something you can do; "azimuth 231°, altitude 13°"
+              is something you have to convert first. */}
           {gaze ? (
-            <div className="tk-fact">
-              <dt>Face</dt>
-              <dd className="tk-fact-strong">{compassPoint(gaze.centerAzimuthDeg)}</dd>
-            </div>
-          ) : null}
-          {gaze ? (
-            <div className="tk-fact">
-              <dt>Look</dt>
-              <dd className="tk-fact-strong">{Math.round(gaze.centerAltitudeDeg)}° up</dd>
+            <div className="tk-fact tk-fact-wide">
+              <dt>Where to look</dt>
+              <dd className="tk-fact-strong">
+                {describeDirection(gaze.centerAzimuthDeg, gaze.centerAltitudeDeg)}
+                <span className="tk-fact-sub">
+                  {describeAltitude(gaze.centerAltitudeDeg)} · {Math.round(gaze.centerAltitudeDeg)}°
+                </span>
+              </dd>
             </div>
           ) : null}
           <div className="tk-fact">

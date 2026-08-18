@@ -13011,11 +13011,14 @@ button.primary,
    nothing on the page repeats it. */
 .tk-facts {
   display: grid;
-  /* Sized to the facts that exist. A fixed four reserved cells whether or not
-     there were four facts to put in them, so a night with no direction to give
-     rendered two fields and an empty half-strip. */
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(120px, 1fr);
+  /* Flex rather than equal columns. The facts are no longer the same size as
+     each other — "Low in the south-west, about one fist above the horizon" is a
+     sentence and a time is six characters — so forcing them into identical
+     tracks wrapped the sentence to four lines and pushed the sky reading off
+     the end of the strip. Each field takes the room its content needs, and the
+     one carrying a sentence is allowed to take more. */
+  display: flex;
+  flex-wrap: wrap;
   gap: 1px;
   margin: 22px 0 18px;
   border: 1px solid var(--tk-line);
@@ -13027,6 +13030,8 @@ button.primary,
   display: grid;
   align-content: start;
   gap: 5px;
+  flex: 0 1 auto;
+  min-width: 0;
   background: var(--tk-panel);
   padding: 12px 14px 13px;
 }
@@ -13711,9 +13716,9 @@ button.primary,
   color: var(--tk-ink);
 }
 
-/* ------------------------------------------------------ Curated: a feature */
+/* --------------------------------------------------- Highlights: a feature */
 
-.tk-curated {
+.tk-highlights {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 16px;
@@ -13837,10 +13842,21 @@ button.primary,
 }
 .tk-month-step:hover { border-color: var(--tk-line-strong); color: var(--tk-ink); }
 
+/* A fixed matrix, not content-sized day components.
+   
+   Cell geometry is a hard invariant: seven equal columns and six equal rows,
+   sized by the grid rather than by what any day happens to contain. A date with
+   a long event name, a selected date and an empty date are the same rectangle,
+   and marking or selecting one cannot move its neighbours.
+
+   1fr on its own is not enough — a grid track's automatic minimum is its
+   content, so one long label would widen its column and shift the rest of the
+   week. minmax(0, 1fr) removes that floor, which is what actually holds the
+   matrix rigid. */
 .tk-month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
+  grid-template-rows: auto repeat(6, minmax(0, 1fr));
   gap: 1px;
   min-height: 0;
 }
@@ -13864,13 +13880,26 @@ button.primary,
   text-align: left;
   color: inherit;
   font: inherit;
+  /* Both minimums matter. Without min-width a long label sets the column's
+     width; without min-height a two-line label sets the row's. Either one
+     breaks the invariant. */
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 .tk-day-num { font-family: var(--tk-mono); font-size: 0.76rem; color: var(--tk-ink-faint); font-variant-numeric: tabular-nums; }
 .tk-day.is-marked { cursor: pointer; }
 .tk-day.is-marked .tk-day-num { color: var(--tk-ink); }
+/* The label adapts inside the cell rather than the cell growing to fit it.
+   Truncation is the correct behaviour here: the full name is in the detail
+   pane, and a calendar that reflows because one event has a long name is
+   worse than one that clips. */
 .tk-day-mark {
   justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--tk-display);
   font-size: 0.56rem;
   letter-spacing: 0.09em;
@@ -13882,7 +13911,13 @@ button.primary,
 }
 .tk-day[data-kind="eclipse"] .tk-day-mark,
 .tk-day[data-kind="shower-peak"] .tk-day-mark { color: var(--tk-accent); border-left-color: var(--tk-accent); }
-.tk-day[aria-current="date"] { background: var(--tk-panel); border-radius: 8px; }
+/* Selection is painted, never laid out. A border or padding change here would
+   alter the cell's box and shift the week. */
+.tk-day[aria-current="date"] {
+  background: var(--tk-panel);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--tk-line-strong);
+}
 
 .tk-month-detail {
   border-left: 1px solid var(--tk-line);
@@ -14033,3 +14068,25 @@ button.primary,
   letter-spacing: 0.12em;
 }
 .tk-finder-compass.is-facing { fill: var(--tk-ink); font-weight: 600; }
+
+/* The where-to-look fact carries a sentence, so it spans and stacks its
+   secondary precision underneath rather than being squeezed into a column
+   sized for a single value. */
+.tk-fact-wide { flex: 1 1 260px; }
+.tk-fact-wide .tk-fact-strong { white-space: normal; }
+.tk-fact-sub {
+  display: block;
+  margin-top: 3px;
+  color: var(--tk-ink-faint);
+  font-family: var(--tk-mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+/* The recommendation is a sentence now, not a shouted token. */
+.tk-verdict {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
