@@ -224,3 +224,139 @@ export function distinguishingOpportunity(plan: NightPlan): Ranking["ranked"][nu
 export function leadOf(plan: NightPlan): Ranking["ranked"][number] | null {
   return plan.ranking.ranked[0] ?? null;
 }
+
+/* ------------------------------------------------------------- notability */
+
+/**
+ * What is worth planning around, as opposed to what is worth looking at.
+ *
+ * Tonight ranks the things above the horizon on one night. Applied across a
+ * month that produces a list that is technically correct and useless: Saturn is
+ * observable on the 12th, the 13th, the 14th, the 15th and the 16th, so it
+ * appears five times, and a partial lunar eclipse sits among the copies with
+ * the same weight. Nobody plans around Saturn being up again.
+ *
+ * The threshold here is different in kind, not degree. It asks whether somebody
+ * would remember the date — stay up, get up early, drive somewhere, bring
+ * binoculars, move something in their week. Most nights contain nothing that
+ * clears it, and that is the correct answer rather than a gap to fill.
+ *
+ * The astronomy underneath is untouched. This is a selection layer over the
+ * same plans Tonight uses, so a night that appears here is the same night
+ * Tonight would describe.
+ */
+
+export type NotableKind =
+  | "eclipse"
+  | "shower-peak"
+  | "conjunction"
+  | "moon-phase"
+  | "best-placement";
+
+export interface NotableEvent {
+  plan: NightPlan;
+  entry: Ranking["ranked"][number];
+  kind: NotableKind;
+  /** Why this one is worth a place in the diary, in the interface's words. */
+  reason: string;
+}
+
+/** Moon phases people actually mark; a waxing gibbous is not one of them. */
+const MILESTONE_PHASES = ["Full Moon", "New Moon", "First Quarter", "Last Quarter"];
+
+function classify(
+  entry: Ranking["ranked"][number],
+): { kind: NotableKind; reason: string; key: string } | null {
+  const { opportunity } = entry;
+  const title = opportunity.title;
+
+  if (opportunity.kind === "lunar-eclipse") {
+    return {
+      kind: "eclipse",
+      key: "eclipse",
+      reason: "An eclipse is the one night this happens. Nothing else this month is on a clock.",
+    };
+  }
+
+  if (opportunity.kind === "conjunction") {
+    return {
+      kind: "conjunction",
+      key: `conjunction:${opportunity.id}`,
+      reason: "Two objects close enough to hold in one glance, for a night or two only.",
+    };
+  }
+
+  if (opportunity.kind === "meteors") {
+    // Only the peak. A shower is active for weeks and worth a special effort on
+    // roughly one night of them.
+    return {
+      kind: "shower-peak",
+      key: `shower:${opportunity.id}`,
+      reason: "The shower's best night — rates fall away either side of it.",
+    };
+  }
+
+  if (opportunity.kind === "moon" && MILESTONE_PHASES.some((phase) => title.includes(phase))) {
+    return {
+      kind: "moon-phase",
+      key: `moon:${MILESTONE_PHASES.find((phase) => title.includes(phase))}`,
+      reason: "A phase worth timing an evening around rather than catching by accident.",
+    };
+  }
+
+  if (opportunity.kind === "planet") {
+    return {
+      kind: "best-placement",
+      key: `planet:${opportunity.id}`,
+      reason: "As well placed as it gets from here for weeks either side.",
+    };
+  }
+
+  return null;
+}
+
+/**
+ * The notable events across a set of nights, one entry per thing.
+ *
+ * Deduplicated by what the event *is* rather than by date, keeping the single
+ * best night for each. That is the whole fix for the repeated-Saturn problem:
+ * Saturn is one entry at its best placement, not one entry per night it happens
+ * to clear the horizon.
+ */
+export function notableEvents(plans: NightPlan[], limit = 6): NotableEvent[] {
+  const best = new Map<string, NotableEvent & { score: number }>();
+
+  for (const plan of plans) {
+    for (const entry of plan.ranking.ranked) {
+      const classified = classify(entry);
+      if (!classified) continue;
+      const score = entry.strength * (1 + entry.opportunity.qualities.rarity);
+      const held = best.get(classified.key);
+      if (!held || score > held.score) {
+        best.set(classified.key, {
+          plan,
+          entry,
+          kind: classified.kind,
+          reason: classified.reason,
+          score,
+        });
+      }
+    }
+  }
+
+  // Rarer kinds first, then by how good the night itself is. Chronology is the
+  // calendar's job; this list is ordered by significance and says so.
+  const weight: Record<NotableKind, number> = {
+    eclipse: 5,
+    "shower-peak": 4,
+    conjunction: 3,
+    "moon-phase": 2,
+    "best-placement": 1,
+  };
+  return [...best.values()]
+    .sort((left, right) =>
+      weight[right.kind] - weight[left.kind] || right.score - left.score,
+    )
+    .slice(0, limit)
+    .map(({ score: _score, ...event }) => event);
+}

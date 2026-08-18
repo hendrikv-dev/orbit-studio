@@ -21,7 +21,6 @@ import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerSkyPlate } from "./TrackerSkyPlate";
 import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
 import { TrackerUpcoming } from "./TrackerUpcoming";
-import { TrackerCalendar } from "./TrackerCalendar";
 import { TrackerNow } from "./TrackerNow";
 import {
   applySkyAccess,
@@ -280,7 +279,7 @@ function TrackerScreen() {
       {!place ? <TrackerEntry onSelect={setPlace} /> : null}
 
       {place && view === "upcoming" ? (
-        <TrackerUpcoming place={place} clock={clock} onOpenNight={() => setView("tonight")} />
+        <TrackerUpcoming place={place} clock={clock} />
       ) : null}
 
 

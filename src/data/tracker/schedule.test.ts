@@ -6,6 +6,7 @@ import {
   planMonth,
   planNight,
   planNights,
+  notableEvents,
 } from "./schedule";
 
 // Joshua Tree: mid-latitude, real observing site, no polar edge cases.
@@ -96,5 +97,53 @@ describe("the shared schedule layer", () => {
 
     // And the night is presented by the thing that earned it its place.
     expect(distinguishingOpportunity(eclipse!)?.opportunity.kind).toBe("lunar-eclipse");
+  });
+});
+
+describe("notability", () => {
+  const plans = planNights(LAT, LON, new Date("2026-08-17T22:00:00Z"), 30, ZONE);
+
+  it("gives an object one entry rather than one per night it is visible", () => {
+    // The defect this layer exists for: Saturn observable on five consecutive
+    // nights produced five Curated entries, none of which anyone would plan
+    // around. Deduplicated by what the event is, keeping its best night.
+    const events = notableEvents(plans, 20);
+    // Keyed by what the event is, not by its opportunity id. The Moon can
+    // legitimately appear twice in a month as two different milestones — a
+    // Full Moon and a First Quarter are different dates people mark — so the
+    // identity that must not repeat is phase-aware.
+    const identity = events.map((event) =>
+      event.entry.opportunity.kind === "moon"
+        ? event.entry.opportunity.title
+        : event.entry.opportunity.id,
+    );
+    expect(new Set(identity).size).toBe(identity.length);
+
+    // The actual regression: a planet appears once, at its best night.
+    const planets = events.filter((event) => event.entry.opportunity.kind === "planet");
+    expect(new Set(planets.map((event) => event.entry.opportunity.id)).size).toBe(planets.length);
+  });
+
+  it("admits an eclipse and refuses an ordinary gibbous Moon", () => {
+    const events = notableEvents(plans, 20);
+    expect(events.some((event) => event.kind === "eclipse")).toBe(true);
+    for (const event of events) {
+      if (event.entry.opportunity.kind !== "moon") continue;
+      expect(event.entry.opportunity.title).toMatch(
+        /Full Moon|New Moon|First Quarter|Last Quarter/,
+      );
+    }
+  });
+
+  it("stays a short list, not a feed", () => {
+    expect(notableEvents(plans).length).toBeLessThanOrEqual(6);
+    expect(notableEvents(plans).length).toBeGreaterThan(0);
+  });
+
+  it("orders by significance, with the rarest kind first", () => {
+    const events = notableEvents(plans, 20);
+    const rank = { eclipse: 5, "shower-peak": 4, conjunction: 3, "moon-phase": 2, "best-placement": 1 };
+    const weights = events.map((event) => rank[event.kind]);
+    expect([...weights].sort((a, b) => b - a)).toEqual(weights);
   });
 });
