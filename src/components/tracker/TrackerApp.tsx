@@ -17,7 +17,8 @@ import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import { compassPoint } from "../../data/tracker/meteorActivity";
-import { TrackerSkyChart } from "./TrackerSkyChart";
+import { TrackerFinder } from "./TrackerFinder";
+import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerSkyPlate } from "./TrackerSkyPlate";
 import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
 import { TrackerUpcoming } from "./TrackerUpcoming";
@@ -491,6 +492,7 @@ function TrackerHero({
   const path = skyPathFor(opportunity, viewingWindow);
   // Where to face, which for a shower is deliberately not where the radiant is.
   const gaze = gazeRegionFor(opportunity, path);
+  const experience = experienceFor(opportunity.kind);
   const verdict = verdictFor({
     band: entry.band,
     unavailable: passed,
@@ -640,6 +642,10 @@ function TrackerHero({
       {/* The observing column: what the sky is doing, then the photograph as
           context for it rather than as the surface everything is printed on. */}
       <aside className="tk-observe-side">
+        {/* Experience first where real footage exists — what this actually
+            looks like — then the instrument for what happens here tonight.
+            Two layers, never composited into one "scientific-looking" image. */}
+        {experience ? <TrackerExperience media={experience} /> : null}
         {/* Composed per phenomenon rather than forced through one projection.
             A shower has two separate questions — when is it best, and where do
             I look — and they need different axes: quality against time for the
@@ -672,7 +678,9 @@ function TrackerHero({
                   : "Its path from where you are. The bright section is the window worth going out for."
             }
           >
-            {path.kind === "radiant" || path.kind === "rate" ? (
+            {path.kind === "target" ? (
+              <TrackerFinder path={path} label={opportunity.title} />
+            ) : path.kind === "radiant" || path.kind === "rate" ? (
               <TrackerMeteorTimeline
                 path={path}
                 meteors={night.meteors}
@@ -680,14 +688,7 @@ function TrackerHero({
                 windowStartUtc={path.windowStartUtc}
                 windowEndUtc={path.windowEndUtc}
               />
-            ) : (
-              <TrackerSkyChart
-                path={path}
-                clock={clock}
-                tone={opportunity.kind}
-                label={opportunity.title}
-              />
-            )}
+            ) : null}
           </TrackerSkyPlate>
         ) : null}
 

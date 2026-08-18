@@ -1232,6 +1232,52 @@
       }
     },
     {
+      "id": "wikimedia-perseid-realtime-footage",
+      "category": "experiential-motion-media",
+      "repositoryPaths": [
+        "public/media/perseids-realtime-bautsch-cc0.webm",
+        "public/media/perseids-realtime-bautsch-cc0-poster.webp"
+      ],
+      "productionBundlePaths": [
+        "media/perseids-realtime-bautsch-cc0.webm",
+        "media/perseids-realtime-bautsch-cc0-poster.webp"
+      ],
+      "originalSource": {
+        "title": "Perseiden.Echtzeit.2020-08-12.webm",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Perseiden.Echtzeit.2020-08-12.webm",
+        "publicationUrl": "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
+        "publisher": "Wikimedia Commons",
+        "version": "Real-time Perseid footage, 2020-08-12, 1920\u00d71080, retrieved 2026-08-18",
+        "retrievedAt": "2026-08-18"
+      },
+      "localSha256": {
+        "public/media/perseids-realtime-bautsch-cc0.webm": "73fa16841240d546952ab7cbbd3b1b9e52175a8b6de5519b2ebb4f4c0cb0d958",
+        "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da"
+      },
+      "processing": [
+        "Downloaded from the Wikimedia upload host at publication resolution (1920\u00d71080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280\u00d7720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
+        "No frames were altered, recoloured, composited or reordered. The footage is real and is presented as such.",
+        "The licence was verified against this individual file rather than inherited from the host. The Commons API returns LicenseShortName CC0, UsageTerms \"Creative Commons Zero, Public Domain Dedication\", Artist Bautsch, Credit \"Own work\". Wikimedia hosts files under many different licences and one file's terms say nothing about the next."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Zero 1.0 Universal public-domain dedication. The author has waived copyright and neighbouring rights worldwide, so no permission or attribution is legally required. Attribution is rendered anyway: the reader is being shown someone else's night, and saying whose is a matter of honesty rather than compliance.",
+        "evidenceUrls": [
+          "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
+          "https://creativecommons.org/publicdomain/zero/1.0/"
+        ],
+        "attribution": "Bautsch, via Wikimedia Commons. CC0 1.0.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "This is representative footage of the phenomenon, not a recording of the reader's sky, and the interface must keep saying so. It is labelled \"Not tonight's sky\" on the media itself. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
+      }
+    },
+    {
       "id": "eso-night-sky-photography",
       "category": "night-sky-photography",
       "repositoryPaths": [

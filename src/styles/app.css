@@ -13968,3 +13968,68 @@ button.primary,
   font-size: 0.88rem;
   line-height: 1.5;
 }
+
+/* ====================================== experience layer, and the finder
+
+   Two layers with different jobs, never composited. The footage says what a
+   Perseid looks like; the instrument says what happens here tonight. */
+
+.tk-exp {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--tk-void);
+  aspect-ratio: 16 / 9;
+  max-height: min(40vh, 340px);
+}
+.tk-exp-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tk-exp-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(226, 238, 248, 0.55);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+}
+.tk-exp-credit a { color: rgba(226, 238, 248, 0.72); text-decoration: none; }
+/* Says plainly that this is representative footage. The gap between "what
+   Perseids look like" and "your sky tonight" is the gap between context and a
+   promise the product cannot keep. */
+.tk-exp-tag {
+  border: 1px solid rgba(226, 238, 248, 0.28);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The finder is an instrument: a horizon, a compass on it, and the object.
+   No plotting frame, no gridlines, no legend. */
+.tk-finder { margin: 0; }
+.tk-finder svg { display: block; width: 100%; height: auto; }
+.tk-finder-ref { stroke: rgba(150, 186, 222, 0.16); stroke-width: 1; stroke-dasharray: 1 6; }
+.tk-finder-reflabel { fill: var(--tk-ink-faint); font-size: 10px; font-family: var(--tk-mono); }
+.tk-finder-track { fill: none; stroke: rgba(126, 166, 207, 0.4); stroke-width: 2; }
+.tk-finder-track-lit { fill: none; stroke: var(--tk-accent); stroke-width: 3.4; stroke-linecap: round; }
+.tk-finder-drop { stroke: rgba(226, 238, 248, 0.2); stroke-width: 1; stroke-dasharray: 2 4; }
+.tk-finder-object { fill: var(--tk-ink); }
+.tk-finder-alt {
+  fill: var(--tk-ink);
+  font-family: var(--tk-mono);
+  font-size: 15px;
+  font-weight: 700;
+}
+.tk-finder-horizon { stroke: rgba(150, 186, 222, 0.5); stroke-width: 1.4; }
+.tk-finder-compass {
+  fill: var(--tk-ink-faint);
+  font-family: var(--tk-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.tk-finder-compass.is-facing { fill: var(--tk-ink); font-weight: 600; }
