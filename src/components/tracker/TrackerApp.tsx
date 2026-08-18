@@ -40,6 +40,7 @@ import { TrackerScene } from "./TrackerScene";
 import { TrackerCondition } from "./TrackerCondition";
 import { TrackerNightChart } from "./TrackerNightChart";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
+import { TrackerEntry } from "./TrackerEntry";
 
 /**
  * Orbit Studio Tracker.
@@ -235,10 +236,13 @@ function TrackerScreen() {
           src="/brand/orbit-studio-tracker-logo.png"
           alt="Orbit Studio Tracker"
         />
-        <TrackerPlace place={place} onSelect={setPlace} />
+        {/* The bar carries the location only once there is one. Before that the
+            entry screen owns the single control, rather than two instances of
+            the same component competing for the same job. */}
+        {place ? <TrackerPlace place={place} onSelect={setPlace} /> : null}
       </header>
 
-      {!place ? <TrackerWelcome onSelect={setPlace} /> : null}
+      {!place ? <TrackerEntry onSelect={setPlace} /> : null}
 
       {night && place && selected ? (
         <TrackerHero
@@ -320,33 +324,6 @@ function TrackerScreen() {
         />
       ) : null}
     </main>
-  );
-}
-
-/* --------------------------------------------------------------- welcome */
-
-function TrackerWelcome({ onSelect }: { onSelect: (place: SelectedPlace) => void }) {
-  return (
-    <section className="tracker-hero tracker-hero-welcome">
-      <TrackerScene
-        imagery={heroImageryFor("welcome", "meteors")}
-        className="tracker-hero-scene"
-        priority
-        showCredit
-      />
-      <div className="tracker-hero-panel">
-        <h1>Something is worth seeing tonight</h1>
-        <p className="tracker-hero-summary">
-          Tell Tracker where you are, and it will say what to look for, when to go out, and which
-          way to face.
-        </p>
-        {/* The same control as the bar, inline and open, so the first screen
-            ends in an action rather than in a button that points elsewhere. */}
-        <div className="tracker-welcome-place">
-          <TrackerPlace place={null} onSelect={onSelect} prominent />
-        </div>
-      </div>
-    </section>
   );
 }
 

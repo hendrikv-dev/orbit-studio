@@ -11452,7 +11452,7 @@ button.primary,
 
 .tracker-hero-eyebrow {
   margin: 0 0 8px;
-  color: #8fd9c1;
+  color: var(--tk-blue-lit);
   font-size: 0.76rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -11461,9 +11461,13 @@ button.primary,
 .tracker-hero h1 {
   margin: 0 0 10px;
   max-width: 18ch;
+  font-family: var(--tk-display);
   font-size: clamp(2.1rem, 5.4vw, 3.8rem);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
+  font-weight: 500;
+  line-height: 1.04;
+  /* Barely negative. The tight tracking below suited the grotesque this used
+     to be set in and closes an old-style serif up too far. */
+  letter-spacing: -0.005em;
 }
 
 .tracker-hero-summary {
@@ -11522,10 +11526,10 @@ button.primary,
 
 .tracker-primary {
   border: 0;
-  background: #3fd6a8;
+  background: var(--tk-accent);
   color: #04211a;
 }
-.tracker-primary:hover { background: #55e2b8; }
+.tracker-primary:hover { background: var(--tk-accent-lift); }
 
 .tracker-secondary {
   border: 1px solid rgba(160, 190, 210, 0.4);
@@ -11628,8 +11632,12 @@ button.primary,
 
 .tracker-more h2 {
   margin: 0 0 16px;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
+  /* Same section heading as "Tonight" on the entry screen, so it is set the
+     same way. */
+  font-family: var(--tk-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .tracker-cards {
@@ -12172,4 +12180,452 @@ button.primary,
 
 @media (prefers-reduced-motion: reduce) {
   .tracker-skip { transition: none; }
+}
+
+/* ===========================================================================
+   Tracker visual identity.
+
+   The previous design was black, one teal button and a photograph, which is
+   why it read as a template. This gives Tracker its own surfaces, its own
+   typographic voice, and colour that means something.
+
+   Teal is an accent for action and selection only. It is not the identity —
+   the identity is blue-black glass, warm-white type, and restrained
+   astronomical blue, with a phenomenon hue used only where it carries
+   information. */
+
+/* Declared on the root rather than on .tracker-shell. React Aria renders
+   overlays into a portal at the end of <body>, outside the shell, so tokens
+   scoped to the shell did not reach them — the suggestion popover came out with
+   no background at all and the page showed straight through it. Custom
+   properties cost nothing where they are not referenced, and nothing outside
+   Tracker references these. */
+:root,
+.tracker-shell {
+  /* Surfaces: near-black blue, rising to elevated panels. */
+  --tk-void: #05070d;
+  --tk-base: #080c15;
+  --tk-panel: #0e1523;
+  --tk-panel-lift: #131c2d;
+  --tk-line: rgba(126, 156, 190, 0.16);
+  --tk-line-strong: rgba(126, 156, 190, 0.3);
+
+  /* Warm white against cold surfaces, so the type does not read as clinical. */
+  --tk-ink: #f2efe8;
+  --tk-ink-soft: #c3cbd8;
+  --tk-ink-dim: #8b97a8;
+  /* Raised from #67717f, which the accessibility gate measured at 4.06:1
+     against the page — under AA for body-sized text. 5.2:1 here. */
+  --tk-ink-faint: #79838f;
+
+  /* Restrained astronomical blues. */
+  --tk-blue-deep: #16233a;
+  --tk-blue: #35577f;
+  --tk-blue-lit: #7ea6cf;
+
+  /* Action and selection. Nothing else. */
+  --tk-accent: #4fd8b0;
+  --tk-accent-lift: #6ce4c2;
+  --tk-accent-ink: #04241c;
+
+  /* Phenomenon hues, used only where the hue carries meaning. */
+  --tk-meteor: #f0a95c;
+  --tk-planet: #d9b98a;
+  --tk-moon: #cbd6e6;
+  --tk-satellite: #86c8e8;
+
+  /* An editorial serif for display, the UI sans for everything functional.
+     The giant geometric sans headline was doing most of the work of making
+     this look like a template. */
+  --tk-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+    Georgia, "Times New Roman", serif;
+
+  background: var(--tk-void);
+  color: var(--tk-ink);
+}
+
+/* --- shared type ---------------------------------------------------------- */
+
+.tk-eyebrow {
+  margin: 0 0 14px;
+  color: var(--tk-blue-lit);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tk-display {
+  margin: 0 0 12px;
+  max-width: 15ch;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: clamp(2.1rem, 3.6vw, 3.1rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+}
+
+.tk-lede {
+  margin: 0;
+  max-width: 44ch;
+  color: var(--tk-ink-soft);
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.tk-tag {
+  display: inline-block;
+  border: 1px solid var(--tk-line);
+  border-radius: 5px;
+  background: rgba(126, 166, 207, 0.09);
+  color: var(--tk-ink-dim);
+  padding: 2px 7px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.tk-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tk-section-head h2 {
+  margin: 0;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* --- the entry state ------------------------------------------------------ */
+
+.tk-entry {
+  display: grid;
+  gap: 30px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(26px, 4vw, 52px) clamp(20px, 4vw, 44px) 44px;
+  /* Centred in what is left below the header rather than hanging from the top,
+     which left a third of a desktop viewport empty underneath. min-height
+     rather than height, so the block still grows past the fold when the picker
+     opens results or a recovery message. */
+  min-height: calc(100vh - 96px);
+  align-content: center;
+}
+
+.tk-entry-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+}
+
+@media (min-width: 940px) {
+  .tk-entry-grid {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 46px;
+  }
+}
+
+.tk-entry-locate { margin-top: 26px; }
+
+.tk-entry-privacy {
+  margin: 14px 0 0;
+  max-width: 42ch;
+  color: var(--tk-ink-faint);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+/* --- the sky instrument --------------------------------------------------- */
+
+.tk-sky {
+  margin: 0;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: var(--tk-panel);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.tk-sky svg { display: block; width: 100%; height: auto; }
+
+.tk-sky-guide {
+  stroke: rgba(150, 186, 222, 0.3);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 4;
+}
+.tk-sky-guide-label {
+  fill: var(--tk-ink-faint);
+  font-size: 6px;
+  text-anchor: end;
+  letter-spacing: 0.04em;
+}
+
+.tk-sky-arc {
+  fill: none;
+  stroke: rgba(126, 166, 207, 0.4);
+  stroke-width: 1;
+  stroke-dasharray: 2.5 3;
+}
+
+/* The window is the part worth going outside for, so it is the only lit line. */
+/* Teal is reserved for action and selection, so the neutral example uses the
+   astronomical blue and only a real phenomenon brings its own hue. */
+.tk-sky-arc-window {
+  fill: none;
+  stroke: var(--tk-blue-lit);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.tk-sky[data-tone="meteor"] .tk-sky-arc-window { stroke: var(--tk-meteor); }
+.tk-sky[data-tone="planet"] .tk-sky-arc-window { stroke: var(--tk-planet); }
+.tk-sky[data-tone="moon"] .tk-sky-arc-window { stroke: var(--tk-moon); }
+
+.tk-sky-drop {
+  stroke: rgba(126, 166, 207, 0.3);
+  stroke-width: 0.6;
+  stroke-dasharray: 1.5 2.5;
+}
+.tk-sky-peak { fill: var(--tk-ink); }
+.tk-sky-callout {
+  fill: var(--tk-ink);
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tk-sky-ground { fill: #04060b; fill-opacity: 0.96; }
+.tk-sky-horizon { stroke: rgba(126, 166, 207, 0.42); stroke-width: 0.8; }
+.tk-sky-tick { stroke: rgba(126, 166, 207, 0.34); stroke-width: 0.6; }
+.tk-sky-compass {
+  fill: var(--tk-ink-faint);
+  font-size: 6.4px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.tk-sky-compass.is-active { fill: var(--tk-ink); }
+
+.tk-sky-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid var(--tk-line);
+  padding: 11px 14px;
+  color: var(--tk-ink-dim);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.tk-sky-caption-key { display: inline-flex; align-items: center; gap: 6px; }
+.tk-sky-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--tk-blue-lit);
+}
+
+/* --- the preview list ----------------------------------------------------- */
+
+.tk-entry-preview {
+  border-top: 1px solid var(--tk-line);
+  padding-top: 26px;
+}
+
+.tk-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-preview-card {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  align-items: center;
+  gap: 13px;
+  border: 1px dashed var(--tk-line);
+  border-radius: 11px;
+  background: var(--tk-panel);
+  padding: 13px 15px 13px 0;
+}
+
+/* The hue is the only thing distinguishing the phenomena here, so it does the
+   work a photograph would do in a real card. */
+.tk-preview-rank {
+  align-self: stretch;
+  border-radius: 0 3px 3px 0;
+  background: var(--tk-blue);
+}
+.tk-preview-card[data-tone="meteor"] .tk-preview-rank { background: var(--tk-meteor); }
+.tk-preview-card[data-tone="planet"] .tk-preview-rank { background: var(--tk-planet); }
+.tk-preview-card[data-tone="moon"] .tk-preview-rank { background: var(--tk-moon); }
+.tk-preview-card[data-tone="satellite"] .tk-preview-rank { background: var(--tk-satellite); }
+
+.tk-preview-body { display: grid; gap: 3px; }
+.tk-preview-name { color: var(--tk-ink); font-size: 0.94rem; font-weight: 600; }
+.tk-preview-note { color: var(--tk-ink-dim); font-size: 0.78rem; line-height: 1.45; }
+
+.tk-preview-meta { display: grid; gap: 6px; justify-items: end; }
+.tk-skeleton-bar {
+  display: block;
+  width: 54px;
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(126, 166, 207, 0.2), rgba(126, 166, 207, 0.08));
+}
+.tk-skeleton-bar.is-short { width: 32px; }
+
+/* --- the entry's single location control ---------------------------------
+   Rendered in the page rather than in a popover, so the expanded state cannot
+   overlap the composition it belongs to, and there is no second copy of the
+   same control behind it. */
+
+.tk-locate .tracker-place-body.is-inline { gap: 10px; }
+
+.tk-locate .tracker-place-search {
+  order: 0;
+  min-height: 52px;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 12px;
+  background: var(--tk-panel-lift);
+  padding: 0 15px;
+  margin: 0;
+}
+.tk-locate .tracker-place-search:focus-within {
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px rgba(79, 216, 176, 0.16);
+}
+.tk-locate .tracker-place-search input {
+  min-height: 52px;
+  font-size: 0.98rem;
+  color: var(--tk-ink);
+}
+.tk-locate .tracker-place-search svg { color: var(--tk-ink-dim); }
+
+/* Secondary to the search, because most readers will type a place. Teal is the
+   accent for action, not the whole surface. */
+.tk-locate .tracker-place-device {
+  order: 1;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--tk-ink-soft);
+  font-size: 0.86rem;
+}
+.tk-locate .tracker-place-device:hover:not([data-disabled]) {
+  border-color: var(--tk-accent);
+  color: var(--tk-ink);
+}
+.tk-locate .tracker-place-device svg { color: var(--tk-accent); }
+
+.tk-locate .tracker-place-results {
+  order: 2;
+  max-height: 232px;
+  border: 1px solid var(--tk-line);
+  border-radius: 11px;
+  background: var(--tk-panel-lift);
+  padding: 5px;
+}
+.tk-locate .tracker-place-results:empty { display: none; }
+.tk-locate .tracker-place-messages { order: 3; }
+.tk-locate .tracker-place-status { order: 4; }
+.tk-locate .tracker-place-confirm {
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 12px;
+  background: var(--tk-panel-lift);
+  padding: 15px 16px;
+}
+
+/* --- photography and annotation in one frame ------------------------------
+   The instrument sits on a real photograph of a real sky — the direction asked
+   for, and the reason the arc had to stay legible against it rather than being
+   drawn on flat colour. The image is a sky-only crop: no observatory, no
+   silhouetted telescope, just what somebody standing outside looks up at. */
+
+/* The photograph backs the drawing only. It used to be stretched across the
+   caption too, which pushed that text onto a black gradient and made it
+   unreadable. */
+.tk-sky-frame { position: relative; }
+
+.tk-sky-plate {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.tk-sky-plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  /* Present enough to read as a real sky, held back enough that the
+     annotations stay the subject. */
+  opacity: 0.85;
+}
+.tk-sky-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 13, 0.1) 0%, rgba(5, 7, 13, 0.34) 55%, rgba(4, 6, 11, 0.9) 100%);
+}
+.tk-sky-frame svg { position: relative; }
+
+.tk-sky-credit {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  z-index: 2;
+  margin: 0;
+  color: rgba(226, 238, 248, 0.5);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+}
+.tk-sky-credit a { color: rgba(226, 238, 248, 0.7); text-decoration: none; }
+
+/* Inline control order, stated after the generic rules so it wins: the search
+   is the primary way in and leads; the device action follows it. */
+.tk-locate .tracker-place-body.is-inline .tracker-place-search { order: 0; }
+.tk-locate .tracker-place-body.is-inline .tracker-place-results { order: 1; }
+.tk-locate .tracker-place-body.is-inline .tracker-place-messages { order: 2; }
+.tk-locate .tracker-place-body.is-inline .tracker-place-device { order: 3; }
+.tk-locate .tracker-place-body.is-inline .tracker-place-status { order: 4; }
+
+/* React Aria keeps a placeholder child inside the listbox when there is
+   nothing to show, so neither :empty nor :has(*) catches it — it was rendering
+   as a stray bar under the field. It marks the real state with data-empty. */
+.tk-locate .tracker-place-results[data-empty="true"],
+.tracker-place-overlay .tracker-place-results[data-empty="true"] {
+  display: none;
+}
+
+/* The inline suggestions, as an overlay the width of the field they belong to.
+   --trigger-width is React Aria's own measurement of the combobox input. */
+.tracker-place-overlay {
+  /* Width is set from the measured field in TrackerPlace. This is the fallback
+     for the first render, before the field has been laid out. */
+  min-width: var(--trigger-width);
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 12px;
+  background: var(--tk-panel-lift);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.55);
+}
+.tracker-place-overlay .tracker-place-results {
+  border: 0;
+  background: none;
+  padding: 5px;
 }

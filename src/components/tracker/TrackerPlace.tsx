@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   ComboBox,
@@ -64,8 +64,17 @@ export interface SelectedPlace {
 interface Props {
   place: SelectedPlace | null;
   onSelect: (place: SelectedPlace) => void;
-  /** The welcome screen renders a larger, primary-styled trigger. */
-  prominent?: boolean;
+  /**
+   * `bar` is the compact trigger that opens a popover, used once a place is
+   * chosen. `inline` is the entry state's own control: the same panel, rendered
+   * open and in the page.
+   *
+   * The entry screen used to open the popover variant, which meant the expanded
+   * panel floated over the composition it was supposed to be part of, and a
+   * second copy of the same control sat in the bar behind it. Inline removes
+   * both problems: nothing overlaps, because nothing is layered.
+   */
+  variant?: "bar" | "inline";
 }
 
 const KIND_HINT: Record<string, string> = {
@@ -81,16 +90,18 @@ const KIND_HINT: Record<string, string> = {
   trailhead: "Trailhead",
 };
 
-export function TrackerPlace({ place, onSelect, prominent = false }: Props) {
+export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
+  if (variant === "inline") {
+    return (
+      <div className="tk-locate">
+        <PlacePanel onSelect={onSelect} close={() => {}} inline />
+      </div>
+    );
+  }
+
   return (
     <DialogTrigger>
-      <Button
-        className={
-          prominent
-            ? "tracker-place-current tracker-place-current-prominent"
-            : "tracker-place-current"
-        }
-      >
+      <Button className="tracker-place-current">
         <MapPin size={15} aria-hidden />
         <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
         {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}
@@ -98,14 +109,8 @@ export function TrackerPlace({ place, onSelect, prominent = false }: Props) {
       </Button>
       {/* Popover measures the space available and sets its own max-height, so
           the panel must not carry a taller one of its own — that override was
-          what let the contents spill back out of it.
-          The prominent trigger sits low in the hero by design, so it opens
-          upward from the start rather than relying on a flip. */}
-      <Popover
-        className="tracker-place-popover"
-        placement={prominent ? "top start" : "bottom end"}
-        offset={8}
-      >
+          what let the contents spill back out of it. */}
+      <Popover className="tracker-place-popover" placement="bottom end" offset={8}>
         <Dialog className="tracker-place-panel" aria-label="Choose where you are">
           {({ close }) => <PlacePanel onSelect={onSelect} close={close} />}
         </Dialog>
@@ -117,10 +122,20 @@ export function TrackerPlace({ place, onSelect, prominent = false }: Props) {
 function PlacePanel({
   onSelect,
   close,
+  inline = false,
 }: {
   onSelect: (place: SelectedPlace) => void;
   close: () => void;
+  /** Rendered in the page rather than in a popover. */
+  inline?: boolean;
 }) {
+  // Declared with the other hooks rather than beside the element it belongs to.
+  // It started out further down, below the early return for the confirmation
+  // step — so picking a place rendered one hook fewer than the render before it
+  // and React unmounted the whole app. Nothing on screen suggested a hook
+  // problem: the picker simply stopped responding to Enter.
+  const fieldRef = useRef<HTMLDivElement>(null);
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -263,8 +278,38 @@ function PlacePanel({
     );
   }
 
+  const resultList = (
+    <ListBox<PlaceResult> className="tracker-place-results" renderEmptyState={() => null}>
+      {(item: PlaceResult) => (
+        <ListBoxItem
+          id={item.id}
+          textValue={`${item.name}, ${item.context}`}
+          className="tracker-place-result"
+        >
+          <span className="tracker-place-result-name">
+            {item.name}
+            {item.kind && KIND_HINT[item.kind] ? (
+              <em>{KIND_HINT[item.kind]}</em>
+            ) : item.isAddress ? (
+              <em>Address</em>
+            ) : null}
+          </span>
+          <span className="tracker-place-result-context">{item.context}</span>
+        </ListBoxItem>
+      )}
+    </ListBox>
+  );
+
   return (
-    <div className={blockedUpFront ? "tracker-place-body is-blocked" : "tracker-place-body"}>
+    <div
+      className={[
+        "tracker-place-body",
+        blockedUpFront ? "is-blocked" : "",
+        inline ? "is-inline" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {/* When the browser has blocked the site, the search is the only path
           that can work, so it is ordered first. Leading with a control that
           cannot function — above three paragraphs explaining why — is what made
@@ -336,13 +381,15 @@ function PlacePanel({
         {/* A real label. The placeholder was doing this job before, which it
             cannot: it disappears on the first keystroke and is not a name. */}
         <Label className="tracker-visually-hidden">Search for a place to observe from</Label>
-        <div className="tracker-place-search">
+        <div className="tracker-place-search" ref={fieldRef}>
           <Search size={15} aria-hidden />
           {/* Focused on open. Without it the dialog itself took focus, so the
               first thing typed went nowhere and a keyboard user had to tab past
               the location button to reach the field they came for. */}
+          {/* Autofocused only in the popover, where the reader opened it on
+              purpose. Stealing focus on page load is hostile. */}
           <Input
-            autoFocus
+            autoFocus={!inline}
             placeholder="Address, campsite, park, trailhead, town…"
             autoComplete="off"
           />
@@ -351,26 +398,46 @@ function PlacePanel({
           Type at least three characters, or paste a latitude and longitude.
         </Text>
 
-        {/* Announced by the combobox itself as the collection changes. */}
-        <ListBox className="tracker-place-results" renderEmptyState={() => null}>
-          {(item: PlaceResult) => (
-            <ListBoxItem
-              id={item.id}
-              textValue={`${item.name}, ${item.context}`}
-              className="tracker-place-result"
-            >
-              <span className="tracker-place-result-name">
-                {item.name}
-                {item.kind && KIND_HINT[item.kind] ? (
-                  <em>{KIND_HINT[item.kind]}</em>
-                ) : item.isAddress ? (
-                  <em>Address</em>
-                ) : null}
-              </span>
-              <span className="tracker-place-result-context">{item.context}</span>
-            </ListBoxItem>
-          )}
-        </ListBox>
+        {/* Announced by the combobox itself as the collection changes.
+            Inline, the list is an overlay rather than part of the flow. That is
+            not a visual preference: React Aria's combobox calls
+            ariaHideOutside whenever it is open, passing the input and its
+            popover. With no popover to pass, it hid the rest of the page around
+            a bare input — which left the skip link and the photograph's credit
+            link focusable inside an aria-hidden subtree, a WCAG failure the
+            accessibility gate caught. Inside a popover the same call is the
+            ordinary overlay behaviour. It also stops the suggestions shoving
+            the rest of the column downwards on every keystroke. */}
+        {inline ? (
+          <Popover
+            className="tracker-place-overlay"
+            // Anchored to the field, not to the input inside it. Left to
+            // itself the popover measures the input, which sits inside the
+            // field's padding — so the list came out inset and narrower than
+            // the box it belonged to.
+            triggerRef={fieldRef}
+            // Measured rather than derived. --trigger-width is the input's
+            // width: the field minus its border, its padding and the search
+            // icon, a chain of unrelated numbers to reproduce in CSS and wrong
+            // the moment any of them changes.
+            style={fieldRef.current ? { width: fieldRef.current.offsetWidth } : undefined}
+            // Anchored to the field, not to the input inside it. Left to itself
+            // the popover measures the input, which sits inside the field's
+            // padding — so the list came out inset and narrower than the box it
+            // belonged to.
+            // Measured rather than derived. --trigger-width is the input's
+            // width, which is the field minus its border, its padding and the
+            // search icon — a chain of unrelated numbers to reproduce in CSS,
+            // and wrong the moment any of them changes. The popover only mounts
+            // when it opens, by which time the field has been laid out.
+            offset={6}
+            placement="bottom start"
+          >
+            {resultList}
+          </Popover>
+        ) : (
+          resultList
+        )}
       </ComboBox>
 
       {/* Status messages live outside the listbox so they are announced as

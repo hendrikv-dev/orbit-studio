@@ -158,9 +158,50 @@ function record(state, results) {
   }
 }
 
-async function scan(page, state) {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  record(state, results);
+async function scan(page, state, disabledRules = []) {
+  let builder = new AxeBuilder({ page }).withTags(TAGS);
+  if (disabledRules.length > 0) builder = builder.disableRules(disabledRules);
+  const results = await builder.analyze();
+  record(disabledRules.length > 0 ? `${state} [-${disabledRules.join(",")}]` : state, results);
+}
+
+/**
+ * `aria-hidden-focus`, disabled for the open inline combobox only.
+ *
+ * React Aria's combobox calls ariaHideOutside whenever its list is open: while
+ * you are choosing a suggestion, the rest of the page is hidden from assistive
+ * technology, exactly as a modal does. On the entry screen the combobox lives
+ * in the document rather than in a dialog, so what gets hidden is the page
+ * itself — including the skip link and the photograph's credit link, which stay
+ * focusable. axe reads that snapshot and reports focusable elements inside an
+ * aria-hidden subtree.
+ *
+ * Nobody can reach them. Tab from the open list closes it, which un-hides
+ * everything before focus moves. That is a claim about behaviour rather than
+ * about markup, so it is not left as a comment: assertTabLeavesNothingHidden
+ * checks it, and it is checked in place of the rule, not as well as suppressing
+ * it quietly. The rule stays on for every other state, including the header
+ * picker, which does not hide the page at all.
+ */
+const INLINE_COMBOBOX_RULE = "aria-hidden-focus";
+
+async function assertTabLeavesNothingHidden(page) {
+  expect(
+    await page.evaluate(() => document.querySelectorAll('[aria-hidden="true"]').length > 0),
+    "the open inline combobox should hide the page from assistive technology",
+  );
+  await page.keyboard.press("Tab");
+  const after = await page.evaluate(() => ({
+    listOpen: document.querySelectorAll('[role="option"]').length > 0,
+    focusHidden: Boolean(document.activeElement?.closest('[aria-hidden="true"]')),
+    focusExists: document.activeElement !== document.body,
+  }));
+  expect(!after.listOpen, "Tab should close the suggestion list rather than move into it");
+  expect(after.focusExists, "Tab should move focus somewhere, not drop it on the body");
+  expect(
+    !after.focusHidden,
+    "Tab out of the suggestion list must not land on an aria-hidden element",
+  );
 }
 
 /** Fails loudly rather than silently passing when an expectation is not met. */
@@ -174,13 +215,31 @@ function expect(condition, message) {
  * Uses real keyboard input throughout, because that is the thing that was
  * broken and because synthetic events do not exercise React Aria's press and
  * focus handling — a `.click()` on an option does nothing at all.
+ *
+ * The same panel appears in two forms. On the entry screen it is inline: there
+ * is no trigger and nothing to open, because asking somebody to open a dialog
+ * before they can type a place name was the extra step the entry rebuild
+ * removed. In the header, after a place exists, it is still a popover behind a
+ * trigger. Both are driven here, from the same assertions, so neither can lose
+ * its keyboard behaviour unnoticed.
  */
 async function chooseFirstResult(page, query) {
-  await page.locator(".tracker-place-current").first().click();
-  await page.waitForSelector(".tracker-place-panel");
+  const inline = (await page.locator(".tk-locate").count()) > 0;
+  if (!inline) {
+    await page.locator(".tracker-place-current").first().click();
+    await page.waitForSelector(".tracker-place-panel");
+  }
 
   const input = page.locator(".tracker-place-search input");
-  expect(await input.evaluate((el) => el === document.activeElement), "opening the picker should focus the search field");
+  // Only the popover moves focus on open. The inline field is already in the
+  // page and stealing focus into it on load would fight a screen reader
+  // working through the headline above it.
+  if (!inline) {
+    expect(
+      await input.evaluate((el) => el === document.activeElement),
+      "opening the picker should focus the search field",
+    );
+  }
   expect(
     (await input.getAttribute("role")) === "combobox",
     "the search field should expose role=combobox",
@@ -191,9 +250,21 @@ async function chooseFirstResult(page, query) {
     "the search field should have an accessible name, not just a placeholder",
   );
 
+  await input.click();
   await input.fill(query);
   await page.waitForSelector('[role="option"]', { timeout: 20_000 });
-  await scan(page, "picker open with results");
+  await scan(page, "picker open with results", inline ? [INLINE_COMBOBOX_RULE] : []);
+
+  if (inline) {
+    await assertTabLeavesNothingHidden(page);
+    // Tab closed the list. Reopen it and carry on with the selection. Focus
+    // alone is not enough to reopen a list the user has just dismissed, so the
+    // query is retyped.
+    await input.click();
+    await input.fill("");
+    await input.fill(query);
+    await page.waitForSelector('[role="option"]', { timeout: 20_000 });
+  }
 
   await page.keyboard.press("ArrowDown");
   const active = await input.getAttribute("aria-activedescendant");
@@ -237,12 +308,24 @@ async function run() {
     await stubProviders(desktop);
     const page = await desktop.newPage();
     await page.goto(TRACKER, { waitUntil: "networkidle" });
-    await scan(page, "welcome");
+    await scan(page, "entry");
+
+    // The entry screen must show something before a place is known. An empty
+    // frame with a search box in it was the state this replaced.
+    expect(
+      (await page.locator(".tk-preview-card").count()) > 0,
+      "the entry screen should preview the ranked list before a place is chosen",
+    );
+
+    await chooseFirstResult(page, "Joshua Tree Village Campground");
+    await scan(page, "recommendation");
 
     // Escape must close the panel and give focus back, which it did not before
-    // the picker was rebuilt.
+    // the picker was rebuilt. Checked on the header popover, which is where the
+    // panel still opens once a place has been chosen.
     await page.locator(".tracker-place-current").first().click();
     await page.waitForSelector(".tracker-place-panel");
+    await scan(page, "header picker open");
     await page.keyboard.press("Escape");
     await page.waitForSelector(".tracker-place-panel", { state: "detached", timeout: 5000 });
     // Checked against the trigger itself. An earlier version of this assertion
@@ -254,9 +337,6 @@ async function run() {
       ),
       "Escape should return focus to the picker trigger",
     );
-
-    await chooseFirstResult(page, "Joshua Tree Village Campground");
-    await scan(page, "recommendation");
 
     // The disclosure content is part of the page and is checked as such.
     await page.locator(".tracker-detail > button").click();
@@ -294,7 +374,7 @@ async function run() {
     await stubProviders(mobile);
     const phone = await mobile.newPage();
     await phone.goto(TRACKER, { waitUntil: "networkidle" });
-    await scan(phone, "welcome on a phone");
+    await scan(phone, "entry on a phone");
     await chooseFirstResult(phone, "Joshua Tree Village Campground");
     await scan(phone, "recommendation on a phone");
     await mobile.close();
