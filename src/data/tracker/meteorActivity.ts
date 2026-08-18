@@ -604,6 +604,29 @@ export function compassPoint(azimuthDeg: number): string {
  * wait between them. The second is a different evening from the first, and the
  * bare number hides that.
  */
+/**
+ * A rate *range* as a waiting time.
+ *
+ * "Around 6-16 meteors an hour at best - one every 10 minutes or so" quoted the
+ * ceiling as a range and then described the felt rhythm from the floor of it.
+ * Ten minutes is 6/hr; 16/hr is closer to four. The sentence characterised the
+ * whole range with the arithmetic of one end of it.
+ *
+ * The intent behind quoting the slow end was right — promising a meteor every
+ * four minutes and delivering one every ten is exactly the overstatement the
+ * product rules out. So the fix is not to switch ends but to quote both, which
+ * is honest about the spread and consistent with the numbers beside it.
+ */
+export function cadenceRangeDescription(lowPerHour: number, highPerHour: number): string {
+  if (lowPerHour <= 0) return cadenceDescription(highPerHour);
+  const slow = 60 / lowPerHour;
+  const fast = 60 / highPerHour;
+  // Close enough that a range would be false precision.
+  if (Math.round(slow) === Math.round(fast)) return cadenceDescription(lowPerHour);
+  if (slow < 1.5) return "roughly one a minute";
+  return `one every ${Math.round(fast)}-${Math.round(slow)} minutes`;
+}
+
 export function cadenceDescription(perHour: number): string {
   if (perHour <= 0) return "nothing worth waiting for";
   const minutes = 60 / perHour;

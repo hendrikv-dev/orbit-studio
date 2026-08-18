@@ -433,6 +433,37 @@ export function applySkyAccess(
  * `excludedIds` covers anything ineligible now for a reason ranking could not
  * know: chiefly that its window tonight has passed.
  */
+/**
+ * Split what is left into what can still be observed and what cannot.
+ *
+ * Tracker's job is prioritisation, so an object that is below the horizon for
+ * the rest of the period is not a recommendation — it is context. "The Moon, a
+ * waxing crescent / Already set tonight" was occupying a slot in a ranked list
+ * of things to go outside for, which inverts the whole point of ranking.
+ *
+ * Kept as a partition rather than a filter, and written here rather than at the
+ * call site, because the unavailable set is still worth showing in its own
+ * right: the Moon being down is the reason the rest of the night is dark, and a
+ * reader who looked for it and could not find it deserves to be told why rather
+ * than left wondering whether Tracker forgot it.
+ *
+ * `excludedIds` is whatever the caller has established cannot be observed for
+ * the remainder of the period — the same set `chooseHero` refuses to lead with.
+ * Deriving both from one input keeps the hero and the list from disagreeing
+ * about what is observable, which is a class of bug this file has had before.
+ */
+export function partitionByAvailability<T extends RankedOpportunity>(
+  entries: readonly T[],
+  excludedIds: ReadonlySet<string>,
+): { observable: T[]; unavailable: T[] } {
+  const observable: T[] = [];
+  const unavailable: T[] = [];
+  for (const entry of entries) {
+    (excludedIds.has(entry.opportunity.id) ? unavailable : observable).push(entry);
+  }
+  return { observable, unavailable };
+}
+
 export function chooseHero<T extends RankedOpportunity>(
   ranked: T[],
   excludedIds: ReadonlySet<string> = new Set(),

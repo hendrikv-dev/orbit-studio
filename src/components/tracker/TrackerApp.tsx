@@ -19,6 +19,7 @@ import { tonightsOpportunities } from "../../data/tracker/phenomena";
 import {
   applySkyAccess,
   chooseHero,
+  partitionByAvailability,
   rankOpportunities,
   viewingConclusion,
   type Ranking,
@@ -212,9 +213,16 @@ function TrackerScreen() {
     return chooseHero(withSky.ranked, withSky.passed);
   }, [withSky, selectedId]);
 
-  const alternatives = withSky
-    ? withSky.ranked.filter((entry) => entry.opportunity.id !== selected?.opportunity.id)
-    : [];
+  // Split rather than filtered. An object below the horizon for the rest of the
+  // night is not an "Also tonight" recommendation — it was taking a slot in a
+  // ranked list of things to go outside for while saying it could not be seen.
+  const { observable: alternatives, unavailable } = useMemo(() => {
+    if (!withSky) return { observable: [], unavailable: [] };
+    const rest = withSky.ranked.filter(
+      (entry) => entry.opportunity.id !== selected?.opportunity.id,
+    );
+    return partitionByAvailability(rest, withSky.passed);
+  }, [withSky, selected]);
 
   // The tab title is how this page is found again in a row of tabs, in history
   // and in a shared link. "Orbit Studio" on every view told nobody anything.
@@ -309,6 +317,28 @@ function TrackerScreen() {
               />
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {unavailable.length > 0 ? (
+        <section className="tracker-unavailable" aria-label="Not observable tonight">
+          <h2>Below the horizon</h2>
+          {/* Context, not a recommendation. These used to sit in the ranked
+              list saying "Already set tonight", which is a strange thing for a
+              list of things to go outside for to contain. They stay visible
+              because a reader who went looking for the Moon and could not find
+              it is better served by being told it is down than by being left to
+              wonder whether Tracker forgot about it. */}
+          <ul className="tracker-unavailable-list">
+            {unavailable.map((entry) => (
+              <li key={entry.opportunity.id}>
+                <span className="tracker-unavailable-name">{entry.opportunity.title}</span>
+                <span className="tracker-unavailable-note">
+                  Below the horizon for the rest of tonight
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

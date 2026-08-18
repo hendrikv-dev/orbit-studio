@@ -8,7 +8,13 @@ import {
   SearchLunarEclipse,
 } from "astronomy-engine";
 import type { ObservationPeriod } from "./observationPeriod";
-import { meteorNight, cadenceDescription, compassPoint, describeCharacter } from "./meteorActivity";
+import {
+  meteorNight,
+  cadenceDescription,
+  cadenceRangeDescription,
+  compassPoint,
+  describeCharacter,
+} from "./meteorActivity";
 import type { Opportunity } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 
@@ -181,12 +187,12 @@ function meteorOpportunity(
     ? `anywhere, but keep the ${compassPoint(headline.radiantAzimuthDeg)} sky in view`
     : null;
 
-  // The cadence is quoted from the low end, not the ceiling: it is the figure a
-  // person will actually experience standing outside, and quoting the best case
-  // as the felt rhythm of the night is the kind of small overstatement V1 §5
-  // rules out.
+  // The cadence describes the same range the sentence quotes. It used to quote
+  // the range and then describe the felt rhythm from its low end alone, which
+  // characterised "6-16 an hour" as "one every 10 minutes" — true of 6, and
+  // wrong by more than half for 16.
   const summary = headline
-    ? `Around ${Math.round(low)}–${Math.round(high)} meteors an hour at best — ${cadenceDescription(low)}.`
+    ? `Around ${Math.round(low)}–${Math.round(high)} meteors an hour at best — ${cadenceRangeDescription(low, high)}.`
     : `A quiet sky: ${cadenceDescription(low)} from the background alone.`;
 
   const phenomenon = headline

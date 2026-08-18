@@ -12629,3 +12629,36 @@ button.primary,
   background: none;
   padding: 5px;
 }
+
+/* Not-observable context. Deliberately quieter than a ranked card: this is a
+   list of things you cannot go and look at, and it should not compete with the
+   list of things you can. */
+.tracker-unavailable {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 44px) 28px;
+}
+.tracker-unavailable h2 {
+  margin: 0 0 10px;
+  font-family: var(--tk-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--tk-ink-dim);
+}
+.tracker-unavailable-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tracker-unavailable-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-left: 2px solid var(--tk-line);
+  padding-left: 10px;
+}
+.tracker-unavailable-name { color: var(--tk-ink-soft); font-size: 0.9rem; }
+.tracker-unavailable-note { color: var(--tk-ink-faint); font-size: 0.78rem; }
