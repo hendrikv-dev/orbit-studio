@@ -13290,8 +13290,13 @@ button.primary,
   .tracker-more { grid-column: 1 / -1; grid-row: 2; }
 }
 
-.tk-observe-main { max-width: 52ch; overflow-y: auto; min-height: 0; }
-.tk-observe-side { min-height: 0; display: grid; align-content: center; gap: 12px; }
+.tk-observe-main { max-width: 52ch; min-height: 0; }
+/* min-width matters as much as min-height here: a grid item defaults to
+   min-width:auto, so the plate refused to shrink to its track and overflowed
+   across the alternatives column instead. */
+.tk-observe-side { min-height: 0; min-width: 0; display: grid; align-content: center; gap: 12px; }
+.tk-observe-main { min-width: 0; }
+.tk-plate, .tk-plate-frame { min-width: 0; }
 .tk-plate-drawing svg { max-height: min(46vh, 420px); }
 
 /* ------------------------------------------- secondary events, ranked not tiled
@@ -13408,3 +13413,107 @@ button.primary,
 /* The rail lost its gutters when it became a grid child spanning both columns. */
 .tk-tonight .tracker-more { padding: 12px clamp(20px, 3vw, 44px) 0; }
 .tk-tonight .tracker-detail { padding: 8px clamp(20px, 3vw, 44px) 12px; }
+
+/* ============================================ Tonight as a three-column spread
+
+   Following the north-star composition: the argument on the left, the sky
+   plate as the load-bearing centre, and the ranked alternatives as a column of
+   graduated weight on the right. Not a dashboard of equal panels — a spread
+   where position and weight carry the ranking. */
+
+@media (min-width: 1180px) {
+  .tk-tonight {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .tk-tonight > .tracker-hero.tk-observe {
+    /* The centre needs a real floor. With minmax(0, …) the plate's SVG has no
+       intrinsic width to defend, so the track collapsed to a sliver while the
+       alternatives column took the slack. The plate is the subject and gets the
+       largest share; the other two are capped. */
+    /* All three tracks need a real floor. minmax(0, …) on a column whose child
+       is a scroll container contributes no min-content, so whichever track got
+       the zero collapsed — first the plate, then the argument. */
+    grid-template-columns:
+      minmax(300px, 0.82fr)
+      minmax(430px, 1.6fr)
+      minmax(240px, 0.74fr);
+    grid-template-rows: minmax(0, 1fr);
+    column-gap: clamp(28px, 3vw, 52px);
+    align-items: center;
+  }
+  /* The rail leaves the foot and becomes the third column. */
+  .tk-tonight .tracker-more {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    border-top: 0;
+    padding: 0;
+  }
+  .tk-tonight .tracker-cards { flex-direction: column; overflow: visible; gap: 2px; }
+  .tk-tonight .tracker-card { width: auto; max-width: 100%; }
+}
+
+/* Graduated, not tiled. The first alternative sits on a panel; the ones below
+   it lose the panel and lose contrast, so rank is legible before any word is
+   read. Equal cards asserted that everything mattered equally. */
+.tk-tonight .tracker-more h2 {
+  font-family: var(--body, inherit);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tk-ink-faint);
+}
+.tk-tonight .tracker-card {
+  border: 0;
+  background: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 3px;
+}
+.tk-tonight .tracker-card:first-child {
+  background: var(--tk-panel);
+  box-shadow: inset 0 0 0 1px var(--tk-line);
+}
+.tk-tonight .tracker-card:nth-child(2) { opacity: 0.74; }
+.tk-tonight .tracker-card:nth-child(3) { opacity: 0.52; }
+
+/* Event names keep the editorial face wherever they appear, so a secondary
+   opportunity reads as the same kind of thing as the lead. */
+.tk-tonight .tracker-card-title {
+  font-family: var(--tk-display);
+  font-size: 1.22rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.tk-tonight .tracker-card-summary {
+  display: block;
+  color: var(--tk-ink-dim);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+.tk-tonight .tracker-card-when { font-size: 0.72rem; color: var(--tk-ink-faint); }
+
+/* ------------------------------------------- the night, as a progression strip
+
+   Sunset, full dark, the night's peak moment and dawn, laid along the top. It
+   replaces having to read four separate times out of a paragraph, and it gives
+   the composition its horizon line. */
+.tk-nightbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0;
+  padding: 0 clamp(20px, 3vw, 44px) 4px;
+  border-bottom: 1px solid var(--tk-line);
+  list-style: none;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tk-ink-faint);
+}
+.tk-nightbar li { display: flex; gap: 7px; padding-bottom: 10px; }
+.tk-nightbar b { color: var(--tk-ink-soft); font-weight: 600; }
+.tk-nightbar .is-peak { color: var(--tk-accent); }
+.tk-nightbar .is-peak b { color: var(--tk-accent); }

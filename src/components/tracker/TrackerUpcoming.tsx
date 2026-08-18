@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DEFAULT_HORIZON_NIGHTS,
   distinguishingOpportunity,
@@ -8,6 +8,7 @@ import {
 } from "../../data/tracker/schedule";
 import type { PlaceClock } from "../../lib/localTime";
 import type { SelectedPlace } from "./TrackerPlace";
+import { TrackerCalendar } from "./TrackerCalendar";
 
 /**
  * Ranked opportunities across the nights ahead.
@@ -50,6 +51,7 @@ function labelFor(dateKey: string): { weekday: string; day: string; month: strin
 }
 
 export function TrackerUpcoming({ place, clock, onOpenNight, horizonNights }: Props) {
+  const [mode, setMode] = useState<"curated" | "calendar">("curated");
   const plans = useMemo(
     () =>
       planNights(
@@ -74,15 +76,38 @@ export function TrackerUpcoming({ place, clock, onOpenNight, horizonNights }: Pr
   );
 
   return (
-    <section className="tk-view tk-upcoming" aria-label="Upcoming nights">
-      <div className="tk-view-head">
-        <h1 className="tk-display">The nights ahead</h1>
-        <p className="tk-view-lede">
-          The next {plans.length} nights from {place.name}, ordered by what each one is worth.
-          Positions are computed; the sky itself is only forecast a few days out, so conditions
-          are not applied here.
-        </p>
+    <section className="tk-view tk-upcoming" aria-label="Upcoming">
+      <div className="tk-upcoming-bar">
+        <div className="tk-view-head">
+          <h1 className="tk-display">
+            {mode === "curated" ? "Worth planning for" : "What happens when"}
+          </h1>
+          <p className="tk-view-lede">
+            {mode === "curated"
+              ? `Notable nights from ${place.name}. Positions are computed; the sky is only forecast a few days out, so conditions are not applied here.`
+              : `Computed for ${place.name}. Astronomical events hold whatever the weather does.`}
+          </p>
+        </div>
+        {/* Two ways of looking at the same future, not two destinations. */}
+        <div className="tk-mode" role="tablist" aria-label="How to browse">
+          {(["curated", "calendar"] as const).map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              role="tab"
+              aria-selected={mode === entry}
+              className="tk-mode-item"
+              onClick={() => setMode(entry)}
+            >
+              {entry === "curated" ? "Curated" : "Calendar"}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {mode === "calendar" ? <TrackerCalendar place={place} clock={clock} /> : null}
+      {mode === "curated" ? (
+        <>
 
       <ol className="tk-night-list">
         {byWorth.map((plan) => {
@@ -124,6 +149,8 @@ export function TrackerUpcoming({ place, clock, onOpenNight, horizonNights }: Pr
           );
         })}
       </ol>
+        </>
+      ) : null}
     </section>
   );
 }

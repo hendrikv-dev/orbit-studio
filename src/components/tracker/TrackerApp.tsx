@@ -280,29 +280,45 @@ function TrackerScreen() {
 
       {!place ? <TrackerEntry onSelect={setPlace} /> : null}
 
-      {place && view === "now" && withSky ? (
-        <TrackerNow
-          entries={withSky.ranked}
-          windows={withSky.windows}
-          clock={clock}
-          onSelect={(id) => {
-            setSelectedId(id);
-            setView("tonight");
-          }}
-        />
-      ) : null}
-
       {place && view === "upcoming" ? (
         <TrackerUpcoming place={place} clock={clock} onOpenNight={() => setView("tonight")} />
       ) : null}
 
-      {place && view === "calendar" ? <TrackerCalendar place={place} clock={clock} /> : null}
+
 
       {/* Tonight is one screen. The hero, the ranked rail and the unavailable
           context are a single grid that owns exactly the space under the
           header — not a page with sections stacked beneath it. */}
       {showsNight && night && place ? (
         <div className="tk-tonight">
+          {/* The shape of the night along the top: when it gets dark, when the
+              best moment falls, when it ends. Four times a reader otherwise has
+              to dig out of a paragraph, and the line the composition hangs
+              from. */}
+          <ul className="tk-nightbar">
+            <li>
+              Sunset <b>{formatClockTime(night.period.startUtc, clock)}</b>
+            </li>
+            {night.period.darkness.astronomical ? (
+              <li>
+                Dark <b>{formatClockTime(night.period.darkness.astronomical.startUtc, clock)}</b>
+              </li>
+            ) : null}
+            {selected && withSky?.windows.get(selected.opportunity.id) ? (
+              <li className="is-peak">
+                {selected.opportunity.title} best{" "}
+                <b>
+                  {formatClockTime(
+                    withSky.windows.get(selected.opportunity.id)!.peakUtc,
+                    clock,
+                  )}
+                </b>
+              </li>
+            ) : null}
+            <li>
+              Dawn <b>{formatClockTime(night.period.endUtc, clock)}</b>
+            </li>
+          </ul>
       {selected ? (
         <TrackerHero
           entry={selected}
@@ -351,7 +367,7 @@ function TrackerScreen() {
         <section className="tracker-more" id="tracker-more" aria-label="Also tonight">
           <h2>Also tonight</h2>
           <div className="tracker-cards">
-            {alternatives.map((entry) => (
+            {alternatives.slice(0, 3).map((entry) => (
               <TrackerCard
                 key={entry.opportunity.id}
                 entry={entry}
@@ -412,22 +428,25 @@ function TrackerScreen() {
 
 /* ------------------------------------------------------------------- views */
 
-export type TrackerView = "now" | "tonight" | "upcoming" | "calendar";
+export type TrackerView = "tonight" | "upcoming";
 
 /**
- * The four views, and what each is actually for.
+ * Two views, because there are two questions.
  *
- * They share the schedule layer, the ranking primitives and the components
- * below. What separates them is the question asked, and the questions are
- * genuinely different: "should I step outside in the next hour", "what is
- * tonight worth", "which night this month should I plan for", "what happens
- * on a given date". Four sorts of one list would answer only the second.
+ * There were four. "Now" was a separate destination asking whether to step
+ * outside in the next hour — but Tracker already knows the time, so making the
+ * reader choose between Now and Tonight was asking them to do the product's
+ * job. Tonight adapts to the moment instead. "Calendar" was a separate
+ * destination for browsing dates, which is not a different question from
+ * planning ahead; it is a different way of looking at the same future, so it is
+ * a mode inside Upcoming.
+ *
+ * What is left is what a person actually wants to know: what about tonight, and
+ * what about later.
  */
 const VIEWS: { id: TrackerView; label: string }[] = [
-  { id: "now", label: "Now" },
   { id: "tonight", label: "Tonight" },
   { id: "upcoming", label: "Upcoming" },
-  { id: "calendar", label: "Calendar" },
 ];
 
 /* ------------------------------------------------------------------- hero */
