@@ -32,8 +32,15 @@ export interface SkyPath {
    * night. A radiant is where meteors appear to come from — you deliberately do
    * not stare at it — so the same line means something different and has to be
    * drawn and labelled differently.
+   *
+   * A rate has no position at all. On most nights of the year no shower is
+   * running and what is overhead is the sporadic background, which still varies
+   * across the night — it climbs towards dawn as the Earth turns to face its
+   * direction of travel — but has no radiant to plot. That case previously
+   * produced no path, which meant no drawing, which meant half the screen was
+   * blank on the majority of nights. The quality curve is the drawing.
    */
-  kind: "target" | "radiant";
+  kind: "target" | "radiant" | "rate";
   points: SkyPoint[];
   riseUtc: string | null;
   culminationUtc: string | null;
@@ -74,6 +81,27 @@ export function skyPathFor(
       })),
       // A radiant does not rise and set in a way worth marking — what matters
       // is how high it has climbed, which the path itself shows.
+      riseUtc: null,
+      culminationUtc: null,
+      setUtc: null,
+      windowStartUtc,
+      windowEndUtc,
+    };
+  }
+
+  // Meteors with no headline shower: sporadic background. No radiant, so
+  // nothing positional to draw — but the rate across the night is real, and it
+  // is what the reader is deciding on.
+  if (opportunity.kind === "meteors") {
+    if (opportunity.profile.length === 0) return null;
+    return {
+      kind: "rate",
+      points: opportunity.profile.map((sample) => ({
+        atUtc: sample.atUtc,
+        altitudeDeg: 0,
+        azimuthDeg: 0,
+        relative: sample.relative,
+      })),
       riseUtc: null,
       culminationUtc: null,
       setUtc: null,
@@ -179,6 +207,13 @@ const COMFORTABLE_ALTITUDE_DEG = 60;
  */
 export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): GazeRegion | null {
   if (!path || path.points.length === 0) return null;
+
+  // Sporadic meteors have no direction, and saying so is the answer. The rate
+  // path carries zeroed coordinates because there is no position to carry, and
+  // reading a bearing off them produced "face north, 0° up" — an instruction to
+  // stare at the horizon, invented out of placeholder values. A phenomenon that
+  // arrives from everywhere gets no bearing rather than a fabricated one.
+  if (path.kind === "rate") return null;
 
   if (path.kind === "radiant") {
     // Judged at the best moment rather than averaged: that is when the reader

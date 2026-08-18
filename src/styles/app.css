@@ -12997,9 +12997,11 @@ button.primary,
    nothing on the page repeats it. */
 .tk-facts {
   display: grid;
-  /* Exactly four, so the row never wraps to leave one field stranded
-     beside an empty cell. */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Sized to the facts that exist. A fixed four reserved cells whether or not
+     there were four facts to put in them, so a night with no direction to give
+     rendered two fields and an empty half-strip. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(120px, 1fr);
   gap: 1px;
   margin: 22px 0 18px;
   border: 1px solid var(--tk-line);
@@ -13145,8 +13147,10 @@ button.primary,
 .tk-fact-strong {
   font-size: 1.02rem;
   line-height: 1.25;
-  /* Long ranges stayed on one line rather than breaking mid-time. */
-  white-space: nowrap;
+  /* Was nowrap, which the strip's overflow:hidden then clipped mid-string —
+     "11:11 PM-4:26" with the meridiem cut off. Breaking is better than lying. */
+  white-space: normal;
+  text-wrap: balance;
 }
 .tk-fact .tracker-condition {
   display: flex;

@@ -651,15 +651,19 @@ function TrackerHero({
             title={
               path.kind === "radiant"
                 ? "How the shower builds through the night"
-                : `Where to find ${opportunity.title.replace(/^The /, "")}`
+                : path.kind === "rate"
+                  ? "How many to expect through the night"
+                  : `Where to find ${opportunity.title.replace(/^The /, "")}`
             }
             caption={
               path.kind === "radiant"
                 ? "The radiant climbs as the night goes on, and the rate climbs with it. The bright section is the window worth going out for."
-                : "Its path from where you are. The bright section is the window worth going out for."
+                : path.kind === "rate"
+                  ? "No shower is running, so these are sporadic meteors. They pick up towards dawn, as your side of the Earth turns to face the direction it is travelling. The bright section is the window worth going out for."
+                  : "Its path from where you are. The bright section is the window worth going out for."
             }
           >
-            {path.kind === "radiant" ? (
+            {path.kind === "radiant" || path.kind === "rate" ? (
               <TrackerMeteorTimeline
                 path={path}
                 meteors={night.meteors}

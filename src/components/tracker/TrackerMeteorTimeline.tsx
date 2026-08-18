@@ -58,11 +58,21 @@ export function TrackerMeteorTimeline({
   const toY = (altitudeDeg: number) =>
     PLOT_BOTTOM - (Math.max(0, Math.min(90, altitudeDeg)) / 90) * (PLOT_BOTTOM - PLOT_TOP);
 
-  // The radiant's own climb, resampled onto the rate samples so the two layers
-  // share an axis exactly rather than approximately.
-  const radiantByTime = new Map(path.points.map((point) => [point.atUtc, point.altitudeDeg]));
+  // Two things can be plotted here and they are not the same quantity.
+  //
+  // With a shower running, the curve is the radiant's height, because that is
+  // what governs the rate and it is the honest explanation of why the small
+  // hours are better. With no shower — most nights of the year — there is no
+  // radiant, and the curve is the sporadic rate itself, which still rises
+  // towards dawn as the Earth turns to face its direction of travel. Plotting
+  // a height that does not exist would be a fabrication; plotting nothing left
+  // half the screen empty, which is what it did.
+  const isRate = path.kind === "rate";
+  const byTime = new Map(
+    path.points.map((point) => [point.atUtc, isRate ? point.relative * 90 : point.altitudeDeg]),
+  );
   const climb = samples
-    .map((sample) => ({ atUtc: sample.atUtc, altitudeDeg: radiantByTime.get(sample.atUtc) }))
+    .map((sample) => ({ atUtc: sample.atUtc, altitudeDeg: byTime.get(sample.atUtc) }))
     .filter((entry): entry is { atUtc: string; altitudeDeg: number } => entry.altitudeDeg !== undefined);
   if (climb.length < 2) return null;
 
@@ -102,7 +112,7 @@ export function TrackerMeteorTimeline({
     (index) => samples[index].moonAltitudeDeg > 0 && samples[index].moonIlluminatedFraction > 0.15,
   );
 
-  const peakRate = samples.reduce((best, sample) => Math.max(best, sample.totalPerHour), 0);
+  const peakRate: number = samples.reduce((best, sample) => Math.max(best, sample.totalPerHour), 0);
   const bestSample = samples.reduce((best, sample) =>
     sample.totalPerHour > best.totalPerHour ? sample : best,
   );
@@ -127,17 +137,17 @@ export function TrackerMeteorTimeline({
           />
         ))}
 
-        {[30, 60].map((altitude) => (
-          <g key={altitude}>
+        {(isRate ? [45, 90] : [30, 60]).map((value) => (
+          <g key={value}>
             <line
               x1={PAD_X}
               x2={WIDTH - PAD_X}
-              y1={toY(altitude)}
-              y2={toY(altitude)}
+              y1={toY(value)}
+              y2={toY(value)}
               className="tk-chart-guide"
             />
-            <text x={WIDTH - PAD_X + 6} y={toY(altitude) + 4} className="tk-chart-guidelabel">
-              {altitude}°
+            <text x={WIDTH - PAD_X + 6} y={toY(value) + 4} className="tk-chart-guidelabel">
+              {isRate ? `${Math.round((value / 90) * peakRate)}/hr` : `${value}°`}
             </text>
           </g>
         ))}
@@ -198,14 +208,21 @@ export function TrackerMeteorTimeline({
         <g>
           <circle
             cx={toX(bestSample.atUtc)}
-            cy={toY(radiantByTime.get(bestSample.atUtc) ?? 0)}
+            cy={toY(byTime.get(bestSample.atUtc) ?? 0)}
             r={3.4}
             className="tk-timeline-peak"
           />
+          {/* Anchored away from the nearest edge. Centred, it ran into the
+              dawn twilight label whenever the peak sat late in the night,
+              which is most nights. */}
           <text
-            x={toX(bestSample.atUtc)}
-            y={toY(radiantByTime.get(bestSample.atUtc) ?? 0) - 12}
-            textAnchor="middle"
+            x={
+              toX(bestSample.atUtc) > WIDTH * 0.66
+                ? toX(bestSample.atUtc) - 8
+                : toX(bestSample.atUtc) + 8
+            }
+            y={Math.max(PLOT_TOP + 11, toY(byTime.get(bestSample.atUtc) ?? 0) - 10)}
+            textAnchor={toX(bestSample.atUtc) > WIDTH * 0.66 ? "end" : "start"}
             className="tk-timeline-peaklabel"
           >
             best · ~{Math.round(peakRate)}/hr
