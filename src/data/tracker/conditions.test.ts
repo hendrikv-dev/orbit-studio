@@ -174,6 +174,50 @@ describe("choosing when to go outside", () => {
     expect(window!.movedByWeather).toBe(true);
   });
 
+  it("flags a window that collapses to a single moment", () => {
+    // An object low in the west after dusk: one usable sample, then it is gone.
+    // The neighbours fall below the 60% threshold, so the interval cannot grow
+    // and start equals end. This used to be returned as a range and rendered as
+    // "9:43-9:43 PM" — the check for it existed but its if-block was empty.
+    const window = bestViewingWindow(
+      profile([
+        { hour: 21, relative: 0.1 },
+        { hour: 22, relative: 1.0 },
+        { hour: 23, relative: 0.1 },
+      ]),
+      hourly([
+        { hour: 21, cloud: 10 },
+        { hour: 22, cloud: 10 },
+        { hour: 23, cloud: 10 },
+      ]),
+      "high",
+      0.8,
+      NOW,
+    );
+    expect(window!.startUtc).toBe(window!.endUtc);
+    expect(window!.brief).toBe(true);
+  });
+
+  it("does not flag a window that spans real time", () => {
+    const window = bestViewingWindow(
+      profile([
+        { hour: 21, relative: 0.8 },
+        { hour: 22, relative: 1.0 },
+        { hour: 23, relative: 0.9 },
+      ]),
+      hourly([
+        { hour: 21, cloud: 10 },
+        { hour: 22, cloud: 10 },
+        { hour: 23, cloud: 10 },
+      ]),
+      "high",
+      0.8,
+      NOW,
+    );
+    expect(window!.brief).toBe(false);
+    expect(window!.startUtc).not.toBe(window!.endUtc);
+  });
+
   it("stays at the peak when the sky is the same all night", () => {
     const window = bestViewingWindow(
       profile([

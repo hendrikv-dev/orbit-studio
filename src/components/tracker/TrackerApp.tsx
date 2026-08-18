@@ -4,7 +4,7 @@ import { downloadCalendarFile } from "../../lib/trackerCalendar";
 import {
   clockForCoordinates,
   deviceClock,
-  formatClockRange,
+  formatWindowPhrase,
   formatClockTime,
   formatNightLabel,
   formatTemperature,
@@ -410,7 +410,7 @@ function TrackerHero({
 
         <p className="tracker-hero-when">
           {viewingWindow
-            ? `Best chance ${formatClockRange(viewingWindow.startUtc, viewingWindow.endUtc, clock)}`
+            ? `Best chance ${formatWindowPhrase(viewingWindow, clock)}`
             : `Best around ${formatClockTime(guidance.whenUtc, clock)}`}
         </p>
 
@@ -578,7 +578,7 @@ function TrackerCard({
           {passed
             ? "Already set tonight"
             : viewingWindow
-              ? formatClockRange(viewingWindow.startUtc, viewingWindow.endUtc, clock)
+              ? formatWindowPhrase(viewingWindow, clock)
               : formatClockTime(opportunity.guidance.whenUtc, clock)}
           {atBest && !passed ? ` · ${formatTemperature(atBest.temperatureC)}` : ""}
         </span>

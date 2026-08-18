@@ -144,6 +144,24 @@ export function formatNightLabel(startIso: string, clock: PlaceClock, now = new 
   }).format(clock.timeZone ? start : shifted(startIso, clock));
 }
 
+/**
+ * A viewing window as a phrase: "12:35–1:20 AM", or "around 9:43 PM".
+ *
+ * Centralised because both the hero and the ranked cards formatted the window
+ * themselves, and a window can legitimately collapse to a single instant — an
+ * object low in the west after dusk may have one usable moment before it sets.
+ * Rendered as a range that reads "9:43–9:43 PM", which says nothing and looks
+ * broken. Two call sites meant two places to get that wrong.
+ */
+export function formatWindowPhrase(
+  window: { startUtc: string; endUtc: string; peakUtc: string; brief: boolean },
+  clock: PlaceClock,
+): string {
+  return window.brief
+    ? `around ${formatClockTime(window.peakUtc, clock)}`
+    : formatClockRange(window.startUtc, window.endUtc, clock);
+}
+
 /** °C or °F, following the formatting locale rather than asking. */
 export function formatTemperature(celsius: number): string {
   const usesFahrenheit = ["US", "LR", "MM", "BS", "BZ", "KY", "PW"].some((country) =>

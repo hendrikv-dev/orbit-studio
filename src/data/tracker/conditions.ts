@@ -343,6 +343,15 @@ export interface BestWindow {
    * maximum needs a reason.
    */
   movedByWeather: boolean;
+  /**
+   * True where the window collapsed to less than MINIMUM_WINDOW_MINUTES.
+   *
+   * It happens honestly: an object low in the west after dusk can have exactly
+   * one sample clear the threshold before it sets, and there is no interval to
+   * report. The caller must render an instant rather than a range, because
+   * "9:43–9:43 PM" is not a window — it is a bug wearing a window's clothes.
+   */
+  brief: boolean;
 }
 
 /**
@@ -429,9 +438,12 @@ export function bestViewingWindow(
 
   const startUtc = scored[start].sample.atUtc;
   const endUtc = scored[end].sample.atUtc;
-  if ((Date.parse(endUtc) - Date.parse(startUtc)) / 60_000 < MINIMUM_WINDOW_MINUTES) {
-    // Too brief to recommend as a window; still report the instant.
-  }
+  // This check used to be an empty if-block: it measured the span, carried a
+  // comment saying an instant should be reported instead, and then did nothing
+  // at all. MINIMUM_WINDOW_MINUTES was declared and never enforced, so a
+  // single-sample window reached the interface as "9:43–9:43 PM".
+  const brief =
+    (Date.parse(endUtc) - Date.parse(startUtc)) / 60_000 < MINIMUM_WINDOW_MINUTES;
 
   const peakBySkyIgnored = remaining.reduce((top, sample) =>
     sample.relative > top.relative ? sample : top,
@@ -441,6 +453,7 @@ export function bestViewingWindow(
     startUtc,
     endUtc,
     peakUtc: best.sample.atUtc,
+    brief,
     viewability: best.snapshot
       ? viewability(best.snapshot, demand, phenomenonStrength, now)
       : UNKNOWN_CONDITIONS(phenomenonStrength),
