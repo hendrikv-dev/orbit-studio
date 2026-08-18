@@ -574,3 +574,75 @@ export function viewingConclusion(
     ? `${plural ? "They are" : "It is"} at ${phenomenonBand === "exceptional" ? "its best" : "a good point"}, but ${skyPhrase} makes seeing ${them} unlikely from here tonight.`
     : `${skyPhrase.charAt(0).toUpperCase()}${skyPhrase.slice(1)} tonight — save this one for a clearer evening.`;
 }
+
+/* ------------------------------------------------------------- the verdict */
+
+/**
+ * What Tracker actually recommends, in words a person can act on.
+ *
+ * The product's value is judgement, not enumeration. "Excellent" is a grade;
+ * "Worth staying up for" is a decision, and it is the decision the reader came
+ * for. Bands still exist underneath and still drive ordering — this is the
+ * sentence the band is for.
+ *
+ * Written once, here, because the same judgement is rendered in the hero, in
+ * the secondary rail and in the planning views, and three call sites deciding
+ * independently what "excellent but already setting" means is how the hero rule
+ * went wrong once before.
+ */
+export type Verdict =
+  | "GO OUT NOW"
+  | "WORTH STAYING UP FOR"
+  | "BEST LATER TONIGHT"
+  | "EASY IF YOU'RE ALREADY OUTSIDE"
+  | "ONLY IF CONDITIONS IMPROVE"
+  | "NOT WORTH A SPECIAL TRIP"
+  | "WORTH A DARKER SITE"
+  | "BELOW THE HORIZON";
+
+export interface VerdictInput {
+  band: Band;
+  /** True where the object cannot be observed for the rest of the period. */
+  unavailable: boolean;
+  /** Sky access at the recommended moment, 0–1, or null where unknown. */
+  skyAccess: number | null;
+  /** Minutes until the window opens; negative once it is open. */
+  minutesUntilWindow: number | null;
+  /** True where the phenomenon needs a genuinely dark site to be worth it. */
+  needsDarkSite: boolean;
+}
+
+/** How poor the sky has to be before conditions become the headline. */
+const CONDITIONS_LIMITING = 0.45;
+
+export function verdictFor(input: VerdictInput): Verdict {
+  const { band, unavailable, skyAccess, minutesUntilWindow, needsDarkSite } = input;
+
+  if (unavailable) return "BELOW THE HORIZON";
+
+  // Conditions lead when they are what is actually deciding it. Said before
+  // any praise of the phenomenon, because "exceptional" followed by "under
+  // thick cloud" sends people outside for nothing.
+  if (skyAccess !== null && skyAccess < CONDITIONS_LIMITING) {
+    return band === "exceptional" || band === "very good"
+      ? "ONLY IF CONDITIONS IMPROVE"
+      : "NOT WORTH A SPECIAL TRIP";
+  }
+
+  const open = minutesUntilWindow !== null && minutesUntilWindow <= 0;
+  const soon = minutesUntilWindow !== null && minutesUntilWindow > 0 && minutesUntilWindow <= 90;
+
+  if (band === "exceptional" || band === "very good") {
+    if (open) return "GO OUT NOW";
+    if (soon) return "WORTH STAYING UP FOR";
+    if (needsDarkSite) return "WORTH A DARKER SITE";
+    return "BEST LATER TONIGHT";
+  }
+
+  if (band === "good") {
+    if (open) return "EASY IF YOU'RE ALREADY OUTSIDE";
+    return "BEST LATER TONIGHT";
+  }
+
+  return "NOT WORTH A SPECIAL TRIP";
+}

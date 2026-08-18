@@ -13229,3 +13229,182 @@ button.primary,
 }
 .tk-now-next-name { color: var(--tk-ink); font-weight: 600; }
 .tk-now-next-time { font-family: var(--tk-display); font-size: 1.15rem; color: var(--tk-ink); }
+
+/* ==================================================== the one-screen constraint
+
+   Tracker is a single screen. Not "mostly fits" — the page itself does not
+   scroll, on any device. Anything that used to live below the fold becomes a
+   state change inside the viewport: the plate swaps, a panel replaces another,
+   a detail takes over the composition.
+
+   This is a product constraint rather than a layout preference, so it is
+   enforced at the shell rather than negotiated per view. Panels that can
+   outgrow their box scroll inside themselves; the page never does. */
+
+.tracker-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* Every view is a row of that grid and owns its own overflow. minmax(0, 1fr)
+   above is what stops a tall child forcing the row past the viewport — without
+   it the grid track sizes to content and the shell scrolls after all. */
+.tracker-shell > .tk-view,
+.tracker-shell > .tk-tonight,
+.tracker-shell > .tk-entry {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The entry screen already fitted; it just needs to stop centring against a
+   height it no longer owns. */
+.tk-entry { min-height: 0; align-content: center; }
+
+/* --------------------------------------------------- Tonight, as one screen */
+
+.tracker-hero.tk-observe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 20px clamp(24px, 3vw, 48px);
+  align-content: stretch;
+  max-width: 1560px;
+  height: 100%;
+  padding: clamp(18px, 2.2vw, 30px) clamp(20px, 3vw, 44px) clamp(16px, 2vw, 24px);
+}
+
+@media (min-width: 1040px) {
+  .tracker-hero.tk-observe {
+    /* The plate is the subject and takes the larger share. The reading column
+       is held near 46 characters so it stays a column rather than becoming a
+       paragraph stretched to fill space it does not want. */
+    grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);
+  }
+  .tk-observe-main { position: static; grid-row: 1; align-self: center; }
+  .tk-observe-side { grid-row: 1; align-self: center; }
+  /* The ranked rail spans the foot of both columns. */
+  .tracker-more { grid-column: 1 / -1; grid-row: 2; }
+}
+
+.tk-observe-main { max-width: 52ch; overflow-y: auto; min-height: 0; }
+.tk-observe-side { min-height: 0; display: grid; align-content: center; gap: 12px; }
+.tk-plate-drawing svg { max-height: min(46vh, 420px); }
+
+/* ------------------------------------------- secondary events, ranked not tiled
+
+   These were four equal cards with a picture each, which said that everything
+   on the list mattered equally — the opposite of what a ranking product is
+   for. They are a rail now: one line each, ordered, with the verdict carrying
+   the weight instead of a photograph. */
+
+.tk-tonight .tracker-more {
+  max-width: none;
+  margin: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-tonight .tracker-more h2 {
+  margin: 0 0 10px;
+  font-family: var(--tk-display);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--tk-ink-dim);
+}
+.tk-tonight .tracker-cards {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;
+}
+.tk-tonight .tracker-card {
+  flex: 0 0 auto;
+  width: clamp(200px, 21vw, 268px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  border: 1px solid var(--tk-line);
+  border-radius: 11px;
+  background: var(--tk-panel);
+  padding: 11px 13px;
+}
+/* The photograph goes. A thumbnail per row made a ranked list read as a
+   gallery, and at this size it carried no information a word would not. */
+.tk-tonight .tracker-card-media { display: none; }
+.tk-tonight .tracker-card-summary { display: none; }
+.tk-tonight .tracker-card-conclusion { display: none; }
+.tk-tonight .tracker-card-title { font-size: 0.92rem; }
+.tk-tonight .tracker-card-when { font-size: 0.78rem; }
+
+/* The verdict is the loudest thing in the composition, because it is the
+   answer. */
+.tk-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  border: 1px solid var(--tk-accent);
+  border-radius: 999px;
+  padding: 5px 13px;
+  color: var(--tk-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+.tk-verdict[data-tone="hold"] { border-color: var(--tk-line-strong); color: var(--tk-ink-dim); }
+.tk-verdict[data-tone="no"] { border-color: rgba(226, 154, 154, 0.5); color: #e6a3a3; }
+
+/* The Tonight wrapper is the shell's second row: it owns the viewport under
+   the header and lays its own children out inside it. */
+.tk-tonight {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.tk-tonight > .tracker-hero.tk-observe { min-height: 0; height: auto; overflow: hidden; }
+.tk-tonight .tracker-unavailable { padding: 0 clamp(20px, 3vw, 44px) 10px; margin: 0; max-width: none; }
+.tk-tonight .tracker-detail { padding: 0 clamp(20px, 3vw, 44px) 14px; }
+/* The working panel can be long, so it scrolls inside itself rather than
+   pushing the page — the one place a scroll is allowed. */
+.tk-tonight .tracker-detail-body { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+
+/* Fitting Tonight into the viewport rather than clipping it.
+
+   Enforcing the one-screen rule at the shell without sizing the content to
+   match just moves the failure: the page stopped scrolling and started cutting
+   the headline off instead. Type and media are sized against viewport height so
+   the composition shrinks with the window instead of overflowing it. */
+
+.tk-tonight .tracker-hero h1 {
+  font-size: clamp(1.6rem, 3.4vh + 0.6vw, 2.9rem);
+  line-height: 1.06;
+  margin-bottom: 8px;
+}
+.tk-tonight .tracker-hero-summary {
+  font-size: clamp(0.86rem, 1.5vh, 1.02rem);
+  margin-bottom: 12px;
+}
+.tk-tonight .tracker-hero-directions,
+.tk-tonight .tracker-hero-conclusion { font-size: 0.85rem; margin-top: 8px; }
+.tk-tonight .tk-facts { margin: 12px 0 10px; }
+.tk-tonight .tracker-hero-actions { margin-top: 12px; }
+
+/* The plate is the subject and gets the height. Subject imagery — the planet
+   portrait, the Moon at phase — is the explanation layer and yields first,
+   because losing it costs the reader context rather than the answer. */
+.tk-tonight .tk-plate-drawing svg { max-height: min(38vh, 340px); }
+.tk-tonight .tk-observe-media { max-height: 26vh; aspect-ratio: auto; }
+@media (max-height: 860px) {
+  .tk-tonight .tk-observe-media { display: none; }
+}
+
+/* The rail lost its gutters when it became a grid child spanning both columns. */
+.tk-tonight .tracker-more { padding: 12px clamp(20px, 3vw, 44px) 0; }
+.tk-tonight .tracker-detail { padding: 8px clamp(20px, 3vw, 44px) 12px; }

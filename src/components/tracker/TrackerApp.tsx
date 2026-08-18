@@ -27,6 +27,7 @@ import {
   applySkyAccess,
   chooseHero,
   partitionByAvailability,
+  verdictFor,
   viewingConclusion,
   type Ranking,
   type SkyAdjustedOpportunity,
@@ -297,7 +298,12 @@ function TrackerScreen() {
 
       {place && view === "calendar" ? <TrackerCalendar place={place} clock={clock} /> : null}
 
-      {showsNight && night && place && selected ? (
+      {/* Tonight is one screen. The hero, the ranked rail and the unavailable
+          context are a single grid that owns exactly the space under the
+          header — not a page with sections stacked beneath it. */}
+      {showsNight && night && place ? (
+        <div className="tk-tonight">
+      {selected ? (
         <TrackerHero
           entry={selected}
           night={night}
@@ -387,7 +393,7 @@ function TrackerScreen() {
         </section>
       ) : null}
 
-      {showsNight && night && place ? (
+      {night && place ? (
         <TrackerDetail
           night={night}
           weather={weather}
@@ -397,6 +403,8 @@ function TrackerScreen() {
           expanded={showDetail}
           onToggle={() => setShowDetail((current) => !current)}
         />
+          ) : null}
+        </div>
       ) : null}
     </main>
   );
@@ -478,6 +486,15 @@ function TrackerHero({
   const path = skyPathFor(opportunity, viewingWindow);
   // Where to face, which for a shower is deliberately not where the radiant is.
   const gaze = gazeRegionFor(opportunity, path);
+  const verdict = verdictFor({
+    band: entry.band,
+    unavailable: passed,
+    skyAccess: viewingWindow ? viewingWindow.viewability.access : null,
+    minutesUntilWindow: viewingWindow
+      ? Math.round((Date.parse(viewingWindow.startUtc) - Date.now()) / 60_000)
+      : null,
+    needsDarkSite: opportunity.transparency === "high",
+  });
 
   return (
     <section className="tracker-hero tk-observe" aria-label="Tonight's recommendation">
@@ -496,6 +513,21 @@ function TrackerHero({
             {guidance.safety}
           </p>
         ) : null}
+
+        {/* The decision, before the description. Tracker's value is judgement,
+            and a grade like "excellent" is not one — this is. */}
+        <p
+          className="tk-verdict"
+          data-tone={
+            verdict === "GO OUT NOW" || verdict === "WORTH STAYING UP FOR"
+              ? "go"
+              : verdict === "NOT WORTH A SPECIAL TRIP" || verdict === "BELOW THE HORIZON"
+                ? "no"
+                : "hold"
+          }
+        >
+          {verdict}
+        </p>
 
         <p className="tracker-hero-eyebrow">
           {formatNightLabel(night.period.startUtc, clock)} · {place.name}

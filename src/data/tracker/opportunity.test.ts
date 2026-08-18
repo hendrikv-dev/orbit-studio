@@ -5,6 +5,7 @@ import {
   chooseHero,
   explainRank,
   rankOpportunities,
+  verdictFor,
   type Equipment,
   type Opportunity,
   type Qualities,
@@ -358,5 +359,44 @@ describe("geometry survives the sampling pipeline", () => {
       expect(culminationUtc).not.toBe(entry.profile[0].atUtc);
       expect(culminationUtc).not.toBe(entry.profile[entry.profile.length - 1].atUtc);
     }
+  });
+});
+
+describe("the verdict", () => {
+  const base = {
+    band: "very good" as const,
+    unavailable: false,
+    skyAccess: 0.9,
+    minutesUntilWindow: 200,
+    needsDarkSite: false,
+  };
+
+  it("leads with conditions when conditions are what decides it", () => {
+    // "Exceptional" followed by "under thick cloud" sends people outside for
+    // nothing, so the sky is allowed to overrule praise of the phenomenon.
+    expect(verdictFor({ ...base, band: "exceptional", skyAccess: 0.2 })).toBe(
+      "ONLY IF CONDITIONS IMPROVE",
+    );
+    expect(verdictFor({ ...base, band: "fair", skyAccess: 0.2 })).toBe(
+      "NOT WORTH A SPECIAL TRIP",
+    );
+  });
+
+  it("says go out now only when the window is actually open", () => {
+    expect(verdictFor({ ...base, minutesUntilWindow: -10 })).toBe("GO OUT NOW");
+    expect(verdictFor({ ...base, minutesUntilWindow: 45 })).toBe("WORTH STAYING UP FOR");
+    expect(verdictFor({ ...base, minutesUntilWindow: 300 })).toBe("BEST LATER TONIGHT");
+  });
+
+  it("never recommends an unavailable object", () => {
+    expect(verdictFor({ ...base, band: "exceptional", unavailable: true })).toBe(
+      "BELOW THE HORIZON",
+    );
+  });
+
+  it("does not overpromise a merely good target", () => {
+    expect(verdictFor({ ...base, band: "good", minutesUntilWindow: -5 })).toBe(
+      "EASY IF YOU'RE ALREADY OUTSIDE",
+    );
   });
 });
