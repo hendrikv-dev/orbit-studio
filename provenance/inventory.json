@@ -380,12 +380,13 @@
         ]
       },
       "localSha256": {
-        ".github/workflows/release-validation.yml": "17eb78967e7fb9a0c8d4061c2d20ce118ea44bd45fb056da1dc55e7bb519b821"
+        ".github/workflows/release-validation.yml": "cc0dff50dda4b81628a1b2119dc611de20e734efd34cd02fc40df5b9b0c0bf4f"
       },
       "processing": [
         "Resolved each mutable v4 reference through the official GitHub API on 2026-07-25.",
         "Pinned the workflow to the exact commit currently addressed by each reviewed v4 reference.",
-        "No GitHub Action implementation code is copied into the repository or production deployment."
+        "No GitHub Action implementation code is copied into the repository or production deployment.",
+        "Runs the accessibility gate (npm run a11y:verify) after the provenance and licence checks, against the production build served by vite preview. Its providers are stubbed at the browser level so the job neither fails for an upstream outage nor puts continuous-integration traffic on a free service."
       ],
       "rights": {
         "verification": "verified",

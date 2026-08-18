@@ -6,10 +6,10 @@ Orbit Studio's MIT license does not replace the licenses of third-party packages
 This notice is derived from `package-lock.json`, the authoritative dependency graph.
 
 - Lockfile version: 3
-- Lockfile SHA-256: `41fb18bfca0e323a5f1a6dcdfaea77fd2a781d6e67fc0b6106c336ec4880d66b`
-- Locked package entries: 296
+- Lockfile SHA-256: `e11ef5c31eeb85ef34a21e542d16b064c216e864e4986b784c76fe032b0cf27f`
+- Locked package entries: 298
 - Runtime package entries: 101
-- Development package entries: 195
+- Development package entries: 197
 - Optional platform package entries: 0
 
 ## License audit
@@ -330,6 +330,11 @@ This notice is derived from `package-lock.json`, the authoritative dependency gr
 - `zustand@3.7.2` — runtime
 - `zustand@4.5.7` — runtime
 - `zustand@5.0.14` — runtime
+
+### MPL-2.0
+
+- `@axe-core/playwright@4.13.0` — development
+- `axe-core@4.13.0` — development
 
 ## Evidence-backed metadata override
 

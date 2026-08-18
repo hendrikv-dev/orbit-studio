@@ -436,13 +436,48 @@ mouse and times that are right.
 - A skip link to the ranked list, and a title that names tonight's
   recommendation.
 
+## The accessibility gate
+
+`npm run a11y:verify` runs in CI, against the production build served by
+`vite preview`. It does two different jobs, because they catch different things:
+
+1. **axe-core** across ten states — welcome, picker open with results, place
+   confirmation, recommendation, recommendation with every disclosure open, a
+   ranked card forced into its "already set" styling, and the same journey again
+   at phone width. States matter as much as pages: every violation the original
+   audit found lived in the *loaded* view, and every picker failure lived in its
+   *open* state, so checking the first screen would have passed a broken
+   product.
+2. **Explicit interaction assertions** on what was actually broken — combobox
+   role, an accessible name that is not the placeholder, `aria-activedescendant`
+   moving on arrow keys and pointing at a real option, Enter reaching the
+   confirmation, Escape closing and returning focus to the trigger, and a page
+   title that names the recommendation.
+
+**Proven to fail, not just to pass.** Both original bugs were reintroduced and
+the gate caught them: the `opacity: 0.62` contrast regression (3 nodes, serious)
+and the missing accessible name. Worth noting which caught which — axe found the
+contrast, and axe did *not* find the missing name. The explicit assertion did.
+That is the argument for the second layer.
+
+**No network.** The geocoder and forecast are stubbed at the browser level, so
+the gate cannot go red because a free service had a bad afternoon, and CI puts
+no traffic on services this project is a guest of. Verified by running it with
+no network reachable: passes. The geocoder fixture deliberately includes a
+nameless street address — the case that used to be discarded.
+
+`MPL-2.0` had to be accepted for axe-core. Rather than widening the licence set,
+the gate now distinguishes development-only licences: MPL's obligations attach
+to distributing the covered files, and a package that only tests the build is
+never distributed. A runtime dependency arriving under MPL-2.0 still fails.
+
 ## Still open
 
 - The ranked list and the hero are one system, but there is no way back to the
   hero from a card except selecting it.
 - Now, Upcoming and Calendar are still not built.
-- No accessibility check runs in CI. `@axe-core/playwright` is the obvious
-  addition and Playwright is already a devDependency.
+- Satellite passes and aurora remain absent, waiting on the server-cost
+  decision, as do the three unresolved provenance entries.
 
 ## Ranking quality
 

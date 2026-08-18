@@ -27,6 +27,20 @@ const supportedLicenses = new Set([
   "MIT",
 ]);
 
+/**
+ * Licences accepted only for development dependencies.
+ *
+ * MPL-2.0 is weak copyleft: its obligations attach to distributing the covered
+ * files, and a package used to test the build is never distributed — it is not
+ * in the bundle, the source archive, or the release. That reasoning holds only
+ * while the package stays development-only, so it is encoded as a rule rather
+ * than written in a comment beside a blanket allowance. A runtime dependency
+ * arriving under MPL-2.0 still fails.
+ *
+ * Reached the tree via @axe-core/playwright, which runs the accessibility gate.
+ */
+const developmentOnlyLicenses = new Set(["MPL-2.0"]);
+
 const licenseOverrides = new Map([
   [
     "webgl-constants@1.1.1",
@@ -94,16 +108,20 @@ export async function readDependencyAudit(root = projectRoot) {
     const override = licenseOverrides.get(key);
     const license = metadata.license ?? override?.license ?? null;
 
-    if (!license) failures.push(`license-missing:${key}`);
-    if (license && !supportedLicenses.has(license)) {
-      failures.push(`license-unreviewed:${key}:${license}`);
-    }
-
     const classification = metadata.dev
       ? "development"
       : metadata.optional
         ? "optional-platform"
         : "runtime";
+
+    if (!license) failures.push(`license-missing:${key}`);
+    if (license && !supportedLicenses.has(license)) {
+      if (classification === "development" && developmentOnlyLicenses.has(license)) {
+        // Allowed here and nowhere else. See developmentOnlyLicenses.
+      } else {
+        failures.push(`license-unreviewed:${key}:${license}`);
+      }
+    }
     const packageDirectory = path.join(root, lockPath);
     const files = classification === "runtime"
       ? await noticeFiles(packageDirectory)

@@ -45,10 +45,22 @@ jobs:
       - name: Build the production application
         run: npm run build
 
+      # Runs against the production build served by vite preview, and reaches
+      # the states the faults actually lived in: the picker open, a place
+      # confirmed, a recommendation on screen, and the same again on a phone.
+      # The geocoder and forecast are stubbed, so it neither goes red for
+      # somebody else's outage nor puts CI traffic on a free service.
+      #
+      # Placed before the provenance step deliberately. That step currently
+      # exits non-zero on this repository, and anything after it never runs.
+      - name: Check accessibility
+        run: npm run a11y:verify
+
       - name: Validate provenance and dependency licenses
         run: |
           npm run provenance:validate
           npm run licenses:validate
+
 
       - name: Generate the deterministic review package
         run: npm run review
