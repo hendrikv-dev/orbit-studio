@@ -12952,16 +12952,14 @@ button.primary,
    A shower gets two graphics because it asks the reader two questions. The
    timeline says when; the compass says where. Neither answers the other. */
 
-.tk-timeline,
-.tk-orient {
+.tk-timeline {
   margin: 0;
   border: 1px solid var(--tk-line);
   border-radius: 14px;
   background: var(--tk-panel);
   padding: 14px 16px 12px;
 }
-.tk-timeline svg,
-.tk-orient svg { display: block; width: 100%; height: auto; }
+.tk-timeline svg { display: block; width: 100%; height: auto; }
 
 .tk-timeline-title {
   margin: 0 0 8px;
@@ -12990,19 +12988,55 @@ button.primary,
 .tk-key-twilight { background: rgba(126, 166, 207, 0.28); height: 10px !important; border-radius: 3px; }
 .tk-key-moon { background: rgba(226, 214, 176, 0.7); }
 
-/* The gaze wedge is the recommendation, so it carries the accent. The radiant
-   is a reference and is outlined only — it must not read as a destination. */
-.tk-orient-wedge { fill: rgba(79, 216, 176, 0.14); stroke: rgba(79, 216, 176, 0.3); stroke-width: 1; }
-.tk-orient-arc { fill: none; stroke: rgba(126, 166, 207, 0.4); stroke-width: 1.2; }
-.tk-orient-point { fill: var(--tk-ink-faint); font-size: 11px; letter-spacing: 0.08em; }
-.tk-orient-point.is-facing { fill: var(--tk-ink); font-weight: 600; }
-.tk-orient-gaze { fill: var(--tk-accent); }
-.tk-orient-gaze-label { fill: var(--tk-ink); font-size: 11px; font-weight: 600; }
-.tk-orient-radiant { fill: none; stroke: var(--tk-ink-dim); stroke-width: 1.4; stroke-dasharray: 2 2; }
-.tk-orient-radiant-label { fill: var(--tk-ink-dim); font-size: 10px; letter-spacing: 0.04em; }
-.tk-orient-caption {
-  margin: 8px 0 0;
-  color: var(--tk-ink-dim);
-  font-size: 0.76rem;
-  line-height: 1.45;
+
+
+/* The four things a person acts on, given the width they deserve.
+
+   These were a stack of sentences and a colour key. A key is a way of decoding
+   a chart; this is the answer, so it is stated once, directly labelled, and
+   nothing on the page repeats it. */
+.tk-facts {
+  display: grid;
+  /* Exactly four, so the row never wraps to leave one field stranded
+     beside an empty cell. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 22px 0 18px;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--tk-line);
 }
+.tk-fact {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  background: var(--tk-panel);
+  padding: 12px 14px 13px;
+}
+.tk-fact dt {
+  color: var(--tk-ink-faint);
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.tk-fact dd { margin: 0; }
+.tk-fact-strong {
+  color: var(--tk-ink);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+/* The condition chip inherits the row rather than bringing its own block. */
+.tk-fact .tracker-condition { margin: 0; font-size: 0.84rem; }
+
+.tk-timeline-inline {
+  fill: var(--tk-ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.tk-timeline-inline.is-moon { fill: rgba(226, 214, 176, 0.75); }
+.tk-timeline-peak { fill: var(--tk-accent); }
+.tk-timeline-peaklabel { fill: var(--tk-ink); font-size: 11px; font-weight: 600; }
+
+.tk-observe-pair { display: grid; gap: 16px; }

@@ -166,6 +166,56 @@ export function TrackerMeteorTimeline({
           />
         ))}
 
+        {twilight.map((span) => {
+          const width = toX(span.to) - toX(span.from);
+          if (width < 44) return null;
+          return (
+            <text
+              key={`twl-${span.from}`}
+              x={toX(span.from) + width / 2}
+              y={PLOT_TOP + 14}
+              textAnchor="middle"
+              className="tk-timeline-inline"
+            >
+              not dark yet
+            </text>
+          );
+        })}
+
+        {moonUp.map((span) => {
+          const width = toX(span.to) - toX(span.from);
+          if (width < 60) return null;
+          return (
+            <text
+              key={`mnl-${span.from}`}
+              x={toX(span.from) + width / 2}
+              y={PLOT_BOTTOM + 24}
+              textAnchor="middle"
+              className="tk-timeline-inline is-moon"
+            >
+              Moon up
+            </text>
+          );
+        })}
+
+        {/* The best moment, named on the curve rather than in a caption. */}
+        <g>
+          <circle
+            cx={toX(bestSample.atUtc)}
+            cy={toY(radiantByTime.get(bestSample.atUtc) ?? 0)}
+            r={3.4}
+            className="tk-timeline-peak"
+          />
+          <text
+            x={toX(bestSample.atUtc)}
+            y={toY(radiantByTime.get(bestSample.atUtc) ?? 0) - 12}
+            textAnchor="middle"
+            className="tk-timeline-peaklabel"
+          >
+            best · ~{Math.round(peakRate)}/hr
+          </text>
+        </g>
+
         {hours.map((sample) => (
           <text
             key={sample.atUtc}
@@ -179,24 +229,6 @@ export function TrackerMeteorTimeline({
         ))}
       </svg>
 
-      <div className="tk-timeline-key">
-        <span>
-          <i className="tk-key-line" /> radiant height
-        </span>
-        <span>
-          <i className="tk-key-lit" /> best window
-        </span>
-        {twilight.length > 0 ? (
-          <span>
-            <i className="tk-key-twilight" /> not fully dark
-          </span>
-        ) : null}
-        {moonUp.length > 0 ? (
-          <span>
-            <i className="tk-key-moon" /> Moon up, washing out the faint ones
-          </span>
-        ) : null}
-      </div>
     </figure>
   );
 }

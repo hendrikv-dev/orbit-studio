@@ -16,9 +16,9 @@ import {
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
+import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerMeteorTimeline } from "./TrackerMeteorTimeline";
-import { TrackerOrientation } from "./TrackerOrientation";
 import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerCalendar } from "./TrackerCalendar";
 import {
@@ -464,10 +464,6 @@ function TrackerHero({
   const path = skyPathFor(opportunity, viewingWindow);
   // Where to face, which for a shower is deliberately not where the radiant is.
   const gaze = gazeRegionFor(opportunity, path);
-  const brightestRadiant =
-    path?.kind === "radiant"
-      ? path.points.reduce((top, point) => (point.relative > top.relative ? point : top))
-      : undefined;
 
   return (
     <section className="tracker-hero tk-observe" aria-label="Tonight's recommendation">
@@ -493,29 +489,52 @@ function TrackerHero({
         <h1>{opportunity.title}</h1>
         <p className="tracker-hero-summary">{opportunity.summary}</p>
 
-        <p className="tracker-hero-when">
-          {viewingWindow
-            ? `Best chance ${formatWindowPhrase(viewingWindow, clock)}`
-            : `Best around ${formatClockTime(guidance.whenUtc, clock)}`}
-        </p>
-
-        {conditionsPending ? (
-          <p className="tracker-condition tracker-condition-pending" role="status">
-            <span className="tracker-skeleton" aria-hidden />
-            Checking the sky over {place.name}…
-          </p>
-        ) : viewingWindow ? (
-          <TrackerCondition
-            viewability={viewingWindow.viewability}
-            temperatureC={atBest?.temperatureC ?? null}
-            atUtc={whenUtc}
-            clock={clock}
-            showFreshness={false}
-          />
-        ) : null}
+        {/* The four things a person actually acts on, given the width they
+            deserve and labelled directly. These used to be a stack of
+            sentences and a legend; a legend is a key to a chart, and this is
+            not a chart — it is the answer. */}
+        <dl className="tk-facts">
+          <div className="tk-fact">
+            <dt>When</dt>
+            <dd className="tk-fact-strong">
+              {viewingWindow
+                ? formatWindowPhrase(viewingWindow, clock)
+                : formatClockTime(guidance.whenUtc, clock)}
+            </dd>
+          </div>
+          {gaze ? (
+            <div className="tk-fact">
+              <dt>Face</dt>
+              <dd className="tk-fact-strong">{compassPoint(gaze.centerAzimuthDeg)}</dd>
+            </div>
+          ) : null}
+          {gaze ? (
+            <div className="tk-fact">
+              <dt>Look</dt>
+              <dd className="tk-fact-strong">{Math.round(gaze.centerAltitudeDeg)}° up</dd>
+            </div>
+          ) : null}
+          <div className="tk-fact">
+            <dt>Sky</dt>
+            <dd>
+              {conditionsPending ? (
+                <span className="tracker-skeleton" aria-hidden />
+              ) : viewingWindow ? (
+                <TrackerCondition
+                  viewability={viewingWindow.viewability}
+                  temperatureC={atBest?.temperatureC ?? null}
+                  atUtc={whenUtc}
+                  clock={clock}
+                  showFreshness={false}
+                />
+              ) : (
+                <span className="tk-fact-strong">Not known</span>
+              )}
+            </dd>
+          </div>
+        </dl>
 
         <p className="tracker-hero-directions">
-          {guidance.direction ? `${facingSentence(guidance.direction)} ` : ""}
           {guidance.howLong.split(".")[0]}.{" "}
           {guidance.equipment === "eyes"
             ? "No equipment needed."
@@ -613,13 +632,22 @@ function TrackerHero({
               windowStartUtc={path.windowStartUtc}
               windowEndUtc={path.windowEndUtc}
             />
-            {gaze ? (
-              <TrackerOrientation
-                gaze={gaze}
-                radiantAzimuthDeg={brightestRadiant?.azimuthDeg}
-                radiantAltitudeDeg={brightestRadiant?.altitudeDeg}
-              />
-            ) : null}
+            <div className="tk-observe-pair">
+              <figure className="tk-observe-media">
+                <TrackerScene
+                  className="tk-observe-scene"
+                  imagery={imagery}
+                  priority
+                  showCredit
+                  illuminatedFraction={
+                    opportunity.sceneHints?.illuminatedFraction ??
+                    bestSample?.moonIlluminatedFraction ??
+                    0.5
+                  }
+                  waning={opportunity.sceneHints?.waning ?? false}
+                />
+              </figure>
+            </div>
           </>
         ) : path ? (
           <TrackerSkyChart
@@ -630,20 +658,22 @@ function TrackerHero({
           />
         ) : null}
 
-        <figure className="tk-observe-media">
-          <TrackerScene
-            className="tk-observe-scene"
-            imagery={imagery}
-            priority
-            showCredit
-            illuminatedFraction={
-              opportunity.sceneHints?.illuminatedFraction ??
-              bestSample?.moonIlluminatedFraction ??
-              0.5
-            }
-            waning={opportunity.sceneHints?.waning ?? false}
-          />
-        </figure>
+        {path?.kind === "radiant" ? null : (
+          <figure className="tk-observe-media">
+            <TrackerScene
+              className="tk-observe-scene"
+              imagery={imagery}
+              priority
+              showCredit
+              illuminatedFraction={
+                opportunity.sceneHints?.illuminatedFraction ??
+                bestSample?.moonIlluminatedFraction ??
+                0.5
+              }
+              waning={opportunity.sceneHints?.waning ?? false}
+            />
+          </figure>
+        )}
       </aside>
     </section>
   );
