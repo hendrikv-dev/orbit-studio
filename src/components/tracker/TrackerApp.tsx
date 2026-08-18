@@ -695,10 +695,11 @@ function TrackerHero({
         {path ? (
           <TrackerSkyPlate
             tone={opportunity.kind}
-            imageSrc={imagery.treatment === "photo" ? (imagery.src ?? undefined) : undefined}
-            creditName={imagery.treatment === "photo" ? imagery.credit : undefined}
-            creditHref={imagery.treatment === "photo" ? imagery.sourceUrl : undefined}
-            creditLicence={imagery.treatment === "photo" ? imagery.licence : undefined}
+            /* No photographic ground. Putting a starfield behind a plotted
+               curve made the picture compete with the data it was supposed to
+               support, and legibility of a functional graphic is not something
+               to trade for atmosphere. Real celestial media belongs elsewhere
+               in the experience. */
             title={
               path.kind === "radiant"
                 ? "How the shower builds through the night"
