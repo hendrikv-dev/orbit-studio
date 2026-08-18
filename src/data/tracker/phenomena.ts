@@ -15,7 +15,7 @@ import {
   compassPoint,
   describeCharacter,
 } from "./meteorActivity";
-import type { Opportunity } from "./opportunity";
+import type { Opportunity, PhenomenonGeometry } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 
 /**
@@ -117,16 +117,63 @@ function altitudeObservability(altitudeDeg: number): number {
  * the shape of the night rather than a single instant.
  */
 function altitudeProfile(observer: Observer, body: Body, times: Date[]): OpportunitySample[] {
-  const raw = times.map((at) => ({
-    atUtc: at.toISOString(),
-    altitude: horizontal(observer, body, at).altitude,
-  }));
+  // Both coordinates are kept. The azimuth was being discarded here, one line
+  // after being computed, which is why the sky drawing had no bearing to plot
+  // and the interface could only say "south" in a sentence.
+  const raw = times.map((at) => {
+    const { altitude, azimuth } = horizontal(observer, body, at);
+    return { atUtc: at.toISOString(), altitude, azimuth };
+  });
   const peak = raw.reduce((best, entry) => Math.max(best, entry.altitude), 0);
   if (peak <= 0) return [];
   return raw.map((entry) => ({
     atUtc: entry.atUtc,
     relative: Math.max(0, entry.altitude) / peak,
+    altitudeDeg: entry.altitude,
+    azimuthDeg: entry.azimuth,
   }));
+}
+
+/**
+ * Rise, culmination and set, read off a profile that now carries altitude.
+ *
+ * Derived from the samples rather than searched for separately, so the three
+ * marks cannot disagree with the curve drawn through them. A separate
+ * ephemeris search would be more precise than the sample interval and would
+ * sometimes put the rise mark visibly off the point where the drawn path
+ * crosses the horizon, which reads as a bug whichever one is right.
+ *
+ * Any of the three may be null: an object already up at dusk never rises during
+ * the period, and one that stays up never sets.
+ */
+function targetGeometry(profile: OpportunitySample[]): PhenomenonGeometry | undefined {
+  const withAltitude = profile.filter((sample) => sample.altitudeDeg !== undefined);
+  if (withAltitude.length === 0) return undefined;
+
+  let riseUtc: string | null = null;
+  let setUtc: string | null = null;
+  for (let index = 1; index < withAltitude.length; index += 1) {
+    const previous = withAltitude[index - 1].altitudeDeg as number;
+    const current = withAltitude[index].altitudeDeg as number;
+    if (previous <= 0 && current > 0 && riseUtc === null) riseUtc = withAltitude[index].atUtc;
+    if (previous > 0 && current <= 0 && setUtc === null) setUtc = withAltitude[index].atUtc;
+  }
+
+  const highest = withAltitude.reduce((best, sample) =>
+    (sample.altitudeDeg as number) > (best.altitudeDeg as number) ? sample : best,
+  );
+  // Only a culmination if it actually turns over inside the period. A target
+  // still climbing at sunrise has its maximum at the last sample, which is the
+  // end of the window rather than the top of its arc.
+  const isInterior =
+    highest !== withAltitude[0] && highest !== withAltitude[withAltitude.length - 1];
+
+  return {
+    kind: "target",
+    riseUtc,
+    setUtc,
+    culminationUtc: isInterior ? highest.atUtc : null,
+  };
 }
 
 /**
@@ -250,11 +297,14 @@ function meteorOpportunity(
     profile: (() => {
       const peak = night.samples.reduce((best, sample) => Math.max(best, sample.totalPerHour), 0);
       if (peak <= 0) return [];
+      // No altitude or azimuth: a shower is not somewhere you look. The rate is
+      // the quality curve, and the radiant travels separately in `geometry`.
       return night.samples.map((sample) => ({
         atUtc: sample.atUtc,
         relative: sample.totalPerHour / peak,
       }));
     })(),
+    geometry: headline ? { kind: "radiant", track: headline.radiantTrack } : undefined,
     // The most demanding thing here. Faint meteors are the majority of any
     // stream, and they are the first thing thin cloud or smoke takes away.
     transparency: "high",
@@ -295,6 +345,8 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
   const nearTerminator = 1 - Math.abs(fraction - 0.5) * 2;
   const spectacle = 0.25 + 0.45 * nearTerminator;
   const earthshine = fraction < 0.25;
+  // Bound once so the profile and the geometry read off the same samples.
+  const moonProfile = altitudeProfile(observer, Body.Moon, times);
 
   return {
     id: "moon",
@@ -339,7 +391,8 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
     limitations: fraction > 0.6
       ? ["A Moon this bright washes out everything faint tonight, including meteors."]
       : [],
-    profile: altitudeProfile(observer, Body.Moon, times),
+    profile: moonProfile,
+    geometry: targetGeometry(moonProfile),
     // The Moon is visible through cloud that would end everything else.
     transparency: "low",
     sceneHints: { illuminatedFraction: fraction, waning: !waxing },
@@ -411,6 +464,7 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
   for (const profile of PLANETS) {
     const placement = bestPlacement(observer, profile.body, times);
     if (!placement) continue;
+    const planetProfile = altitudeProfile(observer, profile.body, times);
     const at = new Date(placement.atUtc);
     const magnitude = Illumination(profile.body, MakeTime(at)).mag;
 
@@ -463,7 +517,8 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
             "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
           ]
         : [],
-      profile: altitudeProfile(observer, profile.body, times),
+      profile: planetProfile,
+      geometry: targetGeometry(planetProfile),
       transparency: "low",
       alsoWith: target
         ? {
@@ -538,6 +593,9 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
       // A pair closer than the width of a finger at arm's length is striking;
       // six degrees apart is a pleasant coincidence and no more.
       const closeness = 1 - best.separation / CONJUNCTION_LIMIT_DEG;
+      // Tracked on the first body of the pair — they are within a few degrees
+      // of each other by definition, so one path describes both.
+      const conjunctionProfile = altitudeProfile(observer, first.body, times);
 
       opportunities.push({
         id: `conjunction-${first.name}-${second.name}`.replace(/\s+/g, "-").toLowerCase(),
@@ -574,7 +632,8 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         tonight: `Closest useful view at ${formatTime(best.at.toISOString())}, ${best.separation.toFixed(1)}° apart and ${Math.round(best.altitude)}° up.`,
         missingInputs: [],
         limitations: [],
-        profile: altitudeProfile(observer, first.body, times),
+        profile: conjunctionProfile,
+        geometry: targetGeometry(conjunctionProfile),
         transparency: "low",
       });
     }
@@ -645,18 +704,34 @@ function lunarEclipseOpportunity(
     limitations: [],
     // Fixed to the eclipse itself rather than to altitude: an eclipse is only
     // worth watching while it is happening, wherever the Moon has got to.
-    profile: eclipseProfile(eclipse.peak.date, half),
+    profile: eclipseProfile(observer, eclipse.peak.date, half),
     transparency: "low",
     sceneHints: { illuminatedFraction: 1 },
   };
 }
 
-/** A window centred on mid-eclipse, tapering to its edges. */
-function eclipseProfile(peak: Date, halfDurationHours: number): OpportunitySample[] {
+/**
+ * A window centred on mid-eclipse, tapering to its edges.
+ *
+ * The quality curve is fixed to the eclipse rather than to altitude — an
+ * eclipse is only worth watching while it is happening, wherever the Moon has
+ * got to. The Moon's position is still carried on every sample, because the
+ * reader still has to find it: knowing the eclipse peaks at 03:12 is no help
+ * without knowing which way to face.
+ */
+function eclipseProfile(
+  observer: Observer,
+  peak: Date,
+  halfDurationHours: number,
+): OpportunitySample[] {
   const samples: OpportunitySample[] = [];
   const span = Math.max(0.5, halfDurationHours) * 3_600_000;
   for (let offset = -span; offset <= span; offset += SAMPLE_INTERVAL_MINUTES * MS_PER_MINUTE) {
+    const at = new Date(peak.getTime() + offset);
+    const { altitude, azimuth } = horizontal(observer, Body.Moon, at);
     samples.push({
+      altitudeDeg: altitude,
+      azimuthDeg: azimuth,
       atUtc: new Date(peak.getTime() + offset).toISOString(),
       relative: 1 - Math.abs(offset) / (span * 1.6),
     });

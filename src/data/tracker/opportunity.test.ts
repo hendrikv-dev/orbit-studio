@@ -304,3 +304,59 @@ describe("choosing the hero from what is left", () => {
     expect(chooseHero(ranking.ranked, new Set(["venus"]))).toBeNull();
   });
 });
+
+describe("geometry survives the sampling pipeline", () => {
+  // The interface used to describe the sky in prose — "face south, about 48°
+  // up" — because the azimuth was computed and discarded one line later. A
+  // drawing cannot be built from that sentence without parsing English back
+  // into numbers the computation already had.
+  const JOSHUA_TREE = { lat: 34.135, lon: -116.313 };
+  const opportunities = tonightsOpportunities(
+    JOSHUA_TREE.lat,
+    JOSHUA_TREE.lon,
+    trackerObservationPeriod(JOSHUA_TREE.lat, JOSHUA_TREE.lon, new Date("2026-08-16T22:00:00Z")),
+  );
+
+  it("keeps altitude and azimuth on positional targets", () => {
+    const positional = opportunities.filter(
+      (entry) => entry.kind === "planet" || entry.kind === "moon",
+    );
+    expect(positional.length).toBeGreaterThan(0);
+    for (const entry of positional) {
+      expect(entry.profile.length).toBeGreaterThan(0);
+      for (const sample of entry.profile) {
+        expect(sample.altitudeDeg).toBeTypeOf("number");
+        expect(sample.azimuthDeg).toBeTypeOf("number");
+        expect(sample.azimuthDeg).toBeGreaterThanOrEqual(0);
+        expect(sample.azimuthDeg).toBeLessThanOrEqual(360);
+      }
+    }
+  });
+
+  it("gives a meteor shower a radiant track and no target position", () => {
+    const shower = opportunities.find((entry) => entry.kind === "meteors");
+    if (!shower) return; // No stream running on this date; nothing to assert.
+    expect(shower.geometry?.kind).toBe("radiant");
+    // A shower is not somewhere you point, so it must not look like one.
+    for (const sample of shower.profile) {
+      expect(sample.altitudeDeg).toBeUndefined();
+    }
+    if (shower.geometry?.kind === "radiant") {
+      expect(shower.geometry.track.length).toBe(shower.profile.length);
+    }
+  });
+
+  it("marks a culmination only where the target turns over inside the period", () => {
+    for (const entry of opportunities) {
+      if (entry.geometry?.kind !== "target") continue;
+      const { culminationUtc } = entry.geometry;
+      if (!culminationUtc) continue;
+      const peak = entry.profile.reduce((best, sample) =>
+        (sample.altitudeDeg ?? -90) > (best.altitudeDeg ?? -90) ? sample : best,
+      );
+      expect(culminationUtc).toBe(peak.atUtc);
+      expect(culminationUtc).not.toBe(entry.profile[0].atUtc);
+      expect(culminationUtc).not.toBe(entry.profile[entry.profile.length - 1].atUtc);
+    }
+  });
+});

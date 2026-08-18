@@ -102,6 +102,16 @@ export interface ShowerContribution {
   /** Where its radiant is at this instant, from the observer. */
   radiantAltitudeDeg: number;
   radiantAzimuthDeg: number;
+  /**
+   * Where the radiant is across the whole period, one entry per sample.
+   *
+   * The single pair above is the radiant at the best moment, which is what the
+   * rate estimate is built on. It is not enough to draw with: a radiant climbs
+   * through the night, and that climb is most of why the rate changes. Drawing
+   * one fixed point would state the opposite of what the activity curve beside
+   * it is showing.
+   */
+  radiantTrack: { atUtc: string; altitudeDeg: number; azimuthDeg: number }[];
   /** Zenithal rate after the activity profile, before local correction. */
   zhrTonight: number;
   /** What the observer can actually expect from this stream, per hour. */
@@ -544,6 +554,19 @@ export function meteorNight(
         name: shower.name,
         radiantAltitudeDeg: altitudeDeg,
         radiantAzimuthDeg: azimuthDeg,
+        radiantTrack: samples.map((sample) => {
+          const at = altitudeAzimuth(
+            observer,
+            new Date(sample.atUtc),
+            radiant.raHours,
+            radiant.decDeg,
+          );
+          return {
+            atUtc: sample.atUtc,
+            altitudeDeg: at.altitudeDeg,
+            azimuthDeg: at.azimuthDeg,
+          };
+        }),
         zhrTonight: zhr,
         perHour,
         daysFromPeak: (bestAt.getTime() - peak.getTime()) / (24 * 60 * MS_PER_MINUTE),

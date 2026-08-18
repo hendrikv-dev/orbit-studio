@@ -324,10 +324,28 @@ export function viewability(
 
 /* ------------------------------------------------------------ best window */
 
-/** One sampled moment of how good the phenomenon itself is, 0–1 of its own best. */
+/**
+ * One sampled moment of how good the phenomenon itself is, 0–1 of its own best.
+ *
+ * `altitudeDeg` and `azimuthDeg` are the target's actual horizontal coordinates
+ * at that instant. They were being computed and thrown away: the profile kept
+ * only the normalised quality, so the interface had the geometry available
+ * nowhere and had to re-describe it in prose — "face south, about 48° up" —
+ * which a drawing then could not reconstruct without parsing English back into
+ * numbers it had already had.
+ *
+ * They are optional because not every phenomenon is a body at a place. A meteor
+ * shower's profile is a rate curve, and its geometry is a radiant that belongs
+ * in its own field rather than being forced into these two. Absent means "this
+ * event does not have a single target position", not "unknown".
+ */
 export interface OpportunitySample {
   atUtc: string;
   relative: number;
+  /** Degrees above the horizon; negative below it. */
+  altitudeDeg?: number;
+  /** Degrees clockwise from north. */
+  azimuthDeg?: number;
 }
 
 export interface BestWindow {

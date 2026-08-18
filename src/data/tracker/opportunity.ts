@@ -99,6 +99,27 @@ export interface ObservationGuidance {
   safety: string | null;
 }
 
+/**
+ * Per-phenomenon geometry, kept out of OpportunitySample deliberately.
+ *
+ * Discriminated so a consumer has to ask what kind of event it is holding
+ * before drawing it. A drawing that treats a radiant like a planet, or a
+ * planet like a radiant, is wrong in a way that looks plausible.
+ */
+export type PhenomenonGeometry =
+  | {
+      kind: "radiant";
+      /** Where the radiant is, sampled across the night. */
+      track: { atUtc: string; altitudeDeg: number; azimuthDeg: number }[];
+    }
+  | {
+      kind: "target";
+      /** Rise, culmination and set, where they fall inside the period. */
+      riseUtc: string | null;
+      culminationUtc: string | null;
+      setUtc: string | null;
+    };
+
 export interface Opportunity {
   id: string;
   kind: OpportunityKind;
@@ -126,6 +147,17 @@ export interface Opportunity {
    * a clear gap that is not the peak.
    */
   profile: OpportunitySample[];
+  /**
+   * Geometry that belongs to this phenomenon and to no other.
+   *
+   * A meteor shower has no target position — you do not look *at* a shower —
+   * so its samples carry no altitude or azimuth. What it has instead is a
+   * radiant, which moves through the night and which the observing advice is
+   * built around ("keep the north-east in view, but do not stare at it").
+   * Forcing that into the sample's altitude/azimuth would make a radiant look
+   * like something to point at, which is the one thing it is not.
+   */
+  geometry?: PhenomenonGeometry;
   /**
    * How much this needs a genuinely transparent sky. The Moon survives cloud
    * that ends a meteor watch, so the same forecast means different things to
