@@ -13277,6 +13277,18 @@ button.primary,
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* The gutter is reserved whether or not a scrollbar is showing.
+  
+     This is the second cause of the calendar changing size between dates, and
+     the one min-width could not reach: this element is the scroll container, so
+     a selection whose detail copy is a few lines longer makes a scrollbar
+     appear, which narrows everything inside it — including the calendar. The
+     eclipse on the 27th overflowed where the meteor peak on the 11th did not,
+     so the month was ~15px wider on one date than the other.
+  
+     Reserving the gutter permanently means the content box is the same width in
+     both states. */
+  scrollbar-gutter: stable;
 }
 
 /* The entry screen already fitted; it just needs to stop centring against a
@@ -13292,6 +13304,10 @@ button.primary,
   gap: 20px clamp(24px, 3vw, 48px);
   align-content: stretch;
   max-width: 1560px;
+  /* Same reason as .tk-upcoming: auto margins would make this shrink to its
+     content instead of its area. */
+  width: 100%;
+  justify-self: center;
   height: 100%;
   padding: clamp(18px, 2.2vw, 30px) clamp(20px, 3vw, 44px) clamp(16px, 2vw, 24px);
 }
@@ -13671,7 +13687,20 @@ button.primary,
   min-height: 0;
   overflow: hidden;
   max-width: 1560px;
-  margin: 0 auto;
+  /* justify-self, not auto margins.
+  
+     This is what was actually resizing the calendar. .tk-upcoming is a grid
+     item of .tracker-shell, and auto margins on a grid item disable the
+     default stretch — the item is then sized to its *content* and centred
+     inside its area. So the whole pane, and everything measured from it,
+     became a function of how long the selected event's copy happened to be:
+     1560px wide with the Perseid peak selected, 1263px with the partial
+     lunar eclipse.
+  
+     Stretching to the area and capping with max-width makes the width depend
+     on the viewport alone. Nothing inside can move it. */
+  width: 100%;
+  justify-self: center;
   padding: clamp(18px, 2.2vw, 30px) clamp(20px, 3vw, 44px) clamp(16px, 2vw, 26px);
 }
 .tk-upcoming-bar {
@@ -13836,7 +13865,14 @@ button.primary,
   
      With minmax(0, …) on both, the split is a pure function of the container
      width. Nothing inside either pane can move it. */
-  .tk-month { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); }
+  /* The calendar gets a fixed width, not a share of what is left.
+  
+     Proportional tracks make the month a function of the container, so anything
+     that changes the container — a scrollbar, a longer heading, a different
+     detail pane — moves the calendar with it. A calendar that resizes when you
+     pick a different day is not a calendar. It takes a fixed basis and the
+     editorial pane takes the remainder. */
+  .tk-month { grid-template-columns: clamp(420px, 46%, 640px) minmax(0, 1fr); }
 }
 .tk-month-grid-wrap {
   display: grid;
