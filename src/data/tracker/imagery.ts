@@ -80,12 +80,14 @@ const HUBBLE_LICENCE = "CC BY 4.0";
 
 const PERSEIDS: HeroImagery = {
   treatment: "photo",
-  src: "/sky/eso-potw1033a-perseids-over-the-vlt.webp",
-  // Low enough to keep both the meteor and the telescope domes in a wide crop.
-  // At 42% the frame held the Milky Way and cropped out the one streak the
-  // picture is named for.
-  focusY: "54%",
-  title: "The 2010 Perseids over the VLT",
+  // A sky-only crop of the same ESO release. The published frame is composed
+  // around the VLT's telescope enclosures with the meteor small and off to one
+  // side, which put a building where the phenomenon should be. Cropped to the
+  // sky above them, the streak is the subject — which is what the card is about.
+  src: "/sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
+  // The streak runs across the lower half of the crop.
+  focusY: "62%",
+  title: "A Perseid over Paranal, 2010",
   classification: "long-exposure",
   credit: "ESO/S. Guisard",
   licence: ESO_LICENCE,
@@ -96,11 +98,13 @@ const PERSEIDS: HeroImagery = {
 
 const MOON_AND_VENUS: HeroImagery = {
   treatment: "photo",
-  // Portrait original: the Moon and Venus are in the top third, so the crop is
-  // pulled well above centre or a wide frame loses both of them.
-  src: "/sky/eso-potw2031a-spheres-on-spheres.webp",
-  focusY: "26%",
-  title: "Spheres on Spheres",
+  // The published frame is a portrait built around a telescope dome, with the
+  // Moon and Venus in the top third. Cropped to that third, what is left is the
+  // pairing itself against the twilight gradient — no dome, and no need to
+  // fight the composition with a focal point pulled to 26%.
+  src: "/sky/eso-potw2031a-moon-and-venus-at-dusk.webp",
+  focusY: "50%",
+  title: "The Moon and Venus at dusk",
   classification: "long-exposure",
   credit: "Y. Beletsky (LCO)/ESO",
   licence: ESO_LICENCE,

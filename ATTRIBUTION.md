@@ -485,8 +485,8 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `public/sky/eso-potw1033a-perseids-over-the-vlt.webp`, `public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `public/sky/eso-potw2031a-spheres-on-spheres.webp`
-- Production paths: `sky/eso-potw1033a-perseids-over-the-vlt.webp`, `sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `sky/eso-potw2031a-spheres-on-spheres.webp`
+- Repository paths: `public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `public/sky/eso-potw1033a-night-sky-detail.webp`, `public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
+- Production paths: `sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `sky/eso-potw1033a-night-sky-detail.webp`, `sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
 - Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
 
 ## ESA/Hubble planetary portraits used as Tracker hero photography
