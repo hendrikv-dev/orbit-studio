@@ -45,12 +45,13 @@ function dateLabel(dateKey: string): string {
   }).format(new Date(year, month - 1, day));
 }
 
+/** The same taxonomy the calendar marks dates with. One word per event type. */
 const KIND_LABEL: Record<NotableEvent["kind"], string> = {
   eclipse: "Eclipse",
-  "shower-peak": "Shower peak",
+  "shower-peak": "Meteor peak",
   conjunction: "Conjunction",
-  "moon-phase": "Moon",
-  "best-placement": "Best placement",
+  "moon-phase": "Moon phase",
+  "best-placement": "Opposition",
 };
 
 export function TrackerCurated({ place, clock, horizonNights }: Props) {

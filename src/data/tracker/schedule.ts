@@ -274,7 +274,7 @@ function classify(
     return {
       kind: "eclipse",
       key: "eclipse",
-      reason: "An eclipse is the one night this happens. Nothing else this month is on a clock.",
+      reason: "Visible only from part of the world, and only for these few hours.",
     };
   }
 
@@ -282,7 +282,7 @@ function classify(
     return {
       kind: "conjunction",
       key: `conjunction:${opportunity.id}`,
-      reason: "Two objects close enough to hold in one glance, for a night or two only.",
+      reason: "Two objects close enough to see together, for a night or two.",
     };
   }
 
@@ -292,7 +292,7 @@ function classify(
     return {
       kind: "shower-peak",
       key: `shower:${opportunity.id}`,
-      reason: "The shower's best night — rates fall away either side of it.",
+      reason: "The shower's strongest night; rates fall away either side of it.",
     };
   }
 
@@ -300,7 +300,7 @@ function classify(
     return {
       kind: "moon-phase",
       key: `moon:${MILESTONE_PHASES.find((phase) => title.includes(phase))}`,
-      reason: "A phase worth timing an evening around rather than catching by accident.",
+      reason: "The phase worth timing an evening around.",
     };
   }
 

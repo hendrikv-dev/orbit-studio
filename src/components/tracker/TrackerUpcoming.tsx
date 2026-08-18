@@ -32,7 +32,7 @@ export function TrackerUpcoming({ place, clock }: Props) {
       <div className="tk-upcoming-bar">
         <div>
           <h1 className="tk-upcoming-title">
-            {mode === "curated" ? "Worth planning for" : "What falls when"}
+            {mode === "curated" ? "Worth planning for" : "The month ahead"}
           </h1>
           <p className="tk-upcoming-lede">
             {mode === "curated"

@@ -13893,3 +13893,78 @@ button.primary,
   display: grid;
 }
 .tk-month-detail .tk-feature-name { font-size: clamp(1.4rem, 3.2vh, 2rem); }
+
+/* ==================================================== one geometry contract
+
+   Tonight had several partly independent layouts — summary, observing detail,
+   methodology — each with its own vertical geometry. Opening methodology
+   therefore moved content the methodology has nothing to do with, the night bar
+   and the event eyebrow ended up at different heights depending on state, and
+   the panel's own Close control drew on top of the source paragraph because
+   nothing reserved a region for it.
+
+   The fix is a contract rather than more spacing. .tk-tonight owns four rows
+   and every state fills the same four. Rows do not appear or vanish, so nothing
+   below them moves when a panel opens, and no state can borrow another's
+   space. */
+
+.tk-tonight {
+  grid-template-rows:
+    auto              /* night bar — same height in every state */
+    minmax(0, 1fr)    /* the composition */
+    auto              /* alternatives / unavailable context */
+    auto;             /* methodology trigger, and its panel when open */
+}
+
+/* The trigger keeps its own row and its own line. It used to sit in the flow
+   directly above the panel body, so an open panel put its first paragraph
+   underneath the button. */
+.tk-tonight > .tracker-detail {
+  display: grid;
+  grid-template-rows: auto;
+  gap: 10px;
+  padding: 10px clamp(20px, 3vw, 44px) 14px;
+  min-height: 0;
+}
+.tk-tonight > .tracker-detail > button { justify-self: start; }
+
+/* Open, the panel is a bounded region that scrolls itself. It cannot grow into
+   the rows above it and it cannot push the page, which is what "state change,
+   not append" has to mean in a viewport-locked product. */
+.tk-tonight > .tracker-detail .tracker-detail-body {
+  max-height: min(38vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+  border-top: 1px solid var(--tk-line);
+  padding-top: 12px;
+}
+
+/* The night bar is fixed furniture. Giving it a reserved height stops it
+   drifting into the eyebrow beneath when a state changes what sits below. */
+.tk-nightbar { min-height: 34px; align-items: center; }
+.tk-tonight .tracker-hero-eyebrow { margin-top: 0; }
+
+/* Actions stay available in the observing-detail state. Removing them was an
+   interaction discontinuity with no reason behind it — the reader who has just
+   read how to observe something is exactly the reader who wants reminding. */
+.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-actions {
+  display: flex;
+  margin-top: 14px;
+}
+
+/* Both disclosures are gone, so the geometry they needed goes with them. The
+   contract is simpler for it: three rows, all always present, nothing that can
+   open and shift what sits above or below. */
+.tk-tonight { grid-template-rows: auto minmax(0, 1fr) auto; }
+
+/* The realistic-expectation line, promoted out of the panel it was hidden in.
+   It answers "what will I actually see", which is a question people have before
+   they decide, not after. */
+.tk-expect {
+  margin: 10px 0 0;
+  max-width: 52ch;
+  color: var(--tk-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}

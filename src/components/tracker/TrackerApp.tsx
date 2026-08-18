@@ -42,7 +42,7 @@ import {
 } from "../../data/tracker/conditions";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { adapterFor, conditionsFor } from "../../data/tracker/weatherProviders";
-import { heroImageryFor, IMAGERY_CLASS_LABEL } from "../../data/tracker/imagery";
+import { heroImageryFor } from "../../data/tracker/imagery";
 import { TrackerScene } from "./TrackerScene";
 import { TrackerCondition } from "./TrackerCondition";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
@@ -140,7 +140,6 @@ export function TrackerApp() {
 function TrackerScreen() {
   const [place, setPlace] = useState<SelectedPlace | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
   const [seen, setSeen] = useState<string[]>([]);
 
   // Asked once, on arrival. A hand-picked place is never overwritten by it —
@@ -407,17 +406,6 @@ function TrackerScreen() {
         </section>
       ) : null}
 
-      {night && place ? (
-        <TrackerDetail
-          night={night}
-          weather={weather}
-          conditionsReady={conditionsReady}
-          clock={clock}
-          place={place}
-          expanded={showDetail}
-          onToggle={() => setShowDetail((current) => !current)}
-        />
-          ) : null}
         </div>
       ) : null}
     </main>
@@ -641,41 +629,12 @@ function TrackerHero({
           </button>
         </div>
 
-        <details className="tracker-hero-more">
-          <summary>Show me where, and what to expect</summary>
-          <dl>
-            <div>
-              <dt>Where to look</dt>
-              <dd>{guidance.elevation}</dd>
-            </div>
-            <div>
-              <dt>What you will actually see</dt>
-              <dd>{guidance.appearance}</dd>
-            </div>
-            {opportunity.alsoWith ? (
-              <div>
-                <dt>{opportunity.alsoWith.lead}</dt>
-                <dd>{opportunity.alsoWith.appearance}</dd>
-              </div>
-            ) : null}
-            {guidance.technique ? (
-              <div>
-                <dt>Worth knowing</dt>
-                <dd>{guidance.technique}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt>How long to give it</dt>
-              <dd>{guidance.howLong}</dd>
-            </div>
-          </dl>
-          {/* The picture is beautiful on purpose; this is where it says what it
-              is, so nobody goes outside expecting the photograph. */}
-          <p className="tracker-imagery-note">
-            <strong>{IMAGERY_CLASS_LABEL[imagery.classification]}.</strong>{" "}
-            {imagery.eyeExpectation ?? ""} {imagery.credit ?? ""}
-          </p>
-        </details>
+        {/* "What will I realistically see" is the one thing the disclosure
+            carried that a reader needs before deciding, so it is stated rather
+            than hidden behind a control. The rest of that panel — where to
+            look, how long to give it, technique — is either already in the
+            fact row above or is prose nobody opened it for. */}
+        <p className="tracker-expect">{guidance.appearance}</p>
       </div>
 
       {/* The observing column: what the sky is doing, then the photograph as
@@ -864,92 +823,6 @@ function TrackerCard({
  * caveats are all still here and all still true. They are simply not what
  * somebody deciding whether to put a coat on needs to read first.
  */
-function TrackerDetail({
-  night,
-  weather,
-  conditionsReady,
-  clock,
-  place,
-  expanded,
-  onToggle,
-}: {
-  night: Night;
-  weather: ReturnType<typeof useConditions>;
-  conditionsReady: boolean;
-  clock: PlaceClock;
-  place: SelectedPlace;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <section className="tracker-detail" aria-label="Why Tracker recommends this">
-      <button type="button" onClick={onToggle} aria-expanded={expanded}>
-        {expanded ? "Close" : "Why Tracker recommends this"}
-      </button>
-      {expanded ? (
-        <div className="tracker-detail-body">
-          <h3>Tonight</h3>
-          {night.period.kind === "night" ? (
-            <p>
-              Sunset {formatClockTime(night.period.startUtc, clock)} to sunrise{" "}
-              {formatClockTime(night.period.endUtc, clock)}.{" "}
-              {night.period.darkness.astronomical
-                ? `Full darkness from ${formatClockTime(night.period.darkness.astronomical.startUtc, clock)} to ${formatClockTime(night.period.darkness.astronomical.endUtc, clock)}.`
-                : "The sky never reaches full astronomical darkness tonight."}
-            </p>
-          ) : (
-            <p>{night.period.limitation}</p>
-          )}
-
-          {/* The meteor activity chart lived here as well as in the main
-              composition, so opening this put two of the same visualisation on
-              one screen — the second one explaining the first. There is one
-              primary timing graphic, and it is the one above. */}
-
-          <h3>What the estimates leave out</h3>
-          <ul>
-            {night.meteors.missingInputs.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-            {conditionsReady ? (
-              <li>
-                Cloud is not in the meteor rate itself — that number is a clear-sky ceiling, and
-                the forecast is applied separately.
-              </li>
-            ) : (
-              <li>Cloud cover, because no forecast could be fetched for here.</li>
-            )}
-            {clock.approximate ? (
-              <li>
-                No time zone is recorded for these coordinates, so times here are estimated from
-                longitude and can be an hour out.
-              </li>
-            ) : null}
-          </ul>
-
-          <h3>Sources</h3>
-          <p>
-            Positions, twilight and eclipse circumstances are computed on your device from an
-            analytic ephemeris. Meteor stream parameters come from a pinned snapshot of the IMO
-            working list and the IAU Meteor Data Center established-shower list. Rates are an
-            estimate built on those, quoted as a dark-sky ceiling rather than a prediction.
-          </p>
-          {weather.data ? <p>{weather.data.adapter.source.attribution}</p> : null}
-          {weather.isError ? (
-            <p>
-              Conditions unavailable —{" "}
-              {weather.error instanceof Error ? weather.error.message : "the forecast failed."}
-            </p>
-          ) : null}
-          <p>Place search © OpenStreetMap contributors, ODbL. Geocoding by Photon.</p>
-          <p className="tracker-detail-coords">
-            {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
-          </p>
-        </div>
-      ) : null}
-    </section>
-  );
-}
 
 /* --------------------------------------------------------------- helpers */
 

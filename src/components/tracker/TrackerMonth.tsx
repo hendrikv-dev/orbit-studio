@@ -29,12 +29,23 @@ interface Props {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/**
+ * One taxonomy: every marker names the kind of event.
+ *
+ * These were a jumble of different concepts — ECLIPSE was an event type, PEAK
+ * an event phase, MOON a phenomenon category, PAIRING an informal name, and
+ * BEST a quality judgement sitting among them as though it were the same sort
+ * of word. A reader could not tell what dimension they were reading.
+ *
+ * They are all event types now, and they match Curated exactly, so the same
+ * event is not a "Pairing" in one view and a "Conjunction" in the other.
+ */
 const KIND_MARK: Record<NotableEvent["kind"], string> = {
   eclipse: "Eclipse",
-  "shower-peak": "Peak",
-  conjunction: "Pairing",
-  "moon-phase": "Moon",
-  "best-placement": "Best",
+  "shower-peak": "Meteor peak",
+  conjunction: "Conjunction",
+  "moon-phase": "Moon phase",
+  "best-placement": "Opposition",
 };
 
 export function TrackerMonth({ place, clock }: Props) {
