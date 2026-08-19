@@ -14227,3 +14227,44 @@ button.primary,
   .tk-tonight .tk-observe-side,
   .tk-tonight > .tracker-more { align-self: start; }
 }
+
+/* ==================================== Tonight's grid placement, restored
+
+   These rules were lost when the night bar's CSS was rewritten, and losing
+   them caused two of the reported regressions at once. Without explicit
+   placement every child is auto-placed: the timeline dropped into the third
+   column, where a whole night was squeezed into the width of the alternatives
+   rail and its labels collided; and the alternatives fell to a new row below
+   the composition, where the viewport cut them off.
+
+   Placement is stated for every child now, so no child can be positioned by
+   the order it happens to appear in. */
+@media (min-width: 1180px) {
+  .tk-tonight {
+    grid-template-columns:
+      minmax(300px, 0.84fr)
+      minmax(430px, 1.62fr)
+      minmax(250px, 0.74fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(28px, 3vw, 56px);
+  }
+  /* The night spans the full width, because a night is long and reading time
+     off a narrow strip is what made the labels collide. */
+  .tk-tonight > .tk-nightbar { grid-column: 1 / -1; grid-row: 1; }
+  .tk-tonight .tk-observe-main { grid-column: 1; grid-row: 2; align-self: start; }
+  .tk-tonight .tk-observe-side { grid-column: 2; grid-row: 2; align-self: start; }
+  .tk-tonight > .tracker-more { grid-column: 3; grid-row: 2; align-self: start; }
+  .tk-tonight > .tracker-unavailable { grid-column: 3; grid-row: 2; align-self: end; }
+}
+
+/* The alternatives are a rail, so they stack rather than sitting in a row. */
+@media (min-width: 1180px) {
+  .tk-tonight .tracker-cards { flex-direction: column; gap: 2px; overflow: visible; }
+  .tk-tonight .tracker-card { width: auto; max-width: 100%; }
+}
+
+/* Two tiers for the timeline's labels so they cannot collide even when
+   sunset and full dark are close together. */
+.tk-nightbar { height: 42px; }
+.tk-nightbar-mark:nth-of-type(even) { top: 15px; }
+.tk-nightbar-mark:nth-of-type(odd) { top: 15px; }
