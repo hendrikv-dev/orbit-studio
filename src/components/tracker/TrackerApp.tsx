@@ -252,11 +252,30 @@ function TrackerScreen() {
         Skip to tonight's list
       </a>
       <header className="tracker-bar">
-        <img
-          className="tracker-bar-logo"
-          src="/brand/orbit-studio-tracker-logo.png"
-          alt="Orbit Studio Tracker"
-        />
+        {/* Two variants, because there were not two before.
+        
+            The only asset was drawn for a light background — "Orbit" is set in
+            near-black navy — so on Tracker's dark shell half the wordmark was
+            invisible and the logo read as a faint smudge beside the nav. The
+            dark variant recolours that wordmark to the interface's warm white
+            and leaves the icon and the teal alone, since both already hold up
+            on a dark ground.
+        
+            The source is the existing brand asset at full resolution, recoloured
+            — not a crop of the branding sheet, which is a 1536px contact sheet
+            whose horizontal lockup would land well under the 960px this asset
+            already is, and worse again on a 2x display. */}
+        <picture>
+          <source
+            srcSet="/brand/orbit-studio-tracker-logo.png"
+            media="(prefers-color-scheme: light)"
+          />
+          <img
+            className="tracker-bar-logo"
+            src="/brand/orbit-studio-tracker-logo-dark.png"
+            alt="Orbit Studio Tracker"
+          />
+        </picture>
         {/* The application's own navigation, present from the moment there is a
             place to compute for. These are four different questions over one
             shared schedule layer, not four sorts of the same list. */}
