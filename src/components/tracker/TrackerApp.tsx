@@ -16,8 +16,6 @@ import {
 import { type MeteorNight } from "../../data/tracker/meteorActivity";
 import { planNight } from "../../data/tracker/schedule";
 import {
-  describeAltitude,
-  describeDirection,
   gazeRegionFor,
   skyPathFor,
 } from "../../data/tracker/skyPath";
@@ -622,21 +620,13 @@ function TrackerHero({
                 : formatClockTime(guidance.whenUtc, clock)}
             </dd>
           </div>
-          {/* Said the way a person would say it, with the degrees kept beside
-              it as secondary precision. "Face south-west, about one fist above
-              the horizon" is something you can do; "azimuth 231°, altitude 13°"
-              is something you have to convert first. */}
-          {gaze ? (
-            <div className="tk-fact tk-fact-wide">
-              <dt>Where to look</dt>
-              <dd className="tk-fact-strong">
-                {describeDirection(gaze.centerAzimuthDeg, gaze.centerAltitudeDeg)}
-                <span className="tk-fact-sub">
-                  {describeAltitude(gaze.centerAltitudeDeg)} · {Math.round(gaze.centerAltitudeDeg)}°
-                </span>
-              </dd>
-            </div>
-          ) : null}
+          {/* Direction lives in the finder, not here.
+          
+              The two regions were answering the same question in the same
+              words — "Low in the south-west" in the fact card and again in the
+              instrument beside it — which wasted the most valuable column on
+              the screen restating what the picture already showed. The left
+              column owns the decision; the centre owns where to look. */}
           <div className="tk-fact">
             <dt>Sky</dt>
             <dd>
@@ -655,15 +645,20 @@ function TrackerHero({
               )}
             </dd>
           </div>
+          <div className="tk-fact">
+            <dt>Needs</dt>
+            <dd className="tk-fact-strong">
+              {guidance.equipment === "eyes"
+                ? "Eyes only"
+                : guidance.equipment === "binoculars"
+                  ? "Binoculars"
+                  : "Telescope"}
+            </dd>
+          </div>
         </dl>
 
         <p className="tracker-hero-directions">
-          {guidance.howLong.split(".")[0]}.{" "}
-          {guidance.equipment === "eyes"
-            ? "No equipment needed."
-            : guidance.equipment === "binoculars"
-              ? "Binoculars required."
-              : "Telescope required."}
+          {guidance.howLong.split(".")[0]}.
         </p>
 
         {conditionsPending ? null : <p className="tracker-hero-conclusion">{conclusion}</p>}
@@ -722,20 +717,30 @@ function TrackerHero({
       {/* The observing column: what the sky is doing, then the photograph as
           context for it rather than as the surface everything is printed on. */}
       <aside className="tk-observe-side">
-        {/* Experience first where real footage exists — what this actually
-            looks like — then the instrument for what happens here tonight.
-            Two layers, never composited into one "scientific-looking" image. */}
-        {experience ? <TrackerExperience media={experience} /> : null}
-        {/* Composed per phenomenon rather than forced through one projection.
-            A shower has two separate questions — when is it best, and where do
-            I look — and they need different axes: quality against time for the
-            first, a compass for the second. A planet has one question, and
-            bearing against altitude answers it directly. */}
-        {/* One frame, one ground, one caption voice — parameterised by what the
-            phenomenon actually is. A shower's quality is a function of time; a
-            planet's is a function of where it is. The drawing inside differs;
-            everything around it does not. */}
-        {path ? (
+        {/* Footage and timing as one object. They were two stacked panels —
+            a video, then a separate card of times — so the centre column read
+            as two widgets rather than one experience. The ribbon is now
+            attached to the media it belongs to. */}
+        {experience ? (
+          <div className="tk-stage">
+            <TrackerExperience media={experience} />
+            {path && (path.kind === "radiant" || path.kind === "rate") ? (
+              <div className="tk-stage-foot">
+                <TrackerNightRibbon
+                  period={night.period}
+                  meteors={night.meteors}
+                  clock={clock}
+                  windowStartUtc={path.windowStartUtc}
+                  windowEndUtc={path.windowEndUtc}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {/* The plate is the target instrument only. A shower's timing now
+            travels with its footage above, so wrapping an empty plate around
+            nothing was the second widget this change exists to remove. */}
+        {path?.kind === "target" ? (
           <TrackerSkyPlate
             tone={opportunity.kind}
             /* No photographic ground. Putting a starfield behind a plotted
@@ -743,35 +748,10 @@ function TrackerHero({
                support, and legibility of a functional graphic is not something
                to trade for atmosphere. Real celestial media belongs elsewhere
                in the experience. */
-            title={
-              path.kind === "radiant"
-                ? "When to go out"
-                : path.kind === "rate"
-                  ? "When to go out"
-                  : `Where to find ${opportunity.title.replace(/^The /, "")}`
-            }
-            caption={
-              path.kind === "radiant"
-                ? "The radiant climbs as the night goes on, and the rate climbs with it. The bright section is the window worth going out for."
-                : path.kind === "rate"
-                  ? "No shower is running, so these are sporadic meteors. They pick up towards dawn, as your side of the Earth turns to face the direction it is travelling. The bright section is the window worth going out for."
-                  : "Its path from where you are. The bright section is the window worth going out for."
-            }
+            title={`Where to find ${opportunity.title.replace(/^The /, "")}`}
+            caption="Its path from where you are. The bright section is the window worth going out for."
           >
-            {path.kind === "target" ? (
-              <TrackerFinder path={path} label={opportunity.title} />
-            ) : path.kind === "radiant" || path.kind === "rate" ? (
-              /* The footage is the centre for a shower; the ribbon says when.
-                 A plotted rate curve above or below it made the graph the
-                 subject again, which is the thing that was meant to change. */
-              <TrackerNightRibbon
-                period={night.period}
-                meteors={night.meteors}
-                clock={clock}
-                windowStartUtc={path.windowStartUtc}
-                windowEndUtc={path.windowEndUtc}
-              />
-            ) : null}
+            <TrackerFinder path={path} label={opportunity.title} />
           </TrackerSkyPlate>
         ) : null}
 

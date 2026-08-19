@@ -14268,3 +14268,54 @@ button.primary,
 .tk-nightbar { height: 42px; }
 .tk-nightbar-mark:nth-of-type(even) { top: 15px; }
 .tk-nightbar-mark:nth-of-type(odd) { top: 15px; }
+
+/* ============================================ the meteor stage: one object
+
+   Footage and its timing were two stacked panels, so the centre column read
+   as a video followed by an unrelated card. They are one surface now: the
+   ribbon is attached to the media it describes, sharing its frame and sitting
+   on it rather than beneath it. */
+
+.tk-stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: 16px;
+  background: var(--tk-void);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+}
+.tk-stage .tk-exp {
+  border-radius: 0;
+  max-height: min(46vh, 400px);
+}
+/* The footer sits over the foot of the footage, dark enough to read against
+   whatever the frame happens to be showing. */
+.tk-stage-foot {
+  padding: 12px 16px 14px;
+  background: linear-gradient(180deg, rgba(5, 7, 13, 0.72), rgba(5, 7, 13, 0.94));
+  border-top: 1px solid var(--tk-line);
+}
+.tk-stage-foot .tk-ribbon { gap: 10px; }
+.tk-stage-foot .tk-ribbon-track { height: 34px; margin-top: 2px; }
+.tk-stage-foot .tk-ribbon-verdict { font-size: 0.86rem; max-width: none; }
+/* Provenance stays visible and subordinate, lifted clear of the footer. */
+.tk-stage .tk-exp-credit { bottom: auto; top: 10px; right: 12px; }
+
+/* The compact ribbon needs its own room. Inside the stage footer the track
+   kept the height it had as a standalone card, so the mark labels ran into
+   the sentence below them. */
+.tk-stage-foot .tk-ribbon-track { height: 46px; margin-top: 4px; }
+.tk-stage-foot .tk-ribbon-mark { top: 20px; }
+.tk-stage-foot .tk-ribbon-verdict { margin-top: 2px; }
+
+/* Three facts, one row. Flex was wrapping "Needs" onto a second line and
+   leaving the quadrant beside it empty — the ragged card this pass set out to
+   remove. Equal, shrinkable columns keep them together and keep the card
+   rectangular. */
+.tk-facts { flex-wrap: nowrap; }
+.tk-fact { flex: 1 1 0; min-width: 0; }
+.tk-fact .tracker-condition { font-size: 0.78rem; }
+@media (max-width: 1320px) {
+  .tk-facts { flex-wrap: wrap; }
+  .tk-fact { flex: 1 1 130px; }
+}
