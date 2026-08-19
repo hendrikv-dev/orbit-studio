@@ -182,3 +182,146 @@ Stated plainly so nothing here reads as more complete than it is:
 - geospatial interpolation and contour generation for probability fields
 - bundle-size measurement for MapLibre + PMTiles against Tracker's budget
 - accessibility behaviour of MapLibre's controls under the existing axe gate
+
+---
+
+# Second discovery pass — 2026-08-19
+
+Corrections and closures. Everything here was measured or fetched, not recalled.
+
+## Correction 1 — client-side routing exists
+
+The earlier claim that every credible isochrone engine requires a server was
+wrong. `omt-router` does car routing and isoline/reachability computation in the
+browser from OpenMapTiles vector tiles.
+
+    omt-router     1.0.4     published 2026-06-02   (first release 2026-05-25)
+    licence        AGPL-3.0-only
+    repository     github.com/AbelVM/omt-router — 33 stars, 3 open issues
+    dependencies   @mapbox/vector-tile, d3-tricontour, kdbush, pbf, rbush
+
+**But it is not selectable, and the blocker is licensing rather than quality.**
+Tracker is MIT — confirmed in both `LICENSE` ("MIT License, Copyright (c) 2026
+Orbit Studio contributors") and `package.json`. AGPL-3.0-only is a strong
+copyleft: bundling it into the client bundle and serving that bundle to visitors
+is distribution, so the copyleft attaches to the combined work and §13 adds a
+network-use source obligation. Tracker could not remain MIT.
+
+That is a project licensing decision, not an engineering one, so the performance
+matrix (30-minute through 4-hour reachability, tile transfer, graph build time,
+worker memory, cancellation, partial tiles) was **not** run. Running it would
+spend real effort on a component that cannot ship under the current licence.
+If the project is willing to relicense to AGPL-3.0, that testing becomes worth
+doing and the finding reverses.
+
+Its dependency list is still useful as a signpost: it demonstrates that vector
+tiles already carrying the basemap can also carry a routable graph, which is the
+architectural question worth keeping open regardless of this particular package.
+
+**Routing remains unresolved.** Valhalla (MIT, native isochrones) is the mature
+fallback. A permissively licensed client-side engine has not yet been found.
+
+## Correction 2 — "server" does not imply "paid"
+
+The earlier note slid from *this needs a backend* to *this must be paid-tier*,
+which conflates four separate things:
+
+1. fixed project infrastructure (a Valhalla instance, tile hosting)
+2. marginal per-request cost
+3. commercial third-party API cost
+4. optional paid services
+
+Only (3) is inherently a vendor bill. The basemap already implies (1) whichever
+routing path is chosen, so backend execution on its own cannot draw the
+free/paid boundary. The cost rule still applies, but it has to be applied to
+actual marginal cost rather than to architecture.
+
+## Correction 3 — the eclipse geometry is on an unstable branch
+
+The stability risk was real and is worse than "recent". The repository README's
+opening line reads:
+
+> **Work in progress.** This is the next major version of astronomy-bundle and
+> is not yet stable. If you are looking for the current stable release, see the
+> README (version 7.7.7).
+
+|                    | stable `astronomy-bundle@7.7.7` | `@astronomy-bundle/solar-eclipse@9.38.0` |
+|--------------------|---------------------------------|------------------------------------------|
+| Published          | 2024-04-15                      | 2026-07-26                               |
+| Stability          | stable                          | explicitly "not yet stable"              |
+| Local circumstances| yes                             | yes (verified)                           |
+| **Path geometry**  | **no mentions in README**       | **yes (verified)**                       |
+
+So the capability that justified calling this reuse exists **only** on the
+unstable line. That does not reverse the finding — the code ran and produced
+values matching published circumstances — but it changes the risk.
+
+**A licensing gap compounds it.** npm metadata declares MIT, but:
+
+- there is **no licence file in the repository root** (checked the tree), and
+- **no licence file ships inside the package** (checked the installed tree).
+
+The sole assertion is a metadata string. Tracker's own gate already demanded a
+checksummed upstream licence file as evidence for one missing field on
+`webgl-constants`; accepting an unsubstantiated claim on a dependency doing
+scientific calculation would be a weaker standard than the project already
+holds itself to. Resolving this — upstream issue, PR adding a LICENSE, or
+vendoring with documented provenance — should precede adoption.
+
+## Closed: contour and interpolation
+
+| Package | Licence | Fit |
+|---|---|---|
+| **d3-contour** 4.0.2 | ISC | Marching squares on **gridded** data — correct for OVATION |
+| d3-tricontour 1.1.0 | ISC | Contours from **scattered** data — not needed if the source is a grid |
+| rbush 4.0.1 / kdbush 4.1.0 | MIT / ISC | Spatial indexing if hit-testing needs it |
+
+## Closed: NOAA OVATION
+
+Fetched live from `services.swpc.noaa.gov/json/ovation_aurora_latest.json`:
+
+    payload            0.88 MB
+    points             65,160  → exactly 360 x 181, a regular 1-degree grid
+    format             [lon, lat, aurora%]
+    observation time   2026-08-19T13:10Z
+    forecast time      2026-08-19T13:59Z   (~49 minutes ahead)
+
+Consequences:
+
+- The grid is regular, so **d3-contour** applies and d3-tricontour is unnecessary.
+- 0.88 MB per fetch is heavy for mobile and needs downsampling or caching.
+- The forecast timestamp is exposed, which satisfies the data-age requirement.
+- **It is a single frame, not a time series.** The brief's time scrubber and
+  forecast animation are *not* supported by this endpoint. Frame sequences would
+  need a different product or accumulation over time — an open question, not a
+  solved one.
+- NOAA/SWPC output is US Government work and therefore public domain.
+
+## Closed: MapLibre bundle cost
+
+Measured from the installed package, excluding type definitions and source maps:
+
+    maplibre-gl.mjs           554 KB raw    138 KB gzip
+    maplibre-gl-shared.mjs    471 KB raw    130 KB gzip
+    maplibre-gl-worker.mjs     18 KB raw      6 KB gzip
+    maplibre-gl.css            81 KB raw     10 KB gzip
+    ----------------------------------------------------
+    runtime total           ~1043 KB raw   ~274 KB gzip  (+10 KB CSS)
+
+For scale, from the current production build:
+
+    TrackerApp chunk          398 KB raw    131 KB gzip
+
+MapLibre is therefore roughly **twice Tracker's entire current chunk**, gzipped.
+That is affordable only because it is dynamically importable: a map is needed
+only when a map is opened, so it should never enter the Tonight or Upcoming
+initial load. Tracker already code-splits this way — Explorer sits in its own
+16.5 MB chunk and never reaches Tracker users.
+
+## Still open
+
+- MapLibre control accessibility under the existing axe gate — **not tested**
+- smoke data source — **not investigated**
+- light-pollution data source — **not investigated**
+- meteor viewing-potential inputs beyond what Tracker already computes
+- client-side routing under a permissive licence — **no candidate found**
