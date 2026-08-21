@@ -1,4 +1,9 @@
-import type { HeroImagery } from "../../data/tracker/imagery";
+import {
+  EXPECTED_VIEW_MODE_LABEL,
+  IMAGERY_CLASS_LABEL,
+  MEDIA_CLAIM_LABEL,
+  type HeroImagery,
+} from "../../data/tracker/imagery";
 
 /**
  * The picture that makes somebody want to go outside.
@@ -103,6 +108,7 @@ export function TrackerScene({
             <path d={moonShadowPath(34, illuminatedFraction, waning)} fill="#070b12" opacity="0.93" />
           </g>
         </svg>
+        {showCredit ? <TrackerMediaContext imagery={imagery} /> : null}
         {showCredit ? <TrackerCredit imagery={imagery} /> : null}
       </div>
     );
@@ -123,8 +129,26 @@ export function TrackerScene({
           objectPosition: `center ${imagery.focusY}`,
         }}
       />
+      {showCredit ? <TrackerMediaContext imagery={imagery} /> : null}
       {showCredit ? <TrackerCredit imagery={imagery} /> : null}
     </div>
+  );
+}
+
+function TrackerMediaContext({ imagery }: { imagery: HeroImagery }) {
+  const origin =
+    imagery.origin === "historical-capture" && imagery.capturedAt
+      ? `Historical capture · ${imagery.capturedAt}`
+      : imagery.origin === "current-model"
+        ? "Current event model"
+        : "Live feed";
+  return (
+    <p className="tracker-media-context">
+      <span>{MEDIA_CLAIM_LABEL[imagery.claim]}</span>
+      <span>{origin}</span>
+      <span>{EXPECTED_VIEW_MODE_LABEL[imagery.expectedMode]}</span>
+      <span>{IMAGERY_CLASS_LABEL[imagery.classification]}</span>
+    </p>
   );
 }
 

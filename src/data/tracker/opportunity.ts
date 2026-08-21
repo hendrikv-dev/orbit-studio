@@ -34,7 +34,15 @@
  * records which ones fired. The continuous part only orders what survives.
  */
 
-import type { OpportunitySample, TransparencyDemand } from "./conditions";
+import type {
+  EnvironmentalEvidenceStatus,
+  OpportunitySample,
+  TransparencyDemand,
+} from "./conditions";
+import type { LunarPhase } from "./lunarPhase";
+import type { LunarEclipseTiming } from "./lunarEclipse";
+import type { PlanetaryOpposition } from "./planetaryEvents";
+import type { AngularSeparationDegrees } from "./scientificUnits";
 
 export type OpportunityKind =
   | "meteors"
@@ -140,6 +148,25 @@ export interface Opportunity {
   missingInputs: string[];
   /** Caveats that apply to the numbers actually produced. */
   limitations: string[];
+  /**
+   * Unit-bearing scientific meaning consumed by every Tracker projection.
+   * Titles, Calendar labels, detail copy, and imagery must derive from this
+   * structure rather than reinterpret dependency numbers independently.
+   */
+  science?:
+    | { kind: "lunar-phase"; phase: LunarPhase }
+    | {
+        kind: "lunar-eclipse";
+        timing: LunarEclipseTiming;
+        obscurationFraction: number;
+        localContactAltitudesDeg: Readonly<Record<string, number>>;
+      }
+    | { kind: "planet"; body: string; event: PlanetaryOpposition | null }
+    | {
+        kind: "conjunction";
+        bodies: readonly [string, string];
+        separationDeg: AngularSeparationDegrees;
+      };
   /**
    * How good the phenomenon itself is across the night, each value relative to
    * its own best. Weather is applied against this rather than against the
@@ -531,10 +558,10 @@ export function viewingConclusion(
   title: string,
   kind: OpportunityKind,
   phenomenonBand: Band,
-  viewingBand: "excellent" | "good" | "possible" | "unlikely",
+  viewingBand: "excellent" | "good" | "possible" | "unlikely" | "unknown",
   /** The sky as a noun phrase — "cloud", "rain or snow" — not as a chip label. */
   skyPhrase: string,
-  conditionsKnown: boolean,
+  evidenceStatus: EnvironmentalEvidenceStatus,
   hasPassed: boolean,
 ): string {
   const plural = kind === "meteors";
@@ -544,10 +571,15 @@ export function viewingConclusion(
   if (hasPassed) {
     return `${title} ${is} below the horizon for the rest of tonight.`;
   }
-  if (!conditionsKnown || !skyPhrase) {
+  if (evidenceStatus === "stale") {
     return phenomenonBand === "exceptional" || phenomenonBand === "very good"
-      ? "One of the best things in the sky tonight. No forecast for here, so check the sky yourself before you commit."
-      : "Worth a look if you are out anyway. No forecast available for here.";
+      ? "Astronomically promising, but the forecast is out of date. Check current conditions before going."
+      : "Potentially worth a look, but the forecast is out of date. Check current conditions first.";
+  }
+  if (evidenceStatus !== "available" || !skyPhrase) {
+    return phenomenonBand === "exceptional" || phenomenonBand === "very good"
+      ? "Astronomically promising, but conditions are unknown. Check the sky before you commit."
+      : "Conditions are unknown. Check the sky before deciding whether to go.";
   }
 
   const strong = phenomenonBand === "exceptional" || phenomenonBand === "very good";
@@ -598,6 +630,7 @@ export type Verdict =
   | "ONLY IF CONDITIONS IMPROVE"
   | "NOT WORTH A SPECIAL TRIP"
   | "WORTH A DARKER SITE"
+  | "CONDITIONS UNKNOWN — CHECK BEFORE GOING"
   | "BELOW THE HORIZON";
 
 export interface VerdictInput {
@@ -610,15 +643,18 @@ export interface VerdictInput {
   minutesUntilWindow: number | null;
   /** True where the phenomenon needs a genuinely dark site to be worth it. */
   needsDarkSite: boolean;
+  /** Confidence is categorical; an absent forecast cannot masquerade as clear. */
+  evidenceStatus: EnvironmentalEvidenceStatus;
 }
 
 /** How poor the sky has to be before conditions become the headline. */
 const CONDITIONS_LIMITING = 0.45;
 
 export function verdictFor(input: VerdictInput): Verdict {
-  const { band, unavailable, skyAccess, minutesUntilWindow, needsDarkSite } = input;
+  const { band, unavailable, skyAccess, minutesUntilWindow, needsDarkSite, evidenceStatus } = input;
 
   if (unavailable) return "BELOW THE HORIZON";
+  if (evidenceStatus !== "available") return "CONDITIONS UNKNOWN — CHECK BEFORE GOING";
 
   // Conditions lead when they are what is actually deciding it. Said before
   // any praise of the phenomenon, because "exceptional" followed by "under
@@ -666,14 +702,22 @@ export type RecommendationLevel =
   | "Worth going out for"
   | "Good if you're already outside"
   | "Only if conditions improve"
-  | "Not worth a special trip";
+  | "Not worth a special trip"
+  | "Astronomically promising — conditions unknown"
+  | "Conditions unknown — check before going";
 
 export function recommendationFor(
   band: Band,
   unavailable: boolean,
   skyAccess: number | null,
+  evidenceStatus: EnvironmentalEvidenceStatus = skyAccess === null ? "unavailable" : "available",
 ): RecommendationLevel {
   if (unavailable) return "Not worth a special trip";
+  if (evidenceStatus !== "available") {
+    return band === "exceptional" || band === "very good"
+      ? "Astronomically promising — conditions unknown"
+      : "Conditions unknown — check before going";
+  }
   // Conditions can veto, because sending somebody out under thick cloud for
   // something excellent is still sending them out for nothing.
   if (skyAccess !== null && skyAccess < 0.45) {

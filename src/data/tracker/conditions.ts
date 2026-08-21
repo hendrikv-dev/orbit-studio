@@ -52,12 +52,12 @@ export interface ConditionSnapshot {
   atUtc: string;
   /** Total cloud cover, 0–100. Required. */
   cloudCoverPercent: number;
-  /** Air temperature at this instant, °C. Required. */
-  temperatureC: number;
+  /** Air temperature at this instant, °C, or null when the provider omitted it. */
+  temperatureC: number | null;
   /** When the forecast was issued, so freshness can be judged. */
   issuedUtc: string;
-  /** True where precipitation is expected. */
-  precipitating: boolean;
+  /** True/false where reported; null is not silently treated as dry. */
+  precipitating: boolean | null;
   /** Horizontal visibility in metres, where the provider reports it. */
   visibilityM: number | null;
   /** Low, middle and high cloud fractions, 0–100, where reported. */
@@ -140,7 +140,7 @@ export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
   const verySmoky = smoke !== null && smoke >= VERY_SMOKY_COLUMN;
   const smoky = smoke !== null && smoke >= SMOKY_COLUMN;
 
-  if (snapshot.precipitating) {
+  if (snapshot.precipitating === true) {
     return {
       condition: "precipitating",
       label: "Rain or snow",
@@ -222,7 +222,7 @@ export function skyAccess(
   snapshot: ConditionSnapshot,
   demand: TransparencyDemand,
 ): number {
-  if (snapshot.precipitating) return 0;
+  if (snapshot.precipitating === true) return 0;
   if (snapshot.visibilityM !== null && snapshot.visibilityM < FOG_VISIBILITY_M) return 0;
 
   const open = Math.max(0, 1 - snapshot.cloudCoverPercent / 100);
@@ -245,7 +245,7 @@ export function skyAccess(
   return Math.max(0, Math.min(1, cloudTerm * smokeTerm));
 }
 
-export type ViewabilityBand = "excellent" | "good" | "possible" | "unlikely";
+export type ViewabilityBand = "excellent" | "good" | "possible" | "unlikely" | "unknown";
 
 /**
  * Freshness of the forecast, kept independent of the band itself.
@@ -257,12 +257,57 @@ export type ViewabilityBand = "excellent" | "good" | "possible" | "unlikely";
  */
 export type ForecastFreshness = "current" | "ageing" | "stale";
 
+/**
+ * Whether environmental evidence exists and can support a recommendation.
+ * This is categorical on purpose: provider failure and absence must never be
+ * converted into a numeric score that looks like verified clear weather.
+ */
+export type EnvironmentalEvidenceStatus =
+  | "available"
+  | "stale"
+  | "unavailable"
+  | "request-failed"
+  | "not-supported";
+
+export interface EnvironmentalEvidence {
+  status: EnvironmentalEvidenceStatus;
+  snapshots: ConditionSnapshot[];
+  source: WeatherSourceInfo | null;
+  message: string | null;
+}
+
+export function environmentalEvidence(
+  snapshots: ConditionSnapshot[],
+  now: Date,
+  source: WeatherSourceInfo | null = null,
+): EnvironmentalEvidence {
+  if (snapshots.length === 0) {
+    return { status: "unavailable", snapshots: [], source, message: "No forecast reached this observing period." };
+  }
+  const stale = snapshots.every((snapshot) => forecastFreshness(snapshot, now) === "stale");
+  return {
+    status: stale ? "stale" : "available",
+    snapshots,
+    source,
+    message: stale ? "The available forecast is out of date." : null,
+  };
+}
+
+export function unavailableEnvironmentalEvidence(
+  status: Exclude<EnvironmentalEvidenceStatus, "available" | "stale">,
+  message: string,
+  source: WeatherSourceInfo | null = null,
+): EnvironmentalEvidence {
+  return { status, snapshots: [], source, message };
+}
+
 export interface Viewability {
   band: ViewabilityBand;
-  /** Sky access alone, 0–1. Retained so the two halves stay addressable. */
-  access: number;
+  /** Sky access alone, 0–1; null means it was not measured. */
+  access: number | null;
   reading: ConditionReading;
   freshness: ForecastFreshness;
+  evidenceStatus: EnvironmentalEvidenceStatus;
   /**
    * Set where the sky is genuinely the reason the evening is worse than it
    * could be — not merely worse than perfect. Without the floor this fires on
@@ -300,6 +345,7 @@ export function viewability(
   demand: TransparencyDemand,
   phenomenonStrength: number,
   now: Date,
+  evidenceStatus: "available" | "stale" = "available",
 ): Viewability {
   const access = skyAccess(snapshot, demand);
   const reading = readCondition(snapshot);
@@ -318,6 +364,7 @@ export function viewability(
     access,
     reading,
     freshness,
+    evidenceStatus,
     limitedBySky: access < phenomenon && access < SKY_CLEARLY_LIMITING,
   };
 }
@@ -380,17 +427,25 @@ export interface BestWindow {
  * unadjusted recommendation rather than hiding the event. What it must not do
  * is imply the sky was checked.
  */
-function UNKNOWN_CONDITIONS(phenomenonStrength: number): Viewability {
+function UNKNOWN_CONDITIONS(
+  status: Exclude<EnvironmentalEvidenceStatus, "available" | "stale">,
+): Viewability {
   return {
-    band: phenomenonStrength >= 0.45 ? "good" : "possible",
-    access: 1,
+    band: "unknown",
+    access: null,
     reading: {
       condition: "unknown",
-      label: "Conditions unavailable",
+      label:
+        status === "request-failed"
+          ? "Forecast request failed"
+          : status === "not-supported"
+            ? "Forecast not supported"
+            : "Conditions unavailable",
       phrase: "an unknown sky",
       smokeDominant: false,
     },
     freshness: "stale",
+    evidenceStatus: status,
     limitedBySky: false,
   };
 }
@@ -410,12 +465,17 @@ const MINIMUM_WINDOW_MINUTES = 20;
  */
 export function bestViewingWindow(
   profile: OpportunitySample[],
-  conditions: ConditionSnapshot[],
+  input: ConditionSnapshot[] | EnvironmentalEvidence,
   demand: TransparencyDemand,
   phenomenonStrength: number,
   now: Date,
 ): BestWindow | null {
   if (profile.length === 0) return null;
+  const evidence: EnvironmentalEvidence = Array.isArray(input)
+    ? environmentalEvidence(input, now)
+    : input;
+  const conditions = evidence.snapshots;
+  const weatherUsable = evidence.status === "available" || evidence.status === "stale";
 
   // Never recommend a moment that has already gone.
   //
@@ -436,7 +496,7 @@ export function bestViewingWindow(
   if (remaining.length === 0) return null;
 
   const scored = remaining.map((sample) => {
-    const snapshot = nearestSnapshot(conditions, sample.atUtc);
+    const snapshot = weatherUsable ? nearestSnapshot(conditions, sample.atUtc) : null;
     const access = snapshot ? skyAccess(snapshot, demand) : 1;
     return { sample, snapshot, access, combined: sample.relative * access };
   });
@@ -473,9 +533,22 @@ export function bestViewingWindow(
     peakUtc: best.sample.atUtc,
     brief,
     viewability: best.snapshot
-      ? viewability(best.snapshot, demand, phenomenonStrength, now)
-      : UNKNOWN_CONDITIONS(phenomenonStrength),
+      ? viewability(
+          best.snapshot,
+          demand,
+          phenomenonStrength,
+          now,
+          evidence.status === "stale" ? "stale" : "available",
+        )
+      : UNKNOWN_CONDITIONS(
+          weatherUsable
+            ? "unavailable"
+            : evidence.status === "request-failed" || evidence.status === "not-supported"
+              ? evidence.status
+              : "unavailable",
+        ),
     movedByWeather:
+      weatherUsable &&
       Math.abs(Date.parse(best.sample.atUtc) - Date.parse(peakBySkyIgnored.atUtc)) > 30 * 60_000,
   };
 }

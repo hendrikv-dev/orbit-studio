@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   actionLine,
   bestViewingWindow,
+  environmentalEvidence,
   forecastFreshness,
   hasPassedTonight,
   nearestSnapshot,
   readCondition,
   skyAccess,
+  unavailableEnvironmentalEvidence,
   viewability,
   type ConditionSnapshot,
   type OpportunitySample,
@@ -351,7 +353,7 @@ describe("when no forecast reached the target time", () => {
     expect(line).not.toMatch(/clear|cloudy|sky opens/i);
   });
 
-  it("still recommends the phenomenon, because absence is not a reason to hide it", () => {
+  it("keeps the phenomenon but leaves confidence unknown when no forecast exists", () => {
     const window = bestViewingWindow(
       [{ atUtc: "2026-08-16T22:00:00.000Z", relative: 1 }],
       [],
@@ -359,7 +361,37 @@ describe("when no forecast reached the target time", () => {
       0.8,
       NOW,
     )!;
-    expect(window.viewability.band).toBe("good");
+    expect(window.viewability.band).toBe("unknown");
+    expect(window.viewability.access).toBeNull();
+    expect(window.viewability.evidenceStatus).toBe("unavailable");
+  });
+
+  it("distinguishes a failed request from ordinary unavailability", () => {
+    const window = bestViewingWindow(
+      [{ atUtc: "2026-08-16T22:00:00.000Z", relative: 1 }],
+      unavailableEnvironmentalEvidence("request-failed", "provider returned 503"),
+      "low",
+      0.8,
+      NOW,
+    )!;
+    expect(window.viewability.evidenceStatus).toBe("request-failed");
+    expect(window.viewability.reading.label).toMatch(/failed/i);
+    expect(window.viewability.access).toBeNull();
+  });
+
+  it("uses stale forecast data without presenting it as current", () => {
+    const stale = snapshot({ issuedUtc: "2026-08-14T00:00:00Z" });
+    const evidence = environmentalEvidence([stale], NOW);
+    const window = bestViewingWindow(
+      [{ atUtc: stale.atUtc, relative: 1 }],
+      evidence,
+      "low",
+      0.8,
+      NOW,
+    )!;
+    expect(evidence.status).toBe("stale");
+    expect(window.viewability.evidenceStatus).toBe("stale");
+    expect(window.viewability.access).not.toBeNull();
   });
 });
 

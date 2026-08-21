@@ -32,6 +32,19 @@ describe("the shared schedule layer", () => {
     expect([...keys].sort()).toEqual(keys);
   });
 
+  it("invalidates plan identity for location, observing period, zone, or model input changes", () => {
+    const first = planNight(34.135, -116.313, new Date("2026-08-19T20:00:00Z"), "America/Los_Angeles")!;
+    const otherPlace = planNight(34.136, -116.313, new Date("2026-08-19T20:00:00Z"), "America/Los_Angeles")!;
+    const nextNight = planNight(34.135, -116.313, new Date("2026-08-20T20:00:00Z"), "America/Los_Angeles")!;
+    const sameNightLater = planNight(34.135, -116.313, new Date("2026-08-19T20:10:00Z"), "America/Los_Angeles")!;
+    expect(first.identity.key).toBe(sameNightLater.identity.key);
+    expect(first.identity.key).not.toBe(otherPlace.identity.key);
+    expect(first.identity.key).not.toBe(nextNight.identity.key);
+    expect(
+      Math.abs(Date.parse(first.identity.periodStartUtc) - Date.parse(first.period.startUtc)),
+    ).toBeLessThanOrEqual(500);
+  });
+
   it("survives a daylight-saving transition without duplicating a night", () => {
     // US clocks go back on 2026-11-01.
     const plans = planNights(LAT, LON, new Date("2026-10-29T22:00:00Z"), 6, ZONE);
@@ -142,7 +155,7 @@ describe("notability", () => {
 
   it("orders by significance, with the rarest kind first", () => {
     const events = notableEvents(plans, 20);
-    const rank = { eclipse: 5, "shower-peak": 4, conjunction: 3, "moon-phase": 2, "best-placement": 1 };
+    const rank = { eclipse: 5, "shower-peak": 4, conjunction: 3, "moon-phase": 2, opposition: 1 };
     const weights = events.map((event) => rank[event.kind]);
     expect([...weights].sort((a, b) => b - a)).toEqual(weights);
   });

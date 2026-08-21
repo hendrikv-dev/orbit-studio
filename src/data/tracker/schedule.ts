@@ -1,4 +1,5 @@
-import { MeteorNight, meteorNight } from "./meteorActivity";
+import { meteorNight } from "./meteorActivity";
+import type { MeteorNight } from "./meteorActivity";
 import type { ObservationPeriod } from "./observationPeriod";
 import { trackerObservationPeriod } from "./observationPeriod";
 import type { Ranking } from "./opportunity";
@@ -41,10 +42,20 @@ import { tonightsOpportunities } from "./phenomena";
  * not a number buried in a component.
  */
 export const DEFAULT_HORIZON_NIGHTS = 30;
+export const TRACKER_PLAN_MODEL_VERSION = "phase-1-2026-08-19";
 
 const MS_PER_DAY = 86_400_000;
 
 export interface NightPlan {
+  /** Complete authoritative input identity for invalidation and evidence. */
+  identity: {
+    key: string;
+    modelVersion: string;
+    latitudeDeg: number;
+    longitudeDeg: number;
+    timeZone: string;
+    periodStartUtc: string;
+  };
   /**
    * The calendar date the night belongs to, as YYYY-MM-DD in the observer's
    * own clock.
@@ -58,6 +69,37 @@ export interface NightPlan {
   period: ObservationPeriod;
   ranking: Ranking;
   meteors: MeteorNight;
+}
+
+export function planIdentity(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  timeZone: string | null,
+  periodStartUtc: string,
+): NightPlan["identity"] {
+  const modelVersion = TRACKER_PLAN_MODEL_VERSION;
+  const zone = timeZone ?? "UTC";
+  // Root searches can differ by a few floating-point milliseconds for the same
+  // physical boundary when seeded from different instants in the same night.
+  // Whole-second identity is stable and remains far more precise than any
+  // Tracker presentation or planning decision.
+  const stablePeriodStartUtc = new Date(
+    Math.round(Date.parse(periodStartUtc) / 1_000) * 1_000,
+  ).toISOString();
+  return {
+    key: [
+      modelVersion,
+      latitudeDeg.toFixed(6),
+      longitudeDeg.toFixed(6),
+      zone,
+      stablePeriodStartUtc,
+    ].join("|"),
+    modelVersion,
+    latitudeDeg,
+    longitudeDeg,
+    timeZone: zone,
+    periodStartUtc: stablePeriodStartUtc,
+  };
 }
 
 /** The observer's local calendar date for an instant. */
@@ -89,6 +131,7 @@ export function planNight(
       tonightsOpportunities(latitudeDeg, longitudeDeg, period),
     );
     return {
+      identity: planIdentity(latitudeDeg, longitudeDeg, timeZone, period.startUtc),
       dateKey: dateKeyFor(new Date(period.startUtc), timeZone),
       period,
       ranking,
@@ -113,6 +156,7 @@ export function planNights(
   from: Date,
   nights: number = DEFAULT_HORIZON_NIGHTS,
   timeZone: string | null = null,
+  onProgress?: (completed: number, total: number) => void,
 ): NightPlan[] {
   const plans: NightPlan[] = [];
   const seen = new Set<string>();
@@ -126,6 +170,7 @@ export function planNights(
       seen.add(plan.dateKey);
       plans.push(plan);
     }
+    onProgress?.(index + 1, nights);
   }
   return plans;
 }
@@ -144,13 +189,14 @@ export function planMonth(
   year: number,
   month: number,
   timeZone: string | null = null,
+  onProgress?: (completed: number, total: number) => void,
 ): NightPlan[] {
   // Noon local-ish, so the instant sits inside the day it names whatever the
   // longitude does to it, and `trackerObservationPeriod` resolves to that
   // day's night rather than the previous one.
   const first = new Date(Date.UTC(year, month - 1, 1, 12));
   const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return planNights(latitudeDeg, longitudeDeg, first, days, timeZone).filter((plan) => {
+  return planNights(latitudeDeg, longitudeDeg, first, days, timeZone, onProgress).filter((plan) => {
     const [planYear, planMonth] = plan.dateKey.split("-").map(Number);
     return planYear === year && planMonth === month;
   });
@@ -251,7 +297,7 @@ export type NotableKind =
   | "shower-peak"
   | "conjunction"
   | "moon-phase"
-  | "best-placement";
+  | "opposition";
 
 export interface NotableEvent {
   plan: NightPlan;
@@ -304,11 +350,15 @@ function classify(
     };
   }
 
-  if (opportunity.kind === "planet") {
+  if (
+    opportunity.kind === "planet" &&
+    opportunity.science?.kind === "planet" &&
+    opportunity.science.event?.kind === "opposition"
+  ) {
     return {
-      kind: "best-placement",
+      kind: "opposition",
       key: `planet:${opportunity.id}`,
-      reason: "As well placed as it gets from here for weeks either side.",
+      reason: "Earth is between the Sun and this outer planet, so it is up all night and near its brightest.",
     };
   }
 
@@ -351,7 +401,7 @@ export function notableEvents(plans: NightPlan[], limit = 6): NotableEvent[] {
     "shower-peak": 4,
     conjunction: 3,
     "moon-phase": 2,
-    "best-placement": 1,
+    opposition: 1,
   };
   return [...best.values()]
     .sort((left, right) =>

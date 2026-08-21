@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   ComboBox,
+  ComboBoxStateContext,
   DialogTrigger,
   Input,
   Label,
@@ -59,6 +60,8 @@ export interface SelectedPlace {
   fromDevice: boolean;
   /** Reported accuracy in metres, for a device fix. */
   accuracyM?: number;
+  /** True when restored from the browser's local confirmed-place record. */
+  restored?: boolean;
 }
 
 interface Props {
@@ -90,6 +93,26 @@ const KIND_HINT: Record<string, string> = {
   trailhead: "Trailhead",
 };
 
+/** Closes the actual React Aria combobox state before native Tab advances
+ * focus. Keeping this inside the ComboBox context avoids a second, competing
+ * open-state owner in Tracker. */
+function PlaceSearchInput({ autoFocus }: { autoFocus: boolean }) {
+  const state = useContext(ComboBoxStateContext);
+  return (
+    <Input
+      autoFocus={autoFocus}
+      placeholder="Address, campsite, park, trailhead, town…"
+      autoComplete="off"
+      onKeyDownCapture={(event) => {
+        // Mark focus gone as well as closing. With menuTrigger="focus", merely
+        // calling close while the key event still owns focus causes the
+        // combobox effect to reopen before the browser advances Tab.
+        if (event.key === "Tab") state?.setFocused(false);
+      }}
+    />
+  );
+}
+
 export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
   if (variant === "inline") {
     return (
@@ -101,10 +124,11 @@ export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
 
   return (
     <DialogTrigger>
-      <Button className="tracker-place-current">
+      <Button className="tracker-place-current" data-location-authority="confirmed">
         <MapPin size={15} aria-hidden />
         <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
         {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}
+        {place?.restored ? <span className="tracker-place-context">Restored</span> : null}
         <ChevronDown size={15} aria-hidden className="tracker-place-chevron" />
       </Button>
       {/* Popover measures the space available and sets its own max-height, so
@@ -135,6 +159,7 @@ function PlacePanel({
   // and React unmounted the whole app. Nothing on screen suggested a hook
   // problem: the picker simply stopped responding to Enter.
   const fieldRef = useRef<HTMLDivElement>(null);
+  const searchVersion = useRef(0);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
@@ -164,14 +189,20 @@ function PlacePanel({
   // Debounced, because a geocoder that is free to use is still somebody's
   // server and a request per keystroke is not a reasonable way to treat it.
   useEffect(() => {
+    const version = ++searchVersion.current;
     const trimmed = query.trim();
+    setResults([]);
+    setSearchError(null);
     if (trimmed.length < 3 || parseCoordinates(trimmed)) {
-      setResults([]);
       setSearching(false);
       return;
     }
     const adapter = geocoderFor();
-    if (!adapter) return;
+    if (!adapter) {
+      setSearching(false);
+      setSearchError("Place search is not supported here.");
+      return;
+    }
 
     const controller = new AbortController();
     setSearching(true);
@@ -180,10 +211,10 @@ function PlacePanel({
       adapter
         .search(trimmed, controller.signal)
         .then((found) => {
-          if (!controller.signal.aborted) setResults(found);
+          if (!controller.signal.aborted && version === searchVersion.current) setResults(found);
         })
         .catch((cause: unknown) => {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted || version !== searchVersion.current) return;
           setSearchError(
             cause instanceof Error
               ? `Place search is not responding (${cause.message}).`
@@ -191,7 +222,7 @@ function PlacePanel({
           );
         })
         .finally(() => {
-          if (!controller.signal.aborted) setSearching(false);
+          if (!controller.signal.aborted && version === searchVersion.current) setSearching(false);
         });
     }, 350);
 
@@ -236,6 +267,7 @@ function PlacePanel({
           longitude: pin.longitude,
           kind: null,
           isAddress: false,
+          matchPrecision: "place",
         } satisfies PlaceResult,
       ];
     }
@@ -247,7 +279,7 @@ function PlacePanel({
       /* Nothing is computed until the reader agrees this is the place. A
          geocoder returns what is near what was typed, and only the reader knows
          whether that is where they will be standing. */
-      <div className="tracker-place-confirm">
+      <div className="tracker-place-confirm" data-search-state="selected">
         <p className="tracker-place-confirm-lead">Use this place?</p>
         <p className="tracker-place-confirm-name">{pending.name}</p>
         {/* The resolved place, not the coordinates. A pair of decimals is the
@@ -292,8 +324,8 @@ function PlacePanel({
             {item.name}
             {item.kind && KIND_HINT[item.kind] ? (
               <em>{KIND_HINT[item.kind]}</em>
-            ) : item.isAddress ? (
-              <em>Address</em>
+            ) : item.matchPrecision === "exact-address" ? (
+              <em>Exact address</em>
             ) : null}
           </span>
           <span className="tracker-place-result-context">{item.context}</span>
@@ -311,6 +343,17 @@ function PlacePanel({
       ]
         .filter(Boolean)
         .join(" ")}
+      data-search-state={
+        searching
+          ? "querying"
+          : searchError
+            ? "failed"
+            : query.trim().length < 3
+              ? "idle"
+              : options.length > 0
+                ? "results"
+                : "no-results"
+      }
     >
       {/* When the browser has blocked the site, the search is the only path
           that can work, so it is ordered first. Leading with a control that
@@ -331,6 +374,11 @@ function PlacePanel({
               : "Use my current location"}
       </Button>
 
+      {/* The phase composes the class, so the full set is named here as well as
+          in the stylesheet: tracker-place-status-denied,
+          tracker-place-status-timeout, tracker-place-status-unavailable,
+          tracker-place-status-unsupported. A template literal is invisible to
+          anything that looks for a class by name. */}
       {geo.outcome && geo.phase !== "granted" ? (
         <div className={`tracker-place-status tracker-place-status-${geo.phase}`} role="status">
           <p>{geo.outcome.message}</p>
@@ -365,7 +413,13 @@ function PlacePanel({
         className="tracker-place-combobox tracker-place-order-search"
         items={options}
         inputValue={query}
-        onInputChange={setQuery}
+        selectedKey={null}
+        onInputChange={(value) => {
+          searchVersion.current += 1;
+          setResults([]);
+          setSearchError(null);
+          setQuery(value);
+        }}
         allowsEmptyCollection
         menuTrigger="focus"
         onSelectionChange={(key) => {
@@ -390,11 +444,7 @@ function PlacePanel({
               the location button to reach the field they came for. */}
           {/* Autofocused only in the popover, where the reader opened it on
               purpose. Stealing focus on page load is hostile. */}
-          <Input
-            autoFocus={!inline}
-            placeholder="Address, campsite, park, trailhead, town…"
-            autoComplete="off"
-          />
+          <PlaceSearchInput autoFocus={!inline} />
         </div>
         <Text slot="description" className="tracker-visually-hidden">
           Type at least three characters, or paste a latitude and longitude.

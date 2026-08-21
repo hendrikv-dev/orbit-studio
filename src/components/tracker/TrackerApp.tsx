@@ -1,56 +1,76 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { signalAppReady } from "../../lib/appReady";
 import { downloadCalendarFile } from "../../lib/trackerCalendar";
 import {
   clockForCoordinates,
   deviceClock,
-  formatWindowPhrase,
+  formatClockRange,
   formatClockTime,
-  formatNightLabel,
-  formatTemperature,
   type PlaceClock,
 } from "../../lib/localTime";
-import {
-  type ObservationPeriod,
-} from "../../data/tracker/observationPeriod";
-import { type MeteorNight } from "../../data/tracker/meteorActivity";
-import { planNight } from "../../data/tracker/schedule";
-import {
-  gazeRegionFor,
-  skyPathFor,
-} from "../../data/tracker/skyPath";
-import { TrackerFinder } from "./TrackerFinder";
-import { TrackerExperience, experienceFor } from "./TrackerExperience";
-import { TrackerSkyPlate } from "./TrackerSkyPlate";
-import { TrackerNightRibbon } from "./TrackerNightRibbon";
-import { TrackerUpcoming } from "./TrackerUpcoming";
-import { TrackerNow } from "./TrackerNow";
+import { planNight, type NightPlan } from "../../data/tracker/schedule";
+import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
   chooseHero,
-  partitionByAvailability,
-  verdictFor,
-  recommendationFor,
-  viewingConclusion,
-  type Ranking,
   type SkyAdjustedOpportunity,
 } from "../../data/tracker/opportunity";
 import {
   bestViewingWindow,
+  environmentalEvidence,
   hasPassedTonight,
   nearestSnapshot,
-  readCondition,
   skyAccess,
+  unavailableEnvironmentalEvidence,
   type BestWindow,
   type ConditionSnapshot,
+  type WeatherSourceInfo,
 } from "../../data/tracker/conditions";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { adapterFor, conditionsFor } from "../../data/tracker/weatherProviders";
+import { adaptersFor, conditionsForLocation } from "../../data/tracker/weatherProviders";
 import { heroImageryFor } from "../../data/tracker/imagery";
-import { TrackerScene } from "./TrackerScene";
-import { TrackerCondition } from "./TrackerCondition";
-import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
+import { conditionCards } from "../../data/tracker/conditionCards";
+import {
+  presentAuroraEvent,
+  presentTonightEvent,
+  visibilityMetric,
+  type EventPresentation,
+} from "../../data/tracker/eventPresentation";
+import { categoryForOpportunityKind } from "../../data/tracker/eventCategories";
+import {
+  assessAurora,
+  fetchAuroraGrid,
+  fetchAuroraIndex,
+  NOAA_SWPC_SOURCE,
+  type AuroraConditions,
+} from "../../data/tracker/aurora";
+import {
+  loadConfirmedPlace,
+  persistConfirmedPlace,
+} from "../../data/tracker/trackerPersistence";
+import { TrackerHeader, type TrackerView } from "./TrackerHeader";
 import { TrackerEntry } from "./TrackerEntry";
+import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
+import { PhenomenonPage } from "./PhenomenonPage";
+import { TrackerOverlay } from "./TrackerOverlay";
+import { TrackerSkyChart } from "./TrackerSkyChart";
+import { TrackerExperience, experienceFor } from "./TrackerExperience";
+import { TrackerUpcoming } from "./TrackerUpcoming";
+import { TrackerNightActivity } from "./viz/TrackerNightActivity";
+import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
+/**
+ * The maps carry the coastline data, and most pages never draw one.
+ *
+ * Natural Earth's land polygons are 142 kB before compression. A meteor page
+ * has no map on it and must not pay for one — the same rule that keeps Tracker
+ * out of App's satellite catalogue applies inside Tracker too.
+ */
+const TrackerAuroraMap = lazy(() =>
+  import("./viz/TrackerAuroraMap").then((module) => ({ default: module.TrackerAuroraMap })),
+);
+import { TrackerAuroraArt } from "./viz/TrackerAuroraArt";
+import type { RelevantEventRow } from "./RelevantEventsList";
+import type { HeroMedia } from "./EventHero";
 
 /**
  * Orbit Studio Tracker.
@@ -58,28 +78,23 @@ import { TrackerEntry } from "./TrackerEntry";
  * Mounted at the entry point rather than inside App, because App imports the
  * 16 MB satellite catalog and an observer page must not pay for it.
  *
- * ## What this screen is for
+ * ## One page, two questions
  *
- * Getting somebody outside. Everything above the fold is an invitation: a
- * picture of what they are being invited to see, the time to go, the direction
- * to face, what the sky will be doing, and one button.
+ * Tracker asks two things and nothing else: what about tonight, and what about
+ * later. Everything under both is the same page — heading, hero, evidence,
+ * conditions, ranked list — with different content in the slots. A phenomenon
+ * cannot introduce a layout here; it can only fill what `PhenomenonPage`
+ * already holds open for it.
  *
- * The previous version put a chart first and coordinates second, and explained
- * its own data sources in the footer. All of that was true and none of it
- * belonged in front of the reader. The calculations behind it are unchanged;
- * only the order is different, which is the point — the analysis was never the
- * problem, its position was.
+ * That is the whole architecture, and it replaces a set of per-phenomenon
+ * screens that had drifted apart from each other. The astronomy underneath is
+ * unchanged: the same ranking, the same weather layering, the same refusal to
+ * state anything a source cannot support.
  *
  * Times are the selected place's local clock, never UTC and not necessarily the
  * device's: somebody planning a trip to a dark-sky site needs that site's
  * midnight, not their own.
  */
-
-interface Night {
-  period: ObservationPeriod;
-  ranking: Ranking;
-  meteors: MeteorNight;
-}
 
 const EMPTY_SNAPSHOTS: ConditionSnapshot[] = [];
 
@@ -87,9 +102,8 @@ const EMPTY_SNAPSHOTS: ConditionSnapshot[] = [];
  * One client for the page.
  *
  * The forecast is worth keeping for an hour — it is a grid-cell forecast, not a
- * per-user one, and both providers ask callers to cache. `retry` is bounded
- * because a provider that is down stays down for longer than a reader will
- * wait, and a retry storm against a free service is the wrong way to treat it.
+ * per-user one, and both providers ask callers to cache. Aurora overrides that
+ * per query, because a nowcast an hour old is not a nowcast.
  */
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -103,34 +117,74 @@ const queryClient = new QueryClient({
   },
 });
 
-/**
- * Tonight's sky over the selected place.
- *
- * Replaces a hand-rolled effect that had one gap worth naming: there was no
- * loading state at all, so for about 300 ms after a place was chosen the
- * interface asserted "Conditions unavailable" — a wrong answer rather than an
- * absent one. `isPending` distinguishes "not asked yet" from "asked and
- * failed", which is the distinction the reader needed and the effect could not
- * express.
- */
 function useConditions(place: SelectedPlace | null) {
-  const adapter = place ? adapterFor(place.latitude, place.longitude) : null;
+  const adapters = place ? adaptersFor(place.latitude, place.longitude) : [];
   return useQuery({
     queryKey: [
       "conditions",
-      adapter?.source.id ?? "none",
+      adapters.map((adapter) => adapter.source.id).join(",") || "none",
       // Rounded, so two observers in the same forecast cell share one entry and
       // a precise location is never used as a cache key.
       place ? place.latitude.toFixed(2) : null,
       place ? place.longitude.toFixed(2) : null,
     ],
-    enabled: Boolean(place && adapter),
+    enabled: Boolean(place),
     queryFn: async ({ signal }) => {
-      if (!place || !adapter) throw new Error("No location");
-      const snapshots = await conditionsFor(adapter, place.latitude, place.longitude, signal);
-      return { snapshots, adapter };
+      if (!place) throw new Error("No location");
+      return conditionsForLocation(place.latitude, place.longitude, signal, adapters);
     },
   });
+}
+
+/**
+ * The space-weather products, on their own clock and as two queries.
+ *
+ * Global rather than per-location — NOAA publishes one grid for the planet — so
+ * the query keys carry no coordinates at all, and every observer shares one
+ * fetch. Five minutes of staleness matches the publication cadence; an hour
+ * would be showing a nowcast that has stopped being one.
+ *
+ * Two queries rather than one because they fail separately. The 900 kB grid is
+ * the request that actually drops, and behind a single combined query a dropped
+ * grid still resolved successfully with nothing in it — so nothing retried and
+ * the map stayed missing for the session.
+ */
+function useAurora(enabled: boolean): { data: AuroraConditions | null } {
+  const grid = useQuery({
+    queryKey: ["aurora", "ovation"],
+    enabled,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: enabled ? 5 * 60_000 : false,
+    queryFn: ({ signal }) => fetchAuroraGrid(signal),
+  });
+  const index = useQuery({
+    queryKey: ["aurora", "planetary-k-index"],
+    enabled,
+    staleTime: 15 * 60_000,
+    gcTime: 60 * 60_000,
+    refetchInterval: enabled ? 15 * 60_000 : false,
+    queryFn: ({ signal }) => fetchAuroraIndex(signal),
+  });
+
+  return useMemo(() => {
+    if (!grid.data && !index.data) return { data: null };
+    const failures: { product: string; message: string }[] = [];
+    if (grid.isError) failures.push({ product: "ovation-nowcast", message: "Nowcast unavailable" });
+    if (index.isError) {
+      failures.push({ product: "planetary-k-index", message: "K-index unavailable" });
+    }
+    return {
+      data: {
+        grid: grid.data ?? null,
+        currentKp: index.data?.currentKp ?? null,
+        kpForecast: index.data?.kpForecast ?? [],
+        fetchedAtUtc: new Date().toISOString(),
+        source: NOAA_SWPC_SOURCE,
+        failures,
+      },
+    };
+  }, [grid.data, grid.isError, index.data, index.isError]);
 }
 
 export function TrackerApp() {
@@ -141,15 +195,44 @@ export function TrackerApp() {
   );
 }
 
-function TrackerScreen() {
-  const [place, setPlace] = useState<SelectedPlace | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [seen, setSeen] = useState<string[]>([]);
+/** What the hero is currently showing, and where it came from. */
+type Overlay = null | "sky-map" | "field-map";
 
-  // Asked once, on arrival. A hand-picked place is never overwritten by it —
-  // somebody planning a trip would lose the plan on the next render.
+interface TonightEvent {
+  id: string;
+  presentation: EventPresentation;
+  media: HeroMedia;
+  expectation: string | null;
+  safety: string | null;
+  /** Ordering value in the same 0–1 space the ranking uses. */
+  strength: number;
+  entry: SkyAdjustedOpportunity | null;
+  window: BestWindow | null;
+  passed: boolean;
+}
+
+function TrackerScreen() {
+  const [place, setPlace] = useState<SelectedPlace | null>(() => loadConfirmedPlace());
+  const [view, setView] = useState<TrackerView>("tonight");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [now, setNow] = useState(() => new Date());
+  const [planAnchor, setPlanAnchor] = useState(() => new Date());
+
   useEffect(() => {
     signalAppReady();
+  }, []);
+
+  useEffect(() => {
+    if (place) persistConfirmedPlace(place);
+  }, [place]);
+
+  // Time is an explicit input to every current-state projection. Recompute it
+  // on a bounded cadence instead of sprinkling untracked `new Date()` reads
+  // across memoized state that would otherwise never invalidate.
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setNow(new Date()), 60_000);
+    return () => globalThis.clearInterval(timer);
   }, []);
 
   const clock: PlaceClock = useMemo(() => {
@@ -161,34 +244,74 @@ function TrackerScreen() {
       : clockForCoordinates(place.latitude, place.longitude);
   }, [place]);
 
-  const [view, setView] = useState<TrackerView>("tonight");
-  // Now and Tonight are the same night asked two different questions. Now was
-  // previously gated on this same boolean, which meant the tab existed and
-  // rendered Tonight unchanged — navigation asserting a product and shipping a
-  // duplicate.
-  const showsNight = view === "tonight";
   const weather = useConditions(place);
+  const aurora = useAurora(Boolean(place));
 
-  // Tonight is one question asked of the shared schedule layer, not its own
-  // pipeline. It used to be computed inline here, which is why there was
-  // nowhere for a second night to come from.
   const night = useMemo(
     () =>
       place
-        ? planNight(place.latitude, place.longitude, new Date(), clock.timeZone)
+        ? planNight(place.latitude, place.longitude, planAnchor, clock.timeZone)
         : null,
-    [place, clock.timeZone],
+    [place, clock.timeZone, planAnchor],
   );
 
-  const snapshots = weather.data?.snapshots ?? EMPTY_SNAPSHOTS;
+  // The plan changes only when an authoritative input changes or the observing
+  // period ends. Selected UI state is derived and cannot survive that identity.
+  useEffect(() => {
+    setSelectedId(null);
+    if (!night) return;
+    const delay = Math.min(
+      Math.max(1_000, Date.parse(night.period.endUtc) - Date.now() + 1_000),
+      2_147_000_000,
+    );
+    const timer = globalThis.setTimeout(() => setPlanAnchor(new Date()), delay);
+    return () => globalThis.clearTimeout(timer);
+  }, [night?.identity.key]);
+
+  const environment = useMemo(() => {
+    if (!place) {
+      return unavailableEnvironmentalEvidence(
+        "not-supported",
+        "Choose a location to request a forecast.",
+      );
+    }
+    if (weather.isError) {
+      return unavailableEnvironmentalEvidence(
+        "request-failed",
+        weather.error instanceof Error ? weather.error.message : "Forecast request failed.",
+      );
+    }
+    if (!weather.data) {
+      return unavailableEnvironmentalEvidence("unavailable", "Forecast request is still pending.");
+    }
+    if (weather.data.snapshots.length > 0) {
+      return environmentalEvidence(
+        weather.data.snapshots,
+        now,
+        weather.data.adapter?.source ?? null,
+      );
+    }
+    if (weather.data.attempts.some((attempt) => attempt.outcome === "failed")) {
+      return unavailableEnvironmentalEvidence(
+        "request-failed",
+        "All eligible forecast providers failed.",
+      );
+    }
+    return unavailableEnvironmentalEvidence(
+      weather.data.attempts.length === 0 ? "not-supported" : "unavailable",
+      weather.data.attempts.length === 0
+        ? "No supported forecast provider covers this location."
+        : "Forecast providers returned no usable conditions.",
+    );
+  }, [now, place, weather.data, weather.error, weather.isError]);
+
+  const snapshots = environment.snapshots ?? EMPTY_SNAPSHOTS;
   // "Not asked yet" is not "asked and failed". Conflating them is what made the
   // interface claim conditions were unavailable while it was still fetching.
-  const conditionsPending = weather.isPending || weather.isFetching;
-  const conditionsReady = weather.isSuccess;
+  const conditionsPending = weather.isPending && !weather.data;
 
   const withSky = useMemo(() => {
     if (!night) return null;
-    const now = new Date();
     const windows = new Map<string, BestWindow>();
     const access = new Map<string, number>();
     const passed = new Set<string>();
@@ -201,7 +324,7 @@ function TrackerScreen() {
       }
       const found = bestViewingWindow(
         opportunity.profile,
-        snapshots,
+        environment,
         opportunity.transparency,
         entry.strength,
         now,
@@ -213,688 +336,588 @@ function TrackerScreen() {
       }
     }
     return { ranked: applySkyAccess(night.ranking.ranked, access), windows, passed };
-  }, [night, snapshots]);
+  }, [environment, night, now, snapshots]);
 
-  const selected: SkyAdjustedOpportunity | null = useMemo(() => {
-    if (!withSky) return null;
+  /**
+   * The dark hours, which is the window every aurora statement is about.
+   *
+   * Aurora has no rise or set and no peak the way a planet does. What it has is
+   * a requirement — a dark sky — so the honest window is the darkness itself.
+   */
+  const darkWindow = useMemo(() => {
+    if (!night) return null;
+    const dark = night.period.darkness.astronomical;
+    return {
+      startUtc: dark?.startUtc ?? night.period.startUtc,
+      endUtc: dark?.endUtc ?? night.period.endUtc,
+    };
+  }, [night]);
+
+  const auroraAssessment = useMemo(() => {
+    if (!place || !darkWindow) return null;
+    // Assessed at the moment the reader can act on: now if it is already dark,
+    // otherwise the start of darkness. Which of the two it is decides whether
+    // the nowcast or the three-day forecast is the source, and the assessment
+    // says which it used.
+    const at =
+      now.getTime() >= Date.parse(darkWindow.startUtc) ? now.toISOString() : darkWindow.startUtc;
+    return assessAurora(aurora.data ?? null, place.latitude, place.longitude, at, now);
+  }, [aurora.data, darkWindow, now, place]);
+
+  const tonightEvents = useMemo<TonightEvent[]>(() => {
+    if (!night || !withSky || !place) return [];
+    const context = {
+      clock,
+      now,
+      meteors: night.meteors,
+      evidenceStatus: environment.status,
+    };
+
+    const events: TonightEvent[] = withSky.ranked.map((entry) => {
+      const window = withSky.windows.get(entry.opportunity.id) ?? null;
+      const passed = withSky.passed.has(entry.opportunity.id);
+      const imagery = heroImageryFor(entry.opportunity.id, entry.opportunity.kind);
+      return {
+        id: entry.opportunity.id,
+        presentation: presentTonightEvent(entry, window, passed, context),
+        media: {
+          kind: "imagery" as const,
+          imagery,
+          illuminatedFraction:
+            entry.opportunity.sceneHints?.illuminatedFraction ??
+            night.meteors.best?.moonIlluminatedFraction ??
+            0.5,
+          waning: entry.opportunity.sceneHints?.waning ?? false,
+        },
+        expectation: imagery.eyeExpectation,
+        safety: entry.opportunity.guidance.safety,
+        // Passed events sink rather than disappear: "the Moon is already down"
+        // is worth being able to see, and it is not a recommendation.
+        strength: passed ? -1 : entry.strength,
+        entry,
+        window,
+        passed,
+      };
+    });
+
+    // Aurora joins the same ranking rather than being pinned above or below it.
+    // The strength is NOAA's own probability mapped into the ranking's 0–1
+    // space, so a quiet night puts it below Saturn and a G3 storm puts it on
+    // top — which is the correct behaviour in both cases and needs no special
+    // rule for either.
+    if (auroraAssessment && auroraAssessment.outlook !== "unknown" && darkWindow) {
+      const probability = auroraAssessment.probabilityPercent;
+      const kp = auroraAssessment.kp;
+      const strength =
+        probability !== null
+          ? Math.min(1, probability / 55)
+          : kp !== null
+            ? Math.max(0, Math.min(1, (kp - 3.5) / 4))
+            : 0;
+      if (strength > 0.08) {
+        const windowText = formatClockRange(darkWindow.startUtc, darkWindow.endUtc, clock);
+        const snapshot = nearestSnapshot(snapshots, darkWindow.startUtc);
+        events.push({
+          id: "aurora",
+          presentation: presentAuroraEvent(
+            auroraAssessment,
+            now.getTime() >= Date.parse(darkWindow.startUtc)
+              ? now.toISOString()
+              : darkWindow.startUtc,
+            clock,
+            windowText,
+            // Aurora is as demanding of a transparent sky as meteors are, so the
+            // same reading is used rather than a softer one.
+            snapshot
+              ? visibilityMetric(
+                  {
+                    startUtc: darkWindow.startUtc,
+                    endUtc: darkWindow.endUtc,
+                    peakUtc: darkWindow.startUtc,
+                    brief: false,
+                    movedByWeather: false,
+                    viewability: {
+                      band:
+                        skyAccess(snapshot, "high") > 0.7
+                          ? "excellent"
+                          : skyAccess(snapshot, "high") > 0.45
+                            ? "good"
+                            : skyAccess(snapshot, "high") > 0.2
+                              ? "possible"
+                              : "unlikely",
+                      access: skyAccess(snapshot, "high"),
+                      reading: { condition: "clear", label: "", phrase: "", smokeDominant: false },
+                      freshness: "current",
+                      evidenceStatus: "available",
+                      limitedBySky: false,
+                    },
+                  },
+                  environment.status,
+                  false,
+                )
+              : { label: "Visibility", value: "Not known", tone: "unknown" },
+          ),
+          media: {
+            kind: "drawn" as const,
+            node: <TrackerAuroraArt probabilityPercent={probability} />,
+            claim: "Forecast visualisation",
+            credit: "Drawn from the NOAA OVATION nowcast — not a photograph.",
+          },
+          expectation:
+            "To the eye, aurora at these latitudes is usually a pale grey-green glow low in the sky. Cameras see the colour long before you do.",
+          safety: null,
+          strength,
+          entry: null,
+          window: null,
+          passed: false,
+        });
+      }
+    }
+
+    return events.sort((left, right) => right.strength - left.strength);
+  }, [
+    auroraAssessment,
+    clock,
+    darkWindow,
+    environment.status,
+    night,
+    now,
+    place,
+    snapshots,
+    withSky,
+  ]);
+
+  const heroEvent = useMemo(() => {
+    if (tonightEvents.length === 0) return null;
     if (selectedId) {
-      const found = withSky.ranked.find((entry) => entry.opportunity.id === selectedId);
+      const found = tonightEvents.find((event) => event.id === selectedId);
       if (found) return found;
     }
-    return chooseHero(withSky.ranked, withSky.passed);
-  }, [withSky, selectedId]);
+    // The ranking's own hero rule still decides the default: nothing below the
+    // floor is promoted merely to fill the position, and a telescope target
+    // never displaces a naked-eye one.
+    if (withSky) {
+      const chosen = chooseHero(withSky.ranked, withSky.passed);
+      const matched = chosen
+        ? tonightEvents.find((event) => event.id === chosen.opportunity.id)
+        : null;
+      // Aurora can lead only by out-scoring the astronomical hero, never by
+      // default, because a nowcast is the least certain thing on the page.
+      const leader = tonightEvents[0];
+      if (matched && (!leader || leader.strength <= matched.strength)) return matched;
+    }
+    return tonightEvents[0];
+  }, [selectedId, tonightEvents, withSky]);
 
-  // Split rather than filtered. An object below the horizon for the rest of the
-  // night is not an "Also tonight" recommendation — it was taking a slot in a
-  // ranked list of things to go outside for while saying it could not be seen.
-  const { observable: alternatives, unavailable } = useMemo(() => {
-    if (!withSky) return { observable: [], unavailable: [] };
-    const rest = withSky.ranked.filter(
-      (entry) => entry.opportunity.id !== selected?.opportunity.id,
+  /**
+   * The ranked list, favouring the category currently on the hero.
+   *
+   * "Favouring" is a stable partition rather than a re-score: events of the
+   * active category keep their own order and come first, then everything else
+   * keeps its own order. The ranking is never rewritten to flatter the page you
+   * happen to be on — a meteor page with nothing observable still shows Saturn
+   * above a shower that has finished.
+   */
+  const rows = useMemo<RelevantEventRow[]>(() => {
+    if (!heroEvent) return [];
+    const category = heroEvent.presentation.categoryId;
+    const matching = tonightEvents.filter(
+      (event) => event.presentation.categoryId === category,
     );
-    return partitionByAvailability(rest, withSky.passed);
-  }, [withSky, selected]);
+    const others = tonightEvents.filter(
+      (event) => event.presentation.categoryId !== category,
+    );
+    return [...matching, ...others].slice(0, 6).map((event) => ({
+      presentation: event.presentation,
+      imagery: event.media.kind === "imagery" ? event.media.imagery : null,
+      thumb: event.media.kind === "drawn" ? event.media.node : undefined,
+      illuminatedFraction:
+        event.media.kind === "imagery" ? event.media.illuminatedFraction : undefined,
+      waning: event.media.kind === "imagery" ? event.media.waning : undefined,
+      active: event.id === heroEvent.id,
+    }));
+  }, [heroEvent, tonightEvents]);
+
+  const conditions = useMemo(() => {
+    if (!place || !heroEvent) return [];
+    return conditionCards({
+      atUtc: heroEvent.presentation.atUtc,
+      latitudeDeg: place.latitude,
+      longitudeDeg: place.longitude,
+      snapshots,
+      evidenceStatus: environment.status,
+      now,
+      pending: conditionsPending,
+    });
+  }, [conditionsPending, environment.status, heroEvent, now, place, snapshots]);
+
+  /** How stale the freshest live reading behind this page is. */
+  const freshnessMinutes = useMemo(() => {
+    const stamps: number[] = [];
+    if (snapshots.length > 0) stamps.push(Date.parse(snapshots[0].issuedUtc));
+    if (aurora.data?.grid) stamps.push(Date.parse(aurora.data.grid.observationUtc));
+    if (stamps.length === 0) return null;
+    return (now.getTime() - Math.max(...stamps)) / 60_000;
+  }, [aurora.data, now, snapshots]);
+
+  const sources = useMemo<WeatherSourceInfo[]>(() => {
+    const found: WeatherSourceInfo[] = [];
+    if (environment.source) found.push(environment.source);
+    if (aurora.data?.grid) found.push(NOAA_SWPC_SOURCE);
+    return found;
+  }, [aurora.data, environment.source]);
 
   // The tab title is how this page is found again in a row of tabs, in history
   // and in a shared link. "Orbit Studio" on every view told nobody anything.
   useEffect(() => {
-    const lead = selected?.opportunity.title;
-    document.title = lead
-      ? `${lead} tonight — Orbit Studio Tracker`
+    document.title = heroEvent
+      ? `${heroEvent.presentation.title} tonight — Orbit Studio Tracker`
       : "Orbit Studio Tracker";
-  }, [selected]);
+  }, [heroEvent]);
+
+  const remind = useCallback((presentation: EventPresentation) => {
+    downloadCalendarFile({
+      title: presentation.reminder.title,
+      description: presentation.reminder.description,
+      startUtc: presentation.reminder.startUtc,
+      durationMinutes: presentation.reminder.durationMinutes,
+      remindMinutesBefore: 20,
+    });
+  }, []);
+
+  const skyPath = useMemo(
+    () =>
+      heroEvent?.entry
+        ? skyPathFor(heroEvent.entry.opportunity, heroEvent.window)
+        : null,
+    [heroEvent],
+  );
+  const gaze = useMemo(
+    () => (heroEvent?.entry ? gazeRegionFor(heroEvent.entry.opportunity, skyPath) : null),
+    [heroEvent, skyPath],
+  );
+
+  const visualization = useMemo(() => {
+    if (!heroEvent || !night || !place) return null;
+    const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
+    const quality = heroEvent.presentation.metrics[2];
+    const verdict = {
+      headline:
+        quality.tone === "good"
+          ? "Conditions are good tonight"
+          : quality.tone === "fair"
+            ? "Conditions are mixed tonight"
+            : quality.tone === "poor"
+              ? "The sky is the limit tonight, not the target"
+              : "Conditions are not known",
+      detail: heroEvent.presentation.support ?? "",
+      tone: quality.tone === "plain" ? ("unknown" as const) : quality.tone,
+    };
+
+    if (heroEvent.id === "aurora") {
+      if (auroraAssessment && aurora.data?.grid) {
+        return (
+          <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
+          <TrackerAuroraMap
+            grid={aurora.data.grid}
+            assessment={auroraAssessment}
+            bounds={auroraBounds(place.latitude, place.longitude)}
+            observer={{
+              latitudeDeg: place.latitude,
+              longitudeDeg: place.longitude,
+              label: place.name,
+            }}
+            clock={clock}
+            onOpenFullMap={() => setOverlay("field-map")}
+          />
+          </Suspense>
+        );
+      }
+      return (
+        <div className="tk-viz-panel">
+          <div className="tk-viz-head">
+            <p className="tk-viz-title">Aurora nowcast</p>
+            <p className="tk-viz-timing">Unavailable</p>
+          </div>
+          <p className="tk-viz-empty">
+            {auroraAssessment?.certainty ??
+              "No space-weather product reached this device, so nothing can be said about the oval."}
+          </p>
+        </div>
+      );
+    }
+
+    if (heroEvent.entry?.opportunity.kind === "meteors") {
+      // Which streams are actually running, named from the same contributions
+      // the rate is summed from. On most nights this is empty and the sentence
+      // says so, rather than the panel implying a shower that is not there.
+      const running = night.meteors.contributions
+        .filter((entry) => entry.perHour >= 1)
+        .map((entry) => entry.name);
+      const streams =
+        running.length === 0
+          ? "No shower is running; this is the background rate."
+          : running.length === 1
+            ? `${running[0]} is running.`
+            : `${running.slice(0, -1).join(", ")} and ${running[running.length - 1]} are running.`;
+      return (
+        <TrackerNightActivity
+          period={night.period}
+          meteors={night.meteors}
+          clock={clock}
+          windowStartUtc={heroEvent.window?.startUtc ?? null}
+          windowEndUtc={heroEvent.window?.endUtc ?? null}
+          gaze={gaze}
+          verdict={{ ...verdict, detail: streams }}
+          title="Meteor activity tonight"
+          timing={timing}
+        />
+      );
+    }
+
+    if (skyPath) {
+      return (
+        <TrackerSkyPathPanel
+          path={skyPath}
+          period={night.period}
+          clock={clock}
+          gaze={gaze}
+          title={`${heroEvent.presentation.title} tonight`}
+          timing={timing}
+          verdict={verdict}
+        />
+      );
+    }
+
+    return (
+      <div className="tk-viz-panel">
+        <div className="tk-viz-head">
+          <p className="tk-viz-title">Nothing to plot</p>
+          <p className="tk-viz-timing">{timing}</p>
+        </div>
+        <p className="tk-viz-empty">
+          This event has no position above the horizon tonight, so there is no path to draw.
+        </p>
+      </div>
+    );
+  }, [aurora.data, auroraAssessment, clock, gaze, heroEvent, night, place, skyPath]);
+
+  if (!place) {
+    return (
+      <main className="tracker-shell">
+        <TrackerHeader
+          place={null}
+          onSelectPlace={setPlace}
+          view={view}
+          onSelectView={setView}
+          freshnessMinutes={null}
+          sources={[]}
+        />
+        <TrackerEntry onSelect={setPlace} />
+      </main>
+    );
+  }
 
   return (
     <main className="tracker-shell">
       <a className="tracker-skip" href="#tracker-more">
-        Skip to tonight's list
+        Skip to tonight&rsquo;s list
       </a>
-      <header className="tracker-bar">
-        {/* Two variants, because there were not two before.
-        
-            The only asset was drawn for a light background — "Orbit" is set in
-            near-black navy — so on Tracker's dark shell half the wordmark was
-            invisible and the logo read as a faint smudge beside the nav. The
-            dark variant recolours that wordmark to the interface's warm white
-            and leaves the icon and the teal alone, since both already hold up
-            on a dark ground.
-        
-            The source is the existing brand asset at full resolution, recoloured
-            — not a crop of the branding sheet, which is a 1536px contact sheet
-            whose horizontal lockup would land well under the 960px this asset
-            already is, and worse again on a 2x display. */}
-        <picture>
-          <source
-            srcSet="/brand/orbit-studio-tracker-logo.png"
-            media="(prefers-color-scheme: light)"
-          />
-          <img
-            className="tracker-bar-logo"
-            src="/brand/orbit-studio-tracker-logo-dark.png"
-            alt="Orbit Studio Tracker"
-          />
-        </picture>
-        {/* The application's own navigation, present from the moment there is a
-            place to compute for. These are four different questions over one
-            shared schedule layer, not four sorts of the same list. */}
-        {place ? (
-          <nav className="tracker-nav" aria-label="Tracker views">
-            {VIEWS.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className="tracker-nav-item"
-                aria-current={view === entry.id ? "page" : undefined}
-                onClick={() => setView(entry.id)}
-              >
-                {entry.label}
-              </button>
-            ))}
-          </nav>
-        ) : null}
-        {/* The bar carries the location only once there is one. Before that the
-            entry screen owns the single control, rather than two instances of
-            the same component competing for the same job. */}
-        {place ? <TrackerPlace place={place} onSelect={setPlace} /> : null}
-      </header>
+      <TrackerHeader
+        place={place}
+        onSelectPlace={setPlace}
+        view={view}
+        onSelectView={setView}
+        freshnessMinutes={freshnessMinutes}
+        sources={sources}
+      />
 
-      {!place ? <TrackerEntry onSelect={setPlace} /> : null}
-
-      {place && view === "upcoming" ? (
-        <TrackerUpcoming place={place} clock={clock} />
-      ) : null}
-
-
-
-      {/* Tonight is one screen. The hero, the ranked rail and the unavailable
-          context are a single grid that owns exactly the space under the
-          header — not a page with sections stacked beneath it. */}
-      {showsNight && night && place ? (
-        <div className="tk-tonight">
-          {/* The shape of the night along the top: when it gets dark, when the
-              best moment falls, when it ends. Four times a reader otherwise has
-              to dig out of a paragraph, and the line the composition hangs
-              from. */}
-          {/* A real proportional timeline, not four labels spread across a
-              rule. It looked like a timeline and behaved like a list, so the
-              distance between sunset and dark carried no meaning while
-              appearing to. Every mark now sits at its true fraction of the
-              night, and the observing window is drawn as the span it actually
-              occupies. */}
-          {(() => {
-            const from = Date.parse(night.period.startUtc);
-            const to = Date.parse(night.period.endUtc);
-            const span = Math.max(1, to - from);
-            const at = (utc: string) =>
-              Math.max(0, Math.min(100, ((Date.parse(utc) - from) / span) * 100));
-            const dark = night.period.darkness.astronomical?.startUtc ?? null;
-            const window = selected ? withSky?.windows.get(selected.opportunity.id) : null;
-            return (
-              <div className="tk-nightbar" role="img" aria-label={`The night runs from ${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}.`}>
-                {/* One positioning context for the track and the marks, so a
-                    mark at 50% and the track's midpoint are the same place.
-                    Positioning them against the padded box instead put every
-                    label slightly off the time it named. */}
-                <div className="tk-nightbar-inner">
-                <div className="tk-nightbar-track">
-                  {dark ? (
-                    <span
-                      className="tk-nightbar-dark"
-                      style={{ left: `${at(dark)}%`, right: 0 }}
-                    />
-                  ) : null}
-                  {window ? (
-                    <span
-                      className="tk-nightbar-window"
-                      style={{
-                        left: `${at(window.startUtc)}%`,
-                        width: `${Math.max(1.5, at(window.endUtc) - at(window.startUtc))}%`,
-                      }}
-                    />
-                  ) : null}
-                </div>
-                <span className="tk-nightbar-mark" style={{ left: "0%" }}>
-                  <b>{formatClockTime(night.period.startUtc, clock)}</b> Sunset
-                </span>
-                {dark ? (
-                  <span className="tk-nightbar-mark" style={{ left: `${at(dark)}%` }}>
-                    <b>{formatClockTime(dark, clock)}</b> Dark
-                  </span>
-                ) : null}
-                <span className="tk-nightbar-mark is-end" style={{ left: "100%" }}>
-                  <b>{formatClockTime(night.period.endUtc, clock)}</b> Dawn
-                </span>
-                </div>
-              </div>
-            );
-          })()}
-      {selected ? (
-        <TrackerHero
-          entry={selected}
-          night={night}
-          clock={clock}
+      {view === "upcoming" ? (
+        <TrackerUpcoming
           place={place}
-          viewingWindow={withSky?.windows.get(selected.opportunity.id) ?? null}
-          passed={withSky?.passed.has(selected.opportunity.id) ?? false}
+          clock={clock}
+          planAnchor={planAnchor}
+          now={now}
+          auroraConditions={aurora.data ?? null}
           snapshots={snapshots}
-          conditionsKnown={conditionsReady}
-          conditionsPending={conditionsPending}
-          seen={seen.includes(selected.opportunity.id)}
-          onSeen={() =>
-            setSeen((current) =>
-              current.includes(selected.opportunity.id)
-                ? current
-                : [...current, selected.opportunity.id],
-            )
-          }
+          evidenceStatus={environment.status}
         />
-      ) : null}
-
-      {showsNight && night && place && !selected ? (
-        <section className="tracker-hero tracker-hero-quiet" aria-label="Tonight">
-          <TrackerScene
-            imagery={heroImageryFor("none", "night-sky")}
-            className="tracker-hero-scene"
-            priority
-            showCredit
+      ) : heroEvent && night ? (
+        <>
+          <PhenomenonPage
+            categoryId={heroEvent.presentation.categoryId}
+            mode="tonight"
+            presentation={heroEvent.presentation}
+            media={heroEvent.media}
+            visualization={visualization}
+            conditions={conditions}
+            conditionsCaption={conditionsCaption(environment.source, aurora.data ?? null)}
+            evidenceStatus={environment.status}
+            rows={rows}
+            onSelectEvent={(id) => {
+              // A drill-in belongs to the event it was opened from. Leaving it
+              // up while the hero changes underneath shows one event's map over
+              // another event's page.
+              setOverlay(null);
+              setSelectedId(id);
+            }}
+            onPrimaryAction={() =>
+              setOverlay(
+                heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky-map" : "field-map",
+              )
+            }
+            onReminder={() => remind(heroEvent.presentation)}
+            safety={heroEvent.safety}
+            expectation={heroEvent.expectation}
+            planIdentity={night.identity.key}
           />
-          <div className="tracker-hero-panel">
-            <p className="tracker-hero-eyebrow">
-              {formatNightLabel(night.period.startUtc, clock)} · {place.name}
-            </p>
+
+          <TrackerOverlay
+            open={overlay === "sky-map"}
+            onClose={() => setOverlay(null)}
+            title={`Where to look — ${heroEvent.presentation.title}`}
+            subtitle={
+              gaze
+                ? gaze.reason
+                : "Real altitude and bearing, from the same geometry the recommendation used."
+            }
+          >
+            {/* A rate curve is not a place. On a night with no active shower the
+                path carries zeroed coordinates because there is no radiant, and
+                plotting them draws a flat line along the horizon labelled 0° —
+                a confident instruction to stare at the ground, assembled out of
+                placeholders. */}
+            {skyPath && skyPath.kind !== "rate" ? (
+              <>
+                <TrackerSkyChart
+                  path={skyPath}
+                  clock={clock}
+                  tone={heroEvent.entry?.opportunity.kind ?? "neutral"}
+                  label={heroEvent.presentation.title}
+                />
+                <dl className="tk-overlay-facts">
+                  <div>
+                    <dt>Observing window</dt>
+                    <dd>
+                      {heroEvent.window
+                        ? formatClockRange(
+                            heroEvent.window.startUtc,
+                            heroEvent.window.endUtc,
+                            clock,
+                          )
+                        : formatClockTime(
+                            heroEvent.entry?.opportunity.guidance.whenUtc ??
+                              night.period.startUtc,
+                            clock,
+                          )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Horizon</dt>
+                    <dd>
+                      Sunset {formatClockTime(night.period.startUtc, clock)} · dawn{" "}
+                      {formatClockTime(night.period.endUtc, clock)}
+                    </dd>
+                  </div>
+                  {heroEvent.entry?.opportunity.guidance.elevation ? (
+                    <div>
+                      <dt>How high</dt>
+                      <dd>{heroEvent.entry.opportunity.guidance.elevation}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </>
+            ) : (
+              <div className="tk-overlay-nowhere">
+                <p className="tk-viz-empty">
+                  There is nothing to point at tonight. No shower is running, so what
+                  you would be watching is the sporadic background — meteors that
+                  belong to no stream and arrive from every direction.
+                </p>
+                <p className="tk-viz-empty">
+                  Face away from any light, take in as much sky as you can, and give it
+                  at least half an hour. Rates rise towards dawn as your side of Earth
+                  turns to face the direction it is travelling.
+                </p>
+              </div>
+            )}
+
+            {/* What it actually looks like, where verified footage exists.
+                It belongs behind this control rather than on the page: it is
+                context for the decision somebody has already made, and putting
+                a looping video in the main row would make historical footage
+                compete with tonight's forecast for the same attention. */}
+            {(() => {
+              const experience = heroEvent.entry
+                ? experienceFor(heroEvent.entry.opportunity.kind)
+                : null;
+              return experience ? (
+                <div className="tk-overlay-footage">
+                  <TrackerExperience media={experience} />
+                </div>
+              ) : null;
+            })()}
+          </TrackerOverlay>
+
+          <TrackerOverlay
+            open={overlay === "field-map"}
+            onClose={() => setOverlay(null)}
+            title={
+              heroEvent.id === "aurora" ? "Aurora forecast map" : "Visibility map"
+            }
+            subtitle={
+              heroEvent.id === "aurora"
+                ? "NOAA OVATION nowcast, valid for roughly the next half hour."
+                : "Computed geometry for your location."
+            }
+          >
+            <div className="tk-overlay-map">{visualization}</div>
+          </TrackerOverlay>
+        </>
+      ) : (
+        <div className="tk-page tk-tonight" data-plan-identity={night?.identity.key}>
+          <div className="tk-page-heading">
             <h1>A quiet night</h1>
-            <p className="tracker-hero-summary">
-              {night.period.kind === "polar-day"
+            <p>
+              {night?.period.kind === "polar-day"
                 ? "The Sun does not set here today, so there is no dark sky to look at."
-                : "Nothing above the horizon tonight is worth a special trip from here. Better to save the effort for a night that deserves it."}
+                : `Nothing above the horizon tonight is worth a special trip from ${place.name}.`}
             </p>
           </div>
-        </section>
-      ) : null}
-
-      {showsNight && alternatives.length > 0 && withSky ? (
-        <section className="tracker-more" id="tracker-more" aria-label="Also tonight">
-          <h2>Also tonight</h2>
-          <div className="tracker-cards">
-            {alternatives.slice(0, 3).map((entry) => (
-              <TrackerCard
-                key={entry.opportunity.id}
-                entry={entry}
-                clock={clock}
-                viewingWindow={withSky.windows.get(entry.opportunity.id) ?? null}
-                passed={withSky.passed.has(entry.opportunity.id)}
-                snapshots={snapshots}
-                conditionsKnown={conditionsReady}
-          conditionsPending={conditionsPending}
-                onSelect={() => {
-                  setSelectedId(entry.opportunity.id);
-                  globalThis.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {showsNight && unavailable.length > 0 ? (
-        <section className="tracker-unavailable" aria-label="Not observable tonight">
-          <h2>Below the horizon</h2>
-          {/* Context, not a recommendation. These used to sit in the ranked
-              list saying "Already set tonight", which is a strange thing for a
-              list of things to go outside for to contain. They stay visible
-              because a reader who went looking for the Moon and could not find
-              it is better served by being told it is down than by being left to
-              wonder whether Tracker forgot about it. */}
-          <ul className="tracker-unavailable-list">
-            {unavailable.map((entry) => (
-              <li key={entry.opportunity.id}>
-                <span className="tracker-unavailable-name">{entry.opportunity.title}</span>
-                <span className="tracker-unavailable-note">
-                  Below the horizon for the rest of tonight
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
         </div>
-      ) : null}
+      )}
     </main>
   );
 }
 
-/* ------------------------------------------------------------------- views */
-
-export type TrackerView = "tonight" | "upcoming";
-
 /**
- * Two views, because there are two questions.
+ * The map extent for aurora.
  *
- * There were four. "Now" was a separate destination asking whether to step
- * outside in the next hour — but Tracker already knows the time, so making the
- * reader choose between Now and Tonight was asking them to do the product's
- * job. Tonight adapts to the moment instead. "Calendar" was a separate
- * destination for browsing dates, which is not a different question from
- * planning ahead; it is a different way of looking at the same future, so it is
- * a mode inside Upcoming.
- *
- * What is left is what a person actually wants to know: what about tonight, and
- * what about later.
+ * Wide in longitude and biased poleward, because the oval is a band around the
+ * magnetic pole and the useful question is how far down from it you are. A box
+ * centred on the observer would put the answer off the top edge for anybody
+ * south of about fifty degrees, which is most people who ask.
  */
-const VIEWS: { id: TrackerView; label: string }[] = [
-  { id: "tonight", label: "Tonight" },
-  { id: "upcoming", label: "Upcoming" },
-];
-
-/* ------------------------------------------------------------------- hero */
-
-function TrackerHero({
-  entry,
-  night,
-  clock,
-  place,
-  viewingWindow,
-  passed,
-  snapshots,
-  conditionsKnown,
-  conditionsPending,
-  seen,
-  onSeen,
-}: {
-  entry: SkyAdjustedOpportunity;
-  night: Night;
-  clock: PlaceClock;
-  place: SelectedPlace;
-  viewingWindow: BestWindow | null;
-  passed: boolean;
-  snapshots: ConditionSnapshot[];
-  conditionsKnown: boolean;
-  conditionsPending: boolean;
-  seen: boolean;
-  onSeen: () => void;
-}) {
-  const { opportunity } = entry;
-  const { guidance } = opportunity;
-  const imagery = heroImageryFor(opportunity.id, opportunity.kind);
-  const whenUtc = viewingWindow?.peakUtc ?? guidance.whenUtc;
-  const atBest = nearestSnapshot(snapshots, whenUtc);
-  const headline = night.meteors.headline;
-  const bestSample = night.meteors.best;
-
-  // Where there is no viewing window the sky is still known, and the sentence
-  // still has to name it. Reading the label off a null window produced
-  // "Excellent in itself, but skies make it a gamble" — the one case where the
-  // weather is worst is the case the wording dropped it.
-  const reading = viewingWindow?.viewability.reading ?? (atBest ? readCondition(atBest) : null);
-  const conclusion = viewingConclusion(
-    opportunity.title,
-    opportunity.kind,
-    entry.band,
-    viewingWindow?.viewability.band ?? (reading ? "unlikely" : "possible"),
-    reading?.phrase ?? "",
-    conditionsKnown && Boolean(reading),
-    passed,
-  );
-
-  // The geometry, drawn from the samples themselves. Null where the phenomenon
-  // has no position worth drawing, which is a real answer rather than a reason
-  // to invent one.
-  const path = skyPathFor(opportunity, viewingWindow);
-  // Where to face, which for a shower is deliberately not where the radiant is.
-  const gaze = gazeRegionFor(opportunity, path);
-  const experience = experienceFor(opportunity.kind);
-  // Has the observing window actually begun? Falls back to the recommended
-  // instant where no window was computed, so the rule holds for every branch
-  // rather than only the ones that produce a window.
-  const opensAt = viewingWindow ? viewingWindow.startUtc : guidance.whenUtc;
-  const windowOpened = Date.now() >= Date.parse(opensAt);
-  // Two dimensions, two vocabularies. One GOOD/EXCELLENT scale for both
-  // produced screens where a target was "not worth a special trip" beside a
-  // badge reading GOOD — the badge describing the weather, the sentence
-  // describing the target, and nothing saying which was which.
-  const recommendation = recommendationFor(
-    entry.band,
-    passed,
-    viewingWindow ? viewingWindow.viewability.access : null,
-  );
-  const verdict = verdictFor({
-    band: entry.band,
-    unavailable: passed,
-    skyAccess: viewingWindow ? viewingWindow.viewability.access : null,
-    minutesUntilWindow: viewingWindow
-      ? Math.round((Date.parse(viewingWindow.startUtc) - Date.now()) / 60_000)
-      : null,
-    needsDarkSite: opportunity.transparency === "high",
-  });
-
-  return (
-    <section className="tracker-hero tk-observe" aria-label="Tonight's recommendation">
-      {/* Two columns, both load-bearing. The photograph used to be the page —
-          a full-bleed image with the text laid over its dark half — which made
-          the layout a function of where the picture happened to be dark. It is
-          now one element among several, sized and placed deliberately, and the
-          sky drawing sits beside it as the thing that actually tells you what
-          to do outside. */}
-      <div className="tk-observe-main">
-        {/* Safety is rendered before anything else and has no disclosure
-            control. Nothing sets it yet; the position is reserved so that
-            adding a solar event cannot quietly bury it. */}
-        {guidance.safety ? (
-          <p className="tracker-safety" role="alert">
-            {guidance.safety}
-          </p>
-        ) : null}
-
-        {/* The decision, before the description. Tracker's value is judgement,
-            and a grade like "excellent" is not one — this is. */}
-        <p
-          className="tk-verdict"
-          data-tone={
-            recommendation === "Exceptional" || recommendation === "Worth going out for"
-              ? "go"
-              : recommendation === "Not worth a special trip"
-                ? "no"
-                : "hold"
-          }
-        >
-          {recommendation}
-        </p>
-
-        <p className="tracker-hero-eyebrow">
-          {formatNightLabel(night.period.startUtc, clock)} · {place.name}
-        </p>
-        <h1>{opportunity.title}</h1>
-        <p className="tracker-hero-summary">{opportunity.summary}</p>
-
-        {/* The four things a person actually acts on, given the width they
-            deserve and labelled directly. These used to be a stack of
-            sentences and a legend; a legend is a key to a chart, and this is
-            not a chart — it is the answer. */}
-        <dl className="tk-facts">
-          <div className="tk-fact">
-            <dt>When</dt>
-            <dd className="tk-fact-strong">
-              {viewingWindow
-                ? formatWindowPhrase(viewingWindow, clock)
-                : formatClockTime(guidance.whenUtc, clock)}
-            </dd>
-          </div>
-          {/* Direction lives in the finder, not here.
-          
-              The two regions were answering the same question in the same
-              words — "Low in the south-west" in the fact card and again in the
-              instrument beside it — which wasted the most valuable column on
-              the screen restating what the picture already showed. The left
-              column owns the decision; the centre owns where to look. */}
-          <div className="tk-fact">
-            <dt>Sky</dt>
-            <dd>
-              {conditionsPending ? (
-                <span className="tracker-skeleton" aria-hidden />
-              ) : viewingWindow ? (
-                <TrackerCondition
-                  viewability={viewingWindow.viewability}
-                  temperatureC={atBest?.temperatureC ?? null}
-                  atUtc={whenUtc}
-                  clock={clock}
-                  showFreshness={false}
-                />
-              ) : (
-                <span className="tk-fact-strong">Not known</span>
-              )}
-            </dd>
-          </div>
-          <div className="tk-fact">
-            <dt>Needs</dt>
-            <dd className="tk-fact-strong">
-              {guidance.equipment === "eyes"
-                ? "Eyes only"
-                : guidance.equipment === "binoculars"
-                  ? "Binoculars"
-                  : "Telescope"}
-            </dd>
-          </div>
-        </dl>
-
-        <p className="tracker-hero-directions">
-          {guidance.howLong.split(".")[0]}.
-        </p>
-
-        {conditionsPending ? null : <p className="tracker-hero-conclusion">{conclusion}</p>}
-
-        <div className="tracker-hero-actions">
-          <button
-            type="button"
-            className="tracker-primary"
-            onClick={() =>
-              downloadCalendarFile({
-                title: `${opportunity.title} — Orbit Studio Tracker`,
-                description: [
-                  opportunity.summary,
-                  guidance.direction ? `Face ${guidance.direction}.` : "",
-                  guidance.elevation,
-                  guidance.appearance,
-                ]
-                  .filter(Boolean)
-                  .join("\n\n"),
-                startUtc: whenUtc,
-                durationMinutes: guidance.durationMinutes,
-                remindMinutesBefore: 20,
-              })
-            }
-          >
-            Remind me
-          </button>
-          {/* "I saw it" only once there is something to have seen.
-          
-              It was offered whatever the clock said, so a reader could report
-              having seen a shower four hours before its window opened. The
-              window is real local time, not the calendar date: before it opens
-              the only honest action is a reminder, and once it has opened —
-              including after it closes, since people log a sighting on the way
-              back indoors — the report makes sense. */}
-          {windowOpened ? (
-            <button
-              type="button"
-              className={seen ? "tracker-secondary tracker-seen" : "tracker-secondary"}
-              onClick={onSeen}
-              aria-pressed={seen}
-            >
-              {seen ? "You saw it" : "I saw it"}
-            </button>
-          ) : null}
-        </div>
-
-        {/* "What will I realistically see" is the one thing the disclosure
-            carried that a reader needs before deciding, so it is stated rather
-            than hidden behind a control. The rest of that panel — where to
-            look, how long to give it, technique — is either already in the
-            fact row above or is prose nobody opened it for. */}
-        <p className="tracker-expect">{guidance.appearance}</p>
-      </div>
-
-      {/* The observing column: what the sky is doing, then the photograph as
-          context for it rather than as the surface everything is printed on. */}
-      <aside className="tk-observe-side">
-        {/* Footage and timing as one object. They were two stacked panels —
-            a video, then a separate card of times — so the centre column read
-            as two widgets rather than one experience. The ribbon is now
-            attached to the media it belongs to. */}
-        {experience ? (
-          <div className="tk-stage">
-            <TrackerExperience media={experience} />
-            {path && (path.kind === "radiant" || path.kind === "rate") ? (
-              <div className="tk-stage-foot">
-                <TrackerNightRibbon
-                  period={night.period}
-                  meteors={night.meteors}
-                  clock={clock}
-                  windowStartUtc={path.windowStartUtc}
-                  windowEndUtc={path.windowEndUtc}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        {/* The plate is the target instrument only. A shower's timing now
-            travels with its footage above, so wrapping an empty plate around
-            nothing was the second widget this change exists to remove. */}
-        {path?.kind === "target" ? (
-          <TrackerSkyPlate
-            tone={opportunity.kind}
-            /* No photographic ground. Putting a starfield behind a plotted
-               curve made the picture compete with the data it was supposed to
-               support, and legibility of a functional graphic is not something
-               to trade for atmosphere. Real celestial media belongs elsewhere
-               in the experience. */
-            title={`Where to find ${opportunity.title.replace(/^The /, "")}`}
-            caption="Its path from where you are. The bright section is the window worth going out for."
-          >
-            <TrackerFinder path={path} label={opportunity.title} />
-          </TrackerSkyPlate>
-        ) : null}
-
-        {/* Subject imagery — a planet portrait, the Moon at tonight's phase —
-            keeps its own frame, because it is a picture of the thing rather
-            than the sky the thing is in. Photographs of sky are the plate's
-            ground instead of a second box below it. */}
-        {imagery.treatment !== "photo" ? (
-          <figure className="tk-observe-media">
-            <TrackerScene
-              className="tk-observe-scene"
-              imagery={imagery}
-              priority
-              showCredit
-              illuminatedFraction={
-                opportunity.sceneHints?.illuminatedFraction ??
-                bestSample?.moonIlluminatedFraction ??
-                0.5
-              }
-              waning={opportunity.sceneHints?.waning ?? false}
-            />
-          </figure>
-        ) : null}
-      </aside>
-    </section>
-  );
+function auroraBounds(latitudeDeg: number, longitudeDeg: number) {
+  const poleward = latitudeDeg >= 0 ? 1 : -1;
+  return {
+    south: Math.max(-88, latitudeDeg - poleward * 14),
+    north: Math.min(88, latitudeDeg + poleward * 34),
+    west: longitudeDeg - 42,
+    east: longitudeDeg + 42,
+  };
 }
 
-/* ------------------------------------------------------------------ cards */
-
-function TrackerCard({
-  entry,
-  clock,
-  viewingWindow,
-  passed,
-  snapshots,
-  conditionsKnown,
-  conditionsPending,
-  onSelect,
-}: {
-  entry: SkyAdjustedOpportunity;
-  clock: PlaceClock;
-  viewingWindow: BestWindow | null;
-  passed: boolean;
-  snapshots: ConditionSnapshot[];
-  conditionsKnown: boolean;
-  conditionsPending: boolean;
-  onSelect: () => void;
-}) {
-  const { opportunity } = entry;
-  const imagery = heroImageryFor(opportunity.id, opportunity.kind);
-  const atBest = nearestSnapshot(
-    snapshots,
-    viewingWindow?.peakUtc ?? opportunity.guidance.whenUtc,
-  );
-
-  // Where there is no viewing window the sky is still known, and the sentence
-  // still has to name it. Reading the label off a null window produced
-  // "Excellent in itself, but skies make it a gamble" — the one case where the
-  // weather is worst is the case the wording dropped it.
-  const reading = viewingWindow?.viewability.reading ?? (atBest ? readCondition(atBest) : null);
-  const conclusion = viewingConclusion(
-    opportunity.title,
-    opportunity.kind,
-    entry.band,
-    viewingWindow?.viewability.band ?? (reading ? "unlikely" : "possible"),
-    reading?.phrase ?? "",
-    conditionsKnown && Boolean(reading),
-    passed,
-  );
-
-  return (
-    <button
-      type="button"
-      className={passed ? "tracker-card tracker-card-passed" : "tracker-card"}
-      onClick={onSelect}
-    >
-      <span className="tracker-card-media">
-        <TrackerScene
-          className="tracker-card-scene"
-          imagery={imagery}
-          illuminatedFraction={opportunity.sceneHints?.illuminatedFraction ?? 0.5}
-          waning={opportunity.sceneHints?.waning ?? false}
-        />
-      </span>
-      <span className="tracker-card-body">
-        <span className="tracker-card-title">{opportunity.title}</span>
-        <span className="tracker-card-summary">{opportunity.summary}</span>
-        <span className="tracker-card-when">
-          {passed
-            ? "Already set tonight"
-            : viewingWindow
-              ? formatWindowPhrase(viewingWindow, clock)
-              : formatClockTime(opportunity.guidance.whenUtc, clock)}
-          {atBest && !passed ? ` · ${formatTemperature(atBest.temperatureC)}` : ""}
-        </span>
-        {conditionsPending ? (
-          <span className="tracker-condition tracker-condition-pending">
-            <span className="tracker-skeleton" aria-hidden />
-            Checking the sky…
-          </span>
-        ) : viewingWindow && !passed ? (
-          <TrackerCondition
-            viewability={viewingWindow.viewability}
-            temperatureC={null}
-            atUtc={viewingWindow.peakUtc}
-            clock={clock}
-            showFreshness={false}
-            compact
-          />
-        ) : null}
-        {conditionsPending ? null : (
-          <span className="tracker-card-conclusion">{conclusion}</span>
-        )}
-        {opportunity.guidance.equipment !== "eyes" ? (
-          <span className="tracker-equipment-required">
-            {opportunity.guidance.equipment === "telescope"
-              ? "Telescope required"
-              : "Binoculars required"}
-          </span>
-        ) : null}
-      </span>
-    </button>
-  );
+/** One attribution line for the whole conditions row. */
+function conditionsCaption(
+  source: WeatherSourceInfo | null,
+  aurora: AuroraConditions | null,
+): string | null {
+  const parts: string[] = [];
+  if (source) parts.push(source.attribution);
+  if (aurora?.grid) parts.push(NOAA_SWPC_SOURCE.attribution);
+  parts.push("Moon phase and altitude computed on this device.");
+  return parts.join(" ");
 }
 
-/* ----------------------------------------------------------------- detail */
-
-/**
- * Everything analytical, one control away.
- *
- * None of it was deleted — the model detail, the sources, the chart and the
- * caveats are all still here and all still true. They are simply not what
- * somebody deciding whether to put a coat on needs to read first.
- */
-
-/* --------------------------------------------------------------- helpers */
-
-/** "Face northeast." — from guidance that may already be a fuller sentence. */
-function facingSentence(direction: string): string {
-  if (direction.startsWith("anywhere")) {
-    const match = /the ([a-z-]+) sky/.exec(direction);
-    return match ? `Look anywhere, but keep the ${match[1]} in view.` : "Look anywhere overhead.";
-  }
-  return `Face ${direction}.`;
-}
+export type { NightPlan };

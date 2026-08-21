@@ -34,6 +34,16 @@ body,
   margin: 0;
 }
 
+/* Reserve the scrollbar's width whether or not one is showing.
+   
+   Without it every column shifts sideways the moment a page grows past the
+   viewport, so two pages of the same design measure differently — which is
+   exactly what the layout-drift check in scripts/verify/tracker-walkthrough.mjs
+   caught between the Tonight page and an event opened from Upcoming. The same
+   defect used to change the calendar's width between selected dates; it moved
+   to the document when the document became the scroller. */
+html { scrollbar-gutter: stable; }
+
 button,
 input,
 select,
@@ -11375,11 +11385,6 @@ button.primary,
 /* The scene is taken out of flow so it can never drive the hero's height. As a
    grid item its viewBox aspect ratio decided the layout, and a 1792px-wide
    screen produced a 1792px-tall hero with the words somewhere below it. */
-.tracker-hero {
-  position: relative;
-  height: min(80vh, 680px);
-  overflow: hidden;
-}
 
 /* --- the two image treatments -------------------------------------------
    A landscape under the sky fills the frame. A planet on black must not be
@@ -11389,6 +11394,15 @@ button.primary,
 .tracker-media { position: relative; overflow: hidden; }
 .tracker-media img,
 .tracker-media svg { display: block; width: 100%; height: 100%; }
+/* Without this the pictures stretch to whatever box they are given, because
+   the initial `object-fit` is `fill`. It went unseen while the portraits were
+   suppressed on short viewports; the first frame after restoring them had
+   Saturn a fifth wider than it is. A landscape is cropped to keep its subject.
+   A planet is fitted whole, because a planet cropped is a planet with its
+   rings cut off. */
+.tracker-media-photo img { object-fit: cover; }
+.tracker-media-subject img,
+.tracker-media-subject svg { object-fit: contain; }
 
 .tracker-media-subject {
   background:
@@ -11404,12 +11418,6 @@ button.primary,
   mix-blend-mode: screen;
 }
 
-.tracker-hero-scene {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
 
 /* Photographs get a gentle lift so they read as photography rather than as a
    dim texture behind type. */
@@ -11436,84 +11444,7 @@ button.primary,
 /* The text sits on the picture, so it needs its own ground to stay legible
    against a scene that is bright in places. A gradient rather than a panel:
    a box would cut the image in half and put us back where we started. */
-.tracker-hero-panel {
-  position: absolute;
-  inset: auto 0 0 0;
-  z-index: 2;
-  padding: 120px max(20px, env(safe-area-inset-left, 0px)) 34px;
-  background: linear-gradient(
-    to top,
-    rgba(4, 7, 12, 0.94) 0%,
-    rgba(4, 7, 12, 0.86) 34%,
-    rgba(4, 7, 12, 0.5) 66%,
-    rgba(4, 7, 12, 0) 100%
-  );
-}
 
-.tracker-hero-eyebrow {
-  margin: 0 0 8px;
-  color: var(--tk-blue-lit);
-  font-size: 0.76rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.tracker-hero h1 {
-  margin: 0 0 10px;
-  max-width: 18ch;
-  font-family: var(--tk-display);
-  font-size: clamp(2.1rem, 5.4vw, 3.8rem);
-  font-weight: 500;
-  line-height: 1.04;
-  /* Barely negative. The tight tracking below suited the grotesque this used
-     to be set in and closes an old-style serif up too far. */
-  letter-spacing: -0.005em;
-}
-
-.tracker-hero-summary {
-  margin: 0 0 18px;
-  max-width: 46ch;
-  color: #d3e3f0;
-  font-size: clamp(0.95rem, 1.5vw, 1.14rem);
-  line-height: 1.5;
-}
-
-.tracker-hero-when {
-  margin: 0 0 6px;
-  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.tracker-hero-directions {
-  margin: 8px 0 0;
-  max-width: 52ch;
-  color: #d3e3f0;
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-.tracker-hero-conclusion {
-  margin: 12px 0 0;
-  max-width: 56ch;
-  color: #a9c0d2;
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
-
-.tracker-hero-fineprint {
-  margin: 12px 0 0;
-  max-width: 54ch;
-  color: #8ba0b3;
-  font-size: 0.8rem;
-}
-
-.tracker-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
 
 .tracker-primary,
 .tracker-secondary {
@@ -11541,38 +11472,8 @@ button.primary,
   color: #b7f4de;
 }
 
-.tracker-hero-more { margin-top: 20px; max-width: 68ch; }
-.tracker-hero-more summary {
-  color: #9fd8c4;
-  font-size: 0.86rem;
-  cursor: pointer;
-}
-.tracker-hero-more dl {
-  display: grid;
-  gap: 12px;
-  margin: 14px 0 0;
-}
-.tracker-hero-more dt {
-  color: #8ba0b3;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.tracker-hero-more dd {
-  margin: 3px 0 0;
-  color: #d3e3f0;
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
 
 /* The classification of the picture. Passive, but never absent. */
-.tracker-imagery-note {
-  margin: 16px 0 0;
-  color: #8ba0b3;
-  font-size: 0.76rem;
-  line-height: 1.6;
-}
-.tracker-imagery-note strong { color: #a9c0d2; }
 
 /* Safety is loud and never inside a disclosure control. */
 .tracker-safety {
@@ -11601,28 +11502,7 @@ button.primary,
 }
 
 .tracker-condition svg { flex: none; color: #9fb6c8; }
-.tracker-condition-smoky svg,
-.tracker-condition-very-smoky svg { color: #dfae7c; }
-.tracker-condition-precipitating svg,
-.tracker-condition-foggy svg { color: #8fa8bd; }
-.tracker-condition-clear svg { color: #9fd8c4; }
-.tracker-condition-unknown svg { color: #7d93a6; }
 
-.tracker-viewability {
-  border: 1px solid rgba(120, 150, 175, 0.32);
-  border-radius: 999px;
-  padding: 1px 9px;
-  font-size: 0.66rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.tracker-viewability-excellent { border-color: rgba(63, 214, 168, 0.6); color: #b7f4de; }
-.tracker-viewability-good { border-color: rgba(110, 190, 235, 0.5); color: #c9e8fa; }
-.tracker-viewability-possible { color: #b6c9d8; }
-.tracker-viewability-unlikely { color: #8496a5; }
-.tracker-freshness { color: #8ba0b3; font-size: 0.72rem; }
-
-.tracker-equipment-required { color: #ffce93; font-weight: 600; font-size: 0.76rem; }
 
 /* --- ranked alternatives, as cards --------------------------------------- */
 
@@ -11640,55 +11520,9 @@ button.primary,
   letter-spacing: 0;
 }
 
-.tracker-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
 
-.tracker-card {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  border: 1px solid rgba(120, 150, 175, 0.18);
-  border-radius: 16px;
-  background: #0a111b;
-  padding: 0;
-  overflow: hidden;
-  text-align: left;
-  transition: border-color 120ms ease, transform 120ms ease;
-}
-
-.tracker-card:hover,
-.tracker-card:focus-visible {
-  border-color: rgba(63, 214, 168, 0.45);
-  transform: translateY(-2px);
-}
-
-.tracker-card-media { display: block; aspect-ratio: 3 / 2; overflow: hidden; }
-.tracker-card-scene { width: 100%; height: 100%; }
 .tracker-card:hover .tracker-card-scene img { transform: scale(1.04); }
-.tracker-card-scene img { transition: transform 420ms ease; }
 
-.tracker-card-body {
-  display: grid;
-  gap: 5px;
-  padding: 14px 16px 16px;
-}
-
-.tracker-card-title { color: #eaf3fb; font-size: 1.02rem; font-weight: 600; }
-.tracker-card-summary { color: #a9c0d2; font-size: 0.84rem; line-height: 1.45; }
-.tracker-card-when {
-  margin-top: 3px;
-  color: #eaf3fb;
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-.tracker-card-conclusion {
-  margin-top: 4px;
-  color: #8ba0b3;
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
 
 /* Already set: kept, de-emphasised, never hidden — and never below the
    contrast floor. `opacity: 0.62` on the whole card was the cause of all six
@@ -11696,150 +11530,29 @@ button.primary,
    time to 3.28:1 against a 4.5:1 requirement. De-emphasis now comes from the
    image and the border, which carry no text, and from colours chosen to still
    pass. */
-.tracker-card-passed { opacity: 1; border-color: rgba(120, 150, 175, 0.1); }
-.tracker-card-passed .tracker-card-media { opacity: 0.45; }
-.tracker-card-passed .tracker-card-title { color: #c3d3e0; }
-.tracker-card-passed .tracker-card-summary,
-.tracker-card-passed .tracker-card-conclusion { color: #93a8b9; }
-.tracker-card-passed .tracker-card-when { color: #93a8b9; font-weight: 500; }
 
 /* --- the working, behind one control ------------------------------------- */
 
-.tracker-detail {
-  padding: 26px max(20px, env(safe-area-inset-left, 0px)) 60px;
-}
-
-.tracker-detail > button {
-  min-height: 38px;
-  border: 1px solid rgba(120, 150, 175, 0.24);
-  border-radius: 10px;
-  background: rgba(122, 141, 158, 0.08);
-  color: #a9c0d2;
-  padding: 0 15px;
-  font-size: 0.8rem;
-}
-
-.tracker-detail-body { margin-top: 18px; max-width: 78ch; }
-.tracker-detail-body h3 {
-  margin: 20px 0 6px;
-  color: #8ba0b3;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.tracker-detail-body p,
-.tracker-detail-body li {
-  margin: 0 0 7px;
-  color: #a9c0d2;
-  font-size: 0.82rem;
-  line-height: 1.65;
-}
-.tracker-detail-body ul { margin: 0; padding-left: 18px; }
-.tracker-detail-coords {
-  color: #6f8496;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
-}
 
 /* --- the chart, now a detail rather than the hero ------------------------ */
 
-.tracker-chart { margin: 8px 0 4px; }
-
-.tracker-chart svg {
-  display: block;
-  width: 100%;
-  height: 118px;
-  border-radius: 9px;
-  overflow: hidden;
-}
-
-.tracker-chart-twilight { fill: #16293a; }
-.tracker-chart-band-civil { fill: #102131; }
-.tracker-chart-band-nautical { fill: #0a1725; }
-.tracker-chart-band-astronomical { fill: #050c15; }
-.tracker-chart-moon { fill: rgba(228, 216, 168, 0.62); }
-
-.tracker-chart-rate {
-  fill: rgba(63, 214, 168, 0.24);
-  stroke: rgba(63, 214, 168, 0.6);
-  stroke-width: 1.2;
-  vector-effect: non-scaling-stroke;
-}
-
-.tracker-chart-mark {
-  stroke: rgba(255, 236, 176, 0.8);
-  stroke-width: 1.2;
-  stroke-dasharray: 3 3;
-  vector-effect: non-scaling-stroke;
-}
-.tracker-chart-mark-cap { fill: #ffecb0; }
-
-.tracker-chart-axis {
-  position: relative;
-  height: 16px;
-  margin-top: 3px;
-  border-top: 1px solid rgba(117, 142, 160, 0.35);
-}
-
-.tracker-chart-axis span {
-  position: absolute;
-  top: 3px;
-  transform: translateX(-50%);
-  color: #7e93a5;
-  font-size: 0.62rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.tracker-chart figcaption {
-  margin-top: 7px;
-  color: #8ba0b3;
-  font-size: 0.72rem;
-  line-height: 1.5;
-}
 
 /* --- desktop: give the picture the room it was not getting --------------- */
 
 @media (min-width: 900px) {
-  .tracker-hero { height: min(84vh, 820px); }
 
   /* A planet portrait is centred in its own frame, so on a desktop the frame is
      pushed to the right of the panel rather than sitting behind it. */
-  .tracker-hero:has(.tracker-media-subject) .tracker-hero-scene {
-    left: auto;
-    width: 62%;
-  }
-  .tracker-hero:has(.tracker-media-subject) {
-    background: radial-gradient(90% 120% at 78% 45%, #101d2a 0%, #070c14 60%, #05080e 100%);
-  }
 
   /* The panel becomes a column over the left of the image rather than a band
      across the bottom, so a wide screen shows the sky it is selling. */
-  .tracker-hero-panel {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    inset: 0 auto 0 0;
-    width: min(62%, 780px);
-    padding: 0 44px 60px;
-    /* Wider and heavier than a decorative scrim needs to be, because the type
-       now sits on a real photograph rather than a dim gradient. */
-    background: linear-gradient(
-      100deg,
-      rgba(4, 7, 12, 0.97) 0%,
-      rgba(4, 7, 12, 0.93) 38%,
-      rgba(4, 7, 12, 0.72) 62%,
-      rgba(4, 7, 12, 0) 100%
-    );
-  }
 
   .tracker-more,
   .tracker-detail { padding-left: 44px; padding-right: 44px; }
   .tracker-bar { padding-left: 44px; padding-right: 44px; }
-  .tracker-cards { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
 
 @media (min-width: 1440px) {
-  .tracker-hero-panel { width: min(56%, 840px); padding-left: 64px; }
   .tracker-more,
   .tracker-detail,
   .tracker-bar { padding-left: 64px; padding-right: 64px; }
@@ -11854,16 +11567,6 @@ button.primary,
   .tracker-bar { gap: 10px; }
   .tracker-bar-logo { height: 24px; }
 
-  .tracker-hero {
-    display: block;
-    height: auto;
-  }
-
-  .tracker-hero-scene {
-    position: relative;
-    height: 48vh;
-    min-height: 260px;
-  }
 
   /* Lifted clear of where the panel fades up into the image. At the desktop
      offset it sat exactly under the headline. */
@@ -11874,24 +11577,7 @@ button.primary,
     text-align: left;
   }
 
-  .tracker-hero-panel {
-    position: relative;
-    inset: auto;
-    width: 100%;
-    /* Pulled up under the image so the two meet in a fade rather than a seam. */
-    margin-top: -72px;
-    padding: 0 20px 30px;
-    background: linear-gradient(
-      to top,
-      #05080e 0%,
-      #05080e 62%,
-      rgba(5, 8, 14, 0.85) 84%,
-      rgba(5, 8, 14, 0) 100%
-    );
-  }
 
-  .tracker-hero h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
-  .tracker-cards { grid-template-columns: 1fr; }
 }
 
 /* --- location onboarding states ------------------------------------------
@@ -11933,6 +11619,12 @@ button.primary,
 
 /* Blocked is the one state the page cannot fix for the reader, so it is the
    one that gets the strongest colour and a numbered way out. */
+/* Composed at runtime as `tracker-place-status-${geo.phase}`, so these are
+   reachable only through a template literal and are invisible to a
+   dead-selector sweep. Kept together and annotated for that reason. */
+/* Composed at runtime as `tracker-place-status-${geo.phase}`, so these are
+   reachable only through a template literal. TrackerPlace.tsx names them in a
+   comment beside the element for the same reason. */
 .tracker-place-status-denied { border-left-color: #ffb27a; }
 .tracker-place-status-timeout,
 .tracker-place-status-unavailable { border-left-color: #8fbcd8; }
@@ -11978,7 +11670,6 @@ button.primary,
 
 /* The welcome screen carries the picker inline, so it opens downward into the
    page rather than up out of the bar. */
-.tracker-welcome-place { margin-top: 20px; }
 /* Opens upward. The welcome trigger sits low in the hero with an empty page
    beneath it, so a downward panel put its own results below the fold with
    nothing able to scroll to them. */
@@ -12059,18 +11750,6 @@ button.primary,
   outline: none;
 }
 
-.tracker-place-current-prominent {
-  min-height: 46px;
-  max-width: none;
-  border-radius: 999px;
-  background: #3fd6a8;
-  border-color: transparent;
-  color: #04211a;
-  font-size: 0.94rem;
-  font-weight: 600;
-  padding: 0 20px;
-}
-.tracker-place-current-prominent svg { color: #04211a; }
 
 .tracker-place-combobox { display: block; }
 
@@ -12091,27 +11770,14 @@ button.primary,
 
 /* A pending sky is not an unavailable sky. The interface used to assert the
    second while it was still doing the first. */
-.tracker-condition-pending { color: #9fb6c8; }
 
-.tracker-skeleton {
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 2px solid rgba(159, 182, 200, 0.28);
-  border-top-color: rgba(159, 182, 200, 0.85);
-  animation: tracker-spin 900ms linear infinite;
-}
 
 @keyframes tracker-spin { to { transform: rotate(360deg); } }
 
 /* Motion is decoration here; the words carry the state on their own. */
 @media (prefers-reduced-motion: reduce) {
-  .tracker-skeleton { animation: none; border-top-color: rgba(159, 182, 200, 0.28); }
   .tracker-card,
   .tracker-card-scene img { transition: none; }
-  .tracker-card:hover,
-  .tracker-card:focus-visible { transform: none; }
   .tracker-card:hover .tracker-card-scene img { transform: none; }
 }
 
@@ -12127,10 +11793,6 @@ button.primary,
   border-radius: 6px;
 }
 
-.tracker-card:focus-visible {
-  outline: 2px solid #7fe3c0;
-  outline-offset: 3px;
-}
 
 /* React Aria reports its own focus state, which is more accurate than the CSS
    heuristic inside a popover. */
@@ -12150,11 +11812,6 @@ button.primary,
 
 /* Honour a request for more contrast rather than ignoring it. */
 @media (prefers-contrast: more) {
-  .tracker-hero-summary,
-  .tracker-hero-directions,
-  .tracker-card-summary,
-  .tracker-card-conclusion,
-  .tracker-hero-conclusion { color: #eaf3fb; }
   .tracker-credit { color: rgba(234, 243, 251, 0.92); }
   .tracker-place-result-context,
   .tracker-detail-body p,
@@ -12647,35 +12304,6 @@ button.primary,
 /* Not-observable context. Deliberately quieter than a ranked card: this is a
    list of things you cannot go and look at, and it should not compete with the
    list of things you can. */
-.tracker-unavailable {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 clamp(20px, 4vw, 44px) 28px;
-}
-.tracker-unavailable h2 {
-  margin: 0 0 10px;
-  font-family: var(--tk-display);
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--tk-ink-dim);
-}
-.tracker-unavailable-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 22px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.tracker-unavailable-list li {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  border-left: 2px solid var(--tk-line);
-  padding-left: 10px;
-}
-.tracker-unavailable-name { color: var(--tk-ink-soft); font-size: 0.9rem; }
-.tracker-unavailable-note { color: var(--tk-ink-faint); font-size: 0.78rem; }
 
 /* ============================================================ application shell
 
@@ -12718,7 +12346,6 @@ button.primary,
   margin: 0 auto;
   padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 40px) 56px;
 }
-.tk-view-head { margin-bottom: 26px; }
 .tk-view-head .tk-display { margin: 0 0 8px; font-size: clamp(1.7rem, 3vw, 2.4rem); }
 .tk-view-lede {
   margin: 0;
@@ -12730,146 +12357,13 @@ button.primary,
 
 /* ------------------------------------------------------------------ upcoming */
 
-.tk-night-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.tk-night {
-  display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  border: 1px solid var(--tk-line);
-  border-radius: 12px;
-  background: var(--tk-panel);
-  padding: 13px 15px;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.tk-night:hover { border-color: var(--tk-line-strong); background: var(--tk-panel-lift); }
-.tk-night-date {
-  display: grid;
-  justify-items: center;
-  gap: 1px;
-  border-right: 1px solid var(--tk-line);
-  padding-right: 14px;
-}
-.tk-night-weekday,
-.tk-night-month {
-  color: var(--tk-ink-faint);
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.tk-night-day {
-  font-family: var(--tk-display);
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--tk-ink);
-}
-.tk-night-body { display: grid; gap: 3px; min-width: 0; }
-.tk-night-lead { color: var(--tk-ink); font-size: 0.95rem; font-weight: 600; }
-.tk-night-summary {
-  color: var(--tk-ink-dim);
-  font-size: 0.8rem;
-  line-height: 1.45;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.tk-night-also {
-  color: var(--tk-ink-faint);
-  font-size: 0.73rem;
-  letter-spacing: 0.01em;
-}
-.tk-night-band,
-.tk-cal-band {
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 999px;
-  padding: 3px 9px;
-  color: var(--tk-ink-dim);
-  font-size: 0.62rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.tk-night-band[data-band="exceptional"],
-.tk-cal-band[data-band="exceptional"] { border-color: var(--tk-accent); color: var(--tk-accent); }
-.tk-night-band[data-band="excellent"],
-.tk-cal-band[data-band="excellent"] { border-color: var(--tk-blue-lit); color: var(--tk-blue-lit); }
 
 /* ------------------------------------------------------------------ calendar */
 
-.tk-cal-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-.tk-cal-month {
-  margin: 0;
-  font-family: var(--tk-display);
-  font-size: 1.3rem;
-  font-weight: 500;
-}
-.tk-cal-step {
-  border: 1px solid var(--tk-line);
-  border-radius: 999px;
-  background: var(--tk-panel);
-  padding: 8px 15px;
-  color: var(--tk-ink-soft);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-.tk-cal-step:hover { border-color: var(--tk-line-strong); color: var(--tk-ink); }
-
-.tk-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-}
-.tk-cal-weekday {
-  padding: 4px 2px;
-  color: var(--tk-ink-faint);
-  font-size: 0.66rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.tk-cal-pad { min-height: 96px; }
-.tk-cal-cell {
-  display: grid;
-  align-content: start;
-  gap: 5px;
-  min-height: 96px;
-  border: 1px solid var(--tk-line);
-  border-radius: 9px;
-  background: var(--tk-panel);
-  padding: 8px 9px;
-}
-.tk-cal-daynum { color: var(--tk-ink-dim); font-size: 0.76rem; }
-.tk-cal-lead {
-  color: var(--tk-ink);
-  font-size: 0.78rem;
-  line-height: 1.3;
-}
-.tk-cal-quiet { color: var(--tk-ink-faint); font-size: 0.8rem; }
-.tk-cal-cell .tk-cal-band { justify-self: start; }
 
 @media (max-width: 900px) {
   .tracker-nav { margin-left: 12px; }
   .tracker-nav-item { padding: 7px 10px; font-size: 0.8rem; }
-  .tk-cal-grid { gap: 3px; }
-  .tk-cal-cell { min-height: 72px; padding: 6px; }
 }
 
 /* ====================================================== observing composition
@@ -12880,40 +12374,10 @@ button.primary,
    information. Two deliberate columns instead — the reading column, and the
    observing column that says what to actually do outside. */
 
-.tracker-hero.tk-observe {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
-  align-items: start;
-  max-width: 1480px;
-  margin: 0 auto;
-  min-height: 0;
-  padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 40px) 40px;
-  background: none;
-}
-.tk-observe .tracker-hero-scene { display: none; }
 
 @media (min-width: 1040px) {
-  .tracker-hero.tk-observe {
-    /* The observing column is the wider of the two. A sky path needs
-       horizontal room to be read as a path; a paragraph does not need more
-       than about 60 characters and gets worse with more. */
-    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
-    gap: 44px;
-  }
 }
 
-.tk-observe-main { display: block; position: static; max-width: 62ch; padding: 0; }
-.tk-observe-side { display: grid; gap: 16px; min-width: 0; }
-
-.tk-chart {
-  margin: 0;
-  border: 1px solid var(--tk-line);
-  border-radius: 14px;
-  background: var(--tk-panel);
-  padding: 14px 16px 12px;
-}
-.tk-chart svg { display: block; width: 100%; height: auto; }
 
 .tk-chart-guide { stroke: rgba(150, 186, 222, 0.22); stroke-width: 1; stroke-dasharray: 3 5; }
 .tk-chart-guidelabel { fill: var(--tk-ink-faint); font-size: 10px; }
@@ -12933,75 +12397,16 @@ button.primary,
   font-size: 11px;
   letter-spacing: 0.1em;
 }
-.tk-chart-caption {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 10px 0 0;
-  color: var(--tk-ink-dim);
-  font-size: 0.76rem;
-  line-height: 1.45;
-}
-.tk-chart-key {
-  flex: none;
-  width: 16px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--tk-accent);
-  transform: translateY(-3px);
-}
 
-.tk-observe-media {
-  position: relative;
-  overflow: hidden;
-  margin: 0;
-  border: 1px solid var(--tk-line);
-  border-radius: 14px;
-  aspect-ratio: 16 / 9;
-}
-.tk-observe-scene { position: absolute; inset: 0; }
 
 /* ------------------------------------------- meteor timeline and orientation
 
    A shower gets two graphics because it asks the reader two questions. The
    timeline says when; the compass says where. Neither answers the other. */
 
-.tk-timeline {
-  margin: 0;
-  border: 1px solid var(--tk-line);
-  border-radius: 14px;
-  background: var(--tk-panel);
-  padding: 14px 16px 12px;
-}
-.tk-timeline svg { display: block; width: 100%; height: auto; }
 
-.tk-timeline-title {
-  margin: 0 0 8px;
-  color: var(--tk-ink-soft);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
 /* Twilight is drawn as an absence of darkness rather than a colour: the plot
    ground is the dark sky, and this lifts it where the sky has not got there. */
-.tk-timeline-twilight { fill: rgba(126, 166, 207, 0.09); }
-.tk-timeline-area { fill: rgba(126, 166, 207, 0.12); }
-.tk-timeline-moon { fill: rgba(226, 214, 176, 0.62); }
-
-.tk-timeline-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-top: 8px;
-  color: var(--tk-ink-dim);
-  font-size: 0.72rem;
-}
-.tk-timeline-key span { display: inline-flex; align-items: center; gap: 6px; }
-.tk-timeline-key i { width: 14px; height: 3px; border-radius: 2px; }
-.tk-key-line { background: rgba(126, 166, 207, 0.75); }
-.tk-key-lit { background: var(--tk-accent); }
-.tk-key-twilight { background: rgba(126, 166, 207, 0.28); height: 10px !important; border-radius: 3px; }
-.tk-key-moon { background: rgba(226, 214, 176, 0.7); }
-
 
 
 /* The four things a person acts on, given the width they deserve.
@@ -13009,58 +12414,9 @@ button.primary,
    These were a stack of sentences and a colour key. A key is a way of decoding
    a chart; this is the answer, so it is stated once, directly labelled, and
    nothing on the page repeats it. */
-.tk-facts {
-  display: grid;
-  /* Flex rather than equal columns. The facts are no longer the same size as
-     each other — "Low in the south-west, about one fist above the horizon" is a
-     sentence and a time is six characters — so forcing them into identical
-     tracks wrapped the sentence to four lines and pushed the sky reading off
-     the end of the strip. Each field takes the room its content needs, and the
-     one carrying a sentence is allowed to take more. */
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
-  margin: 22px 0 18px;
-  border: 1px solid var(--tk-line);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--tk-line);
-}
-.tk-fact {
-  display: grid;
-  align-content: start;
-  gap: 5px;
-  flex: 0 1 auto;
-  min-width: 0;
-  background: var(--tk-panel);
-  padding: 12px 14px 13px;
-}
-.tk-fact dt {
-  color: var(--tk-ink-faint);
-  font-size: 0.62rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-.tk-fact dd { margin: 0; }
-.tk-fact-strong {
-  color: var(--tk-ink);
-  font-size: 0.98rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
 /* The condition chip inherits the row rather than bringing its own block. */
 .tk-fact .tracker-condition { margin: 0; font-size: 0.84rem; }
 
-.tk-timeline-inline {
-  fill: var(--tk-ink-faint);
-  font-size: 10px;
-  letter-spacing: 0.05em;
-}
-.tk-timeline-inline.is-moon { fill: rgba(226, 214, 176, 0.75); }
-.tk-timeline-peak { fill: var(--tk-accent); }
-.tk-timeline-peaklabel { fill: var(--tk-ink); font-size: 11px; font-weight: 600; }
-
-.tk-observe-pair { display: grid; gap: 16px; }
 
 /* ============================================================== the sky plate
 
@@ -13068,69 +12424,10 @@ button.primary,
    than a separate box beneath it. The picture is dimmed and washed hard enough
    that the annotation always wins: it is the surface, never the subject. */
 
-.tk-plate { margin: 0; }
 
-.tk-plate-frame {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  border: 1px solid var(--tk-line);
-  border-radius: 16px;
-  background: var(--tk-void);
-  padding: 16px 18px 14px;
-  box-shadow:
-    0 1px 0 rgba(226, 238, 248, 0.05) inset,
-    0 30px 60px -30px rgba(0, 0, 0, 0.7);
-}
-
-.tk-plate-ground { position: absolute; inset: 0; z-index: -2; }
-.tk-plate-ground img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 42%;
-  opacity: 0.5;
-}
 /* Two washes: a flat one to hold contrast everywhere, and a vertical one so
    the caption end of the plate is darkest, where the small type sits. */
-.tk-plate-ground::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(5, 7, 13, 0.5) 0%, rgba(5, 7, 13, 0.62) 46%, rgba(4, 6, 11, 0.9) 100%);
-}
 
-.tk-plate-title {
-  position: relative;
-  margin: 0 0 2px;
-  color: var(--tk-ink);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-.tk-plate-drawing { position: relative; }
-.tk-plate-drawing svg { display: block; width: 100%; height: auto; }
-
-.tk-plate-credit {
-  position: absolute;
-  right: 14px;
-  bottom: 10px;
-  margin: 0;
-  color: rgba(226, 238, 248, 0.46);
-  font-size: 0.6rem;
-  letter-spacing: 0.02em;
-}
-.tk-plate-credit a { color: rgba(226, 238, 248, 0.62); text-decoration: none; }
-.tk-plate-credit a:hover { color: var(--tk-ink); }
-
-.tk-plate-caption {
-  margin: 10px 2px 0;
-  max-width: 64ch;
-  color: var(--tk-ink-dim);
-  font-size: 0.79rem;
-  line-height: 1.5;
-}
 
 /* Over a photograph the drawing needs a little more presence than it did on
    flat panel colour. */
@@ -13142,35 +12439,15 @@ button.primary,
 .tk-plate .tk-chart-horizon { stroke: rgba(198, 220, 242, 0.55); }
 .tk-plate .tk-chart-ground,
 .tk-plate .tk-timeline-area { fill: rgba(4, 6, 11, 0.55); }
-.tk-plate .tk-timeline-twilight { fill: rgba(226, 238, 248, 0.07); }
 
 /* ------------------------------------------------- composition and figures
 
    Times, temperatures and altitudes are read in columns and compared against
    each other, so they are set in tabular figures. Proportional digits made the
    fact row and the ranked list shift under their own numbers. */
-.tk-facts,
-.tk-night-list,
-.tk-cal-grid,
-.tracker-card-when,
-.tk-timeline,
-.tk-plate {
-  font-variant-numeric: tabular-nums;
-}
 
 /* The fact row sat ragged because the Sky cell stacks an icon, a sentence and
    a chip while its neighbours hold one line. Equal rows, aligned baselines. */
-.tk-facts { align-items: stretch; }
-.tk-fact { align-content: start; row-gap: 7px; }
-.tk-fact dd { display: flex; align-items: center; min-height: 22px; }
-.tk-fact-strong {
-  font-size: 1.02rem;
-  line-height: 1.25;
-  /* Was nowrap, which the strip's overflow:hidden then clipped mid-string —
-     "11:11 PM-4:26" with the meridiem cut off. Breaking is better than lying. */
-  white-space: normal;
-  text-wrap: balance;
-}
 .tk-fact .tracker-condition {
   display: flex;
   flex-wrap: wrap;
@@ -13182,7 +12459,6 @@ button.primary,
 }
 
 @media (max-width: 1180px) {
-  .tk-fact-strong { font-size: 0.94rem; white-space: normal; }
 }
 
 /* The reading column ran out well before the observing column did, leaving a
@@ -13190,106 +12466,40 @@ button.primary,
    and letting the aside run its own length closes it without stretching
    paragraphs to fill space they do not want. */
 @media (min-width: 1040px) {
-  .tracker-hero.tk-observe { grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr); }
-  .tk-observe-main { position: sticky; top: 84px; }
 }
 
 /* ---------------------------------------------------------------------- now */
 
-.tk-now-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; max-width: 900px; }
-.tk-now-row {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  width: 100%;
-  border: 1px solid var(--tk-line);
-  border-radius: 12px;
-  background: var(--tk-panel);
-  padding: 14px 16px;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.tk-now-row:hover { border-color: var(--tk-line-strong); background: var(--tk-panel-lift); }
-.tk-now-state {
-  font-size: 0.72rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--tk-ink-dim);
-}
-.tk-now-row.is-open { border-left: 3px solid var(--tk-accent); }
-.tk-now-row.is-open .tk-now-state { color: var(--tk-accent); font-weight: 600; }
-.tk-now-body { display: grid; gap: 3px; min-width: 0; }
-.tk-now-name { color: var(--tk-ink); font-size: 0.98rem; font-weight: 600; }
-.tk-now-note { color: var(--tk-ink-dim); font-size: 0.82rem; line-height: 1.45; }
-.tk-now-until { color: var(--tk-ink-faint); font-size: 0.78rem; white-space: nowrap; }
 
-.tk-now-next {
-  display: inline-grid;
-  grid-template-columns: auto auto auto;
-  align-items: baseline;
-  gap: 14px;
-  border: 1px solid var(--tk-line);
-  border-radius: 12px;
-  background: var(--tk-panel);
-  padding: 14px 18px;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.tk-now-next:hover { border-color: var(--tk-line-strong); }
-.tk-now-next-label {
-  font-size: 0.64rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--tk-ink-faint);
-}
-.tk-now-next-name { color: var(--tk-ink); font-weight: 600; }
-.tk-now-next-time { font-family: var(--tk-display); font-size: 1.15rem; color: var(--tk-ink); }
+/* ================================================= the one-page constraint
 
-/* ==================================================== the one-screen constraint
+   Tracker used to forbid the page from scrolling at all: the shell was exactly
+   one viewport tall with `overflow: hidden`, and anything below the fold had to
+   become a state change inside it.
 
-   Tracker is a single screen. Not "mostly fits" — the page itself does not
-   scroll, on any device. Anything that used to live below the fold becomes a
-   state change inside the viewport: the plate swaps, a panel replaces another,
-   a detail takes over the composition.
+   That rule was solving the right problem — an observing tool must not become a
+   dashboard you scroll through looking for the answer — with the wrong
+   mechanism. It made the *answer* compete for space with the evidence and the
+   list, so on a laptop the ranked rail was three items squeezed into whatever
+   the hero left over, and on a phone the constraint could only be met by hiding
+   things.
 
-   This is a product constraint rather than a layout preference, so it is
-   enforced at the shell rather than negotiated per view. Panels that can
-   outgrow their box scroll inside themselves; the page never does. */
+   The constraint is now about what may be on the page rather than how tall it
+   is. Four regions, in a fixed order, and nothing else: the recommendation, its
+   evidence, the conditions, the alternatives. Anything further — a full sky
+   map, a full forecast map — is a drill-in, not a fifth section. The page ends
+   where the list ends, which on a desktop is a screen and a half and on a phone
+   is a short scroll in the order of importance.
+
+   Panels that can outgrow their box still scroll inside themselves. */
 
 .tracker-shell {
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
 }
 
-/* Every view is a row of that grid and owns its own overflow. minmax(0, 1fr)
-   above is what stops a tall child forcing the row past the viewport — without
-   it the grid track sizes to content and the shell scrolls after all. */
-.tracker-shell > .tk-view,
-.tracker-shell > .tk-tonight,
-.tracker-shell > .tk-entry {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* The gutter is reserved whether or not a scrollbar is showing.
-  
-     This is the second cause of the calendar changing size between dates, and
-     the one min-width could not reach: this element is the scroll container, so
-     a selection whose detail copy is a few lines longer makes a scrollbar
-     appear, which narrows everything inside it — including the calendar. The
-     eclipse on the 27th overflowed where the meteor peak on the 11th did not,
-     so the month was ~15px wider on one date than the other.
-  
-     Reserving the gutter permanently means the content box is the same width in
-     both states. */
-  scrollbar-gutter: stable;
-}
 
 /* The entry screen already fitted; it just needs to stop centring against a
    height it no longer owns. */
@@ -13297,48 +12507,21 @@ button.primary,
 
 /* --------------------------------------------------- Tonight, as one screen */
 
-.tracker-hero.tk-observe {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 20px clamp(24px, 3vw, 48px);
-  align-content: stretch;
-  max-width: 1560px;
-  /* Same reason as .tk-upcoming: auto margins would make this shrink to its
-     content instead of its area. */
-  width: 100%;
-  justify-self: center;
-  height: 100%;
-  padding: clamp(18px, 2.2vw, 30px) clamp(20px, 3vw, 44px) clamp(16px, 2vw, 24px);
-}
 
 @media (min-width: 1040px) {
-  .tracker-hero.tk-observe {
-    /* The plate is the subject and takes the larger share. The reading column
-       is held near 46 characters so it stays a column rather than becoming a
-       paragraph stretched to fill space it does not want. */
-    grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);
-  }
-  .tk-observe-main { position: static; grid-row: 1; align-self: center; }
-  .tk-observe-side { grid-row: 1; align-self: center; }
   /* The ranked rail spans the foot of both columns. */
   .tracker-more { grid-column: 1 / -1; grid-row: 2; }
 }
 
-.tk-observe-main { max-width: 52ch; min-height: 0; }
 /* min-width matters as much as min-height here: a grid item defaults to
    min-width:auto, so the plate refused to shrink to its track and overflowed
    across the alternatives column instead. */
-.tk-observe-side { min-height: 0; min-width: 0; display: grid; align-content: center; gap: 12px; }
-.tk-observe-main { min-width: 0; }
-.tk-plate, .tk-plate-frame { min-width: 0; }
 /* The alternatives column was the one actually overflowing: a grid item
    defaults to min-width:auto, and its card text set a min-content width of
    592px inside a 240px track. Overflowing there consumed all the free space,
    which is why every track collapsed to its minimum and the whole grid pushed
    past the viewport. */
 .tracker-more, .tracker-cards, .tracker-card { min-width: 0; }
-.tk-plate-drawing svg { max-height: min(46vh, 420px); }
 
 /* ------------------------------------------- secondary events, ranked not tiled
 
@@ -13347,79 +12530,16 @@ button.primary,
    for. They are a rail now: one line each, ordered, with the verdict carrying
    the weight instead of a photograph. */
 
-.tk-tonight .tracker-more {
-  max-width: none;
-  margin: 0;
-  padding: 14px 0 0;
-  border-top: 1px solid var(--tk-line);
-}
-.tk-tonight .tracker-more h2 {
-  margin: 0 0 10px;
-  font-family: var(--tk-display);
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--tk-ink-dim);
-}
-.tk-tonight .tracker-cards {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding-bottom: 2px;
-}
-.tk-tonight .tracker-card {
-  flex: 0 0 auto;
-  width: clamp(200px, 21vw, 268px);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-  border: 1px solid var(--tk-line);
-  border-radius: 11px;
-  background: var(--tk-panel);
-  padding: 11px 13px;
-}
 /* The photograph goes. A thumbnail per row made a ranked list read as a
    gallery, and at this size it carried no information a word would not. */
-.tk-tonight .tracker-card-media { display: none; }
-.tk-tonight .tracker-card-summary { display: none; }
-.tk-tonight .tracker-card-conclusion { display: none; }
-.tk-tonight .tracker-card-title { font-size: 0.92rem; }
-.tk-tonight .tracker-card-when { font-size: 0.78rem; }
 
 /* The verdict is the loudest thing in the composition, because it is the
    answer. */
-.tk-verdict {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 14px;
-  border: 1px solid var(--tk-accent);
-  border-radius: 999px;
-  padding: 5px 13px;
-  color: var(--tk-accent);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-}
-.tk-verdict[data-tone="hold"] { border-color: var(--tk-line-strong); color: var(--tk-ink-dim); }
-.tk-verdict[data-tone="no"] { border-color: rgba(226, 154, 154, 0.5); color: #e6a3a3; }
 
 /* The Tonight wrapper is the shell's second row: it owns the viewport under
    the header and lays its own children out inside it. */
-.tk-tonight {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
-  gap: 0;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-.tk-tonight > .tracker-hero.tk-observe { min-height: 0; height: auto; overflow: hidden; }
-.tk-tonight .tracker-unavailable { padding: 0 clamp(20px, 3vw, 44px) 10px; margin: 0; max-width: none; }
-.tk-tonight .tracker-detail { padding: 0 clamp(20px, 3vw, 44px) 14px; }
 /* The working panel can be long, so it scrolls inside itself rather than
    pushing the page — the one place a scroll is allowed. */
-.tk-tonight .tracker-detail-body { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
 
 /* Fitting Tonight into the viewport rather than clipping it.
 
@@ -13428,32 +12548,27 @@ button.primary,
    the headline off instead. Type and media are sized against viewport height so
    the composition shrinks with the window instead of overflowing it. */
 
-.tk-tonight .tracker-hero h1 {
-  font-size: clamp(1.6rem, 3.4vh + 0.6vw, 2.9rem);
-  line-height: 1.06;
-  margin-bottom: 8px;
-}
-.tk-tonight .tracker-hero-summary {
-  font-size: clamp(0.86rem, 1.5vh, 1.02rem);
-  margin-bottom: 12px;
-}
-.tk-tonight .tracker-hero-directions,
-.tk-tonight .tracker-hero-conclusion { font-size: 0.85rem; margin-top: 8px; }
-.tk-tonight .tk-facts { margin: 12px 0 10px; }
-.tk-tonight .tracker-hero-actions { margin-top: 12px; }
 
-/* The plate is the subject and gets the height. Subject imagery — the planet
-   portrait, the Moon at phase — is the explanation layer and yields first,
-   because losing it costs the reader context rather than the answer. */
-.tk-tonight .tk-plate-drawing svg { max-height: min(38vh, 340px); }
-.tk-tonight .tk-observe-media { max-height: 26vh; aspect-ratio: auto; }
-@media (max-height: 860px) {
-  .tk-tonight .tk-observe-media { display: none; }
-}
+/* The plate and the portrait are both load-bearing, and the composition is
+   proportional rather than conditional.
+
+   What this replaces was `display: none` on the portrait below 860 px of
+   viewport height, written on the reasoning that subject imagery is the
+   explanation layer and could yield first. The reasoning was defensible and
+   the mechanism was not: 856 px is an ordinary laptop, so the rule fired on
+   the common case and every planet and the Moon rendered no imagery at all —
+   on exactly the phenomena where the gap between a spacecraft portrait and
+   what an eyepiece shows is the whole lesson. A height cutoff is not a
+   responsive design. It is one decision, made once, at a number, imposed on
+   every viewport on the wrong side of it.
+
+   So the observing column fills the row it is given, the plate takes its
+   natural height under a viewport-relative cap, and the portrait takes what
+   is left with a floor beneath it. Both survive at every height the
+   one-screen contract allows, and what shrinks as the window does is the
+   drawing — which is a diagram and scales — rather than the subject. */
 
 /* The rail lost its gutters when it became a grid child spanning both columns. */
-.tk-tonight .tracker-more { padding: 12px clamp(20px, 3vw, 44px) 0; }
-.tk-tonight .tracker-detail { padding: 8px clamp(20px, 3vw, 44px) 12px; }
 
 /* ============================================ Tonight as a three-column spread
 
@@ -13473,60 +12588,11 @@ button.primary,
 
      display:contents dissolves the hero so its two children join the wrapper's
      grid alongside the alternatives, and one set of tracks governs all three. */
-  .tk-tonight {
-    grid-template-columns:
-      minmax(300px, 0.84fr)
-      minmax(430px, 1.62fr)
-      minmax(250px, 0.74fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    column-gap: clamp(28px, 3vw, 56px);
-    padding: 0 clamp(20px, 3vw, 44px);
-  }
-  .tk-tonight > .tracker-hero.tk-observe { display: contents; }
+}
 
-  .tk-tonight > /* The night as a proportional strip. Quiet, but honest: a mark's position is
+/* The night as a proportional strip. Quiet, but honest: a mark's position is
    its time. */
-.tk-nightbar {
-  position: relative;
-  height: 30px;
-  margin: 0;
-  padding: 0 clamp(20px, 3vw, 44px);
-  border-bottom: 1px solid var(--tk-line);
-}
-.tk-nightbar-inner { position: relative; height: 100%; }
-.tk-nightbar-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 9px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(126, 166, 207, 0.14);
-}
 /* Full darkness, drawn as the stretch it occupies rather than a label. */
-.tk-nightbar-dark { position: absolute; top: 0; bottom: 0; background: rgba(126, 166, 207, 0.26); border-radius: 2px; }
-.tk-nightbar-window { position: absolute; top: -2px; height: 8px; border-radius: 4px; background: var(--tk-accent); }
-.tk-nightbar-mark {
-  position: absolute;
-  top: 15px;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-family: var(--tk-display);
-  font-size: 0.6rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--tk-ink-faint);
-}
-.tk-nightbar-mark:first-of-type { transform: none; }
-.tk-nightbar-mark.is-end { transform: translateX(-100%); }
-.tk-nightbar-mark b {
-  font-family: var(--tk-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--tk-ink-soft);
-  font-variant-numeric: tabular-nums;
-}
 
 /* ================================ observing guidance as a state, not an append
 
@@ -13541,40 +12607,14 @@ button.primary,
    using. Nothing new is created below the fold and nothing is shrunk to fit —
    the column shows one thing or the other. */
 
-.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-summary,
-.tk-observe-main:has(.tracker-hero-more[open]) .tk-facts,
-.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-directions,
-.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-conclusion,
-.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-actions {
-  display: none;
-}
 
-.tk-tonight .tracker-hero-more[open] {
-  margin-top: 14px;
-  max-width: none;
-  border-top: 1px solid var(--tk-line);
-  padding-top: 12px;
-}
 /* The guidance itself is bounded and scrolls inside its own box. This is the
    one scroll the product allows: a panel that owns its overflow, rather than a
    page that grows. */
-.tk-tonight .tracker-hero-more[open] .tracker-detail-body,
-.tk-tonight .tracker-hero-more[open] dl {
-  max-height: min(52vh, 460px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 6px;
-}
 /* Summary is the way back, so it has to stay legible and obviously clickable
    once the panel is open. */
-.tk-tonight .tracker-hero-more[open] summary { color: var(--tk-ink); font-weight: 600; }
 
 /* Focus that belongs to the interface rather than the browser's default box. */
-.tracker-hero-more summary:focus-visible {
-  outline: none;
-  border-radius: 6px;
-  box-shadow: 0 0 0 2px var(--tk-void), 0 0 0 4px var(--tk-accent);
-}
 
 /* ======================================================== the type scale
 
@@ -13603,7 +12643,6 @@ button.primary,
 }
 .tracker-shell h1 { font-weight: 600; }
 .tracker-shell h2 { font-weight: 600; }
-.tk-tonight .tracker-card-title { font-weight: 600; letter-spacing: -0.02em; }
 
 /* Measurements. Times, altitudes, rates and temperatures line up in columns
    and are read against each other, which is the whole reason for a third
@@ -13715,17 +12754,8 @@ button.primary,
   gap: 16px;
   min-height: 0;
 }
-.tk-feature {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
-  min-height: 0;
-  align-items: center;
-}
 @media (min-width: 1040px) {
-  .tk-feature { grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr); }
 }
-.tk-feature-text { min-width: 0; }
 .tk-feature-kind {
   margin: 0 0 8px;
   font-family: var(--tk-display);
@@ -13764,48 +12794,10 @@ button.primary,
 }
 .tk-feature-action { margin: 0; }
 
-.tk-feature-media {
-  position: relative;
-  overflow: hidden;
-  margin: 0;
-  border-radius: 16px;
-  min-height: 0;
-  height: min(52vh, 460px);
-  background: var(--tk-void);
-}
 .tk-feature-media .tracker-media { position: absolute; inset: 0; }
 
 /* The strip is navigation, not a card collection: no boxes, weight from type
    and a rule, and the current feature marked rather than repeated. */
-.tk-strip { border-top: 1px solid var(--tk-line); padding-top: 10px; }
-.tk-strip-label {
-  margin: 0 0 6px;
-  font-family: var(--tk-display);
-  font-size: 0.6rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--tk-ink-faint);
-}
-.tk-strip ul { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; overflow-x: auto; }
-.tk-strip-item {
-  display: grid;
-  gap: 1px;
-  min-width: 150px;
-  border: 0;
-  border-left: 2px solid var(--tk-line);
-  background: none;
-  padding: 5px 12px;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.tk-strip-item:hover { border-left-color: var(--tk-line-strong); }
-.tk-strip-item[aria-current="true"] { border-left-color: var(--tk-accent); }
-.tk-strip-date { font-family: var(--tk-mono); font-size: 0.68rem; color: var(--tk-ink-faint); }
-.tk-strip-name { font-family: var(--tk-display); font-size: 0.9rem; font-weight: 500; color: var(--tk-ink-dim); }
-.tk-strip-item[aria-current="true"] .tk-strip-name { color: var(--tk-ink); }
-.tk-strip-kind { font-size: 0.66rem; color: var(--tk-ink-faint); }
 
 /* ------------------------------------------- Calendar: sparse month + event */
 
@@ -13944,11 +12936,11 @@ button.primary,
 .tk-day[data-kind="shower-peak"] .tk-day-mark { color: var(--tk-accent); border-left-color: var(--tk-accent); }
 /* Selection is painted, never laid out. Border width, padding and radius are
    identical to every other cell; only colour changes, so nothing moves. */
-.tk-day[aria-current="date"] {
+.tk-day[aria-pressed="true"] {
   background: var(--tk-panel-lift);
   border-color: var(--tk-accent);
 }
-.tk-day[aria-current="date"] .tk-day-num { color: var(--tk-ink); }
+.tk-day[aria-pressed="true"] .tk-day-num { color: var(--tk-ink); }
 .tk-day.is-marked:hover { border-color: var(--tk-line-strong); }
 
 .tk-month-detail {
@@ -13968,6 +12960,34 @@ button.primary,
 .tk-month-detail .tk-feature-why,
 .tk-month-detail .tk-feature-summary { overflow-wrap: anywhere; }
 .tk-month-detail .tk-feature-name { font-size: clamp(1.4rem, 3.2vh, 2rem); }
+.tk-date-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 12px;
+}
+.tk-date-events p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--tk-ink-faint);
+  font: 0.66rem var(--tk-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-date-events button {
+  min-height: 44px;
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  background: transparent;
+  padding: 7px 12px;
+  color: var(--tk-ink-dim);
+  font: 0.75rem var(--tk-display);
+}
+.tk-date-events button[aria-pressed="true"] {
+  border-color: var(--tk-accent);
+  color: var(--tk-ink);
+  background: var(--tk-panel-lift);
+}
 
 /* ==================================================== one geometry contract
 
@@ -13983,66 +13003,29 @@ button.primary,
    below them moves when a panel opens, and no state can borrow another's
    space. */
 
-.tk-tonight {
-  grid-template-rows:
-    auto              /* night bar — same height in every state */
-    minmax(0, 1fr)    /* the composition */
-    auto              /* alternatives / unavailable context */
-    auto;             /* methodology trigger, and its panel when open */
-}
 
 /* The trigger keeps its own row and its own line. It used to sit in the flow
    directly above the panel body, so an open panel put its first paragraph
    underneath the button. */
-.tk-tonight > .tracker-detail {
-  display: grid;
-  grid-template-rows: auto;
-  gap: 10px;
-  padding: 10px clamp(20px, 3vw, 44px) 14px;
-  min-height: 0;
-}
-.tk-tonight > .tracker-detail > button { justify-self: start; }
 
 /* Open, the panel is a bounded region that scrolls itself. It cannot grow into
    the rows above it and it cannot push the page, which is what "state change,
    not append" has to mean in a viewport-locked product. */
-.tk-tonight > .tracker-detail .tracker-detail-body {
-  max-height: min(38vh, 340px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 8px;
-  border-top: 1px solid var(--tk-line);
-  padding-top: 12px;
-}
 
 /* The night bar is fixed furniture. Giving it a reserved height stops it
    drifting into the eyebrow beneath when a state changes what sits below. */
-.tk-nightbar { min-height: 34px; align-items: center; }
-.tk-tonight .tracker-hero-eyebrow { margin-top: 0; }
 
 /* Actions stay available in the observing-detail state. Removing them was an
    interaction discontinuity with no reason behind it — the reader who has just
    read how to observe something is exactly the reader who wants reminding. */
-.tk-observe-main:has(.tracker-hero-more[open]) .tracker-hero-actions {
-  display: flex;
-  margin-top: 14px;
-}
 
 /* Both disclosures are gone, so the geometry they needed goes with them. The
    contract is simpler for it: three rows, all always present, nothing that can
    open and shift what sits above or below. */
-.tk-tonight { grid-template-rows: auto minmax(0, 1fr) auto; }
 
 /* The realistic-expectation line, promoted out of the panel it was hidden in.
    It answers "what will I actually see", which is a question people have before
    they decide, not after. */
-.tk-expect {
-  margin: 10px 0 0;
-  max-width: 52ch;
-  color: var(--tk-ink-soft);
-  font-size: 0.88rem;
-  line-height: 1.5;
-}
 
 /* ====================================== experience layer, and the finder
 
@@ -14075,70 +13058,17 @@ button.primary,
 /* Says plainly that this is representative footage. The gap between "what
    Perseids look like" and "your sky tonight" is the gap between context and a
    promise the product cannot keep. */
-.tk-exp-tag {
-  border: 1px solid rgba(226, 238, 248, 0.28);
-  border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 0.55rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
 
 /* The finder is an instrument: a horizon, a compass on it, and the object.
    No plotting frame, no gridlines, no legend. */
-.tk-finder { margin: 0; }
-.tk-finder svg { display: block; width: 100%; height: auto; }
-.tk-finder-ground { fill: #05070d; }
-.tk-finder-horizon { stroke: rgba(150, 186, 222, 0.45); stroke-width: 1.4; }
-.tk-finder-halo { fill: rgba(226, 238, 248, 0.1); }
-.tk-finder-object { fill: var(--tk-ink); }
 /* The instruction, written on the ground you are facing. It is the largest
    thing in the drawing because it is the thing you act on. */
-.tk-finder-facing {
-  fill: var(--tk-ink);
-  font-family: var(--tk-display);
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.tk-finder-caption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  margin: 10px 2px 0;
-  color: var(--tk-ink-soft);
-  font-size: 0.92rem;
-}
 /* Degrees stay available and stop organising anything. */
-.tk-finder-precise {
-  font-family: var(--tk-mono);
-  font-size: 0.72rem;
-  color: var(--tk-ink-faint);
-  font-variant-numeric: tabular-nums;
-}
 
 /* The where-to-look fact carries a sentence, so it spans and stacks its
    secondary precision underneath rather than being squeezed into a column
    sized for a single value. */
-.tk-fact-wide { flex: 1 1 260px; }
-.tk-fact-wide .tk-fact-strong { white-space: normal; }
-.tk-fact-sub {
-  display: block;
-  margin-top: 3px;
-  color: var(--tk-ink-faint);
-  font-family: var(--tk-mono);
-  font-size: 0.72rem;
-  font-weight: 400;
-  letter-spacing: 0;
-}
 /* The recommendation is a sentence now, not a shouted token. */
-.tk-verdict {
-  text-transform: none;
-  letter-spacing: 0.01em;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
 
 /* ======================================================== the night ribbon
 
@@ -14146,74 +13076,9 @@ button.primary,
    fall, so the spacing is information rather than layout. No axes, no
    gridlines, no legend, no plotted curve. */
 
-.tk-ribbon { display: grid; gap: 14px; }
-.tk-ribbon-track {
-  position: relative;
-  height: 46px;
-  margin-top: 8px;
-}
-.tk-ribbon-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 10px;
-  height: 1px;
-  background: var(--tk-line-strong);
-}
 /* The window worth going out for is the only thing given the accent. */
-.tk-ribbon-window {
-  position: absolute;
-  top: 6px;
-  height: 9px;
-  border-radius: 5px;
-  background: var(--tk-accent);
-}
-.tk-ribbon-moon {
-  position: absolute;
-  top: 19px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(226, 214, 176, 0.5);
-}
-.tk-ribbon-mark {
-  position: absolute;
-  top: 22px;
-  display: grid;
-  gap: 1px;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-.tk-ribbon-mark[data-edge="start"] { transform: none; }
-.tk-ribbon-mark[data-edge="end"] { transform: translateX(-100%); }
-.tk-ribbon-mark b {
-  font-family: var(--tk-mono);
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--tk-ink);
-  font-variant-numeric: tabular-nums;
-}
-.tk-ribbon-mark i {
-  font-style: normal;
-  font-family: var(--tk-display);
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tk-ink-faint);
-}
 /* The sentence carries the judgement, because that is what a reader takes
    outside — not a shape. */
-.tk-ribbon-verdict {
-  margin: 0;
-  max-width: 60ch;
-  color: var(--tk-ink-soft);
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-.tk-ribbon-verdict b {
-  font-family: var(--tk-mono);
-  color: var(--tk-ink);
-  font-variant-numeric: tabular-nums;
-}
 
 /* The experience surface is the centre for a shower, so it takes the height
    the chart used to. */
@@ -14221,11 +13086,7 @@ button.primary,
 
 /* Tonight sits up against the night bar rather than floating in the middle
    of the viewport. */
-.tk-tonight > .tracker-hero.tk-observe { align-content: start; padding-top: clamp(12px, 2vh, 24px); }
 @media (min-width: 1180px) {
-  .tk-tonight .tk-observe-main,
-  .tk-tonight .tk-observe-side,
-  .tk-tonight > .tracker-more { align-self: start; }
 }
 
 /* ==================================== Tonight's grid placement, restored
@@ -14240,34 +13101,24 @@ button.primary,
    Placement is stated for every child now, so no child can be positioned by
    the order it happens to appear in. */
 @media (min-width: 1180px) {
-  .tk-tonight {
-    grid-template-columns:
-      minmax(300px, 0.84fr)
-      minmax(430px, 1.62fr)
-      minmax(250px, 0.74fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    column-gap: clamp(28px, 3vw, 56px);
-  }
   /* The night spans the full width, because a night is long and reading time
      off a narrow strip is what made the labels collide. */
-  .tk-tonight > .tk-nightbar { grid-column: 1 / -1; grid-row: 1; }
-  .tk-tonight .tk-observe-main { grid-column: 1; grid-row: 2; align-self: start; }
-  .tk-tonight .tk-observe-side { grid-column: 2; grid-row: 2; align-self: start; }
-  .tk-tonight > .tracker-more { grid-column: 3; grid-row: 2; align-self: start; }
-  .tk-tonight > .tracker-unavailable { grid-column: 3; grid-row: 2; align-self: end; }
+
+  /* The observing column stretches only where there is a portrait to place.
+     A shower's stage sizes itself against its own footage and must keep doing
+     so, which is why this is conditioned on the portrait's presence rather
+     than applied to the column outright. */
+
+  /* The composition used to finish flush against the bottom edge, which put
+     the licence credit on the viewport border. */
 }
 
 /* The alternatives are a rail, so they stack rather than sitting in a row. */
 @media (min-width: 1180px) {
-  .tk-tonight .tracker-cards { flex-direction: column; gap: 2px; overflow: visible; }
-  .tk-tonight .tracker-card { width: auto; max-width: 100%; }
 }
 
 /* Two tiers for the timeline's labels so they cannot collide even when
    sunset and full dark are close together. */
-.tk-nightbar { height: 42px; }
-.tk-nightbar-mark:nth-of-type(even) { top: 15px; }
-.tk-nightbar-mark:nth-of-type(odd) { top: 15px; }
 
 /* ============================================ the meteor stage: one object
 
@@ -14276,46 +13127,1248 @@ button.primary,
    ribbon is attached to the media it describes, sharing its frame and sitting
    on it rather than beneath it. */
 
-.tk-stage {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--tk-line);
-  border-radius: 16px;
-  background: var(--tk-void);
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7);
-}
 .tk-stage .tk-exp {
   border-radius: 0;
   max-height: min(46vh, 400px);
 }
 /* The footer sits over the foot of the footage, dark enough to read against
    whatever the frame happens to be showing. */
-.tk-stage-foot {
-  padding: 12px 16px 14px;
-  background: linear-gradient(180deg, rgba(5, 7, 13, 0.72), rgba(5, 7, 13, 0.94));
-  border-top: 1px solid var(--tk-line);
-}
-.tk-stage-foot .tk-ribbon { gap: 10px; }
-.tk-stage-foot .tk-ribbon-track { height: 34px; margin-top: 2px; }
-.tk-stage-foot .tk-ribbon-verdict { font-size: 0.86rem; max-width: none; }
 /* Provenance stays visible and subordinate, lifted clear of the footer. */
 .tk-stage .tk-exp-credit { bottom: auto; top: 10px; right: 12px; }
 
 /* The compact ribbon needs its own room. Inside the stage footer the track
    kept the height it had as a standalone card, so the mark labels ran into
    the sentence below them. */
-.tk-stage-foot .tk-ribbon-track { height: 46px; margin-top: 4px; }
-.tk-stage-foot .tk-ribbon-mark { top: 20px; }
-.tk-stage-foot .tk-ribbon-verdict { margin-top: 2px; }
 
 /* Three facts, one row. Flex was wrapping "Needs" onto a second line and
    leaving the quadrant beside it empty — the ragged card this pass set out to
    remove. Equal, shrinkable columns keep them together and keep the card
    rectangular. */
-.tk-facts { flex-wrap: nowrap; }
-.tk-fact { flex: 1 1 0; min-width: 0; }
 .tk-fact .tracker-condition { font-size: 0.78rem; }
 @media (max-width: 1320px) {
-  .tk-facts { flex-wrap: wrap; }
-  .tk-fact { flex: 1 1 130px; }
+}
+
+/* ================================================= Tracker Phase 2: reflow
+
+   The document remains a viewport shell, but its view row is the scroll owner
+   below the three-column breakpoint. A phone cannot contain a desktop spread
+   in one physical screen; clipping it is not a one-screen design. */
+
+.tracker-shell,
+.tracker-shell * { box-sizing: border-box; }
+
+.tracker-bar > picture { flex: none; min-width: 0; }
+
+.tracker-upcoming-controls,
+.tk-upcoming-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tk-phenomenon-filter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tk-ink-dim);
+  font-family: var(--tk-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-phenomenon-filter select {
+  min-height: 38px;
+  max-width: 220px;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 9px;
+  background: var(--tk-panel);
+  padding: 0 34px 0 10px;
+  color: var(--tk-ink);
+  font: 500 0.8rem var(--tk-display);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tk-planning-status {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 10px;
+  min-height: 160px;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: var(--tk-panel);
+  padding: clamp(18px, 4vw, 30px);
+}
+.tk-planning-status progress {
+  width: min(100%, 360px);
+  height: 8px;
+  accent-color: var(--tk-accent);
+}
+.tk-planning-status p {
+  margin: 0;
+  color: var(--tk-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.tk-upcoming-panel { min-width: 0; min-height: 0; }
+
+/* An event page opened from Upcoming is the same page Tonight renders, so it
+   must sit in the same place. Nested inside the Upcoming frame it inherited a
+   second set of margins and came out 27px further in — small, and exactly the
+   kind of drift the universal layout exists to prevent. Measured, not eyeballed:
+   the walkthrough compares every region's x and width against the meteor page.
+
+   The frame steps out of the way rather than the page compensating for it, so
+   `.tk-page` keeps one set of margins wherever it is rendered. */
+.tk-upcoming:has(> .tk-page) {
+  display: block;
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+.tk-upcoming-panel > :is(.tk-highlights, .tk-month) { height: 100%; }
+
+.tracker-media-context {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  max-width: calc(100% - 20px);
+  color: rgba(242, 239, 232, 0.94);
+  font: 600 0.55rem var(--tk-display);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95);
+}
+.tracker-media-context span {
+  border: 1px solid rgba(226, 238, 248, 0.34);
+  border-radius: 999px;
+  background: rgba(5, 7, 13, 0.72);
+  padding: 3px 7px;
+}
+.tk-exp-context { right: 10px; }
+.tk-stage .tk-exp-credit { top: auto; bottom: 9px; }
+.tk-media-expectation {
+  margin: 12px 0 16px;
+  max-width: 58ch;
+  color: var(--tk-ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.tk-media-expectation strong { color: var(--tk-ink); font-weight: 600; }
+
+.tk-month-agenda { display: none; }
+
+.tracker-shell :is(button, a, select, input, summary):focus-visible,
+.tk-month-detail:focus-visible {
+  outline: 3px solid var(--tk-accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1179px) {
+}
+
+@media (max-width: 1039px) {
+  .tk-upcoming { overflow-x: hidden; overflow-y: auto; }
+  .tk-upcoming-panel > :is(.tk-highlights, .tk-month) { height: auto; }
+  .tk-highlights { display: block; }
+  .tk-month { align-content: start; }
+  .tk-month-detail {
+    border-top: 1px solid var(--tk-line);
+    border-left: 0;
+    padding: 22px 0 0;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .tracker-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "brand place"
+      "nav nav";
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px max(12px, env(safe-area-inset-left, 0px));
+  }
+  .tracker-bar > picture { grid-area: brand; }
+  .tracker-bar > .tracker-place-current { grid-area: place; justify-self: end; min-width: 0; max-width: 100%; }
+  .tracker-place-current {
+    min-height: 44px;
+    max-width: 100%;
+    padding-inline: 10px;
+  }
+  .tracker-place-context { display: none; }
+  .tracker-nav {
+    grid-area: nav;
+    width: 100%;
+    margin: 0;
+    border-radius: 12px;
+  }
+  .tracker-nav-item {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding: 8px;
+  }
+
+  .tk-upcoming {
+    gap: 16px;
+    padding: 18px 14px 28px;
+  }
+  .tk-upcoming-bar { display: grid; gap: 14px; }
+  .tk-upcoming-controls { display: grid; justify-content: stretch; gap: 9px; }
+  .tk-phenomenon-filter { justify-content: space-between; }
+  .tk-phenomenon-filter select { flex: 1 1 auto; min-height: 44px; max-width: none; }
+  .tk-mode { width: 100%; border-radius: 12px; }
+  .tk-mode-item { flex: 1 1 0; min-height: 44px; padding-inline: 8px; }
+
+  .tk-feature-name { font-size: clamp(1.7rem, 9vw, 2.35rem); }
+  .tk-feature-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tk-feature-action { width: 100%; min-height: 44px; }
+
+  /* Calendar becomes a chronological agenda. The seven-column matrix is a
+     wide-screen index and is intentionally absent at phone width. */
+  .tk-month { gap: 20px; }
+  .tk-month-grid { display: none; }
+  .tk-month-agenda {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tk-agenda-item {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    min-height: 64px;
+    border: 1px solid var(--tk-line);
+    border-radius: 11px;
+    background: var(--tk-panel);
+    padding: 11px 12px;
+    color: inherit;
+    text-align: left;
+  }
+  .tk-agenda-item[aria-pressed="true"] { border-color: var(--tk-accent); background: var(--tk-panel-lift); }
+  .tk-agenda-item time { color: var(--tk-blue-lit); font: 0.7rem var(--tk-mono); }
+  .tk-agenda-item strong { color: var(--tk-ink); font: 600 0.95rem var(--tk-display); }
+  .tk-agenda-item span { color: var(--tk-ink-dim); font-size: 0.75rem; }
+  .tk-agenda-empty { color: var(--tk-ink-dim); font-size: 0.86rem; line-height: 1.5; }
+  .tk-month-step { width: 44px; height: 44px; }
+  .tk-month-detail { padding-bottom: 24px; }
+
+  .tracker-media-context { font-size: 0.48rem; letter-spacing: 0.05em; }
+  .tracker-media-context span { padding: 3px 6px; }
+  .tracker-credit { left: 10px; right: 10px; max-width: none; font-size: 0.58rem; text-align: left; }
+  .tk-exp-credit { left: 10px; right: 10px; flex-wrap: wrap; }
+}
+
+@media (max-width: 360px) {
+  .tracker-bar-logo { width: 118px; height: auto; }
+  .tracker-place-name { max-width: 112px; }
+  .tk-upcoming { padding-inline: 10px; }
+  .tk-feature-facts { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-shell,
+  .tracker-shell * { scroll-behavior: auto !important; }
+}
+
+@media (forced-colors: active) {
+  .tracker-shell :is(button, select, input, .tk-day, .tk-agenda-item, .tk-planning-status) {
+    border: 1px solid ButtonText;
+  }
+  .tracker-media-context span { border: 1px solid CanvasText; background: Canvas; color: CanvasText; text-shadow: none; }
+  .tk-day[aria-pressed="true"],
+  .tk-agenda-item[aria-pressed="true"] { outline: 3px solid Highlight; outline-offset: -3px; }
+}
+
+/* ===========================================================================
+   The universal event interface.
+
+   One page geometry for every phenomenon: heading, a two-thirds hero beside a
+   one-third visualization, four condition cards, a ranked list of rows. Nothing
+   below is phenomenon-specific, which is the point — a meteor shower and an
+   eclipse differ in what fills the slots and in nothing else.
+
+   Written as one block at the end of the file rather than threaded through the
+   earlier Tracker sections, because those describe the layout this replaces and
+   the two must not be interleaved while both exist.
+
+   Violet joins the palette here. The identity note above reserves teal for
+   action and selection, and that still holds for selection — but a single hue
+   doing action, selection, "good conditions" and "this is the best hour of the
+   night" was overloaded to the point of meaninglessness. Violet takes the
+   primary action and quantitative emphasis; teal keeps quality and selection.
+   =========================================================================== */
+
+:root,
+.tracker-shell {
+  /* Two violets, because they do two jobs with two different contrast
+     requirements. The action colour sits under near-white label text and has to
+     clear 4.5:1 to satisfy WCAG AA — #6366e8 measured 4.31:1 and the
+     accessibility gate caught it. The data colour sits *on* the dark panel with
+     nothing written on it, so it is free to be brighter and is chosen for
+     legibility against the surface instead. */
+  --tk-violet: #5457dd;
+  --tk-violet-press: #484bd0;
+  --tk-violet-lift: #8b8ef6;
+  --tk-violet-soft: rgba(99, 102, 232, 0.16);
+  --tk-eclipse-track: #d9c9ff;
+  --tk-aurora: #4fd8b0;
+  --tk-good: #63d9a8;
+  --tk-fair: #e3b877;
+  --tk-poor: #e08a86;
+}
+
+/* --- the shell and its bar ------------------------------------------------ */
+
+.tk-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 12px clamp(16px, 2.4vw, 28px);
+  border-bottom: 1px solid var(--tk-line);
+  background: rgba(8, 12, 21, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.tk-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tk-header-divider {
+  width: 1px;
+  height: 26px;
+  background: var(--tk-line);
+}
+
+.tk-header-nav {
+  display: flex;
+  gap: 4px;
+  justify-self: center;
+}
+
+.tracker-nav-item {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--tk-ink-dim);
+  padding: 8px 14px 10px;
+  font-family: var(--tk-display);
+  font-size: 0.98rem;
+  cursor: pointer;
+}
+.tracker-nav-item:hover { color: var(--tk-ink-soft); }
+.tracker-nav-item[aria-current="page"] {
+  border-bottom-color: var(--tk-violet);
+  color: var(--tk-ink);
+}
+
+.tk-header-utilities {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tk-freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 8px 0 0;
+  color: var(--tk-ink-faint);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.tk-freshness i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tk-good);
+}
+.tk-freshness.is-ageing i { background: var(--tk-fair); }
+.tk-freshness.is-stale i,
+.tk-freshness.is-unknown i { background: var(--tk-ink-faint); }
+
+.tk-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--tk-line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tk-ink-soft);
+  cursor: pointer;
+}
+.tk-icon-button:hover {
+  border-color: var(--tk-line-strong);
+  background: rgba(126, 166, 207, 0.08);
+  color: var(--tk-ink);
+}
+
+.tk-utility-panel {
+  max-width: 380px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--tk-ink-soft);
+}
+.tk-utility-panel h2 {
+  margin: 0 0 10px;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
+.tk-utility-panel h3 {
+  margin: 14px 0 6px;
+  color: var(--tk-ink-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tk-utility-panel p { margin: 0 0 10px; }
+.tk-utility-panel ul { margin: 0; padding-left: 18px; }
+.tk-utility-panel li { margin-bottom: 7px; }
+.tk-utility-foot { margin-top: 12px; color: var(--tk-ink-faint); font-size: 0.78rem; }
+
+/* --- the page ------------------------------------------------------------- */
+
+.tk-page {
+  display: block;
+  width: 100%;
+  max-width: 1560px;
+  /* `justify-self`, not auto margins.
+  
+     The page is a grid item of `.tracker-shell`, and an auto margin on a grid
+     item disables the default stretch: the item is then sized to its *content*
+     and centred inside its area, so the whole page's width became a function of
+     how long the selected event's copy happened to be. The same page opened
+     from Upcoming — where it is an ordinary block — came out 17px further out,
+     which is how the layout-drift check found it.
+  
+     This is the second time this project has been bitten by auto margins on a
+     grid item; see the note on `.tk-upcoming`. */
+  justify-self: center;
+  margin: 0;
+  padding: clamp(18px, 2.2vw, 30px) clamp(16px, 2.4vw, 28px) 48px;
+}
+
+/* The previous Tonight was a fixed-height grid that owned the viewport. This is
+   a document again: the row heights come from the content, and the page ends
+   where the list ends. */
+.tk-page.tk-tonight {
+  display: block;
+  height: auto;
+  min-height: 0;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  gap: 0;
+}
+
+.tk-page-heading { margin-bottom: 16px; }
+.tk-page-heading h1 {
+  margin: 0 0 4px;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+.tk-page-heading p {
+  margin: 0;
+  color: var(--tk-ink-dim);
+  font-size: 0.95rem;
+}
+
+.tk-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--tk-blue-lit);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.tk-back:hover { color: var(--tk-ink); text-decoration: underline; }
+
+/* --- the main row: two thirds, one third, always -------------------------- */
+
+/* Two thirds and one third, with the hero given the extra pixel of a rounding
+   split rather than the panel. The exact ratio matters less than that it never
+   changes: a map that is allowed to grow takes the page, which is the drift
+   this layout exists to prevent. */
+.tk-main-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(320px, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* --- the hero ------------------------------------------------------------- */
+
+.tracker-hero.tk-hero {
+  display: grid;
+  /* The reading column takes the larger share. The picture is cropped to
+     whatever box is left, and a box taller than it is wide crops a landscape
+     photograph horizontally — which on a wide-field sky photograph throws away
+     the subject and keeps the empty sky. */
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+  height: auto;
+  min-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: var(--tk-panel);
+}
+
+.tk-hero-body {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 22px 20px 24px;
+  min-width: 0;
+}
+
+.tracker-hero .tk-hero-name {
+  margin: 0 0 10px;
+  max-width: 18ch;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: clamp(1.5rem, 2.2vw, 2.05rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+}
+
+.tk-hero-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+.tk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  padding: 3px 11px;
+  color: var(--tk-ink-soft);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.tk-pill.is-live {
+  border-color: rgba(99, 217, 168, 0.42);
+  background: rgba(99, 217, 168, 0.1);
+  color: #bdf0da;
+}
+.tk-pill.is-caution {
+  border-color: rgba(227, 184, 119, 0.4);
+  background: rgba(227, 184, 119, 0.08);
+  color: #f0d5ab;
+}
+.tk-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tk-good);
+}
+
+.tk-hero-recommendation {
+  margin: 0 0 6px;
+  max-width: 40ch;
+  color: var(--tk-ink);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+.tk-hero-support {
+  margin: 0;
+  max-width: 44ch;
+  color: var(--tk-ink-faint);
+  font-size: 0.86rem;
+}
+
+.tk-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-metric { padding-right: 14px; }
+.tk-metric + .tk-metric {
+  border-left: 1px solid var(--tk-line);
+  padding-left: 16px;
+}
+.tk-metric dt {
+  margin-bottom: 5px;
+  color: var(--tk-ink-faint);
+  font-size: 0.73rem;
+  letter-spacing: 0.02em;
+}
+.tk-metric-value {
+  margin: 0;
+  color: var(--tk-ink);
+  font-family: var(--tk-mono);
+  font-size: 0.94rem;
+  line-height: 1.25;
+}
+.tk-metric-value.is-good { color: var(--tk-good); }
+.tk-metric-value.is-fair { color: var(--tk-fair); }
+.tk-metric-value.is-poor { color: var(--tk-poor); }
+.tk-metric-value.is-unknown { color: var(--tk-ink-faint); }
+
+.tracker-hero .tracker-expect {
+  margin: 14px 0 0;
+  max-width: 52ch;
+  color: var(--tk-ink-faint);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.tk-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.tk-action {
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tk-ink);
+  padding: 9px 18px;
+  font-family: var(--tk-body);
+  font-size: 0.87rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tk-action:hover { background: rgba(126, 166, 207, 0.09); }
+.tk-action.is-primary {
+  border-color: transparent;
+  background: var(--tk-violet);
+  color: #f4f5ff;
+}
+.tk-action.is-primary:hover { background: var(--tk-violet-press); }
+
+.tk-hero-media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+}
+.tk-hero-media .tracker-media,
+.tk-hero-media > div { position: absolute; inset: 0; }
+.tk-hero-media img,
+.tk-hero-media svg { width: 100%; height: 100%; }
+/* The picture meets the card's own text column rather than being boxed inside
+   it, so the hero reads as one object with a photographic half. */
+.tk-hero-media::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--tk-panel) 0%, rgba(14, 21, 35, 0.35) 22%, transparent 52%);
+  pointer-events: none;
+}
+.tk-hero-media-claim {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  margin: 0;
+  border-radius: 6px;
+  background: rgba(5, 7, 13, 0.62);
+  padding: 3px 9px;
+  color: rgba(226, 238, 248, 0.85);
+  font-size: 0.68rem;
+}
+.tk-hero-media .tracker-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  left: auto;
+  z-index: 2;
+  max-width: 70%;
+  text-align: right;
+  font-size: 0.62rem;
+}
+
+/* --- the fixed visualization slot ---------------------------------------- */
+
+.tk-viz-slot {
+  display: flex;
+  min-width: 0;
+}
+.tk-viz-panel,
+.tk-viz-slot > .tk-viz-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: var(--tk-panel);
+  padding: 18px 18px 16px;
+  min-width: 0;
+}
+
+.tk-viz-head { margin-bottom: 12px; }
+.tk-viz-title {
+  margin: 0 0 2px;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+.tk-viz-timing {
+  margin: 0;
+  color: var(--tk-ink-faint);
+  font-size: 0.76rem;
+}
+.tk-viz-loading { min-height: 260px; }
+.tk-viz-empty {
+  margin: 0;
+  color: var(--tk-ink-dim);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.tk-viz-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--tk-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tk-blue-lit);
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tk-viz-open:hover { border-color: var(--tk-line-strong); color: var(--tk-ink); }
+
+.tk-viz-verdict {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-viz-verdict-head {
+  margin: 0 0 4px;
+  color: var(--tk-ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.tk-viz-verdict.is-good .tk-viz-verdict-head { color: var(--tk-good); }
+.tk-viz-verdict.is-fair .tk-viz-verdict-head { color: var(--tk-fair); }
+.tk-viz-verdict.is-poor .tk-viz-verdict-head { color: var(--tk-poor); }
+.tk-viz-verdict-detail {
+  margin: 0;
+  color: var(--tk-ink-dim);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* --- activity through the night ------------------------------------------ */
+
+/* The chart takes the room the panel has spare rather than hugging the head.
+   Left to itself it sat against the title with the verdict pushed to the floor
+   and a hole between them, which read as a rendering fault rather than as
+   breathing space. */
+.tk-nightactivity-chart { width: 100%; height: auto; margin: auto 0 10px; }
+.tk-nightactivity-bar { fill: rgba(120, 138, 178, 0.42); }
+.tk-nightactivity-bar.is-best { fill: var(--tk-violet-lift); }
+.tk-nightactivity-window { fill: var(--tk-violet-soft); }
+.tk-nightactivity-axis { stroke: var(--tk-line); stroke-width: 1; }
+.tk-nightactivity-tick { fill: var(--tk-ink-faint); font-size: 11px; font-family: var(--tk-mono); }
+.tk-nightactivity-moon line { stroke: rgba(203, 214, 230, 0.4); stroke-width: 2; }
+.tk-nightactivity-moon circle { fill: var(--tk-moon); }
+
+/* --- one object's path across the night ---------------------------------- */
+
+.tk-skypath-chart { width: 100%; height: auto; margin: auto 0 10px; }
+.tk-skypath-window { fill: var(--tk-violet-soft); }
+.tk-skypath-guide { stroke: rgba(126, 156, 190, 0.14); stroke-width: 1; }
+.tk-skypath-guidelabel { fill: var(--tk-ink-faint); font-size: 10px; font-family: var(--tk-mono); }
+.tk-skypath-line { fill: none; stroke: rgba(126, 166, 207, 0.45); stroke-width: 2; }
+.tk-skypath-line-lit { fill: none; stroke: var(--tk-violet-lift); stroke-width: 3; stroke-linecap: round; }
+.tk-skypath-horizon { stroke: var(--tk-line-strong); stroke-width: 1; }
+.tk-skypath-mark { fill: var(--tk-ink); }
+.tk-skypath-marklabel { fill: var(--tk-ink-dim); font-size: 10px; }
+.tk-skypath-tick { fill: var(--tk-ink-faint); font-size: 11px; font-family: var(--tk-mono); }
+
+/* --- the shared map ------------------------------------------------------- */
+
+.tk-geomap { display: flex; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
+.tk-geomap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tk-geomap-frame {
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: 10px;
+  background: #060a14;
+}
+.tk-geomap-frame svg { display: block; width: 100%; height: auto; }
+.tk-geomap-sea { fill: #070d1a; }
+.tk-geomap-land {
+  fill: rgba(126, 156, 190, 0.14);
+  stroke: rgba(150, 180, 214, 0.34);
+  stroke-width: 0.7;
+  fill-rule: evenodd;
+}
+.tk-geomap-graticule { stroke: rgba(126, 156, 190, 0.09); stroke-width: 0.6; }
+.tk-geomap-marker-halo { fill: rgba(255, 255, 255, 0.14); }
+.tk-geomap-marker-pin { fill: #ffffff; }
+.tk-geomap-marker-dot { fill: #0b1220; }
+.tk-geomap-marker-label {
+  fill: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgba(5, 8, 16, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.tk-eclipse-track {
+  fill: none;
+  stroke: var(--tk-eclipse-track);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.tk-eclipse-track-glow {
+  fill: none;
+  stroke: rgba(217, 201, 255, 0.28);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.tk-geomap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-geomap-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tk-ink-faint);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.tk-geomap-legend span {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.tk-aurora-art,
+.tk-eclipse-art { position: absolute; inset: 0; }
+.tk-aurora-art svg,
+.tk-eclipse-art svg { width: 100%; height: 100%; }
+
+/* --- the four condition cards -------------------------------------------- */
+
+.tracker-condition.tk-conditions {
+  display: block;
+  margin: 0 0 18px;
+  color: inherit;
+  font-size: inherit;
+}
+.tk-conditions-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-condition-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  padding: 14px 16px;
+  min-width: 0;
+}
+.tk-condition-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(126, 166, 207, 0.1);
+  color: var(--tk-blue-lit);
+}
+.tk-condition-card.is-good .tk-condition-icon { color: var(--tk-good); background: rgba(99, 217, 168, 0.1); }
+.tk-condition-card.is-fair .tk-condition-icon { color: var(--tk-fair); background: rgba(227, 184, 119, 0.1); }
+.tk-condition-card.is-poor .tk-condition-icon { color: var(--tk-poor); background: rgba(224, 138, 134, 0.1); }
+.tk-condition-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tk-condition-label { color: var(--tk-ink-dim); font-size: 0.78rem; }
+.tk-condition-value {
+  color: var(--tk-ink);
+  font-size: 0.94rem;
+  line-height: 1.25;
+}
+.tk-condition-note { font-style: normal; }
+.tk-condition-card.is-good .tk-condition-note { color: var(--tk-good); }
+.tk-condition-card.is-fair .tk-condition-note { color: var(--tk-fair); }
+.tk-condition-card.is-poor .tk-condition-note { color: var(--tk-poor); }
+.tk-condition-card.is-unknown .tk-condition-note { color: var(--tk-ink-faint); }
+.tk-conditions-caption {
+  margin: 9px 2px 0;
+  color: var(--tk-ink-faint);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+/* --- the ranked list ------------------------------------------------------ */
+
+.tk-relevant { margin: 0; }
+.tk-relevant-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.tk-relevant-head h2 {
+  margin: 0;
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+.tk-relevant-head p { margin: 0; color: var(--tk-ink-faint); font-size: 0.82rem; }
+
+.tk-relevant-list {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  list-style: none;
+  overflow: hidden;
+}
+.tk-relevant-list li + li { border-top: 1px solid var(--tk-line); }
+
+.tk-relevant-row {
+  display: grid;
+  grid-template-columns: 34px 76px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 92px 20px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 9px 14px;
+  color: var(--tk-ink-soft);
+  font-family: var(--tk-body);
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-relevant-row:hover { background: rgba(126, 166, 207, 0.06); }
+.tk-relevant-row[aria-current="true"] { background: var(--tk-violet-soft); }
+
+.tk-relevant-rank {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--tk-line);
+  border-radius: 7px;
+  color: var(--tk-ink-dim);
+  font-family: var(--tk-mono);
+  font-size: 0.78rem;
+}
+.tk-relevant-thumb {
+  position: relative;
+  overflow: hidden;
+  width: 76px;
+  height: 40px;
+  border-radius: 6px;
+  background: #060a14;
+}
+.tk-relevant-thumb .tracker-media { position: absolute; inset: 0; }
+.tk-relevant-thumb img,
+.tk-relevant-thumb svg { width: 100%; height: 100%; object-fit: cover; }
+/* A planet portrait is an object on a large black field, and `contain` in a
+   76×40 box renders it as a speck. The frame is far too small for the "do not
+   crop Saturn's rings" rule that governs the hero to matter — a horizontal
+   slice through the middle of a planet is the recognisable part of it. */
+.tk-relevant-thumb .tracker-media-subject img { transform: scale(2.1); }
+.tk-relevant-name { color: var(--tk-ink); min-width: 0; }
+.tk-relevant-state,
+.tk-relevant-window {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tk-ink-dim);
+  min-width: 0;
+}
+.tk-relevant-window svg { flex: none; color: var(--tk-ink-faint); }
+.tk-relevant-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tk-ink-faint);
+}
+.tk-relevant-dot.is-good { background: var(--tk-good); }
+.tk-relevant-dot.is-fair { background: var(--tk-fair); }
+.tk-relevant-dot.is-poor { background: var(--tk-poor); }
+.tk-relevant-quality { color: var(--tk-ink-dim); }
+.tk-relevant-quality.is-good { color: var(--tk-good); }
+.tk-relevant-quality.is-fair { color: var(--tk-fair); }
+.tk-relevant-quality.is-poor { color: var(--tk-poor); }
+.tk-relevant-chevron { color: var(--tk-ink-faint); }
+
+/* --- the drill-in --------------------------------------------------------- */
+
+.tk-overlay {
+  /* An explicit width, not a maximum: a dialog sizes to its content, and an
+     SVG at width:100% has no intrinsic width to size to — so the drill-in
+     opened as a narrow column with the map squeezed inside it. */
+  width: min(1040px, 94vw);
+  max-width: min(1040px, 94vw);
+  max-height: 92vh;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--tk-ink);
+}
+.tk-overlay::backdrop { background: rgba(4, 6, 12, 0.72); }
+.tk-overlay-panel {
+  border: 1px solid var(--tk-line);
+  border-radius: 16px;
+  background: var(--tk-panel);
+  overflow: hidden;
+}
+.tk-overlay-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--tk-line);
+  padding: 16px 18px;
+}
+.tk-overlay-head h2 {
+  margin: 0 0 3px;
+  font-family: var(--tk-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+}
+.tk-overlay-head p { margin: 0; color: var(--tk-ink-dim); font-size: 0.82rem; max-width: 60ch; }
+.tk-overlay-body { padding: 18px; overflow: auto; max-height: calc(92vh - 82px); }
+.tk-overlay-body svg { width: 100%; height: auto; }
+.tk-overlay-map .tk-viz-panel { border: 0; padding: 0; background: transparent; }
+/* The control that opened this overlay has nothing left to open. */
+.tk-overlay-map .tk-viz-open { display: none; }
+.tk-overlay-footage {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-overlay-footage .tk-exp { margin: 0; }
+.tk-overlay-footage .tk-exp-media {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.tk-overlay-footage .tracker-media-context,
+.tk-overlay-footage .tk-exp-credit {
+  margin: 8px 0 0;
+  color: var(--tk-ink-faint);
+  font-size: 0.7rem;
+}
+.tk-overlay-footage .tracker-media-context span + span::before {
+  content: " · ";
+}
+.tk-overlay-footage a { color: var(--tk-ink-dim); }
+
+.tk-overlay-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-overlay-facts dt { margin-bottom: 4px; color: var(--tk-ink-faint); font-size: 0.74rem; }
+.tk-overlay-facts dd { margin: 0; color: var(--tk-ink-soft); font-size: 0.86rem; line-height: 1.45; }
+
+/* --- Upcoming as a gallery ------------------------------------------------ */
+
+.tk-upcoming-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-upcoming-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: var(--tk-panel);
+  padding: 0;
+  color: var(--tk-ink-soft);
+  font-family: var(--tk-body);
+  text-align: left;
+  cursor: pointer;
+}
+.tk-upcoming-card:hover { border-color: var(--tk-line-strong); background: var(--tk-panel-lift); }
+.tk-upcoming-card-media { position: relative; display: block; height: 118px; background: #060a14; }
+.tk-upcoming-card-media .tracker-media { position: absolute; inset: 0; }
+.tk-upcoming-card-media img,
+.tk-upcoming-card-media svg { width: 100%; height: 100%; object-fit: cover; }
+.tk-upcoming-card-date {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  justify-items: center;
+  border-radius: 8px;
+  background: rgba(5, 7, 13, 0.78);
+  padding: 5px 9px;
+  line-height: 1.1;
+}
+.tk-upcoming-card-date b {
+  color: var(--tk-blue-lit);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.tk-upcoming-card-date i {
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1.05rem;
+  font-style: normal;
+}
+.tk-upcoming-card-date u {
+  color: var(--tk-ink-faint);
+  font-family: var(--tk-mono);
+  font-size: 0.6rem;
+  text-decoration: none;
+}
+.tk-upcoming-card-body { display: flex; flex-direction: column; gap: 5px; padding: 13px 15px 14px; flex: 1; }
+.tk-upcoming-card-kind {
+  color: var(--tk-blue-lit);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.tk-upcoming-card-name {
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 1.02rem;
+}
+.tk-upcoming-card-why { color: var(--tk-ink-dim); font-size: 0.82rem; line-height: 1.45; }
+.tk-upcoming-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--tk-ink-faint);
+  font-family: var(--tk-mono);
+  font-size: 0.76rem;
+}
+
+.tk-month-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* --- responsive ----------------------------------------------------------- */
+
+/* The hierarchy on a narrow screen is the same hierarchy: the recommendation,
+   then the evidence, then conditions, then everything else. The columns stack
+   in that order rather than being rearranged, and nothing is dropped — the
+   drill-ins are what keep the page from growing instead. */
+@media (max-width: 1180px) {
+  .tk-main-row { grid-template-columns: minmax(0, 1fr); }
+  .tk-viz-slot { min-height: 300px; }
+  .tk-relevant-row {
+    grid-template-columns: 30px 64px minmax(0, 1.4fr) minmax(0, 1fr) 84px 18px;
+  }
+  .tk-relevant-state { display: none; }
+}
+
+@media (max-width: 900px) {
+  /* Every child is placed explicitly. Auto-placement put the utility buttons
+     ahead of the wordmark, because the nav's explicit row-2 assignment left the
+     first row's flow order to chance — the product's identity ended up third in
+     its own header. */
+  .tk-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+  .tk-header-identity { grid-column: 1; grid-row: 1; }
+  .tk-header-utilities { grid-column: 2; grid-row: 1; }
+  .tk-header-nav { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+  .tk-header-nav .tracker-nav-item { flex: 1; }
+  .tk-freshness { display: none; }
+  .tracker-hero.tk-hero { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .tk-hero-media { position: relative; order: -1; height: 190px; }
+  .tk-hero-media::before {
+    background: linear-gradient(0deg, var(--tk-panel) 0%, rgba(14, 21, 35, 0.28) 45%, transparent 80%);
+  }
+  .tk-conditions-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .tk-page { padding: 14px 14px 40px; }
+  .tk-hero-metrics { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .tk-metric + .tk-metric { border-left: 0; border-top: 1px solid var(--tk-line); padding-left: 0; padding-top: 12px; }
+  .tk-relevant-row {
+    grid-template-columns: 26px 56px minmax(0, 1fr) 16px;
+    row-gap: 4px;
+  }
+  /* The thumbnail carries a fixed width in the base rule so the columns line up
+     on a wide screen. Left at that width in a 56px track it overflowed across
+     the name beside it. */
+  .tk-relevant-thumb { width: 100%; height: 34px; }
+  .tk-relevant-window,
+  .tk-relevant-quality { display: none; }
+  .tk-relevant-state { display: inline-flex; grid-column: 3; }
+  .tk-hero-body { padding: 18px; }
 }

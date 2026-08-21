@@ -17,6 +17,9 @@ import {
 } from "./meteorActivity";
 import type { Opportunity, PhenomenonGeometry } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
+import { lunarPhaseAt } from "./lunarPhase";
+import { lunarEclipseTiming } from "./lunarEclipse";
+import { angularSeparation, oppositionDuring } from "./planetaryEvents";
 
 /**
  * The phenomena Tracker can offer tonight, each turned into an `Opportunity`.
@@ -313,31 +316,16 @@ function meteorOpportunity(
 
 /* -------------------------------------------------------------------- Moon */
 
-const MOON_PHASE_NAMES = [
-  "New Moon", "waxing crescent", "First Quarter", "waxing gibbous",
-  "Full Moon", "waning gibbous", "Last Quarter", "waning crescent",
-];
-
 function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportunity | null {
   const times = sampleTimes(observer, period, false);
   if (times.length === 0) return null;
   const placement = bestPlacement(observer, Body.Moon, times);
-  if (!placement) return null;
-
-  const at = new Date(placement.atUtc);
-  const illumination = Illumination(Body.Moon, MakeTime(at));
-  const fraction = illumination.phase_fraction;
-  const phaseIndex = Math.round((illumination.phase_angle / 360) * 8) % 8;
-  const waxing = illumination.phase_angle < 180;
-  const phaseName = fraction < 0.03
-    ? "New Moon"
-    : fraction > 0.97
-      ? "Full Moon"
-      : Math.abs(fraction - 0.5) < 0.06
-        ? waxing ? "First Quarter" : "Last Quarter"
-        : `${waxing ? "waxing" : "waning"} ${fraction < 0.5 ? "crescent" : "gibbous"}`;
-
-  if (fraction < 0.03) return null;
+  const periodMiddle = new Date((Date.parse(period.startUtc) + Date.parse(period.endUtc)) / 2);
+  const phase = lunarPhaseAt(placement ? new Date(placement.atUtc) : periodMiddle);
+  const fraction = Number(phase.illuminatedFraction);
+  const phaseName = phase.name;
+  const isNewMoon = phaseName === "New Moon";
+  if (!placement && !isNewMoon) return null;
 
   // The terminator is where the Moon is worth looking at: craters near the
   // day-night line throw long shadows and stand up in relief. A full Moon is
@@ -346,56 +334,77 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
   const spectacle = 0.25 + 0.45 * nearTerminator;
   const earthshine = fraction < 0.25;
   // Bound once so the profile and the geometry read off the same samples.
-  const moonProfile = altitudeProfile(observer, Body.Moon, times);
+  const moonProfile = placement
+    ? altitudeProfile(observer, Body.Moon, times)
+    : times.map((at) => ({ atUtc: at.toISOString(), relative: 1 }));
+  const direction = placement ? compassPoint(placement.azimuthDeg) : null;
+  const whenUtc = placement?.atUtc ?? periodMiddle.toISOString();
 
   return {
     id: "moon",
     kind: "moon",
     title: phaseName === "First Quarter" || phaseName === "Last Quarter" || phaseName === "Full Moon"
       ? `The ${phaseName}`
-      : `The Moon, a ${phaseName}`,
-    summary: earthshine
+      : phaseName === "New Moon"
+        ? "New Moon"
+        : `The Moon, a ${phaseName.toLowerCase()}`,
+    summary: isNewMoon
+      ? "The Moon is near the Sun and absent from the night sky, leaving the darkest lunar conditions of the month."
+      : earthshine
       ? "A thin crescent, with the dark part glowing faintly — that glow is Earth, shining back."
       : nearTerminator > 0.5
         ? "Craters along the day-night line stand up in relief. The best night of the month for binoculars."
         : "Big, bright and impossible to miss.",
     qualities: {
-      observability: Math.min(1, altitudeObservability(placement.altitudeDeg) + 0.3),
-      spectacle,
-      recognisability: 1,
-      ease: timingEase(placement.atUtc, period),
+      observability: isNewMoon ? 0.45 : Math.min(1, altitudeObservability(placement!.altitudeDeg) + 0.3),
+      spectacle: isNewMoon ? 0.15 : spectacle,
+      recognisability: isNewMoon ? 0.2 : 1,
+      ease: isNewMoon ? 0.8 : timingEase(placement!.atUtc, period),
       confidence: 1,
       rarity: 0.02,
     },
     guidance: {
-      appearance: earthshine
+      appearance: isNewMoon
+        ? "The Moon itself is not visible at night. Its absence makes faint stars and meteors easier to see."
+        : earthshine
         ? "A bright crescent with the unlit part glowing faintly grey — that is sunlight reflected off Earth, onto the Moon, and back again."
         : nearTerminator > 0.5
           ? "Craters along the day-night line stand out in relief, with shadows long enough to see with binoculars."
           : "A bright, flat disc. Detail is hard to see when the Sun is overhead on the Moon.",
-      whenUtc: placement.atUtc,
+      whenUtc,
       durationMinutes: 120,
-      direction: compassPoint(placement.azimuthDeg),
-      elevation: `${elevationInFists(placement.altitudeDeg)[0].toUpperCase()}${elevationInFists(placement.altitudeDeg).slice(1)}.`,
-      howLong: "A few minutes with your eyes; longer if you have binoculars.",
+      direction,
+      elevation: isNewMoon
+        ? "There is no lunar target to point at tonight."
+        : `${elevationInFists(placement!.altitudeDeg)[0].toUpperCase()}${elevationInFists(placement!.altitudeDeg).slice(1)}.`,
+      howLong: isNewMoon
+        ? "Use the moonless darkness for faint targets across the night."
+        : "A few minutes with your eyes; longer if you have binoculars.",
       equipment: "eyes",
-      technique: nearTerminator > 0.4
+      technique: isNewMoon
+        ? "Let your eyes adapt for 20 minutes and keep bright screens away."
+        : nearTerminator > 0.4
         ? "Look along the terminator, the line between lit and unlit. Everything interesting is there."
         : null,
       safety: null,
     },
     phenomenon:
       "The Moon shows a phase because you are seeing a sphere lit from one side, from a changing angle as it goes round Earth. The phase is not Earth's shadow — that only happens during a lunar eclipse.",
-    tonight: `${phaseName}, ${Math.round(fraction * 100)}% lit, highest at ${formatTime(placement.atUtc)} about ${Math.round(placement.altitudeDeg)}° above the ${compassPoint(placement.azimuthDeg)} horizon.`,
+    tonight: isNewMoon
+      ? `New Moon, ${Math.round(fraction * 100)}% lit. The Moon is not a visible target; the opportunity is the darker sky.`
+      : `${phaseName}, ${Math.round(fraction * 100)}% lit, best after dusk at ${formatTime(placement!.atUtc)} about ${Math.round(placement!.altitudeDeg)}° above the ${compassPoint(placement!.azimuthDeg)} horizon.`,
     missingInputs: [],
     limitations: fraction > 0.6
       ? ["A Moon this bright washes out everything faint tonight, including meteors."]
-      : [],
+      : isNewMoon
+        ? ["New Moon is a dark-sky condition, not a visible lunar target."]
+        : [],
+    science: { kind: "lunar-phase", phase },
     profile: moonProfile,
-    geometry: targetGeometry(moonProfile),
+    geometry: placement ? targetGeometry(moonProfile) : undefined,
     // The Moon is visible through cloud that would end everything else.
     transparency: "low",
-    sceneHints: { illuminatedFraction: fraction, waning: !waxing },
+    sceneHints: { illuminatedFraction: fraction, waning: phase.waning },
   };
 }
 
@@ -475,6 +484,7 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
     if (observability <= 0) continue;
 
     const target = profile.telescopeTarget;
+    const physicalEvent = oppositionDuring(profile.body, period.startUtc, period.endUtc);
     // Saturn and "Saturn's rings" used to be two entries, ranked separately and
     // reading as unrelated events. They are one thing in the sky: a point you
     // can find with your eyes, which becomes a ringed planet through a
@@ -517,6 +527,7 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
             "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
           ]
         : [],
+      science: { kind: "planet", body: profile.name, event: physicalEvent },
       profile: planetProfile,
       geometry: targetGeometry(planetProfile),
       transparency: "low",
@@ -547,20 +558,6 @@ const CONJUNCTION_BODIES: { body: Body; name: string }[] = [
   { body: Body.Saturn, name: "Saturn" },
 ];
 
-/** Angular separation between two horizontal positions, degrees. */
-function separationDeg(
-  a: { altitude: number; azimuth: number },
-  b: { altitude: number; azimuth: number },
-): number {
-  const toRad = Math.PI / 180;
-  const cosine =
-    Math.sin(a.altitude * toRad) * Math.sin(b.altitude * toRad) +
-    Math.cos(a.altitude * toRad) *
-      Math.cos(b.altitude * toRad) *
-      Math.cos((a.azimuth - b.azimuth) * toRad);
-  return Math.acos(Math.min(1, Math.max(-1, cosine))) / toRad;
-}
-
 /** Pairs closer than this are worth pointing out. */
 const CONJUNCTION_LIMIT_DEG = 6;
 
@@ -579,7 +576,12 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         const a = horizontal(observer, first.body, at);
         const b = horizontal(observer, second.body, at);
         if (a.altitude <= 5 || b.altitude <= 5) continue;
-        const separation = separationDeg(a, b);
+        const separation = Number(
+          angularSeparation(
+            { altitudeDeg: a.altitude, azimuthDeg: a.azimuth },
+            { altitudeDeg: b.altitude, azimuthDeg: b.azimuth },
+          ),
+        );
         // The best moment is the highest one, not the closest: a pair 2° apart
         // in the trees is worse than the same pair 3° apart and well up.
         const altitude = (a.altitude + b.altitude) / 2;
@@ -632,6 +634,14 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         tonight: `Closest useful view at ${formatTime(best.at.toISOString())}, ${best.separation.toFixed(1)}° apart and ${Math.round(best.altitude)}° up.`,
         missingInputs: [],
         limitations: [],
+        science: {
+          kind: "conjunction",
+          bodies: [first.name, second.name],
+          separationDeg: angularSeparation(
+            { altitudeDeg: horizontal(observer, first.body, best.at).altitude, azimuthDeg: horizontal(observer, first.body, best.at).azimuth },
+            { altitudeDeg: horizontal(observer, second.body, best.at).altitude, azimuthDeg: horizontal(observer, second.body, best.at).azimuth },
+          ),
+        },
         profile: conjunctionProfile,
         geometry: targetGeometry(conjunctionProfile),
         transparency: "low",
@@ -659,7 +669,30 @@ function lunarEclipseOpportunity(
 
   const totality = eclipse.kind === "total";
   const partial = eclipse.kind === "partial";
-  const half = (totality ? eclipse.sd_total : partial ? eclipse.sd_partial : eclipse.sd_penum) * 2;
+  const timing = lunarEclipseTiming(eclipse);
+  const contactInstants = {
+    penumbralStart: timing.penumbral.startUtc,
+    partialStart: timing.partial?.startUtc,
+    totalityStart: timing.totality?.startUtc,
+    maximum: timing.maximumUtc,
+    totalityEnd: timing.totality?.endUtc,
+    partialEnd: timing.partial?.endUtc,
+    penumbralEnd: timing.penumbral.endUtc,
+  };
+  const localContacts = Object.fromEntries(
+    Object.entries(contactInstants)
+      .flatMap(([name, atUtc]) =>
+        atUtc
+          ? [[name, horizontal(observer, Body.Moon, new Date(atUtc)).altitude] as const]
+          : [],
+      ),
+  );
+  if (!Object.values(localContacts).some((altitude) => altitude > 0)) return null;
+  const recommendedContact = Object.entries(localContacts).reduce((best, entry) =>
+    entry[1] > best[1] ? entry : best,
+  );
+  const recommendedAt = new Date(contactInstants[recommendedContact[0] as keyof typeof contactInstants] ?? timing.maximumUtc);
+  const recommendedPosition = horizontal(observer, Body.Moon, recommendedAt);
 
   return {
     id: "lunar-eclipse",
@@ -689,9 +722,9 @@ function lunarEclipseOpportunity(
           ? "A curved, distinctly dark edge creeping across the disc. The curve is Earth's shadow."
           : "A faint grey shading on one side. Genuinely hard to see.",
       whenUtc: eclipse.peak.date.toISOString(),
-      durationMinutes: Math.round(half * 60),
-      direction: compassPoint(position.azimuth),
-      elevation: `${elevationInFists(position.altitude)[0].toUpperCase()}${elevationInFists(position.altitude).slice(1)}, at mid-eclipse.`,
+      durationMinutes: Math.round(Number(timing.observablePhase.durationMinutes)),
+      direction: compassPoint(recommendedPosition.azimuth),
+      elevation: `${elevationInFists(recommendedPosition.altitude)[0].toUpperCase()}${elevationInFists(recommendedPosition.altitude).slice(1)}, at the best locally visible contact.`,
       howLong: "Go out well before the middle. The interesting part is the change, not the moment.",
       equipment: "eyes",
       technique: "No filter, no equipment, no danger — a lunar eclipse is just the Moon, and a dim one at that.",
@@ -699,12 +732,22 @@ function lunarEclipseOpportunity(
     },
     phenomenon:
       "Earth passes exactly between the Sun and the Moon and its shadow falls across the lunar surface. It only turns red rather than black because Earth's atmosphere bends some sunlight into the shadow, filtering out the blue on the way — the Moon is being lit by every sunset on the planet at once.",
-    tonight: `Mid-eclipse at ${formatTime(eclipse.peak.date.toISOString())}, with the Moon ${Math.round(position.altitude)}° above the ${compassPoint(position.azimuth)} horizon from where you are.`,
+    tonight: position.altitude > 0
+      ? `Maximum eclipse at ${formatTime(timing.maximumUtc)}, with the Moon ${Math.round(position.altitude)}° above the ${compassPoint(position.azimuth)} horizon from where you are.`
+      : `Maximum eclipse is below your horizon, but part of the eclipse is locally visible around ${formatTime(recommendedAt.toISOString())}.`,
     missingInputs: [],
-    limitations: [],
+    limitations: [
+      "Contact times are global model-derived circumstances. Local visibility is checked from Moon altitude at each contact, and the visibility footprint is sampled from the same altitudes on a coarse grid.",
+    ],
+    science: {
+      kind: "lunar-eclipse",
+      timing,
+      obscurationFraction: eclipse.obscuration,
+      localContactAltitudesDeg: localContacts,
+    },
     // Fixed to the eclipse itself rather than to altitude: an eclipse is only
     // worth watching while it is happening, wherever the Moon has got to.
-    profile: eclipseProfile(observer, eclipse.peak.date, half),
+    profile: eclipseProfile(observer, timing),
     transparency: "low",
     sceneHints: { illuminatedFraction: 1 },
   };
@@ -721,19 +764,31 @@ function lunarEclipseOpportunity(
  */
 function eclipseProfile(
   observer: Observer,
-  peak: Date,
-  halfDurationHours: number,
+  timing: ReturnType<typeof lunarEclipseTiming>,
 ): OpportunitySample[] {
   const samples: OpportunitySample[] = [];
-  const span = Math.max(0.5, halfDurationHours) * 3_600_000;
-  for (let offset = -span; offset <= span; offset += SAMPLE_INTERVAL_MINUTES * MS_PER_MINUTE) {
-    const at = new Date(peak.getTime() + offset);
+  const start = Date.parse(timing.observablePhase.startUtc);
+  const end = Date.parse(timing.observablePhase.endUtc);
+  const peak = Date.parse(timing.maximumUtc);
+  const span = Math.max(1, end - start);
+  for (let stamp = start; stamp <= end; stamp += SAMPLE_INTERVAL_MINUTES * MS_PER_MINUTE) {
+    const at = new Date(stamp);
     const { altitude, azimuth } = horizontal(observer, Body.Moon, at);
     samples.push({
       altitudeDeg: altitude,
       azimuthDeg: azimuth,
-      atUtc: new Date(peak.getTime() + offset).toISOString(),
-      relative: 1 - Math.abs(offset) / (span * 1.6),
+      atUtc: at.toISOString(),
+      relative: altitude > 0 ? Math.max(0, 1 - (2 * Math.abs(stamp - peak)) / span) : 0,
+    });
+  }
+  if (samples.at(-1)?.atUtc !== timing.observablePhase.endUtc) {
+    const at = new Date(end);
+    const { altitude, azimuth } = horizontal(observer, Body.Moon, at);
+    samples.push({
+      altitudeDeg: altitude,
+      azimuthDeg: azimuth,
+      atUtc: at.toISOString(),
+      relative: 0,
     });
   }
   return samples;

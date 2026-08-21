@@ -45,6 +45,7 @@
     "science:report": "node scripts/report-celestial-validation.mjs",
     "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs",
     "a11y:verify": "node scripts/verify/accessibility.mjs",
+    "tracker:walkthrough": "node scripts/verify/tracker-walkthrough.mjs",
     "fragmentation:build": "python3 scripts/build-fragmentation-causes.py"
   },
   "dependencies": {

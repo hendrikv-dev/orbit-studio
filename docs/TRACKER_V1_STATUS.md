@@ -13,52 +13,78 @@ more usefully, what has not.
 | **A3** | Telescope opportunity | **Met.** Saturn's rings and Jupiter's moons appear with the requirement marked in the ranked list itself, before the user opens anything. Selecting one gives general guidance. No instrument is assumed and none is asked for. |
 | **A4** | Immediate satellite pass | **Not met.** No satellite passes. See below. |
 | **A5** | Meteor season | **Met.** Every active shower plus the sporadic background, combined into a rate for the observer's own sky, with a chart of how it changes across the night and a recommended time. The zenithal hourly rate is never presented as a personal count. |
-| **A6** | Aurora near the horizon | **Not met.** No aurora. See below. |
+| **A6** | Aurora near the horizon | **Met, within the only horizon that exists.** NOAA's OVATION nowcast and three-day planetary K-index are read directly from the SWPC public endpoints, and aurora is ranked, mapped and explained like any other phenomenon. What is not offered is a long-range aurora forecast, because no such product exists anywhere. See below. |
 | **A7** | Weak night | **Met.** On a night with nothing strong the hero is either an honest ordinary target or empty; there is no floor-filling promotion, and the empty state says so plainly. |
 | **A8** | Paid service boundary | **Met, trivially.** Everything is computed on the device. There is no account, no backend and no request of any kind, so no user can receive a service that costs anything. The reminder path is a calendar file generated in the browser. |
 
-## The two Confirmed requirements that are not met
+## Aurora: built, and the earlier reasoning corrected
 
-**Satellite and ISS passes (§7.1) and aurora (§7.3).** Both are Confirmed V1 in
-the PRD. Neither is built, and neither can be built from what ships in the
-bundle:
+This document previously recorded aurora as unbuildable, on the grounds that a
+nowcast needs a feed, a feed needs a caching proxy, and a proxy is a backend
+somebody pays for. **That reasoning was wrong for aurora**, and the correction is
+worth stating plainly because it was load-bearing.
 
-- A pass prediction needs orbital elements no more than a few hours old. The two
-  sources are CelesTrak, whose terms require a caching proxy and forbid direct
-  browser fetching at scale, and Space-Track, which prohibits redistribution to
-  third parties. Both routes therefore require a backend.
-- Aurora needs a nowcast — NOAA's OVATION product refreshes every five minutes
-  and has a useful horizon of thirty to ninety minutes. Nothing about tonight's
-  aurora can be computed from geometry.
+NOAA's Space Weather Prediction Center publishes the OVATION aurora nowcast and
+the planetary K-index as static JSON on a public CDN, with
+`access-control-allow-origin: *` and a one-minute cache header, as works of the
+United States government in the public domain. There is no key, no registration,
+no rate agreement and no identification requirement — the constraint that makes
+the *weather* providers awkward does not apply here. A browser fetches them
+directly at no cost to anybody, which is what Tracker now does.
 
-That collides with §10's cost rule, which is the thing worth a decision rather
-than a workaround: **a backend costs money, and the cost rule says anything that
-costs the developer money is available only to a paying user.** So the two
-phenomena the PRD is most specific about are the two that cannot be free. The
-options are to serve them only to paying users, to accept a fixed unmonetised
-cost, or to defer them — and that is a product decision, not one to be settled
-by an implementation choice.
+What is built is exactly what those products support, in three separated bands:
 
-Nothing has been faked in the meantime. There is no placeholder pass list and no
-seasonal aurora likelihood standing in for a nowcast, because §11 forbids
-presenting a fallback as a current observation.
+- **Nowcast.** NOAA's own probability of visible aurora at the observer's
+  location, drawn as a regional map with the observer marked, and labelled with
+  its issue time. Valid for roughly half an hour.
+- **Short range.** The three-day K-index forecast, which supports "a G2 storm is
+  forecast for Thursday night" and nothing spatial.
+- **Beyond three days.** Nothing. The interface says so.
+
+The one honest gap is imagery: there is no rights-cleared aurora photograph in
+the asset set, so the aurora hero is a drawing whose intensity comes from the
+same nowcast figure the page quotes, labelled as a forecast visualisation.
+
+## The Confirmed requirement that is still not met
+
+**Satellite and ISS passes (§7.1).** A pass prediction needs orbital elements no
+more than a few hours old. The two sources are CelesTrak, whose terms require a
+caching proxy and forbid direct browser fetching at scale, and Space-Track,
+which prohibits redistribution to third parties. Both routes require a backend,
+and a backend costs money — which collides with §10's rule that anything costing
+the developer money is available only to a paying user. That remains a product
+decision rather than an implementation one.
+
+Nothing has been faked in the meantime. There is no placeholder pass list,
+because §11 forbids presenting a fallback as a current observation.
 
 ## Also not built
 
-- **Now, Upcoming and Calendar** as distinct time perspectives (§3). Tonight is
-  built and is the flagship; a date control reaches other nights. The navigation
-  model between them is listed as an open decision, so nothing was invented.
-- **Eclipses of the Sun**, comets, Milky Way and zodiacal light (§7.5). Lunar
-  eclipses are in. The safety mechanism required by §9 for solar viewing exists
-  and renders above all other guidance, unsuppressed, but nothing currently sets
-  it — the first solar event added must.
+- **Comets, Milky Way and zodiacal light** (§7.5). No brightness model and no
+  event source for any of them.
 - **Push, email and SMS reminders** (§10). Calendar export is the free path;
   everything else costs per message.
+
+## Since built
+
+- **Eclipses of the Sun** (§7.5). Global eclipse search, per-observer
+  circumstances, a traced central line and a sampled coverage field, all from the
+  ephemeris rather than from a published map. The §9 safety mechanism — which
+  existed with nothing setting it — is now set by every solar event, and renders
+  above all other guidance, unsuppressed.
+- **Tonight and Upcoming** as the two time perspectives (§3), with Calendar as a
+  representation inside Upcoming rather than a fourth destination. "Now" was
+  removed: Tracker already knows the time, and asking the reader to choose
+  between Now and Tonight was asking them to do the product's job.
 
 ## Where the numbers are weakest
 
 Ranked by how much they could mislead someone:
 
+0. **Aurora is a forecast, not a computation, and a short one.** Everything else
+   in Tracker is as good a century out as it is tonight. The aurora nowcast is
+   good for about half an hour and the K-index for three days, and the interface
+   states which of the two it is using every time it speaks.
 1. **Light pollution is not modelled at all.** The meteor rate is a ceiling for a
    genuinely dark sky. A suburban observer will see a fraction of it. This is
    stated in the interface as a missing input rather than assumed away, but it is

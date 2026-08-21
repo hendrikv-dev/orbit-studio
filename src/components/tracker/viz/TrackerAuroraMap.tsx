@@ -1,0 +1,163 @@
+import { useMemo } from "react";
+import {
+  auroraProbabilityAt,
+  type AuroraAssessment,
+  type AuroraGrid,
+} from "../../../data/tracker/aurora";
+import { formatClockTime, type PlaceClock } from "../../../lib/localTime";
+import { TrackerGeoMap, type MapBounds, type MapProjection } from "./TrackerGeoMap";
+
+/**
+ * The auroral oval over the observer's own region.
+ *
+ * This occupies exactly the slot the meteor activity graph occupies, at the same
+ * size, in the same place. That constraint is the point of the whole system:
+ * the phenomenon changed, so the drawing changed, and nothing else did.
+ *
+ * ## What the field is
+ *
+ * NOAA's OVATION nowcast, on its published one-degree grid, sampled across the
+ * map's own extent. The value is NOAA's own quantity — the probability of
+ * visible aurora at that location — and it is drawn, labelled and attributed as
+ * theirs. Tracker adds no model of its own on top of it, which is why this is
+ * the one place in the product where a percentage appears at all.
+ *
+ * ## What the field is not
+ *
+ * It is not a forecast for tonight. It is a nowcast valid for roughly the next
+ * half hour, and the panel says so in the same breath as it shows the number.
+ * The temptation with a map this pretty is to leave it up as though it meant
+ * something at 2am; the issue time is printed on it precisely so that it cannot.
+ */
+
+interface Props {
+  grid: AuroraGrid;
+  assessment: AuroraAssessment;
+  bounds: MapBounds;
+  observer: { latitudeDeg: number; longitudeDeg: number; label: string };
+  clock: PlaceClock;
+  onOpenFullMap: () => void;
+}
+
+/**
+ * The colour ramp.
+ *
+ * Perceptually ordered and deliberately not a rainbow: a reader has to be able
+ * to rank two patches at a glance, and a hue-cycling scale makes that a memory
+ * test. Low activity sits close to the map's own ground so a quiet night looks
+ * quiet rather than looking like a legend with nothing in it.
+ */
+const RAMP: { stop: number; color: string }[] = [
+  { stop: 5, color: "rgba(72, 96, 150, 0.42)" },
+  { stop: 15, color: "rgba(64, 150, 168, 0.55)" },
+  { stop: 30, color: "rgba(79, 216, 176, 0.62)" },
+  { stop: 50, color: "rgba(196, 226, 122, 0.7)" },
+  { stop: 75, color: "rgba(240, 169, 92, 0.78)" },
+];
+
+function colorFor(probability: number): string | null {
+  let color: string | null = null;
+  for (const entry of RAMP) {
+    if (probability >= entry.stop) color = entry.color;
+  }
+  return color;
+}
+
+export function TrackerAuroraMap({
+  grid,
+  assessment,
+  bounds,
+  observer,
+  clock,
+  onOpenFullMap,
+}: Props) {
+  // One degree matches the source grid exactly, so nothing is interpolated on
+  // the way in. The smoothing happens once, visually, in the map's own filter.
+  const cells = useMemo(() => {
+    const found: { lat: number; lon: number; probability: number }[] = [];
+    for (let lat = Math.floor(bounds.south); lat <= Math.ceil(bounds.north); lat += 1) {
+      for (let lon = Math.floor(bounds.west); lon <= Math.ceil(bounds.east); lon += 1) {
+        const probability = auroraProbabilityAt(grid, lat, lon);
+        if (probability >= 5) found.push({ lat, lon, probability });
+      }
+    }
+    return found;
+  }, [bounds, grid]);
+
+  const field = (projection: MapProjection) => {
+    const cellWidth = Math.abs(projection.x(1) - projection.x(0));
+    const cellHeight = Math.abs(projection.y(1) - projection.y(0));
+    return (
+      <g filter="url(#tk-geomap-smooth)">
+        {cells.map((cell) => {
+          const color = colorFor(cell.probability);
+          if (!color) return null;
+          return (
+            <rect
+              key={`${cell.lat}:${cell.lon}`}
+              x={projection.x(cell.lon) - cellWidth / 2}
+              y={projection.y(cell.lat) - cellHeight / 2}
+              width={cellWidth + 1}
+              height={cellHeight + 1}
+              fill={color}
+            />
+          );
+        })}
+      </g>
+    );
+  };
+
+  const issued = formatClockTime(grid.observationUtc, clock);
+  const valid = formatClockTime(grid.forecastUtc, clock);
+  const age = assessment.gridAgeMinutes;
+
+  return (
+    <div className="tk-viz-panel tk-auroramap">
+      <TrackerGeoMap
+        bounds={bounds}
+        marker={observer}
+        legend={[
+          { swatch: "rgba(72, 96, 150, 0.6)", label: "5%" },
+          { swatch: "rgba(64, 150, 168, 0.7)", label: "15%" },
+          { swatch: "rgba(79, 216, 176, 0.75)", label: "30%" },
+          { swatch: "rgba(196, 226, 122, 0.8)", label: "50%" },
+          { swatch: "rgba(240, 169, 92, 0.85)", label: "75%+" },
+        ]}
+        title="Aurora nowcast"
+        timing={`Observed ${issued} · valid to about ${valid}`}
+        action={{ label: "Open full map", onSelect: onOpenFullMap }}
+        ariaLabel={`Aurora forecast map centred on ${observer.label}. ${assessment.statement}`}
+      >
+        {field}
+      </TrackerGeoMap>
+
+      <div
+        className={`tk-viz-verdict is-${
+          assessment.outlook === "plausible-tonight"
+            ? "good"
+            : assessment.outlook === "north-of-you"
+              ? "fair"
+              : assessment.outlook === "quiet"
+                ? "poor"
+                : "unknown"
+        }`}
+      >
+        <p className="tk-viz-verdict-head">
+          {assessment.outlook === "plausible-tonight"
+            ? "Aurora is plausible from here"
+            : assessment.outlook === "north-of-you"
+              ? "The oval is away from you"
+              : assessment.outlook === "quiet"
+                ? "Quiet tonight"
+                : "Not enough data"}
+        </p>
+        <p className="tk-viz-verdict-detail">
+          {assessment.statement}{" "}
+          {age !== null && age > 120
+            ? "This nowcast is out of date — reload before acting on it."
+            : "Valid for about the next half hour."}
+        </p>
+      </div>
+    </div>
+  );
+}

@@ -39,6 +39,7 @@
       "cdn.eso.org",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
+      "commons.wikimedia.org",
       "creativecommons.org",
       "docs.airnowapi.org",
       "docs.api.met.no",
@@ -72,9 +73,11 @@
       "robertpenner.com",
       "science.data.nasa.gov",
       "science.nasa.gov",
+      "services.swpc.noaa.gov",
       "ssd-api.jpl.nasa.gov",
       "ssd.jpl.nasa.gov",
       "svs.gsfc.nasa.gov",
+      "upload.wikimedia.org",
       "weather-gov.github.io",
       "www.apache.org",
       "www.dailymotion.com",
@@ -90,6 +93,7 @@
       "www.openstreetmap.org",
       "www.space-track.org",
       "www.spaceweather.gov",
+      "www.swpc.noaa.gov",
       "www.ta3.sk",
       "www.ventusky.com",
       "www.w3.org",
@@ -243,6 +247,113 @@
         "inclusionStatus": "local-only",
         "release1Included": false,
         "restrictions": "Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission."
+      }
+    },
+    {
+      "id": "esa-hubble-planetary-photography",
+      "category": "planetary-photography",
+      "repositoryPaths": [
+        "public/sky/esahubble-heic1917a-saturn.webp",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "public/sky/esahubble-heic1609a-mars.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/esahubble-heic1917a-saturn.webp",
+        "sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "sky/esahubble-heic1609a-mars.webp"
+      ],
+      "originalSource": {
+        "title": "ESA/Hubble planetary portraits used as Tracker hero photography",
+        "url": "https://esahubble.org/images/",
+        "publicationUrl": "https://esahubble.org/images/",
+        "publisher": "ESA/Hubble and NASA",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "public/sky/esahubble-heic1917a-saturn.webp": "3d67752df20339b6f48e3da5f80569ebcce34cb0b59b6b05ec6bdf37a05d0224",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc",
+        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b"
+      },
+      "processing": [
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "esahubble-heic1917a-saturn.webp — \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic2017a-jupiter-and-europa.webp — \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1609a-mars.webp — \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
+        "These are space-telescope images and are the exact case the perception classification exists for: each is labelled a space-telescope image and carries a written naked-eye expectation, so that nothing implies a Hubble portrait is what an observer will see through a garden telescope."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
+        "evidenceUrls": [
+          "https://esahubble.org/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
+      }
+    },
+    {
+      "id": "eso-night-sky-photography",
+      "category": "night-sky-photography",
+      "repositoryPaths": [
+        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
+        "public/sky/eso-potw1033a-night-sky-detail.webp",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
+        "sky/eso-potw1033a-night-sky-detail.webp",
+        "sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
+      ],
+      "originalSource": {
+        "title": "ESO public image releases used as Tracker hero photography",
+        "url": "https://www.eso.org/public/images/",
+        "publicationUrl": "https://www.eso.org/public/images/",
+        "publisher": "European Southern Observatory",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp": "e6394e8be8d7718e5bf9545ebfe5d60632d650b3b7e77c60b6e4ae1efcaab3a7",
+        "public/sky/eso-potw1033a-night-sky-detail.webp": "9560c9de312e5505ef2ab08c6d68718112b72b5823fcef048c2664698348d0da",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec",
+        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp": "4f5ac2a551f7a318be94dad5e0d06719713e4f49270e7de0ff87c1884f1a5e35"
+      },
+      "processing": [
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. Three files are rectangular crops of their source frame, listed individually below with the crop that was taken; the rest are whole frames. No recolouring, retouching or compositing was applied to any of them, and every crop is a plain rectangular selection that removes content without altering what remains. Further cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "Cropping is a licence question as well as a design one. CC BY 4.0 permits adaptation, and ESO's terms require the credit to stay with the image rather than requiring the frame to stay whole, so cropping is allowed — but a cropped photograph is no longer the photograph the credit line names. Each crop therefore records what was removed, and the interface continues to name the original release and photographer.",
+        "eso-potw1033a-perseid-in-a-dark-sky.webp — a crop of \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/. Pixels (0, 760) to (2600, 2280) of the 5616×3744 original, resized to 1800px wide. The crop is the sky above the telescope enclosures: it keeps the meteor streak and the surrounding starfield and removes the observatory entirely. Presented in the interface as a long-exposure photograph.",
+        "eso-potw1033a-night-sky-detail.webp — a second, wider crop of the same release, used as the ground the sky diagram is drawn on. Pixels (0, 0) to (5616, 1500) of the original, resized to 1800px wide. Sky only: no observatory, and no meteor. Presented as a photographic backdrop, not as a depiction of any particular night.",
+        "eso-potw2136a-eclipsed-moon-at-paranal.webp — \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph. Whole frame: the eclipsed Moon is the subject of this composition rather than the buildings beneath it, so there was nothing to crop away.",
+        "eso-potw2031a-moon-and-venus-at-dusk.webp — a crop of \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/. Pixels (0, 0) to (4633, 2280) of the 4633×5791 original, resized to 1800px wide. The published frame is composed around a telescope dome with the Moon and Venus above it; the crop keeps the two objects and the twilight gradient and removes the dome and the foreground. Presented in the interface as a long-exposure photograph.",
+        "None of these images contains identifiable people, so the licence's restriction on commercial use of such images does not apply."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.",
+        "evidenceUrls": [
+          "https://www.eso.org/public/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESO. Individual photographer credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
       }
     },
     {
@@ -556,6 +667,51 @@
         "inclusionStatus": "excluded",
         "release1Included": false,
         "restrictions": "Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices."
+      }
+    },
+    {
+      "id": "meteor-stream-parameters-2026-08-16",
+      "category": "meteor-stream-parameters",
+      "repositoryPaths": [
+        "src/data/tracker/meteorShowers.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers",
+        "url": "https://www.imo.net/resources/calendar/",
+        "publicationUrl": "https://www.ta3.sk/IAUC22DB/MDC2007/",
+        "publisher": "International Meteor Organization; IAU Meteor Data Center",
+        "version": "Transcribed working-list parameters, snapshot dated 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/meteorShowers.ts": "39344b784246c9b1a75b7c5465330a0e279122dc3837a8978924e099824aae06"
+      },
+      "processing": [
+        "Twelve established showers are recorded with IAU stream number and code, parent body, solar longitude of maximum, activity interval in solar longitude, J2000 radiant at maximum, geocentric velocity, population index and nominal zenithal hourly rate.",
+        "The values were transcribed into a TypeScript module rather than retrieved as a file. There is therefore no upstream artifact to checksum and no originalSha256 is claimed; the recorded localSha256 pins the transcription, not the source.",
+        "peakWidthDays is not an IMO quantity and is not attributed to one. It is an editorial approximation of each peak's full width at half maximum, adjusted so the activity profile in src/data/tracker/meteorActivity.ts reproduces the published character of each shower. src/data/tracker/meteorShowers.ts states this in the module header.",
+        "Per R9.4, evidence class varies within a record: stream identity and elements are catalog, radiant position and peak date for a given year are analytic, and the nominal zenithal hourly rate is a forecast regardless of arriving in a catalog.",
+        "Per R9.3, the snapshot is replaced deliberately and never automatically, and a replacement records what changed."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.",
+        "evidenceUrls": [
+          "https://www.imo.net/resources/calendar/",
+          "https://www.ta3.sk/IAUC22DB/MDC2007/"
+        ],
+        "attribution": "Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
       }
     },
     {
@@ -972,6 +1128,50 @@
       }
     },
     {
+      "id": "orbit-studio-tracker-scene-artwork",
+      "category": "first-party-illustration",
+      "repositoryPaths": [
+        "src/components/tracker/TrackerScene.tsx",
+        "src/data/tracker/imagery.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio Tracker imagery policy and lunar phase composite",
+        "publisher": "Orbit Studio",
+        "version": "Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
+        "src/data/tracker/imagery.ts": "65f97d9e930bdab1200209b127100d3689caf998dbd67542df041c24dbbdba61"
+      },
+      "processing": [
+        "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
+        "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
+        "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
+        "Every image carries an ImageryClass from src/data/tracker/imagery.ts — telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic — rendered together with an observation expectation wherever the picture and the eye differ.",
+        "Phase 2 additionally requires and renders an explicit media claim (representative, event-specific, or live), origin (historical capture, current model, or live feed), capture date where applicable, and expected visual mode. None of the current Tracker assets claims to be live."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.",
+        "evidenceUrls": [
+          "https://github.com/hendrikv-dev/orbit-studio"
+        ],
+        "attribution": "Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships."
+      }
+    },
+    {
       "id": "space-track-authenticated-local-acquisition",
       "category": "historical-and-current-orbital-data",
       "repositoryPaths": [],
@@ -1003,6 +1203,144 @@
         "inclusionStatus": "local-only",
         "release1Included": false,
         "restrictions": "Authenticated acquisitions and credentials remain ignored and local only. Public inclusion requires a separate evidence-backed decision."
+      }
+    },
+    {
+      "id": "tracker-aurora-space-weather",
+      "category": "runtime-space-weather",
+      "repositoryPaths": [
+        "src/data/tracker/aurora.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "NOAA SWPC OVATION aurora nowcast and planetary K-index products",
+        "url": "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json",
+        "publicationUrl": "https://www.swpc.noaa.gov/products/aurora-30-minute-forecast",
+        "publisher": "NOAA Space Weather Prediction Center",
+        "version": "Runtime API, not a pinned snapshot; ovation_aurora_latest.json, noaa-planetary-k-index-forecast.json, planetary_k_index_1m.json",
+        "retrievedAt": "2026-08-21"
+      },
+      "localSha256": {
+        "src/data/tracker/aurora.ts": "fc6f49396aa2d0e5952215019feda61c282dd7d520ddafc933d0c7444d21f296"
+      },
+      "processing": [
+        "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
+        "The OVATION grid is parsed into a typed array indexed by whole degrees. NOAA’s published quantity — the probability of visible aurora in percent — is carried through unmodified and is attributed to NOAA wherever it is shown. Tracker applies no model of its own on top of it.",
+        "Three horizons are kept apart rather than merged: the OVATION nowcast (valid roughly half an hour), the three-day planetary K-index forecast, and nothing at all beyond that. The interface refuses to speak past the third.",
+        "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Works of the United States government prepared by NOAA employees in the course of their duties are not subject to domestic copyright. NOAA’s data policy and the SWPC service terms permit free use and redistribution of these products with acknowledgment. The endpoints send access-control-allow-origin: * and a one-minute cache header, so direct browser use is the intended access pattern and no proxy or key is required.",
+        "evidenceUrls": [
+          "https://www.swpc.noaa.gov/content/data-access",
+          "https://www.nesdis.noaa.gov/about/data-and-information-policy",
+          "https://www.spaceweather.gov/"
+        ],
+        "attribution": "Aurora nowcast (OVATION) and planetary K-index from the NOAA Space Weather Prediction Center (public domain). Rendered in the Tracker conditions caption and in the data-and-privacy panel.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. The published probability must be attributed to NOAA and never rescaled into a Tracker judgement. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence."
+      }
+    },
+    {
+      "id": "tracker-place-search-adapter",
+      "category": "runtime-place-search",
+      "repositoryPaths": [
+        "src/data/tracker/geocoding.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Photon geocoder over OpenStreetMap data",
+        "url": "https://photon.komoot.io/api/",
+        "publicationUrl": "https://photon.komoot.io/",
+        "publisher": "Komoot GmbH (service); OpenStreetMap contributors (data)",
+        "version": "Runtime API, not a pinned snapshot; queried per search",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/geocoding.ts": "628b8ef9bb72ab5c4b6837e27daa18acbd927b8b3bc091e53285006f577c68a9"
+      },
+      "processing": [
+        "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
+        "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
+        "Results are re-ranked locally to favour the categories an observer means — campsites, parks, reserves, summits, viewpoints and trailheads above street addresses — because the campground case is the one the location contract exists for.",
+        "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
+        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather.",
+        "Results without a `name` are labelled from housenumber and street rather than discarded. Requiring a name dropped every street address, which is why a valid full address reported no matches while queries near a named building resolved to the building instead."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider — and the last of those is barred from the free path by the cost rule.",
+        "evidenceUrls": [
+          "https://photon.komoot.io/",
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/"
+        ],
+        "attribution": "Place search © OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
+      }
+    },
+    {
+      "id": "tracker-weather-forecast-adapters",
+      "category": "runtime-weather-forecast",
+      "repositoryPaths": [
+        "src/data/tracker/weatherProviders.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "MET Norway Locationforecast 2.0 and the US National Weather Service API",
+        "url": "https://api.met.no/weatherapi/locationforecast/2.0/",
+        "publicationUrl": "https://docs.api.met.no/doc/locationforecast/HowTO.html",
+        "publisher": "Norwegian Meteorological Institute; NOAA National Weather Service",
+        "version": "Runtime API, not a pinned snapshot; queried live per observing location",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/weatherProviders.ts": "680d4c3d290e63caca8d123a19dae80470e1555b3e1c30fbefb032d707e8e202"
+      },
+      "processing": [
+        "This is Tracker's first runtime external request. Forecasts are fetched from the browser at the observer's selected location and are never bundled, stored on a server, or attributed to a user.",
+        "Requests are keyed and cached by forecast grid cell, coordinates rounded to two decimal places, rather than by user. Rounding is both a caching requirement of the providers and a deliberate limit on the precision of the location that is transmitted.",
+        "Routing prefers the National Weather Service inside the United States for its finer grid and falls back to MET Norway globally. Both are declared public-no-fee; the router will not return a cost-bearing adapter on the free path.",
+        "Provider schemas are normalised into one internal ConditionSnapshot. MET Norway's fog area fraction is converted to a nominal visibility in metres, which is the only place a provider's value is reinterpreted rather than renamed.",
+        "No smoke or air-quality source is fetched. Those snapshot fields stay null, and the model treats null as unknown rather than as clean air."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
+        "evidenceUrls": [
+          "https://api.met.no/doc/TermsOfService",
+          "https://www.weather.gov/documentation/services-web-api",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path."
       }
     },
     {
@@ -1051,187 +1389,6 @@
       }
     },
     {
-      "id": "meteor-stream-parameters-2026-08-16",
-      "category": "meteor-stream-parameters",
-      "repositoryPaths": [
-        "src/data/tracker/meteorShowers.ts"
-      ],
-      "productionBundlePaths": [
-        "assets/TrackerApp-*.js"
-      ],
-      "originalSource": {
-        "title": "IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers",
-        "url": "https://www.imo.net/resources/calendar/",
-        "publicationUrl": "https://www.ta3.sk/IAUC22DB/MDC2007/",
-        "publisher": "International Meteor Organization; IAU Meteor Data Center",
-        "version": "Transcribed working-list parameters, snapshot dated 2026-08-16",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "src/data/tracker/meteorShowers.ts": "39344b784246c9b1a75b7c5465330a0e279122dc3837a8978924e099824aae06"
-      },
-      "processing": [
-        "Twelve established showers are recorded with IAU stream number and code, parent body, solar longitude of maximum, activity interval in solar longitude, J2000 radiant at maximum, geocentric velocity, population index and nominal zenithal hourly rate.",
-        "The values were transcribed into a TypeScript module rather than retrieved as a file. There is therefore no upstream artifact to checksum and no originalSha256 is claimed; the recorded localSha256 pins the transcription, not the source.",
-        "peakWidthDays is not an IMO quantity and is not attributed to one. It is an editorial approximation of each peak's full width at half maximum, adjusted so the activity profile in src/data/tracker/meteorActivity.ts reproduces the published character of each shower. src/data/tracker/meteorShowers.ts states this in the module header.",
-        "Per R9.4, evidence class varies within a record: stream identity and elements are catalog, radiant position and peak date for a given year are analytic, and the nominal zenithal hourly rate is a forecast regardless of arriving in a catalog.",
-        "Per R9.3, the snapshot is replaced deliberately and never automatically, and a replacement records what changed."
-      ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.",
-        "evidenceUrls": [
-          "https://www.imo.net/resources/calendar/",
-          "https://www.ta3.sk/IAUC22DB/MDC2007/"
-        ],
-        "attribution": "Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-with-attribution"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
-      }
-    },
-    {
-      "id": "tracker-weather-forecast-adapters",
-      "category": "runtime-weather-forecast",
-      "repositoryPaths": [
-        "src/data/tracker/weatherProviders.ts"
-      ],
-      "productionBundlePaths": [
-        "assets/TrackerApp-*.js"
-      ],
-      "originalSource": {
-        "title": "MET Norway Locationforecast 2.0 and the US National Weather Service API",
-        "url": "https://api.met.no/weatherapi/locationforecast/2.0/",
-        "publicationUrl": "https://docs.api.met.no/doc/locationforecast/HowTO.html",
-        "publisher": "Norwegian Meteorological Institute; NOAA National Weather Service",
-        "version": "Runtime API, not a pinned snapshot; queried live per observing location",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "src/data/tracker/weatherProviders.ts": "680d4c3d290e63caca8d123a19dae80470e1555b3e1c30fbefb032d707e8e202"
-      },
-      "processing": [
-        "This is Tracker's first runtime external request. Forecasts are fetched from the browser at the observer's selected location and are never bundled, stored on a server, or attributed to a user.",
-        "Requests are keyed and cached by forecast grid cell, coordinates rounded to two decimal places, rather than by user. Rounding is both a caching requirement of the providers and a deliberate limit on the precision of the location that is transmitted.",
-        "Routing prefers the National Weather Service inside the United States for its finer grid and falls back to MET Norway globally. Both are declared public-no-fee; the router will not return a cost-bearing adapter on the free path.",
-        "Provider schemas are normalised into one internal ConditionSnapshot. MET Norway's fog area fraction is converted to a nominal visibility in metres, which is the only place a provider's value is reinterpreted rather than renamed.",
-        "No smoke or air-quality source is fetched. Those snapshot fields stay null, and the model treats null as unknown rather than as clean air."
-      ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot \u2014 User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
-        "evidenceUrls": [
-          "https://api.met.no/doc/TermsOfService",
-          "https://www.weather.gov/documentation/services-web-api",
-          "https://creativecommons.org/licenses/by/4.0/"
-        ],
-        "attribution": "Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-with-attribution"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path."
-      }
-    },
-    {
-      "id": "orbit-studio-tracker-scene-artwork",
-      "category": "first-party-illustration",
-      "repositoryPaths": [
-        "src/components/tracker/TrackerScene.tsx",
-        "src/data/tracker/imagery.ts"
-      ],
-      "productionBundlePaths": [
-        "assets/TrackerApp-*.js"
-      ],
-      "originalSource": {
-        "title": "Orbit Studio Tracker imagery policy and lunar phase composite",
-        "publisher": "Orbit Studio",
-        "version": "Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "src/components/tracker/TrackerScene.tsx": "dff02b0da295325d04817ec33c85f369829e51665a4106cb6eb41b58537e8149",
-        "src/data/tracker/imagery.ts": "e7ecc46f00cd4d509e0ff60d5f25590fb349cfbbbc15211afce06d90a2124382"
-      },
-      "processing": [
-        "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
-        "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
-        "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
-        "Every image carries an ImageryClass from src/data/tracker/imagery.ts \u2014 telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic \u2014 rendered together with a naked-eye expectation wherever the picture and the eye differ."
-      ],
-      "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.",
-        "evidenceUrls": [
-          "https://github.com/hendrikv-dev/orbit-studio"
-        ],
-        "attribution": "Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships."
-      }
-    },
-    {
-      "id": "tracker-place-search-adapter",
-      "category": "runtime-place-search",
-      "repositoryPaths": [
-        "src/data/tracker/geocoding.ts"
-      ],
-      "productionBundlePaths": [
-        "assets/TrackerApp-*.js"
-      ],
-      "originalSource": {
-        "title": "Photon geocoder over OpenStreetMap data",
-        "url": "https://photon.komoot.io/api/",
-        "publicationUrl": "https://photon.komoot.io/",
-        "publisher": "Komoot GmbH (service); OpenStreetMap contributors (data)",
-        "version": "Runtime API, not a pinned snapshot; queried per search",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "src/data/tracker/geocoding.ts": "628b8ef9bb72ab5c4b6837e27daa18acbd927b8b3bc091e53285006f577c68a9"
-      },
-      "processing": [
-        "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
-        "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
-        "Results are re-ranked locally to favour the categories an observer means \u2014 campsites, parks, reserves, summits, viewpoints and trailheads above street addresses \u2014 because the campground case is the one the location contract exists for.",
-        "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
-        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather.",
-        "Results without a `name` are labelled from housenumber and street rather than discarded. Requiring a name dropped every street address, which is why a valid full address reported no matches while queries near a named building resolved to the building instead."
-      ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider \u2014 and the last of those is barred from the free path by the cost rule.",
-        "evidenceUrls": [
-          "https://photon.komoot.io/",
-          "https://www.openstreetmap.org/copyright",
-          "https://opendatacommons.org/licenses/odbl/1-0/"
-        ],
-        "attribution": "Place search \u00a9 OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-with-attribution"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
-      }
-    },
-    {
       "id": "wikimedia-perseid-realtime-footage",
       "category": "experiential-motion-media",
       "repositoryPaths": [
@@ -1247,7 +1404,7 @@
         "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Perseiden.Echtzeit.2020-08-12.webm",
         "publicationUrl": "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
         "publisher": "Wikimedia Commons",
-        "version": "Real-time Perseid footage, 2020-08-12, 1920\u00d71080, retrieved 2026-08-18",
+        "version": "Natural-speed historical Perseid footage recorded 2020-08-12, 1920×1080, retrieved 2026-08-18",
         "retrievedAt": "2026-08-18"
       },
       "localSha256": {
@@ -1255,8 +1412,8 @@
         "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da"
       },
       "processing": [
-        "Downloaded from the Wikimedia upload host at publication resolution (1920\u00d71080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280\u00d7720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
-        "No frames were altered, recoloured, composited or reordered. The footage is real and is presented as such.",
+        "Downloaded from the Wikimedia upload host at publication resolution (1920×1080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280×720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
+        "No frames were altered, recoloured, composited or reordered. The footage is a real historical capture and is presented as representative natural-speed footage, never as a live feed or the reader's current sky.",
         "The licence was verified against this individual file rather than inherited from the host. The Commons API returns LicenseShortName CC0, UsageTerms \"Creative Commons Zero, Public Domain Dedication\", Artist Bautsch, Credit \"Own work\". Wikimedia hosts files under many different licences and one file's terms say nothing about the next."
       ],
       "rights": {
@@ -1274,114 +1431,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "This is representative footage of the phenomenon, not a recording of the reader's sky, and the interface must keep saying so. It is labelled \"Not tonight's sky\" on the media itself. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
-      }
-    },
-    {
-      "id": "eso-night-sky-photography",
-      "category": "night-sky-photography",
-      "repositoryPaths": [
-        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
-        "public/sky/eso-potw1033a-night-sky-detail.webp",
-        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
-        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
-      ],
-      "productionBundlePaths": [
-        "sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
-        "sky/eso-potw1033a-night-sky-detail.webp",
-        "sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
-        "sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
-      ],
-      "originalSource": {
-        "title": "ESO public image releases used as Tracker hero photography",
-        "url": "https://www.eso.org/public/images/",
-        "publicationUrl": "https://www.eso.org/public/images/",
-        "publisher": "European Southern Observatory",
-        "version": "Public release images, retrieved 2026-08-16",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp": "e6394e8be8d7718e5bf9545ebfe5d60632d650b3b7e77c60b6e4ae1efcaab3a7",
-        "public/sky/eso-potw1033a-night-sky-detail.webp": "9560c9de312e5505ef2ab08c6d68718112b72b5823fcef048c2664698348d0da",
-        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec",
-        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp": "4f5ac2a551f7a318be94dad5e0d06719713e4f49270e7de0ff87c1884f1a5e35"
-      },
-      "processing": [
-        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. Three files are rectangular crops of their source frame, listed individually below with the crop that was taken; the rest are whole frames. No recolouring, retouching or compositing was applied to any of them, and every crop is a plain rectangular selection that removes content without altering what remains. Further cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
-        "Cropping is a licence question as well as a design one. CC BY 4.0 permits adaptation, and ESO's terms require the credit to stay with the image rather than requiring the frame to stay whole, so cropping is allowed \u2014 but a cropped photograph is no longer the photograph the credit line names. Each crop therefore records what was removed, and the interface continues to name the original release and photographer.",
-        "eso-potw1033a-perseid-in-a-dark-sky.webp \u2014 a crop of \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/. Pixels (0, 760) to (2600, 2280) of the 5616\u00d73744 original, resized to 1800px wide. The crop is the sky above the telescope enclosures: it keeps the meteor streak and the surrounding starfield and removes the observatory entirely. Presented in the interface as a long-exposure photograph.",
-        "eso-potw1033a-night-sky-detail.webp \u2014 a second, wider crop of the same release, used as the ground the sky diagram is drawn on. Pixels (0, 0) to (5616, 1500) of the original, resized to 1800px wide. Sky only: no observatory, and no meteor. Presented as a photographic backdrop, not as a depiction of any particular night.",
-        "eso-potw2136a-eclipsed-moon-at-paranal.webp \u2014 \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph. Whole frame: the eclipsed Moon is the subject of this composition rather than the buildings beneath it, so there was nothing to crop away.",
-        "eso-potw2031a-moon-and-venus-at-dusk.webp \u2014 a crop of \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/. Pixels (0, 0) to (4633, 2280) of the 4633\u00d75791 original, resized to 1800px wide. The published frame is composed around a telescope dome with the Moon and Venus above it; the crop keeps the two objects and the twilight gradient and removes the dome and the foreground. Presented in the interface as a long-exposure photograph.",
-        "None of these images contains identifiable people, so the licence's restriction on commercial use of such images does not apply."
-      ],
-      "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.",
-        "evidenceUrls": [
-          "https://www.eso.org/public/copyright/",
-          "https://creativecommons.org/licenses/by/4.0/"
-        ],
-        "attribution": "ESO. Individual photographer credits are rendered on each image in the interface.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-with-attribution"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
-      }
-    },
-    {
-      "id": "esa-hubble-planetary-photography",
-      "category": "planetary-photography",
-      "repositoryPaths": [
-        "public/sky/esahubble-heic1917a-saturn.webp",
-        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp",
-        "public/sky/esahubble-heic1609a-mars.webp"
-      ],
-      "productionBundlePaths": [
-        "sky/esahubble-heic1917a-saturn.webp",
-        "sky/esahubble-heic2017a-jupiter-and-europa.webp",
-        "sky/esahubble-heic1609a-mars.webp"
-      ],
-      "originalSource": {
-        "title": "ESA/Hubble planetary portraits used as Tracker hero photography",
-        "url": "https://esahubble.org/images/",
-        "publicationUrl": "https://esahubble.org/images/",
-        "publisher": "ESA/Hubble and NASA",
-        "version": "Public release images, retrieved 2026-08-16",
-        "retrievedAt": "2026-08-16"
-      },
-      "localSha256": {
-        "public/sky/esahubble-heic1917a-saturn.webp": "3d67752df20339b6f48e3da5f80569ebcce34cb0b59b6b05ec6bdf37a05d0224",
-        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc",
-        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b"
-      },
-      "processing": [
-        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
-        "esahubble-heic1917a-saturn.webp \u2014 \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
-        "esahubble-heic2017a-jupiter-and-europa.webp \u2014 \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
-        "esahubble-heic1609a-mars.webp \u2014 \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
-        "These are space-telescope images and are the exact case the perception classification exists for: each is labelled a space-telescope image and carries a written naked-eye expectation, so that nothing implies a Hubble portrait is what an observer will see through a garden telescope."
-      ],
-      "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
-        "evidenceUrls": [
-          "https://esahubble.org/copyright/",
-          "https://creativecommons.org/licenses/by/4.0/"
-        ],
-        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-with-attribution"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
+        "restrictions": "This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
       }
     }
   ]

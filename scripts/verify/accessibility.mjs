@@ -191,16 +191,32 @@ async function assertTabLeavesNothingHidden(page) {
     "the open inline combobox should hide the page from assistive technology",
   );
   await page.keyboard.press("Tab");
+  // React Aria removes the overlay and restores aria-hidden in its layout
+  // effect. Wait for that committed state rather than sampling between the
+  // native Tab event and React's cleanup.
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('[role="option"]').length === 0 &&
+      !document.activeElement?.closest('[aria-hidden="true"]'),
+    null,
+    { timeout: 1_000 },
+  ).catch(() => {});
   const after = await page.evaluate(() => ({
     listOpen: document.querySelectorAll('[role="option"]').length > 0,
     focusHidden: Boolean(document.activeElement?.closest('[aria-hidden="true"]')),
     focusExists: document.activeElement !== document.body,
+    active: {
+      tag: document.activeElement?.tagName,
+      className: document.activeElement?.className,
+      role: document.activeElement?.getAttribute("role"),
+      text: document.activeElement?.textContent?.trim().slice(0, 80),
+    },
   }));
-  expect(!after.listOpen, "Tab should close the suggestion list rather than move into it");
+  expect(!after.listOpen, `Tab should close the suggestion list rather than move into it (${JSON.stringify(after.active)})`);
   expect(after.focusExists, "Tab should move focus somewhere, not drop it on the body");
   expect(
     !after.focusHidden,
-    "Tab out of the suggestion list must not land on an aria-hidden element",
+    `Tab out of the suggestion list must not land on an aria-hidden element (${JSON.stringify(after.active)})`,
   );
 }
 
@@ -293,6 +309,61 @@ async function chooseFirstResult(page, query) {
   await page.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
 }
 
+/** Waits for the worker-backed future view to finish without mistaking its
+ * deliberately immediate progress UI for completed content. */
+async function waitForPlanning(page, selector) {
+  await page.waitForSelector(`${selector}[data-planning-state="ready"]`, { timeout: 30_000 });
+}
+
+/** Horizontal clipping was invisible to `scrollWidth` because the shell hid
+ * overflow. Measure the visible boxes that actually carry the application. */
+async function visibleBounds(page) {
+  return page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const selectors = [
+      ".tracker-bar",
+      ".tracker-shell",
+      ".tk-page-heading",
+      ".tk-hero",
+      ".tk-viz-slot",
+      ".tk-conditions",
+      ".tk-relevant",
+      ".tk-tonight",
+      ".tk-upcoming",
+      ".tk-upcoming-bar",
+      ".tk-highlights",
+      ".tk-month",
+    ];
+    const boxes = selectors
+      .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0;
+      })
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          selector: element.className,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+        };
+      });
+    return { viewportWidth, boxes };
+  });
+}
+
+function assertNoHorizontalClipping(result, state) {
+  for (const box of result.boxes) {
+    expect(box.left >= -1, `${state}: ${box.selector} should not start outside the viewport`);
+    expect(
+      box.right <= result.viewportWidth + 1,
+      `${state}: ${box.selector} should not end outside the viewport`,
+    );
+  }
+}
+
 async function run() {
   let server = null;
   let browser = null;
@@ -338,9 +409,31 @@ async function run() {
       "Escape should return focus to the picker trigger",
     );
 
-    // The disclosure content is part of the page and is checked as such.
-    await page.locator(".tracker-detail > button").click();
-    await page.waitForSelector(".tracker-detail-body");
+    // Decision support must precede the reminder in the document as well as
+    // visually. The old verifier clicked a disclosure removed by the Phase 1
+    // redesign and therefore never inspected a current production state.
+    const decisionOrder = await page.evaluate(() => {
+      const expectation = document.querySelector(".tracker-expect");
+      const mediaExpectation = document.querySelector(".tk-media-expectation");
+      const reminder = Array.from(document.querySelectorAll("button")).find(
+        (button) => button.textContent?.trim() === "Set reminder",
+      );
+      const before = (first, second) =>
+        Boolean(first && second && first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return {
+        hasExpectation: Boolean(expectation),
+        hasReminder: Boolean(reminder),
+        expectationBeforeReminder: before(expectation, reminder),
+        mediaBeforeReminder: mediaExpectation ? before(mediaExpectation, reminder) : true,
+      };
+    });
+    expect(decisionOrder.hasExpectation, "Tonight should state the realistic viewing expectation");
+    expect(decisionOrder.hasReminder, "Tonight should offer a calendar reminder after the decision support");
+    expect(
+      decisionOrder.expectationBeforeReminder && decisionOrder.mediaBeforeReminder,
+      "Tonight's viewing guidance and media context should precede its reminder",
+    );
+
     await page.evaluate(() => {
       document.querySelectorAll("details").forEach((element) => {
         element.open = true;
@@ -348,16 +441,63 @@ async function run() {
     });
     await scan(page, "recommendation with all detail open");
 
+    // Exercise both worker-backed future views, including their current filter
+    // contract. Unsupported categories must not appear as selectable promises.
+    await page.getByRole("button", { name: "Upcoming" }).click();
+    await waitForPlanning(page, ".tk-highlights");
+    await scan(page, "Upcoming list ready");
+    const categoryOptions = await page.getByLabel("Show").locator("option").allTextContents();
+    // Aurora is offered now that a real nowcast backs it, and its option says
+    // the horizon is limited. Satellite passes and comets still have no source
+    // and must not appear at all.
+    expect(
+      !categoryOptions.some((label) => /satellite|comet|occultation/i.test(label)),
+      "the phenomenon filter must not offer unsupported satellite, comet or occultation coverage",
+    );
+    expect(
+      categoryOptions.some((label) => /aurora/i.test(label) && /limited horizon/i.test(label)),
+      "aurora must be offered with its horizon limit stated, not as full support",
+    );
+    await page.getByRole("tab", { name: "Calendar" }).click();
+    await waitForPlanning(page, ".tk-month");
+    await scan(page, "Upcoming Calendar ready");
+    expect(
+      (await page.locator('.tk-month-agenda [aria-pressed="true"]').count()) <= 1,
+      "Calendar must never expose two different agenda events as selected",
+    );
+    const markedDay = page.locator(".tk-day.is-marked").first();
+    if ((await markedDay.count()) > 0) {
+      expect(Boolean(await markedDay.getAttribute("aria-label")), "a marked calendar day needs an accessible event label");
+      await markedDay.click();
+      await page.waitForFunction(
+        () => document.activeElement?.classList.contains("tk-month-detail"),
+        null,
+        { timeout: 1_000 },
+      ).catch(() => {});
+      expect(
+        await page.locator(".tk-month-detail").evaluate((element) => element === document.activeElement),
+        "selecting a calendar event should move focus to its detail",
+      );
+      await scan(page, "Upcoming Calendar selected event");
+    }
+
+    await page.getByRole("button", { name: "Tonight" }).click();
+    await page.waitForSelector(".tracker-hero h1");
+
     // "Already set" cards are styled differently and were the source of every
     // contrast violation the audit found, so the state is forced rather than
     // waited for — it depends on the time of day.
+    // The ranked rows carry the "already set" state through their quality tone
+    // rather than through a card modifier, so the state is forced on the tone
+    // that produced every contrast violation the original audit found.
     const forced = await page.evaluate(() => {
-      const card = document.querySelector(".tracker-card");
-      if (!card) return false;
-      card.classList.add("tracker-card-passed");
+      const quality = document.querySelector(".tk-relevant-quality");
+      if (!quality) return false;
+      quality.className = "tk-relevant-quality is-unknown";
+      quality.textContent = "Already set";
       return true;
     });
-    if (forced) await scan(page, "ranked card in its already-set state");
+    if (forced) await scan(page, "ranked row in its already-set state");
 
     expect(
       (await page.title()).toLowerCase() !== "orbit studio",
@@ -377,7 +517,86 @@ async function run() {
     await scan(phone, "entry on a phone");
     await chooseFirstResult(phone, "Joshua Tree Village Campground");
     await scan(phone, "recommendation on a phone");
+    assertNoHorizontalClipping(await visibleBounds(phone), "390px Tonight");
+
+    await phone.getByRole("button", { name: "Upcoming" }).click();
+    await waitForPlanning(phone, ".tk-highlights");
+    await scan(phone, "Upcoming Highlights on a phone");
+    assertNoHorizontalClipping(await visibleBounds(phone), "390px Highlights");
+
+    await phone.getByRole("tab", { name: "Calendar" }).click();
+    await waitForPlanning(phone, ".tk-month");
+    await scan(phone, "Upcoming Calendar agenda on a phone");
+    expect(!(await phone.locator(".tk-month-grid").isVisible()), "390px Calendar should not expose the desktop grid");
+    expect(await phone.locator(".tk-month-agenda").isVisible(), "390px Calendar should expose its chronological agenda");
+    expect(
+      (await phone.locator('.tk-month-agenda [aria-pressed="true"]').count()) <= 1,
+      "390px Calendar must expose one selected agenda event at most",
+    );
+    assertNoHorizontalClipping(await visibleBounds(phone), "390px Calendar");
     await mobile.close();
+
+    // 320 CSS px is the narrow end of the explicit Phase 2 support range.
+    // Persist the already-confirmed fixture so this pass is about reflow, not a
+    // duplicate geocoder test.
+    const narrow = await browser.newContext({
+      viewport: { width: 320, height: 720 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    await stubProviders(narrow);
+    await narrow.addInitScript((place) => {
+      localStorage.setItem(
+        "orbit-studio:tracker:confirmed-place:v1",
+        JSON.stringify({ version: 1, place }),
+      );
+    }, {
+      name: "Joshua Tree Village Campground",
+      context: "Joshua Tree, California, United States",
+      latitude: 34.135,
+      longitude: -116.313,
+      fromDevice: false,
+    });
+    const narrowPage = await narrow.newPage();
+    await narrowPage.goto(TRACKER, { waitUntil: "networkidle" });
+    await narrowPage.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
+    await scan(narrowPage, "recommendation at 320 CSS pixels");
+    assertNoHorizontalClipping(await visibleBounds(narrowPage), "320px Tonight");
+    await narrow.close();
+
+    // Reduced motion is not an inference from CSS source: exercise the actual
+    // production view with the preference set and verify its media is not
+    // autoplaying motion at the user.
+    const reduced = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      reducedMotion: "reduce",
+    });
+    await stubProviders(reduced);
+    await reduced.addInitScript((place) => {
+      localStorage.setItem(
+        "orbit-studio:tracker:confirmed-place:v1",
+        JSON.stringify({ version: 1, place }),
+      );
+    }, {
+      name: "Joshua Tree Village Campground",
+      context: "Joshua Tree, California, United States",
+      latitude: 34.135,
+      longitude: -116.313,
+      fromDevice: false,
+    });
+    const reducedPage = await reduced.newPage();
+    await reducedPage.goto(TRACKER, { waitUntil: "networkidle" });
+    await reducedPage.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
+    expect(
+      await reducedPage.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),
+      "the reduced-motion production context should expose the requested preference",
+    );
+    const autoplaying = await reducedPage.locator("video").evaluateAll((videos) =>
+      videos.some((video) => !video.paused && video.currentTime > 0),
+    );
+    expect(!autoplaying, "reduced-motion mode must not leave Tracker video autoplaying");
+    await scan(reducedPage, "recommendation with reduced motion");
+    await reduced.close();
   } finally {
     if (browser) await browser.close();
     if (server) await new Promise((resolve) => server.httpServer.close(resolve));

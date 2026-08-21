@@ -26,6 +26,50 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission.
 
+## ESA/Hubble planetary portraits used as Tracker hero photography
+
+- Inventory ID: `esa-hubble-planetary-photography`
+- Category: planetary-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: ESA/Hubble and NASA
+- Version or snapshot: Public release images, retrieved 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://esahubble.org/images/
+- Authoritative source: https://esahubble.org/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.
+- Rights evidence: https://esahubble.org/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/esahubble-heic1917a-saturn.webp`, `public/sky/esahubble-heic2017a-jupiter-and-europa.webp`, `public/sky/esahubble-heic1609a-mars.webp`
+- Production paths: `sky/esahubble-heic1917a-saturn.webp`, `sky/esahubble-heic2017a-jupiter-and-europa.webp`, `sky/esahubble-heic1609a-mars.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+
+## ESO public image releases used as Tracker hero photography
+
+- Inventory ID: `eso-night-sky-photography`
+- Category: night-sky-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: European Southern Observatory
+- Version or snapshot: Public release images, retrieved 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://www.eso.org/public/images/
+- Authoritative source: https://www.eso.org/public/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.
+- Rights evidence: https://www.eso.org/public/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESO. Individual photographer credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `public/sky/eso-potw1033a-night-sky-detail.webp`, `public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
+- Production paths: `sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `sky/eso-potw1033a-night-sky-detail.webp`, `sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+
 ## Orbit Studio Satellite Source of Truth v1.0.0 from GCAT satcat
 
 - Inventory ID: `gcat-satellite-source-of-truth-2026-06-27`
@@ -149,6 +193,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: none
 - Production paths: none
 - Restrictions and notes: Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices.
+
+## IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers
+
+- Inventory ID: `meteor-stream-parameters-2026-08-16`
+- Category: meteor-stream-parameters
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: International Meteor Organization; IAU Meteor Data Center
+- Version or snapshot: Transcribed working-list parameters, snapshot dated 2026-08-16
+- Retrieval date: 2026-08-16
+- Authoritative source: https://www.ta3.sk/IAUC22DB/MDC2007/
+- Authoritative source: https://www.imo.net/resources/calendar/
+- Rights basis: Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.
+- Rights evidence: https://www.imo.net/resources/calendar/
+- Rights evidence: https://www.ta3.sk/IAUC22DB/MDC2007/
+- Attribution: Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/meteorShowers.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed.
 
 ## Blue Marble: Next Generation with Topography and Bathymetry, January
 
@@ -340,6 +406,25 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/index-*.js`
 - Restrictions and notes: Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive.
 
+## Orbit Studio Tracker imagery policy and lunar phase composite
+
+- Inventory ID: `orbit-studio-tracker-scene-artwork`
+- Category: first-party-illustration
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Orbit Studio
+- Version or snapshot: Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16
+- Retrieval date: 2026-08-16
+- Rights basis: Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.
+- Rights evidence: https://github.com/hendrikv-dev/orbit-studio
+- Attribution: Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted
+- Repository paths: `src/components/tracker/TrackerScene.tsx`, `src/data/tracker/imagery.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships.
+
 ## Space-Track.org authenticated catalog and GP history services
 
 - Inventory ID: `space-track-authenticated-local-acquisition`
@@ -359,90 +444,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Authenticated acquisitions and credentials remain ignored and local only. Public inclusion requires a separate evidence-backed decision.
 
-## Vanguard 1 example from Python-SGP4 package metadata, based on Vallado et al. AIAA-2006-6753
+## NOAA SWPC OVATION aurora nowcast and planetary K-index products
 
-- Inventory ID: `vallado-python-sgp4-reference-vector`
-- Category: adapted-code-and-verification-vector
-- Release status: retained-test-only
-- Release 1.0 included: yes
-- Publisher or rights holder: Brandon Rhodes; reference implementation lineage credited to David A. Vallado and coauthors
-- Version or snapshot: Example reproduced in satellite.js 5.0.0 ORIGINAL-PKG-INFO from Python-SGP4 1.1
-- Retrieval date: 2026-07-18
-- Authoritative source: https://github.com/brandon-rhodes/python-sgp4
-- Rights basis: Python-SGP4 and satellite.js publish the relevant package material under the MIT License.
-- Rights evidence: https://github.com/brandon-rhodes/python-sgp4/blob/master/LICENSE
-- Rights evidence: https://github.com/shashwatak/satellite-js/blob/v5.0.0/LICENSE.md
-- Attribution: Vallado et al., AIAA-2006-6753; example reproduced by Python-SGP4 and satellite.js under MIT terms.
-- Public source redistribution: source-safe
-- Public deployment redistribution: not-in-production-bundle
-- Modification status: permitted
-- Repository paths: `scripts/report-orbital-population-validation.ts`, `src/rendering/catalogPopulationValidation.test.ts`, `src/rendering/catalogMotion.test.ts`, `src/rendering/orbitPathSampling.test.ts`
-- Production paths: none
-- Restrictions and notes: Retain attribution and dependency MIT notices.
-
-## IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers
-
-- Inventory ID: `meteor-stream-parameters-2026-08-16`
-- Category: meteor-stream-parameters
+- Inventory ID: `tracker-aurora-space-weather`
+- Category: runtime-space-weather
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: International Meteor Organization; IAU Meteor Data Center
-- Version or snapshot: Transcribed working-list parameters, snapshot dated 2026-08-16
-- Retrieval date: 2026-08-16
-- Authoritative source: https://www.ta3.sk/IAUC22DB/MDC2007/
-- Authoritative source: https://www.imo.net/resources/calendar/
-- Rights basis: Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.
-- Rights evidence: https://www.imo.net/resources/calendar/
-- Rights evidence: https://www.ta3.sk/IAUC22DB/MDC2007/
-- Attribution: Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.
-- Public source redistribution: source-safe
-- Public deployment redistribution: deployment-safe
-- Modification status: permitted-with-attribution
-- Repository paths: `src/data/tracker/meteorShowers.ts`
-- Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed.
-
-## MET Norway Locationforecast 2.0 and the US National Weather Service API
-
-- Inventory ID: `tracker-weather-forecast-adapters`
-- Category: runtime-weather-forecast
-- Release status: retained
-- Release 1.0 included: yes
-- Publisher or rights holder: Norwegian Meteorological Institute; NOAA National Weather Service
-- Version or snapshot: Runtime API, not a pinned snapshot; queried live per observing location
-- Retrieval date: 2026-08-16
-- Authoritative source: https://docs.api.met.no/doc/locationforecast/HowTO.html
-- Authoritative source: https://api.met.no/weatherapi/locationforecast/2.0/
-- Rights basis: MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.
-- Rights evidence: https://api.met.no/doc/TermsOfService
-- Rights evidence: https://www.weather.gov/documentation/services-web-api
-- Rights evidence: https://creativecommons.org/licenses/by/4.0/
-- Attribution: Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.
-- Public source redistribution: source-safe
-- Public deployment redistribution: deployment-safe
-- Modification status: permitted-with-attribution
-- Repository paths: `src/data/tracker/weatherProviders.ts`
-- Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path.
-
-## Orbit Studio Tracker imagery policy and lunar phase composite
-
-- Inventory ID: `orbit-studio-tracker-scene-artwork`
-- Category: first-party-illustration
-- Release status: retained
-- Release 1.0 included: yes
-- Publisher or rights holder: Orbit Studio
-- Version or snapshot: Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16
-- Retrieval date: 2026-08-16
-- Rights basis: Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.
-- Rights evidence: https://github.com/hendrikv-dev/orbit-studio
-- Attribution: Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).
+- Publisher or rights holder: NOAA Space Weather Prediction Center
+- Version or snapshot: Runtime API, not a pinned snapshot; ovation_aurora_latest.json, noaa-planetary-k-index-forecast.json, planetary_k_index_1m.json
+- Retrieval date: 2026-08-21
+- Authoritative source: https://www.swpc.noaa.gov/products/aurora-30-minute-forecast
+- Authoritative source: https://services.swpc.noaa.gov/json/ovation_aurora_latest.json
+- Rights basis: Works of the United States government prepared by NOAA employees in the course of their duties are not subject to domestic copyright. NOAA’s data policy and the SWPC service terms permit free use and redistribution of these products with acknowledgment. The endpoints send access-control-allow-origin: * and a one-minute cache header, so direct browser use is the intended access pattern and no proxy or key is required.
+- Rights evidence: https://www.swpc.noaa.gov/content/data-access
+- Rights evidence: https://www.nesdis.noaa.gov/about/data-and-information-policy
+- Rights evidence: https://www.spaceweather.gov/
+- Attribution: Aurora nowcast (OVATION) and planetary K-index from the NOAA Space Weather Prediction Center (public domain). Rendered in the Tracker conditions caption and in the data-and-privacy panel.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted
-- Repository paths: `src/components/tracker/TrackerScene.tsx`, `src/data/tracker/imagery.ts`
+- Repository paths: `src/data/tracker/aurora.ts`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships.
+- Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. The published probability must be attributed to NOAA and never rescaled into a Tracker judgement. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence.
 
 ## Photon geocoder over OpenStreetMap data
 
@@ -467,49 +490,71 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to.
 
-## ESO public image releases used as Tracker hero photography
+## MET Norway Locationforecast 2.0 and the US National Weather Service API
 
-- Inventory ID: `eso-night-sky-photography`
-- Category: night-sky-photography
+- Inventory ID: `tracker-weather-forecast-adapters`
+- Category: runtime-weather-forecast
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: European Southern Observatory
-- Version or snapshot: Public release images, retrieved 2026-08-16
+- Publisher or rights holder: Norwegian Meteorological Institute; NOAA National Weather Service
+- Version or snapshot: Runtime API, not a pinned snapshot; queried live per observing location
 - Retrieval date: 2026-08-16
-- Authoritative source: https://www.eso.org/public/images/
-- Authoritative source: https://www.eso.org/public/images/
-- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.
-- Rights evidence: https://www.eso.org/public/copyright/
+- Authoritative source: https://docs.api.met.no/doc/locationforecast/HowTO.html
+- Authoritative source: https://api.met.no/weatherapi/locationforecast/2.0/
+- Rights basis: MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.
+- Rights evidence: https://api.met.no/doc/TermsOfService
+- Rights evidence: https://www.weather.gov/documentation/services-web-api
 - Rights evidence: https://creativecommons.org/licenses/by/4.0/
-- Attribution: ESO. Individual photographer credits are rendered on each image in the interface.
+- Attribution: Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `public/sky/eso-potw1033a-night-sky-detail.webp`, `public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
-- Production paths: `sky/eso-potw1033a-perseid-in-a-dark-sky.webp`, `sky/eso-potw1033a-night-sky-detail.webp`, `sky/eso-potw2136a-eclipsed-moon-at-paranal.webp`, `sky/eso-potw2031a-moon-and-venus-at-dusk.webp`
-- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+- Repository paths: `src/data/tracker/weatherProviders.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path.
 
-## ESA/Hubble planetary portraits used as Tracker hero photography
+## Vanguard 1 example from Python-SGP4 package metadata, based on Vallado et al. AIAA-2006-6753
 
-- Inventory ID: `esa-hubble-planetary-photography`
-- Category: planetary-photography
+- Inventory ID: `vallado-python-sgp4-reference-vector`
+- Category: adapted-code-and-verification-vector
+- Release status: retained-test-only
+- Release 1.0 included: yes
+- Publisher or rights holder: Brandon Rhodes; reference implementation lineage credited to David A. Vallado and coauthors
+- Version or snapshot: Example reproduced in satellite.js 5.0.0 ORIGINAL-PKG-INFO from Python-SGP4 1.1
+- Retrieval date: 2026-07-18
+- Authoritative source: https://github.com/brandon-rhodes/python-sgp4
+- Rights basis: Python-SGP4 and satellite.js publish the relevant package material under the MIT License.
+- Rights evidence: https://github.com/brandon-rhodes/python-sgp4/blob/master/LICENSE
+- Rights evidence: https://github.com/shashwatak/satellite-js/blob/v5.0.0/LICENSE.md
+- Attribution: Vallado et al., AIAA-2006-6753; example reproduced by Python-SGP4 and satellite.js under MIT terms.
+- Public source redistribution: source-safe
+- Public deployment redistribution: not-in-production-bundle
+- Modification status: permitted
+- Repository paths: `scripts/report-orbital-population-validation.ts`, `src/rendering/catalogPopulationValidation.test.ts`, `src/rendering/catalogMotion.test.ts`, `src/rendering/orbitPathSampling.test.ts`
+- Production paths: none
+- Restrictions and notes: Retain attribution and dependency MIT notices.
+
+## Perseiden.Echtzeit.2020-08-12.webm
+
+- Inventory ID: `wikimedia-perseid-realtime-footage`
+- Category: experiential-motion-media
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: ESA/Hubble and NASA
-- Version or snapshot: Public release images, retrieved 2026-08-16
-- Retrieval date: 2026-08-16
-- Authoritative source: https://esahubble.org/images/
-- Authoritative source: https://esahubble.org/images/
-- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.
-- Rights evidence: https://esahubble.org/copyright/
-- Rights evidence: https://creativecommons.org/licenses/by/4.0/
-- Attribution: ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.
+- Publisher or rights holder: Wikimedia Commons
+- Version or snapshot: Natural-speed historical Perseid footage recorded 2020-08-12, 1920×1080, retrieved 2026-08-18
+- Retrieval date: 2026-08-18
+- Authoritative source: https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm
+- Authoritative source: https://upload.wikimedia.org/wikipedia/commons/d/d9/Perseiden.Echtzeit.2020-08-12.webm
+- Rights basis: Creative Commons Zero 1.0 Universal public-domain dedication. The author has waived copyright and neighbouring rights worldwide, so no permission or attribution is legally required. Attribution is rendered anyway: the reader is being shown someone else's night, and saying whose is a matter of honesty rather than compliance.
+- Rights evidence: https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm
+- Rights evidence: https://creativecommons.org/publicdomain/zero/1.0/
+- Attribution: Bautsch, via Wikimedia Commons. CC0 1.0.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
-- Modification status: permitted-with-attribution
-- Repository paths: `public/sky/esahubble-heic1917a-saturn.webp`, `public/sky/esahubble-heic2017a-jupiter-and-europa.webp`, `public/sky/esahubble-heic1609a-mars.webp`
-- Production paths: `sky/esahubble-heic1917a-saturn.webp`, `sky/esahubble-heic2017a-jupiter-and-europa.webp`, `sky/esahubble-heic1609a-mars.webp`
-- Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+- Modification status: permitted
+- Repository paths: `public/media/perseids-realtime-bautsch-cc0.webm`, `public/media/perseids-realtime-bautsch-cc0-poster.webp`
+- Production paths: `media/perseids-realtime-bautsch-cc0.webm`, `media/perseids-realtime-bautsch-cc0-poster.webp`
+- Restrictions and notes: This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support.
 
 ## Software dependencies
 

@@ -9,6 +9,19 @@ import { readSourceIdentity } from "../release/source-identity.mjs";
 import { acquireReviewLock } from "./review-lock.mjs";
 import { reviewScenarios } from "./scenarios/index.mjs";
 
+const scenarioOptionIndex = process.argv.indexOf("--scenario");
+const requestedScenarioIds =
+  scenarioOptionIndex >= 0
+    ? (process.argv[scenarioOptionIndex + 1] ?? "").split(",").filter(Boolean)
+    : [];
+const activeReviewScenarios =
+  requestedScenarioIds.length === 0
+    ? reviewScenarios
+    : reviewScenarios.filter((scenario) => requestedScenarioIds.includes(scenario.id));
+if (activeReviewScenarios.length !== (requestedScenarioIds.length || reviewScenarios.length)) {
+  throw new Error(`Unknown review scenario in: ${requestedScenarioIds.join(", ")}`);
+}
+
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
 const outputRoot = path.join(projectRoot, "review");
@@ -226,6 +239,17 @@ async function readScreenshotPopulationEvidence(page, screenshotBuffer) {
 }
 
 function createScenarioTools(page, scenarioId, extras = {}) {
+  const captureSurface = async (id, state = {}) => {
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+    await page.waitForTimeout(250);
+    const screenshot = `screenshots/${id}.webp`;
+    await captureWebp(page, path.join(outputRoot, screenshot));
+    const captured = { id, scenario: scenarioId, ...state, screenshot };
+    artifactStates.push(captured);
+    return captured;
+  };
   const waitForState = async (predicate, options = {}) => {
     const timeoutMs = options.timeoutMs ?? 45_000;
     const deadline = Date.now() + timeoutMs;
@@ -389,6 +413,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
 
   return {
     capture,
+    captureSurface,
     clearReviewContext,
     page,
     readReviewState: () => readReviewState(page),
@@ -407,7 +432,9 @@ function createScenarioTools(page, scenarioId, extras = {}) {
   };
 }
 
-async function openReviewPage(browser, scenarioId, options = {}) {
+async function openReviewPage(browser, scenarioOrId, options = {}) {
+  const scenario = typeof scenarioOrId === "string" ? null : scenarioOrId;
+  const scenarioId = scenario?.id ?? scenarioOrId;
   const context = await browser.newContext({
     viewport,
     deviceScaleFactor: 1,
@@ -421,10 +448,18 @@ async function openReviewPage(browser, scenarioId, options = {}) {
   });
   const page = await context.newPage();
   attachBrowserDiagnostics(page, scenarioId);
-  await page.goto(reviewUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await waitForReviewBridge(page);
+  await page.goto(scenario?.reviewUrl ?? reviewUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  if (scenario?.requiresReviewBridge === false) {
+    await page.locator(scenario.readySelector ?? "main").waitFor({ state: "visible", timeout: 45_000 });
+  } else {
+    await waitForReviewBridge(page);
+  }
   await page.addStyleTag({ content: "html, body, input, textarea { caret-color: transparent !important; }" });
-  await settleApplication(page, 800);
+  if (scenario?.requiresReviewBridge === false) {
+    await page.waitForTimeout(800);
+  } else {
+    await settleApplication(page, 800);
+  }
   return { context, page };
 }
 
@@ -524,7 +559,7 @@ async function recordTimeline(browser, scenario) {
 
 function reviewNotesMarkdown() {
   const merge = (key) => [
-    ...new Set(reviewScenarios.flatMap((scenario) => scenario.notes[key])),
+    ...new Set(activeReviewScenarios.flatMap((scenario) => scenario.notes[key])),
   ];
   const section = (title, entries) => `## ${title}\n\n${entries.map((entry) => `- ${entry}`).join("\n")}`;
 
@@ -564,18 +599,18 @@ async function main() {
       });
       browser = await chromium.launch({ headless: true });
 
-      for (const scenario of reviewScenarios) {
+      for (const scenario of activeReviewScenarios) {
         console.log(`[review] Capturing ${scenario.title}...`);
-        const { context, page } = await openReviewPage(browser, scenario.id);
+        const { context, page } = await openReviewPage(browser, scenario);
         await scenario.run(createScenarioTools(page, scenario.id));
         await context.close();
       }
 
-      const timelineScenario = reviewScenarios.find((scenario) => scenario.recordTimeline);
-      if (!timelineScenario) throw new Error("No review scenario defines a timeline recording.");
-
-      console.log("[review] Recording the deterministic timeline clip...");
-      await recordTimeline(browser, timelineScenario);
+      const timelineScenario = activeReviewScenarios.find((scenario) => scenario.recordTimeline);
+      if (timelineScenario) {
+        console.log("[review] Recording the deterministic timeline clip...");
+        await recordTimeline(browser, timelineScenario);
+      }
 
       const source = await readSourceIdentity(projectRoot);
       const reviewDocument = {
@@ -594,7 +629,7 @@ async function main() {
         historicalDatasetVersion:
           datasetVersions?.historicalDatasetVersion ?? "unavailable",
         viewport,
-        scenarios: reviewScenarios.map((scenario) => ({
+        scenarios: activeReviewScenarios.map((scenario) => ({
           id: scenario.id,
           title: scenario.title,
           stateIds: artifactStates

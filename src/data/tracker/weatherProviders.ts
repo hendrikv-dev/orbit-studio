@@ -172,9 +172,12 @@ export const metNorwayAdapter: WeatherAdapter = {
         return {
           atUtc: new Date(entry.time).toISOString(),
           cloudCoverPercent: details.cloud_area_fraction ?? 0,
-          temperatureC: details.air_temperature ?? 0,
+          temperatureC: details.air_temperature ?? null,
           issuedUtc: new Date(issuedUtc).toISOString(),
-          precipitating: (entry.data.next_1_hours?.details?.precipitation_amount ?? 0) > 0.05,
+          precipitating:
+            entry.data.next_1_hours?.details?.precipitation_amount === undefined
+              ? null
+              : entry.data.next_1_hours.details.precipitation_amount > 0.05,
           ...emptyOptionalFields(),
           visibilityM: fog === null ? null : fog > 50 ? 400 : fog > 15 ? 2000 : null,
           lowCloudPercent: details.cloud_area_fraction_low ?? null,
@@ -241,12 +244,13 @@ export const nationalWeatherServiceAdapter: WeatherAdapter = {
       .sort()
       .map((atUtc) => ({
         atUtc,
-        cloudCoverPercent: sky.get(atUtc) ?? 0,
-        temperatureC: temperature.get(atUtc) ?? 0,
+        cloudCoverPercent: sky.get(atUtc)!,
+        temperatureC: temperature.get(atUtc) ?? null,
         issuedUtc,
         // A probability, not an occurrence. Above half is treated as expected;
         // below it the cloud figure already carries the pessimism.
-        precipitating: (precipitation.get(atUtc) ?? 0) >= 50,
+        precipitating:
+          precipitation.has(atUtc) ? precipitation.get(atUtc)! >= 50 : null,
         ...emptyOptionalFields(),
         visibilityM: visibility.get(atUtc) ?? null,
         relativeHumidityPercent: humidity.get(atUtc) ?? null,
@@ -313,4 +317,59 @@ export function adapterFor(
         (allowCostBearing || adapter.source.cost === "public-no-fee"),
     ) ?? null
   );
+}
+
+/** All eligible providers in preference order, so failure can degrade safely. */
+export function adaptersFor(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  allowCostBearing = false,
+): WeatherAdapter[] {
+  return WEATHER_ADAPTERS.filter(
+    (adapter) =>
+      adapter.covers(latitudeDeg, longitudeDeg) &&
+      (allowCostBearing || adapter.source.cost === "public-no-fee"),
+  );
+}
+
+export interface WeatherAttempt {
+  sourceId: string;
+  outcome: "empty" | "failed";
+  message: string;
+}
+
+export interface ConditionsResult {
+  snapshots: ConditionSnapshot[];
+  adapter: WeatherAdapter | null;
+  attempts: WeatherAttempt[];
+}
+
+/**
+ * Resolve a forecast through the eligible providers. A failed fine-grained
+ * provider does not erase a valid global fallback, while aborts propagate
+ * immediately so a previous location cannot overwrite a newer request.
+ */
+export async function conditionsForLocation(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  signal?: AbortSignal,
+  candidates = adaptersFor(latitudeDeg, longitudeDeg),
+): Promise<ConditionsResult> {
+  const attempts: WeatherAttempt[] = [];
+  for (const adapter of candidates) {
+    if (signal?.aborted) throw new DOMException("Forecast request aborted", "AbortError");
+    try {
+      const snapshots = await conditionsFor(adapter, latitudeDeg, longitudeDeg, signal);
+      if (snapshots.length > 0) return { snapshots, adapter, attempts };
+      attempts.push({ sourceId: adapter.source.id, outcome: "empty", message: "Provider returned no usable forecast." });
+    } catch (error) {
+      if (signal?.aborted || (error instanceof DOMException && error.name === "AbortError")) throw error;
+      attempts.push({
+        sourceId: adapter.source.id,
+        outcome: "failed",
+        message: error instanceof Error ? error.message : "Unknown provider failure",
+      });
+    }
+  }
+  return { snapshots: [], adapter: null, attempts };
 }

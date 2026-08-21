@@ -34,7 +34,6 @@ import { TrackerSkyPanel, EXAMPLE_ARC } from "./TrackerSkyPanel";
 const PREVIEW = [
   { name: "Meteor shower", note: "rate, radiant and the darkest hours", tone: "meteor" },
   { name: "Saturn", note: "naked eye, and the rings through a telescope", tone: "planet" },
-  { name: "ISS pass", note: "a few bright minutes, once the feed is live", tone: "satellite" },
   { name: "The Moon", note: "tonight's phase, and what it washes out", tone: "moon" },
 ];
 
@@ -52,7 +51,8 @@ export function TrackerEntry({ onSelect }: { onSelect: (place: SelectedPlace) =>
           </div>
 
           <p className="tk-entry-privacy">
-            Your location is used to compute the sky and fetch a forecast. Nothing is stored.
+            Your confirmed location is stored only in this browser, with rounded coordinates, so
+            Tracker can restore it. Forecasts and observing plans are not stored.
           </p>
         </div>
 

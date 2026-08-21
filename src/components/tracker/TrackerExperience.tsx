@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  EXPECTED_VIEW_MODE_LABEL,
+  MEDIA_CLAIM_LABEL,
+  type ExpectedViewMode,
+  type MediaClaim,
+  type MediaOrigin,
+} from "../../data/tracker/imagery";
 
 /**
  * What the phenomenon actually looks like, as real footage where it exists.
@@ -31,7 +38,10 @@ export interface ExperienceMedia {
    * difference between "this is what Perseids look like" and "this is your sky
    * tonight" is the difference between context and a false promise.
    */
-  representative: boolean;
+  claim: MediaClaim;
+  origin: MediaOrigin;
+  capturedAt: string | null;
+  expectedMode: ExpectedViewMode;
 }
 
 interface Props {
@@ -98,8 +108,18 @@ export function TrackerExperience({ media, className }: Props) {
         <img className="tk-exp-media" src={media.posterSrc} alt={media.alt} decoding="async" />
       )}
 
+      <p className="tracker-media-context tk-exp-context">
+        <span>{MEDIA_CLAIM_LABEL[media.claim]}</span>
+        <span>
+          {media.origin === "historical-capture" && media.capturedAt
+            ? `Historical capture · ${media.capturedAt}`
+            : media.origin === "current-model"
+              ? "Current event model"
+              : "Live feed"}
+        </span>
+        <span>{EXPECTED_VIEW_MODE_LABEL[media.expectedMode]}</span>
+      </p>
       <figcaption className="tk-exp-credit">
-        {media.representative ? <span className="tk-exp-tag">Not tonight's sky</span> : null}
         <a href={media.sourceUrl} target="_blank" rel="noreferrer noopener">
           {media.credit}
         </a>{" "}
@@ -125,11 +145,14 @@ export function experienceFor(kind: string): ExperienceMedia | null {
     return {
       videoSrc: "/media/perseids-realtime-bautsch-cc0.webm",
       posterSrc: "/media/perseids-realtime-bautsch-cc0-poster.webp",
-      alt: "Real-time footage of Perseid meteors crossing a dark sky.",
+      alt: "Historical natural-speed footage of Perseid meteors crossing a dark sky in 2020.",
       credit: "Bautsch, Wikimedia Commons",
       licence: "CC0 1.0",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
-      representative: true,
+      claim: "representative",
+      origin: "historical-capture",
+      capturedAt: "2020-08-12",
+      expectedMode: "naked-eye",
     };
   }
   return null;

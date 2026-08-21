@@ -16,38 +16,51 @@ function stub(features: unknown[]) {
 }
 
 describe("street addresses", () => {
-  it("keeps a house that has no name", async () => {
-    // The reported fault: "16 Ash Grove, Leeds" returned two correct houses and
-    // the interface said "Nothing found", because the adapter kept only results
-    // with a `name` — and a house has none.
+  it("does not present similar streets as an exact numbered address", async () => {
     stub([
       feature({ osm_id: 1, housenumber: "16", street: "Ash Tree Grove", city: "Leeds", postcode: "LS14 5LT", osm_value: "house" }),
       feature({ osm_id: 2, housenumber: "16", street: "Ashton Grove", city: "Leeds", postcode: "LS8 5BR", osm_value: "house" }),
     ]);
     const results = await photonAdapter.search("16 Ash Grove, Leeds");
-    expect(results).toHaveLength(2);
-    expect(results[0].name).toBe("16 Ash Tree Grove");
-    expect(results[0].isAddress).toBe(true);
+    expect(results).toEqual([]);
   });
 
   it("carries enough context to tell two close matches apart", async () => {
     stub([
       feature({ osm_id: 1, housenumber: "16", street: "Ash Tree Grove", city: "Leeds", postcode: "LS14 5LT" }),
     ]);
-    const [result] = await photonAdapter.search("16 Ash Grove, Leeds");
+    const [result] = await photonAdapter.search("16 Ash Tree Grove, Leeds");
     expect(result.context).toMatch(/LS14 5LT/);
     expect(result.context).toMatch(/Leeds/);
   });
 
-  it("puts the matching house number first, ahead of the category nudge", async () => {
-    // Otherwise the observer-category boost floats a park above the very
-    // address that was typed — the "resolves to somewhere nearby" half.
+  it("accepts only the matching number and street for a full address", async () => {
     stub([
       feature({ osm_id: 1, name: "Roundhay Park", city: "Leeds", osm_value: "park" }),
       feature({ osm_id: 2, housenumber: "16", street: "Ash Tree Grove", city: "Leeds", osm_value: "house" }),
     ]);
     const results = await photonAdapter.search("16 Ash Tree Grove, Leeds");
+    expect(results).toHaveLength(1);
     expect(results[0].name).toBe("16 Ash Tree Grove");
+    expect(results[0].matchPrecision).toBe("exact-address");
+  });
+
+  it("keeps a named landmark when its structured address matches exactly", async () => {
+    stub([
+      feature({
+        osm_id: 3,
+        name: "Empire State Building",
+        housenumber: "350",
+        street: "5th Avenue",
+        city: "New York",
+        postcode: "10118",
+        osm_value: "attraction",
+      }),
+    ]);
+    const results = await photonAdapter.search("350 5th Avenue, New York, NY 10118");
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("Empire State Building");
+    expect(results[0].matchPrecision).toBe("exact-address");
   });
 
   it("still favours places worth observing from when no house number is typed", async () => {

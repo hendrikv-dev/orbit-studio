@@ -3,6 +3,7 @@ import {
   adapterFor,
   clearConditionCache,
   conditionsFor,
+  conditionsForLocation,
   expandIntervals,
   locationBucket,
   metNorwayAdapter,
@@ -59,6 +60,39 @@ describe("routing", () => {
     expect(adapterFor(51.5, -0.1)?.source.id).toBe("met-norway");
     expect(adapterFor(-33.9, 151.2)?.source.id).toBe("met-norway");
     expect(adapterFor(-1.3, 36.8)?.source.id).toBe("met-norway");
+  });
+
+  it("falls back after a covered provider fails and records the attempt", async () => {
+    const failed: WeatherAdapter = {
+      source: { id: "fine", name: "Fine", attribution: "test", cost: "public-no-fee", coverage: "global" },
+      covers: () => true,
+      fetchConditions: async () => { throw new Error("503"); },
+    };
+    const fallback: WeatherAdapter = {
+      source: { id: "fallback", name: "Fallback", attribution: "test", cost: "public-no-fee", coverage: "global" },
+      covers: () => true,
+      fetchConditions: async () => [{
+        atUtc: "2026-08-16T22:00:00.000Z",
+        issuedUtc: "2026-08-16T17:00:00.000Z",
+        cloudCoverPercent: 10,
+        temperatureC: null,
+        precipitating: null,
+        visibilityM: null,
+        lowCloudPercent: null,
+        midCloudPercent: null,
+        highCloudPercent: null,
+        relativeHumidityPercent: null,
+        smokeColumnMgM2: null,
+        surfacePm25: null,
+        source: "fallback",
+      }],
+    };
+    const result = await conditionsForLocation(40, -74, undefined, [failed, fallback]);
+    expect(result.adapter?.source.id).toBe("fallback");
+    expect(result.snapshots).toHaveLength(1);
+    expect(result.attempts).toEqual([
+      { sourceId: "fine", outcome: "failed", message: "503" },
+    ]);
   });
 });
 

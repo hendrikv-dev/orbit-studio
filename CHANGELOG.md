@@ -6,6 +6,30 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+- Rebuilt Tracker around one universal event page. Heading, a two-thirds hero, a one-third
+  visualization slot, four condition cards and ranked rows now hold the same positions for every
+  phenomenon; a phenomenon supplies content for those slots and cannot introduce a layout.
+  `scripts/verify/tracker-walkthrough.mjs` measures the geometry of the aurora and eclipse pages
+  against the meteor page and fails on any drift.
+- Added real solar-eclipse geometry: global eclipse search, per-observer circumstances, a traced
+  central line and a sampled coverage field, all computed from the ephemeris. Checked against the
+  published path of the 2 August 2027 total eclipse. The mandatory solar-viewing safety notice,
+  which previously had nothing to set it, is now set by every solar event.
+- Added aurora from NOAA's Space Weather Prediction Center: the OVATION nowcast drawn as a regional
+  forecast map, and the three-day planetary K-index for anything beyond it. The three horizons —
+  nowcast, short range, and nothing at all — are kept separate and stated. Corrects the earlier
+  conclusion in `docs/TRACKER_V1_STATUS.md` that aurora could not be served without a paid backend.
+- Reduced Tracker's temporal navigation to Tonight and Upcoming. "Now" is gone, because Tracker
+  already knows the time, and Calendar became a representation inside Upcoming rather than a fourth
+  destination. Selecting any event, from either, opens the same universal page.
+- Replaced the ranked cards with compact rows, moved the full sky map and the full forecast map
+  behind hero actions as drill-ins, and lifted the single-screen constraint that had the
+  recommendation competing with the evidence for viewport height.
+- Made absent weather render as absent: a date beyond the forecast horizon reads "Forecast closer
+  to date" on cloud, smoke and temperature while still answering moonlight, which is geometry.
+- Fixed the Tracker wordmark rendering in its light-ground variant on the always-dark shell for
+  readers whose system prefers light interfaces.
+
 - Integrated the approved homepage into the full platform: centered-Earth Explorer and Playground previews, side-by-side environment cards, concise platform copy, factual source-access language, and a hosted-provider donation CTA controlled by `VITE_SUPPORT_URL`.
 - Removed the obsolete homepage preview assets superseded by the approved captures.
 - Removed ignored local-only acquisition files and obsolete intermediate historical-catalog outputs from the handoff archive; the verified source-of-truth package and active browser derivative remain.

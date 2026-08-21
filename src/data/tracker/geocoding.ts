@@ -28,6 +28,8 @@ export interface PlaceResult {
   kind: string | null;
   /** True where this is a street address rather than a named place. */
   isAddress: boolean;
+  /** How closely the result matches the requested place/address. */
+  matchPrecision: "exact-address" | "place";
 }
 
 export interface GeocodingSourceInfo {
@@ -97,6 +99,23 @@ function queriedHouseNumber(query: string): string | null {
   return /^\s*(\d+[a-z]?)\b/i.exec(query)?.[1]?.toLowerCase() ?? null;
 }
 
+function normaliseStreet(value: string): string {
+  return value
+    .toLocaleLowerCase("en")
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+/** Street portion before the first comma in a numbered address query. */
+function queriedStreet(query: string): string | null {
+  if (!queriedHouseNumber(query)) return null;
+  const first = query.split(",", 1)[0] ?? "";
+  const street = first.replace(/^\s*\d+[a-z]?\s+/i, "").trim();
+  return street ? normaliseStreet(street) : null;
+}
+
 function contextOf(properties: Record<string, unknown>, label: string): string {
   const parts = [
     properties.postcode,
@@ -128,6 +147,7 @@ export const photonAdapter: GeocodingAdapter = {
       body?.features ?? [];
 
     const wantedNumber = queriedHouseNumber(query);
+    const wantedStreet = queriedStreet(query);
 
     const places = features
       .map((feature, index) => {
@@ -137,6 +157,12 @@ export const photonAdapter: GeocodingAdapter = {
         const kind = typeof properties.osm_value === "string" ? properties.osm_value : null;
         const houseNumber =
           typeof properties.housenumber === "string" ? properties.housenumber.toLowerCase() : null;
+        const street = typeof properties.street === "string" ? normaliseStreet(properties.street) : null;
+        const exactAddress =
+          wantedNumber !== null &&
+          wantedStreet !== null &&
+          houseNumber === wantedNumber &&
+          street === wantedStreet;
         return {
           place: {
             id: `${properties.osm_type ?? "x"}${properties.osm_id ?? index}`,
@@ -148,19 +174,22 @@ export const photonAdapter: GeocodingAdapter = {
             latitude: feature.geometry.coordinates[1],
             kind,
             isAddress,
+            matchPrecision: exactAddress ? "exact-address" : "place",
           } satisfies PlaceResult,
           index,
-          matchesNumber: wantedNumber !== null && houseNumber === wantedNumber,
+          exactAddress,
         };
       })
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      // A full numbered address is an identity claim, not a similarity search.
+      // Never offer the right number on the wrong street as if it were exact.
+      .filter((entry) => wantedNumber === null || entry.exactAddress);
 
     return places
       .sort((a, b) => {
         // A query that starts with a house number is an address lookup, and the
         // observer-category nudge below would otherwise float a park above the
         // very address that was typed.
-        if (a.matchesNumber !== b.matchesNumber) return a.matchesNumber ? -1 : 1;
         if (wantedNumber === null) {
           const rank = (entry: typeof a) => KIND_PRIORITY[entry.place.kind ?? ""] ?? 3;
           const difference = rank(a) - rank(b);

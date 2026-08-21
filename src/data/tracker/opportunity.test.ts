@@ -5,6 +5,7 @@ import {
   chooseHero,
   explainRank,
   rankOpportunities,
+  recommendationFor,
   verdictFor,
   type Equipment,
   type Opportunity,
@@ -369,6 +370,7 @@ describe("the verdict", () => {
     skyAccess: 0.9,
     minutesUntilWindow: 200,
     needsDarkSite: false,
+    evidenceStatus: "available" as const,
   };
 
   it("leads with conditions when conditions are what decides it", () => {
@@ -397,6 +399,19 @@ describe("the verdict", () => {
   it("does not overpromise a merely good target", () => {
     expect(verdictFor({ ...base, band: "good", minutesUntilWindow: -5 })).toBe(
       "EASY IF YOU'RE ALREADY OUTSIDE",
+    );
+  });
+
+  it("never turns missing environmental evidence into higher confidence than verified clear sky", () => {
+    const verified = recommendationFor("very good", false, 1, "available");
+    const missing = recommendationFor("very good", false, null, "unavailable");
+    const failed = recommendationFor("very good", false, null, "request-failed");
+    expect(verified).toBe("Worth going out for");
+    expect(missing).toBe("Astronomically promising — conditions unknown");
+    expect(failed).toBe(missing);
+    expect(missing).not.toBe("Exceptional");
+    expect(verdictFor({ ...base, skyAccess: null, evidenceStatus: "request-failed" })).toBe(
+      "CONDITIONS UNKNOWN — CHECK BEFORE GOING",
     );
   });
 });

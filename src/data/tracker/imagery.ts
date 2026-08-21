@@ -50,6 +50,29 @@ export const IMAGERY_CLASS_LABEL: Record<ImageryClass, string> = {
   "spacecraft-mosaic": "Spacecraft mosaic",
 };
 
+export type MediaClaim = "representative" | "event-specific" | "live";
+export type MediaOrigin = "historical-capture" | "current-model" | "live-feed";
+export type ExpectedViewMode =
+  | "naked-eye"
+  | "binoculars"
+  | "telescope"
+  | "long-exposure"
+  | "processed";
+
+export const EXPECTED_VIEW_MODE_LABEL: Record<ExpectedViewMode, string> = {
+  "naked-eye": "Naked-eye view",
+  binoculars: "Binocular view",
+  telescope: "Telescope view",
+  "long-exposure": "Long-exposure view",
+  processed: "Processed view",
+};
+
+export const MEDIA_CLAIM_LABEL: Record<MediaClaim, string> = {
+  representative: "Representative example",
+  "event-specific": "Modelled for this event",
+  live: "Live view",
+};
+
 export interface HeroImagery {
   /**
    * `photo` fills the frame; `subject` is an object on black that must not be
@@ -67,6 +90,10 @@ export interface HeroImagery {
   focusY: string;
   title: string;
   classification: ImageryClass;
+  claim: MediaClaim;
+  origin: MediaOrigin;
+  capturedAt: string | null;
+  expectedMode: ExpectedViewMode;
   /** Rendered on the image. Required by the licence, not decoration. */
   credit: string;
   licence: string;
@@ -89,6 +116,10 @@ const PERSEIDS: HeroImagery = {
   focusY: "62%",
   title: "A Perseid over Paranal, 2010",
   classification: "long-exposure",
+  claim: "representative",
+  origin: "historical-capture",
+  capturedAt: "2010",
+  expectedMode: "long-exposure",
   credit: "ESO/S. Guisard",
   licence: ESO_LICENCE,
   sourceUrl: "https://www.eso.org/public/images/potw1033a/",
@@ -106,11 +137,32 @@ const MOON_AND_VENUS: HeroImagery = {
   focusY: "50%",
   title: "The Moon and Venus at dusk",
   classification: "long-exposure",
+  claim: "representative",
+  origin: "historical-capture",
+  capturedAt: "2020",
+  expectedMode: "naked-eye",
   credit: "Y. Beletsky (LCO)/ESO",
   licence: ESO_LICENCE,
   sourceUrl: "https://www.eso.org/public/images/potw2031a/",
   eyeExpectation:
     "Close to what you will actually see at dusk: two steady points, no telescope needed. The camera has drawn out more colour in the twilight than the eye does.",
+};
+
+const NIGHT_SKY: HeroImagery = {
+  treatment: "photo",
+  src: "/sky/eso-potw1033a-night-sky-detail.webp",
+  focusY: "50%",
+  title: "A dark sky over Paranal, 2010",
+  classification: "long-exposure",
+  claim: "representative",
+  origin: "historical-capture",
+  capturedAt: "2010",
+  expectedMode: "long-exposure",
+  credit: "ESO/S. Guisard",
+  licence: ESO_LICENCE,
+  sourceUrl: "https://www.eso.org/public/images/potw1033a/",
+  eyeExpectation:
+    "A long exposure from a dark observatory site, used only as an example of a clear night. Your sky and its visible star count depend on local light and weather.",
 };
 
 export function heroImageryFor(id: string, kind: string): HeroImagery {
@@ -123,6 +175,10 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
       focusY: "38%",
       title: "Eclipsed Moon at Paranal",
       classification: "long-exposure",
+      claim: "representative",
+      origin: "historical-capture",
+      capturedAt: "2021",
+      expectedMode: "long-exposure",
       credit: "Y. Beletsky (LCO)/ESO",
       licence: ESO_LICENCE,
       sourceUrl: "https://www.eso.org/public/images/potw2136a/",
@@ -138,6 +194,10 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
       focusY: "50%",
       title: "The Moon at tonight's phase",
       classification: "spacecraft-mosaic",
+      claim: "event-specific",
+      origin: "current-model",
+      capturedAt: null,
+      expectedMode: "binoculars",
       credit: "NASA's Scientific Visualization Studio (LROC WAC mosaic)",
       licence: "NASA Images and Media Usage Guidelines",
       sourceUrl: "https://svs.gsfc.nasa.gov/4720/",
@@ -156,6 +216,10 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
         focusY: "50%",
         title: "Saturn, photographed by Hubble in 2019",
         classification: "telescope-image",
+        claim: "representative",
+        origin: "historical-capture",
+        capturedAt: "2019",
+        expectedMode: "processed",
         credit: "NASA, ESA, A. Simon (GSFC) and M. H. Wong (UC Berkeley)",
         licence: HUBBLE_LICENCE,
         sourceUrl: "https://esahubble.org/images/heic1917a/",
@@ -170,6 +234,10 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
         focusY: "50%",
         title: "Jupiter and Europa, photographed by Hubble in 2020",
         classification: "telescope-image",
+        claim: "representative",
+        origin: "historical-capture",
+        capturedAt: "2020",
+        expectedMode: "processed",
         credit: "NASA, ESA, A. Simon (GSFC), M. H. Wong (UC Berkeley) and the OPAL team",
         licence: HUBBLE_LICENCE,
         sourceUrl: "https://esahubble.org/images/heic2017a/",
@@ -184,6 +252,10 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
         focusY: "50%",
         title: "Mars at opposition, photographed by Hubble in 2016",
         classification: "telescope-image",
+        claim: "representative",
+        origin: "historical-capture",
+        capturedAt: "2016",
+        expectedMode: "processed",
         credit:
           "NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute)",
         licence: HUBBLE_LICENCE,
@@ -195,13 +267,14 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
     if (id.includes("venus")) return MOON_AND_VENUS;
   }
 
-  return MOON_AND_VENUS;
+  return NIGHT_SKY;
 }
 
 /** Every image that ships, for the provenance and attribution surfaces. */
 export const TRACKER_IMAGERY = [
   PERSEIDS,
   MOON_AND_VENUS,
+  NIGHT_SKY,
   heroImageryFor("lunar-eclipse", "lunar-eclipse"),
   heroImageryFor("moon", "moon"),
   heroImageryFor("planet-saturn", "planet"),

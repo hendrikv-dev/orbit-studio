@@ -107,6 +107,27 @@ export function formatClockTime(iso: string, clock: PlaceClock): string {
   }).format(shifted(iso, clock));
 }
 
+/**
+ * "10 PM" — the hour alone, for an axis.
+ *
+ * A chart axis is not a time display. `formatClockTime` puts ten characters
+ * under every tick, which at the width a Tracker panel actually gets means
+ * labels touching each other; the minutes are always :00 on an hourly axis and
+ * carry no information at all.
+ */
+export function formatClockHour(iso: string, clock: PlaceClock): string {
+  if (clock.timeZone) {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      timeZone: clock.timeZone,
+    }).format(new Date(iso));
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    timeZone: "UTC",
+  }).format(shifted(iso, clock));
+}
+
 /** "12:35–1:20 AM", collapsing a repeated meridiem. */
 export function formatClockRange(startIso: string, endIso: string, clock: PlaceClock): string {
   const start = formatClockTime(startIso, clock);
