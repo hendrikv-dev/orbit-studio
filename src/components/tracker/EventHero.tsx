@@ -57,6 +57,15 @@ interface Props {
   expectation: string | null;
   onPrimary: () => void;
   onSecondary: () => void;
+  /**
+   * A third control, where the event has two genuinely different tools.
+   *
+   * An eclipse is the case that forced this. "View visibility map" answers
+   * *where on Earth*, and the altitude-and-bearing chart answers *where in the
+   * sky* — one control cannot be both, and making it try is how a button
+   * labelled "View visibility map" came to open a sky chart.
+   */
+  tertiary?: { label: string; onSelect: () => void } | null;
 }
 
 export function EventHero({
@@ -66,6 +75,7 @@ export function EventHero({
   expectation,
   onPrimary,
   onSecondary,
+  tertiary = null,
 }: Props) {
   return (
     <section
@@ -125,6 +135,11 @@ export function EventHero({
           <button type="button" className="tk-action" onClick={onSecondary}>
             {presentation.secondaryAction.label}
           </button>
+          {tertiary ? (
+            <button type="button" className="tk-action" onClick={tertiary.onSelect}>
+              {tertiary.label}
+            </button>
+          ) : null}
         </div>
       </div>
 

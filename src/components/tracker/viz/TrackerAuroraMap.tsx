@@ -36,7 +36,13 @@ interface Props {
   bounds: MapBounds;
   observer: { latitudeDeg: number; longitudeDeg: number; label: string };
   clock: PlaceClock;
-  onOpenFullMap: () => void;
+  /**
+   * Opens the expanded map, or null when this *is* the expanded map.
+   *
+   * Null rather than a no-op: a control that is present and does nothing is the
+   * defect this pass exists to remove, so the button is absent instead.
+   */
+  onOpenFullMap: (() => void) | null;
 }
 
 /**
@@ -141,7 +147,7 @@ export function TrackerAuroraMap({
             ? `Last observed ${issued} · expired ${valid}`
             : `Observed ${issued} · valid to about ${valid}`
         }
-        action={{ label: "Open full map", onSelect: onOpenFullMap }}
+        action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
         ariaLabel={
           expired
             ? `Expired aurora nowcast centred on ${observer.label}, shown as history. ` +

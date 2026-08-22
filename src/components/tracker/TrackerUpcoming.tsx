@@ -3,6 +3,7 @@ import {
   SELECTABLE_PHENOMENON_CATEGORIES,
   type PhenomenonCategoryId,
 } from "../../data/tracker/phenomenonCategories";
+import type { TrackerLocation } from "../../data/tracker/trackerNavigation";
 import {
   buildUpcomingEvents,
   filterUpcoming,
@@ -52,6 +53,16 @@ interface Props {
   auroraConditions: AuroraConditions | null;
   snapshots: ConditionSnapshot[];
   evidenceStatus: EnvironmentalEvidenceStatus;
+  /**
+   * Browse state, owned by the history rather than by this component.
+   *
+   * Mode, filter, month and the opened event used to be local `useState`, which
+   * is why Back could not restore them: they existed nowhere the browser could
+   * see. They are props now so that one entry describes one screen.
+   */
+  location: TrackerLocation;
+  onNavigate: (next: Partial<TrackerLocation>, options?: { replace?: boolean }) => void;
+  onBack: (fallback: Partial<TrackerLocation>) => void;
 }
 
 export function TrackerUpcoming({
@@ -62,21 +73,33 @@ export function TrackerUpcoming({
   auroraConditions,
   snapshots,
   evidenceStatus,
+  location,
+  onNavigate,
+  onBack,
 }: Props) {
-  const [mode, setMode] = useState<"list" | "calendar">("list");
-  const [category, setCategory] = useState<PhenomenonCategoryId>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
+
+  const mode = location.mode;
+  const category = location.category;
+  const selectedId = location.eventId;
+  const setMode = (next: "list" | "calendar") => onNavigate({ mode: next });
+  const setCategory = (next: PhenomenonCategoryId) => onNavigate({ category: next });
+  const setSelectedId = (id: string | null) => onNavigate({ eventId: id });
 
   const todayParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: clock.timeZone ?? "UTC",
     year: "numeric",
     month: "2-digit",
   }).formatToParts(now);
-  const [cursor, setCursor] = useState({
-    year: Number(todayParts.find((part) => part.type === "year")?.value),
-    month: Number(todayParts.find((part) => part.type === "month")?.value),
-  });
+  // The month defaults to the one the reader is in, but once they have moved it
+  // the location carries it, so Back onto this page returns to the month they
+  // were looking at rather than to today.
+  const cursor = {
+    year: location.year ?? Number(todayParts.find((part) => part.type === "year")?.value),
+    month: location.month ?? Number(todayParts.find((part) => part.type === "month")?.value),
+  };
+  const setCursor = (next: { year: number; month: number }) =>
+    onNavigate({ year: next.year, month: next.month });
 
   /**
    * What the planner is asked for, which follows the mode.
@@ -154,8 +177,11 @@ export function TrackerUpcoming({
           snapshots={snapshots}
           evidenceStatus={evidenceStatus}
           auroraConditions={auroraConditions}
-          onSelectEvent={(id) => setSelectedId(id)}
-          onBack={() => setSelectedId(null)}
+          onSelectEvent={(id) => onNavigate({ eventId: id, drill: null })}
+          onBack={() => onBack({ eventId: null, drill: null })}
+          drill={location.drill}
+          onOpenDrill={(kind) => onNavigate({ drill: kind })}
+          onCloseDrill={() => onBack({ drill: null })}
         />
       </section>
     );
@@ -237,7 +263,11 @@ export function TrackerUpcoming({
               events={visible}
               place={place}
               clock={clock}
+              category={category}
               onSelect={setSelectedId}
+              onGoTonight={() =>
+                onNavigate({ view: "tonight", eventId: null, drill: null })
+              }
             />
           )
         ) : (

@@ -5,7 +5,11 @@ import type {
   LocalSolarCircumstances,
   SolarEclipseEvent,
 } from "../../../data/tracker/solarEclipse";
-import type { LunarVisibilityField } from "../../../data/tracker/lunarEclipse";
+import {
+  capOutline,
+  type LunarGeographicVisibility,
+  type LunarLocalVisibility,
+} from "../../../data/tracker/lunarEclipse";
 import { formatClockTime, type PlaceClock } from "../../../lib/localTime";
 import { TrackerGeoMap, type MapBounds, type MapProjection } from "./TrackerGeoMap";
 
@@ -54,18 +58,32 @@ interface SolarProps {
   bounds: MapBounds;
   observer: { latitudeDeg: number; longitudeDeg: number; label: string };
   clock: PlaceClock;
-  onOpenFullMap: () => void;
+  /**
+   * Opens the expanded map, or null when this *is* the expanded map.
+   *
+   * Null rather than a no-op: a control that is present and does nothing is the
+   * defect this pass exists to remove, so the button is absent instead.
+   */
+  onOpenFullMap: (() => void) | null;
 }
 
 interface LunarProps {
   kind: "lunar";
   title: string;
   maximumUtc: string;
-  visibility: LunarVisibilityField;
+  visibility: LunarGeographicVisibility;
+  /** The reader's own circumstances, from the eclipse's real contact times. */
+  local: LunarLocalVisibility;
   bounds: MapBounds;
   observer: { latitudeDeg: number; longitudeDeg: number; label: string };
   clock: PlaceClock;
-  onOpenFullMap: () => void;
+  /**
+   * Opens the expanded map, or null when this *is* the expanded map.
+   *
+   * Null rather than a no-op: a control that is present and does nothing is the
+   * defect this pass exists to remove, so the button is absent instead.
+   */
+  onOpenFullMap: (() => void) | null;
   /** Moon altitude at maximum from the observer, which is the local answer. */
   observerAltitudeDeg: number;
 }
@@ -212,7 +230,7 @@ function SolarEclipseMap({
             ? `${dateLabel} · maximum here ${formatClockTime(local.peakUtc, clock)}`
             : `${dateLabel} · not visible from here`
         }
-        action={{ label: "Open full map", onSelect: onOpenFullMap }}
+        action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
         ariaLabel={
           centralPath.length
             ? `Map of the ${event.kind} solar eclipse on ${dateLabel}, showing the centre line and the bands where the Sun is partly covered, with ${observer.label} marked.`
@@ -265,39 +283,113 @@ function LunarEclipseMap({
   title,
   maximumUtc,
   visibility,
+  local,
   bounds,
   observer,
   clock,
   onOpenFullMap,
   observerAltitudeDeg,
 }: LunarProps) {
+  /**
+   * Fill by band, outlined by the real horizon curves.
+   *
+   * The fill is a raster because a filled region has to be rasterised
+   * somewhere, but the *boundary* is drawn from `capOutline` — the actual locus
+   * where the Moon's computed altitude reaches zero. That is the difference
+   * between this and what it replaces: the edges are the geometry rather than
+   * the sampling grid, so they curve the way the terminator curves instead of
+   * stepping in five-degree blocks.
+   */
   const field = (projection: MapProjection) => {
     const cellWidth = Math.abs(projection.x(visibility.stepDeg) - projection.x(0));
     const cellHeight = Math.abs(projection.y(visibility.stepDeg) - projection.y(0));
+    const fills: Record<string, string | null> = {
+      all: "rgba(196, 152, 120, 0.62)",
+      moonrise: "rgba(126, 138, 196, 0.46)",
+      moonset: "rgba(158, 122, 176, 0.46)",
+      none: null,
+    };
+
+    // A cap's edge crosses the antimeridian for most eclipses, so the outline is
+    // broken into runs rather than drawn as one polyline that would otherwise
+    // sweep a false horizontal line back across the whole map.
+    const outlinePath = (points: { latitudeDeg: number; longitudeDeg: number }[]) => {
+      const runs: string[] = [];
+      let current: string[] = [];
+      let previousLon: number | null = null;
+      for (const point of points) {
+        if (previousLon !== null && Math.abs(point.longitudeDeg - previousLon) > 180) {
+          if (current.length > 1) runs.push(current.join(" "));
+          current = [];
+        }
+        current.push(
+          `${current.length === 0 ? "M" : "L"}${projection.x(point.longitudeDeg).toFixed(1)} ${projection.y(point.latitudeDeg).toFixed(1)}`,
+        );
+        previousLon = point.longitudeDeg;
+      }
+      if (current.length > 1) runs.push(current.join(" "));
+      return runs.join(" ");
+    };
+
     return (
-      <g filter="url(#tk-geomap-smooth)">
-        {visibility.cells.map((cell) => {
-          if (cell.visibleFraction <= 0) return null;
-          const color =
-            cell.visibleFraction >= 0.95
-              ? "rgba(196, 152, 120, 0.66)"
-              : cell.visibleFraction >= 0.5
-                ? "rgba(150, 128, 168, 0.52)"
-                : "rgba(96, 106, 156, 0.38)";
-          return (
-            <rect
-              key={`${cell.latitudeDeg}:${cell.longitudeDeg}`}
-              x={projection.x(cell.longitudeDeg) - cellWidth / 2}
-              y={projection.y(cell.latitudeDeg) - cellHeight / 2}
-              width={cellWidth + 1}
-              height={cellHeight + 1}
-              fill={color}
-            />
-          );
-        })}
+      <g>
+        <g filter="url(#tk-geomap-smooth)">
+          {visibility.cells.map((cell) => {
+            const fill = fills[cell.band];
+            if (!fill) return null;
+            return (
+              <rect
+                key={`${cell.latitudeDeg}:${cell.longitudeDeg}`}
+                x={projection.x(cell.longitudeDeg) - cellWidth / 2}
+                y={projection.y(cell.latitudeDeg) - cellHeight / 2}
+                width={cellWidth + 1}
+                height={cellHeight + 1}
+                fill={fill}
+              />
+            );
+          })}
+        </g>
+        {/* The horizon at first and last contact: the two curves that decide
+            whether a place sees all of the eclipse, some, or none. */}
+        <path
+          className="tk-lunar-limit"
+          d={outlinePath(capOutline(visibility.keyCaps.start, 240))}
+          fill="none"
+          stroke="rgba(238, 224, 255, 0.5)"
+          strokeWidth={0.9}
+          strokeDasharray="4 3"
+        />
+        <path
+          className="tk-lunar-limit"
+          d={outlinePath(capOutline(visibility.keyCaps.end, 240))}
+          fill="none"
+          stroke="rgba(238, 224, 255, 0.5)"
+          strokeWidth={0.9}
+          strokeDasharray="4 3"
+        />
+        {/* Where the Moon is overhead at maximum — the centre of the region,
+            and the one point on Earth with the eclipse at the zenith. */}
+        <circle
+          className="tk-lunar-sublunar"
+          cx={projection.x(visibility.keyCaps.maximum.longitudeDeg)}
+          cy={projection.y(visibility.keyCaps.maximum.latitudeDeg)}
+          r={3}
+          fill="none"
+          stroke="rgba(255, 226, 190, 0.85)"
+          strokeWidth={1.1}
+        />
       </g>
     );
   };
+
+  const bandSentence =
+    local.band === "all"
+      ? "The whole of it is above your horizon."
+      : local.band === "moonrise"
+        ? `The Moon rises during the eclipse here, at ${local.horizonCrossingUtc ? formatClockTime(local.horizonCrossingUtc, clock) : "moonrise"} — the earlier phases happen below your horizon.`
+        : local.band === "moonset"
+          ? `The Moon sets during the eclipse here, at ${local.horizonCrossingUtc ? formatClockTime(local.horizonCrossingUtc, clock) : "moonset"} — the later phases happen below your horizon.`
+          : "The Moon is below your horizon throughout, so none of it is visible from here.";
 
   return (
     <div className="tk-viz-panel tk-eclipsemap">
@@ -305,28 +397,39 @@ function LunarEclipseMap({
         bounds={bounds}
         marker={observer}
         legend={[
-          { swatch: "rgba(196, 152, 120, 0.8)", label: "Whole eclipse" },
-          { swatch: "rgba(150, 128, 168, 0.7)", label: "Part of it" },
-          { swatch: "rgba(96, 106, 156, 0.55)", label: "Moon rising or setting" },
+          { swatch: "rgba(196, 152, 120, 0.8)", label: "All of it visible" },
+          { swatch: "rgba(126, 138, 196, 0.7)", label: "Moon rises during" },
+          { swatch: "rgba(158, 122, 176, 0.7)", label: "Moon sets during" },
         ]}
         title="Where the eclipse can be seen"
         timing={`Maximum ${formatClockTime(maximumUtc, clock)} · ${title}`}
-        action={{ label: "Open full map", onSelect: onOpenFullMap }}
-        ariaLabel={`Map showing where on Earth the Moon is above the horizon during this eclipse, with ${observer.label} marked.`}
+        action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
+        ariaLabel={
+          `Map of where on Earth the Moon is above the horizon during this eclipse. ` +
+          `Shaded regions distinguish seeing all of it from places where the Moon rises or sets part-way through. ` +
+          `${observer.label} is marked. ${bandSentence}`
+        }
       >
         {field}
       </TrackerGeoMap>
 
-      <div className={`tk-viz-verdict is-${observerAltitudeDeg > 15 ? "good" : observerAltitudeDeg > 0 ? "fair" : "unknown"}`}>
+      <div
+        className={`tk-viz-verdict is-${
+          local.band === "all" && observerAltitudeDeg > 15
+            ? "good"
+            : local.band === "none"
+              ? "poor"
+              : "fair"
+        }`}
+      >
         <p className="tk-viz-verdict-head">
-          {observerAltitudeDeg > 0
-            ? `The Moon is ${Math.round(observerAltitudeDeg)}° up from here at maximum`
-            : "The Moon is below your horizon at maximum"}
+          {local.band === "none"
+            ? "Not visible from here"
+            : observerAltitudeDeg > 0
+              ? `The Moon is ${Math.round(observerAltitudeDeg)}° up from here at maximum`
+              : "The Moon is below your horizon at maximum"}
         </p>
-        <p className="tk-viz-verdict-detail">
-          A lunar eclipse has no track — it is the same event everywhere the Moon
-          is up, which is what this shaded region is.
-        </p>
+        <p className="tk-viz-verdict-detail">{bandSentence}</p>
       </div>
     </div>
   );

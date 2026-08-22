@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { heroImageryFor } from "../../data/tracker/imagery";
 import { categoryOf } from "../../data/tracker/eventCategories";
+import type { PhenomenonCategoryId } from "../../data/tracker/phenomenonCategories";
 import type { UpcomingEvent } from "../../data/tracker/upcomingEvents";
 import { formatClockTime, type PlaceClock } from "../../lib/localTime";
 import type { SelectedPlace } from "./TrackerPlace";
@@ -32,6 +33,10 @@ interface Props {
   place: SelectedPlace;
   clock: PlaceClock;
   onSelect: (id: string) => void;
+  /** Which filter produced this list, so an empty one can explain itself. */
+  category?: PhenomenonCategoryId;
+  /** Route out of an empty list, to the view that can answer. */
+  onGoTonight?: () => void;
 }
 
 function dateParts(dateKey: string): { day: string; month: string; year: string | null } {
@@ -58,16 +63,46 @@ function imageryFor(event: UpcomingEvent) {
   return heroImageryFor(event.notable.entry.opportunity.id, event.notable.entry.opportunity.kind);
 }
 
-export function TrackerHighlights({ events, place, clock, onSelect }: Props) {
+export function TrackerHighlights({ events, place, clock, category, onSelect, onGoTonight }: Props) {
   if (events.length === 0) {
+    /**
+     * An empty filter is not the same statement for every phenomenon.
+     *
+     * For aurora it is a statement about the *forecast horizon*, not about
+     * aurora: nobody can name a night three weeks out, so an empty diary is the
+     * correct and permanent answer rather than a failure. Saying only "nothing
+     * to put in the diary" let that read as "Tracker cannot show auroras",
+     * which is false and left the reader at a dead end — the current state was
+     * a click away in Tonight and nothing said so.
+     */
+    const aurora = category === "auroras";
     return (
       <div className="tk-highlights tk-highlights-empty" data-planning-state="ready">
-        <h2 className="tk-display">Nothing to put in the diary</h2>
+        <h2 className="tk-display">
+          {aurora ? "Auroras cannot be diarised" : "Nothing to put in the diary"}
+        </h2>
         <p className="tk-view-lede">
-          No eclipse, shower peak or close pairing falls in the next month from {place.name},
-          and no geomagnetic storm is forecast inside the three days anybody can forecast.
-          Tonight is still worth checking.
+          {aurora ? (
+            <>
+              Useful aurora forecasting reaches about three days, and the nowcast that
+              says where the oval actually is runs about half an hour ahead. Nothing
+              honest can be written in a diary beyond that, so this list stays empty
+              until a storm is close enough to forecast. What can be answered is
+              tonight.
+            </>
+          ) : (
+            <>
+              No eclipse, shower peak or close pairing falls in the next month from{" "}
+              {place.name}, and no geomagnetic storm is forecast inside the three days
+              anybody can forecast. Tonight is still worth checking.
+            </>
+          )}
         </p>
+        {onGoTonight ? (
+          <button type="button" className="tk-action is-primary" onClick={onGoTonight}>
+            {aurora ? "Aurora conditions tonight" : "See tonight"}
+          </button>
+        ) : null}
       </div>
     );
   }

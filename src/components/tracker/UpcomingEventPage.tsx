@@ -13,7 +13,10 @@ import {
   type EventPresentation,
 } from "../../data/tracker/eventPresentation";
 import { heroImageryFor } from "../../data/tracker/imagery";
-import { lunarVisibilityField } from "../../data/tracker/lunarEclipse";
+import {
+  lunarGeographicVisibility,
+  lunarLocalVisibility,
+} from "../../data/tracker/lunarEclipse";
 import {
   coverageField,
   mapExtentFor,
@@ -66,6 +69,15 @@ interface Props {
   auroraConditions: AuroraConditions | null;
   onSelectEvent: (id: string) => void;
   onBack: () => void;
+  /**
+   * Which drill-in is open, from the browser's history rather than local state.
+   *
+   * Local state is why Back from an open map left Tracker: the map was not an
+   * entry, so there was nothing behind it but the page load.
+   */
+  drill: "sky" | "field" | null;
+  onOpenDrill: (kind: "sky" | "field") => void;
+  onCloseDrill: () => void;
 }
 
 export function UpcomingEventPage({
@@ -79,11 +91,52 @@ export function UpcomingEventPage({
   auroraConditions,
   onSelectEvent,
   onBack,
+  drill,
+  onOpenDrill,
+  onCloseDrill,
 }: Props) {
-  const [overlayOpen, setOverlayOpen] = useState(false);
   const built = useMemo(
-    () => buildPresentation(event, place, clock, now, snapshots, evidenceStatus, auroraConditions),
-    [auroraConditions, clock, event, evidenceStatus, now, place, snapshots],
+    () =>
+      buildPresentation(
+        event,
+        place,
+        clock,
+        now,
+        snapshots,
+        evidenceStatus,
+        auroraConditions,
+        true,
+        "card",
+        () => onOpenDrill("field"),
+      ),
+    [auroraConditions, clock, event, evidenceStatus, now, onOpenDrill, place, snapshots],
+  );
+
+  /**
+   * The same event drawn for a full screen rather than for a third of a row.
+   *
+   * Built only while the map is open, because the wider extent samples a larger
+   * area at a finer step and there is no reason to pay for it behind a closed
+   * overlay. This is what makes "Open full map" worth opening: it is a larger
+   * piece of the world at higher resolution, not the card scaled up.
+   */
+  const expanded = useMemo(
+    () =>
+      drill === "field"
+        ? buildPresentation(
+            event,
+            place,
+            clock,
+            now,
+            snapshots,
+            evidenceStatus,
+            auroraConditions,
+            true,
+            "full",
+            null,
+          ).visualization
+        : null,
+    [auroraConditions, clock, drill, event, evidenceStatus, now, place, snapshots],
   );
 
   const conditions = useMemo(
@@ -153,11 +206,19 @@ export function UpcomingEventPage({
       conditionsCaption="Eclipse and Moon geometry computed on this device. Weather is only claimed inside the forecast horizon."
       evidenceStatus={evidenceStatus}
       rows={rows}
-      onSelectEvent={(id) => {
-        setOverlayOpen(false);
-        onSelectEvent(id);
-      }}
-      onPrimaryAction={() => setOverlayOpen(true)}
+      onSelectEvent={(id) => onSelectEvent(id)}
+      onPrimaryAction={() =>
+        // The action's own `kind` decides, rather than whatever geometry
+        // happened to be available. A control that says "View visibility map"
+        // opens the geographic map even for an event that also has a sky path.
+        onOpenDrill(built.presentation.primaryAction.kind === "sky-map" ? "sky" : "field")
+      }
+      tertiaryAction={
+        // Where both tools exist, both are reachable, each under its own name.
+        built.skyPath && built.presentation.primaryAction.kind !== "sky-map"
+          ? { label: "Where to look", onSelect: () => onOpenDrill("sky") }
+          : null
+      }
       onReminder={() =>
         downloadCalendarFile({
           title: built.presentation.reminder.title,
@@ -175,18 +236,10 @@ export function UpcomingEventPage({
     />
 
     <TrackerOverlay
-      open={overlayOpen}
-      onClose={() => setOverlayOpen(false)}
-      title={
-        built.skyPath
-          ? `Where to look — ${built.presentation.title}`
-          : built.presentation.primaryAction.label
-      }
-      subtitle={
-        built.skyPath
-          ? "Real altitude and bearing for that night, from your location."
-          : "Computed geometry for your location."
-      }
+      open={drill === "sky" && built.skyPath !== null}
+      onClose={onCloseDrill}
+      title={`Where to look — ${built.presentation.title}`}
+      subtitle="Real altitude and bearing for that night, from your location."
     >
       {built.skyPath ? (
         <TrackerSkyChart
@@ -195,9 +248,16 @@ export function UpcomingEventPage({
           tone={built.presentation.categoryId}
           label={built.presentation.title}
         />
-      ) : (
-        <div className="tk-overlay-map">{built.visualization}</div>
-      )}
+      ) : null}
+    </TrackerOverlay>
+
+    <TrackerOverlay
+      open={drill === "field"}
+      onClose={onCloseDrill}
+      title={`${built.presentation.primaryAction.label} — ${built.presentation.title}`}
+      subtitle={built.mapSubtitle}
+    >
+      <div className="tk-overlay-map">{expanded ?? built.visualization}</div>
     </TrackerOverlay>
     </>
   );
@@ -217,6 +277,8 @@ interface BuiltEvent {
    * the dashboard furniture this interface is supposed to be free of.
    */
   skyPath: SkyPath | null;
+  /** What the expanded map is, said in the overlay's own subtitle. */
+  mapSubtitle: string;
 }
 
 /**
@@ -239,7 +301,18 @@ function buildPresentation(
   auroraConditions: AuroraConditions | null,
   /** False for list rows, which need the words and not the drawing. */
   withVisualization = true,
+  /**
+   * How much of the world to draw.
+   *
+   * "card" is the third-of-a-row panel beside the hero. "full" is the drill-in:
+   * a wider extent sampled at a finer step, so that opening the map shows more
+   * of the phenomenon rather than the same picture at twice the size.
+   */
+  extent: "card" | "full" = "card",
+  /** Null on the expanded map itself, and on rows that draw nothing. */
+  onOpenFullMap: (() => void) | null = null,
 ): BuiltEvent {
+  const full = extent === "full";
   if (event.kind === "solar-eclipse") {
     // The heavy geometry, computed only for the eclipse actually on screen.
     // Tracing a shadow path is a few hundred milliseconds of ephemeris work,
@@ -247,11 +320,22 @@ function buildPresentation(
     // for a page showing one.
     // Limits are needed only for the drawing, and cost a bisection per side per
     // point, so they follow the same flag as everything else visual.
-    const centralPath = withVisualization ? traceCentralPath(event.event, 6, 240, true) : [];
-    const bounds = mapExtentFor(place.latitude, place.longitude, centralPath);
+    const centralPath = withVisualization
+      ? traceCentralPath(event.event, full ? 3 : 6, full ? 360 : 240, true)
+      : [];
+    // A full map opens out to a hemisphere-scale view of the track; the card
+    // stays close enough to the reader's own place to be about them.
+    const bounds = mapExtentFor(
+      place.latitude,
+      place.longitude,
+      centralPath,
+      full ? 48 : 26,
+      full ? 130 : 72,
+    );
+    const coverageStep = full ? 0.9 : 1.5;
     const coverage = withVisualization
-      ? coverageField(event.event, bounds, 1.5)
-      : { cells: [], stepDeg: 1.5, bounds };
+      ? coverageField(event.event, bounds, coverageStep)
+      : { cells: [], stepDeg: coverageStep, bounds };
     const presentation = presentSolarEclipseEvent(
       event.event,
       event.local,
@@ -289,10 +373,12 @@ function buildPresentation(
             label: place.name,
           }}
           clock={clock}
-          onOpenFullMap={() => {}}
+          onOpenFullMap={onOpenFullMap}
         />
         </Suspense>
       ) : null,
+      mapSubtitle:
+        "Where the Moon's shadow falls, computed from the ephemeris. The centre line is the shadow axis; shading is the fraction of the Sun covered.",
       safety: SOLAR_SAFETY,
       expectation:
         event.local.kind === "total"
@@ -339,6 +425,8 @@ function buildPresentation(
           </p>
         </div>
       ),
+      mapSubtitle:
+        "NOAA planetary K-index forecast. There is no field to map this far ahead — the nowcast that locates the oval is issued about half an hour before it applies.",
       safety: null,
       expectation:
         "Kp describes how disturbed Earth's magnetic field will be, not what you will see. Check the nowcast on the night.",
@@ -386,19 +474,26 @@ function buildPresentation(
     visualization = null;
   } else if (opportunity.kind === "lunar-eclipse" && opportunity.science?.kind === "lunar-eclipse") {
     const timingModel = opportunity.science.timing;
-    const bounds = {
-      south: Math.max(-85, place.latitude - 40),
-      north: Math.min(85, place.latitude + 40),
-      west: place.longitude - 70,
-      east: place.longitude + 70,
-    };
+    // A lunar eclipse is visible from a whole hemisphere, so the card shows the
+    // reader's part of it and the full map opens out far enough to hold the
+    // entire visible region rather than a window onto the middle of it.
+    const bounds = full
+      ? { south: -85, north: 85, west: place.longitude - 175, east: place.longitude + 175 }
+      : {
+          south: Math.max(-85, place.latitude - 40),
+          north: Math.min(85, place.latitude + 40),
+          west: place.longitude - 70,
+          east: place.longitude + 70,
+        };
+    const localVisibility = lunarLocalVisibility(timingModel, place.latitude, place.longitude);
     visualization = (
       <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
       <TrackerEclipseMap
         kind="lunar"
         title={opportunity.title}
         maximumUtc={timingModel.maximumUtc}
-        visibility={lunarVisibilityField(timingModel, bounds, 5)}
+        visibility={lunarGeographicVisibility(timingModel, bounds, full ? 1.4 : 2, full ? 13 : 9)}
+        local={localVisibility}
         bounds={bounds}
         observer={{
           latitudeDeg: place.latitude,
@@ -406,7 +501,7 @@ function buildPresentation(
           label: place.name,
         }}
         clock={clock}
-        onOpenFullMap={() => {}}
+        onOpenFullMap={onOpenFullMap}
         observerAltitudeDeg={
           opportunity.science.localContactAltitudesDeg?.maximum ??
           Object.values(opportunity.science.localContactAltitudesDeg ?? {})[0] ??
@@ -454,6 +549,10 @@ function buildPresentation(
   }
 
   return {
+    mapSubtitle:
+      opportunity.kind === "lunar-eclipse"
+        ? "Where the Moon is above the horizon while the eclipse runs, from its real contact times. The dashed curves are the horizon at first and last contact."
+        : "Computed geometry for your location.",
     presentation: {
       ...presentation,
       // Keyed by the calendar event rather than by the opportunity. Three New

@@ -720,6 +720,38 @@ async function main() {
     }
   }
 
+  // --- fresh, but quiet ----------------------------------------------------
+  //
+  // The state the product used to have no answer for. A quiet field is not an
+  // error and not an absence: "unlikely tonight" is a real result, and it used
+  // to be delivered by the aurora entry simply not existing, which reads as
+  // Tracker being unable to say rather than as Tracker saying so.
+  {
+    const { context, page } = await auroraContext(serveGrid(auroraGridAt(2, 5, 30)));
+    const opened = await clickRow(page, /Aurora/i);
+    check(opened, "weak: aurora is still offered when the field is quiet");
+    if (opened) {
+      const state = await readPageState(page);
+      assertUniversalGeometry(state, "aurora (quiet)");
+      const text = await page.evaluate(
+        () =>
+          `${document.querySelector(".tk-hero-recommendation")?.textContent ?? ""} ` +
+          `${document.querySelector(".tk-hero-support")?.textContent ?? ""}`,
+      );
+      check(
+        /unlikely|quiet|not over you|away from you|farther north|further north/i.test(text),
+        "weak: the page states that aurora is unlikely rather than staying silent",
+      );
+      check(
+        !/^\s*$/.test(text),
+        "weak: a quiet field still produces an interpretation",
+      );
+      await shot(page, "17-aurora-quiet", "fresh nowcast, quiet field");
+    }
+    await page.close();
+    await context.close();
+  }
+
   // --- stale -------------------------------------------------------------
   {
     // Observed four hours ago, expired three and a half hours ago.
@@ -791,18 +823,357 @@ async function main() {
   }
 
   // --- unavailable -------------------------------------------------------
+  //
+  // This check previously asserted that no aurora row appeared at all when the
+  // feed could not be read. That was a faithful test of the behaviour at the
+  // time and the behaviour was wrong: a reader who wants to know about aurora
+  // and is shown nothing cannot tell "quiet tonight" from "Tracker is not
+  // asking". So the assertion now covers the required state instead — the entry
+  // is reachable, and it says the conditions are unavailable rather than
+  // implying a quiet sky, and it still quotes no probability.
   {
     const { context, page } = await auroraContext((route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "down" }),
     );
-    const rows = await page.locator(".tk-relevant-row").allInnerTexts();
-    check(
-      !rows.some((row) => /aurora/i.test(row)),
-      "unavailable: no aurora event is offered when the nowcast cannot be read",
-    );
+    const opened = await clickRow(page, /Aurora/i);
+    check(opened, "unavailable: aurora is still reachable when the nowcast cannot be read");
+    if (opened) {
+      const state = await readPageState(page);
+      assertUniversalGeometry(state, "aurora (unavailable)");
+      const text = await page.evaluate(
+        () =>
+          `${document.querySelector(".tk-hero-recommendation")?.textContent ?? ""} ` +
+          `${document.querySelector(".tk-hero-support")?.textContent ?? ""} ` +
+          `${document.querySelector(".tk-viz-slot")?.textContent ?? ""}`,
+      );
+      check(
+        /unavailable|not known|cannot|no space-weather/i.test(text),
+        "unavailable: the page says the conditions are unavailable",
+      );
+      check(
+        !/\b\d+% (chance|over your)/i.test(text),
+        "unavailable: no probability is presented when nothing was received",
+      );
+      await shot(page, "19-aurora-unavailable", "feed unreachable");
+    }
     await page.close();
     await context.close();
   }
+
+  // --- no forecastable future event ---------------------------------------
+  //
+  // Aurora in Upcoming is usually empty, and correctly so: nothing can name a
+  // night three weeks out. What the empty list must not do is read as "Tracker
+  // cannot show auroras", or strand the reader with no way to the answer that
+  // does exist.
+  {
+    const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+    await seedPlace(context, PLACES.portland);
+    const page = await context.newPage();
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await page.getByRole("button", { name: "Upcoming" }).click();
+    await page.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+    await page.selectOption(".tk-phenomenon-filter select", "auroras");
+    await page.waitForTimeout(1200);
+
+    const empty = page.locator(".tk-highlights-empty");
+    if ((await empty.count()) > 0) {
+      const text = await empty.innerText();
+      check(
+        /forecast|three days|half an hour|horizon/i.test(text),
+        "empty aurora list explains the forecast horizon rather than implying absence",
+      );
+      check(
+        !/cannot show|unavailable|unsupported/i.test(text),
+        "empty aurora list does not say Tracker cannot show auroras",
+      );
+      const route = empty.locator("button");
+      check((await route.count()) > 0, "empty aurora list offers a route to tonight");
+      await shot(page, "18-aurora-no-future-event", "aurora filter with nothing forecastable");
+
+      if ((await route.count()) > 0) {
+        await route.first().click();
+        await page.waitForTimeout(2500);
+        check(
+          new URL(page.url()).searchParams.get("view") !== "upcoming",
+          "the route out of the empty list reaches Tonight",
+        );
+      }
+    } else {
+      // A storm inside the horizon is a legitimate outcome; the state simply is
+      // not reachable right now, and saying so beats asserting against reality.
+      console.log("  · a forecastable aurora event exists right now; empty-state check skipped");
+      findings.push({ label: "aurora empty state (needs a quiet forecast)", pass: null });
+    }
+    await page.close();
+    await context.close();
+  }
+
+  /* --- 5b. map controls, and the history behind them ---------------------- */
+  //
+  // Both of these were missed by a walk that reported 142 of 142. It counted
+  // that a control existed and that a page rendered; it never pressed the
+  // control and never pressed Back. So these checks assert the *consequence* of
+  // an interaction — what opened, what the URL says, what came back — rather
+  // than the presence of something clickable.
+  console.log("\nMap controls and history");
+
+  const navContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+  await seedPlace(navContext, PLACES.portland);
+  const nav = await navContext.newPage();
+  await nav.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await nav.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await nav.waitForTimeout(3000);
+
+  /** The Tracker location the address bar currently describes. */
+  const urlState = () => {
+    const params = new URLSearchParams(new URL(nav.url()).search);
+    return {
+      app: params.get("app"),
+      view: params.get("view") ?? "tonight",
+      event: params.get("event"),
+      drill: params.get("drill"),
+      mode: params.get("mode") ?? "list",
+      filter: params.get("filter") ?? "all",
+      month: params.get("month"),
+    };
+  };
+
+  const openUpcoming = async () => {
+    await nav.getByRole("button", { name: "Upcoming" }).click();
+    await nav.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+    await nav.waitForTimeout(500);
+  };
+
+  await openUpcoming();
+  check(urlState().view === "upcoming", "switching to Upcoming is written into the URL");
+
+  // --- the lunar eclipse's three map controls -------------------------------
+  const lunarCard = nav.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
+  if ((await lunarCard.count()) > 0) {
+    await lunarCard.click();
+    await nav.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+    await nav.waitForTimeout(2500);
+    const eventUrl = urlState();
+    check(eventUrl.event !== null, "opening an event puts its id in the URL");
+
+    // "View visibility map" must open the geographic map. It used to open the
+    // altitude chart, which is a different tool answering a different question.
+    await nav.getByRole("button", { name: "View visibility map" }).click();
+    await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
+    await nav.waitForTimeout(1200);
+    check(
+      (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
+      "View visibility map opens the geographic map",
+    );
+    check(
+      (await nav.locator(".tk-overlay .tk-chart-path").count()) === 0,
+      "View visibility map does not open the sky chart instead",
+    );
+    check(urlState().drill === "field", "the open map is a state the URL describes");
+    await shot(nav, "15-lunar-visibility-map", "geographic visibility map for a lunar eclipse");
+
+    // The regions have to be distinguishable, or the map is decoration.
+    const legend = await nav.locator(".tk-overlay .tk-geomap-legend").innerText().catch(() => "");
+    check(
+      /all of it/i.test(legend) && /rises/i.test(legend) && /sets/i.test(legend),
+      "the map distinguishes seeing all of it from moonrise and moonset",
+    );
+    check(
+      (await nav.locator(".tk-overlay .tk-lunar-limit").count()) >= 2,
+      "the horizon at first and last contact is drawn as a curve",
+    );
+
+    await nav.keyboard.press("Escape");
+    await nav.waitForTimeout(800);
+    check(
+      (await nav.locator(".tk-overlay").count()) === 0,
+      "Escape closes the visibility map",
+    );
+
+    // "Where to look" is the other tool, and must be reachable separately.
+    const whereToLook = nav.getByRole("button", { name: "Where to look" });
+    if ((await whereToLook.count()) > 0) {
+      await whereToLook.click();
+      await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
+      await nav.waitForTimeout(1000);
+      check(
+        (await nav.locator(".tk-overlay .tk-chart-path").count()) > 0,
+        "Where to look opens the altitude and bearing chart",
+      );
+      check(
+        (await nav.locator(".tk-overlay .tk-geomap").count()) === 0,
+        "Where to look is not the geographic map",
+      );
+      check(urlState().drill === "sky", "the sky chart is its own state in the URL");
+      await nav.keyboard.press("Escape");
+      await nav.waitForTimeout(700);
+    } else {
+      check(false, "Where to look is offered alongside the visibility map");
+    }
+
+    // --- Open full map, the control that did nothing at all -----------------
+    const openFull = nav.locator(".tk-viz-open", { hasText: /open full map/i }).first();
+    check((await openFull.count()) > 0, "the visualization offers Open full map");
+    if ((await openFull.count()) > 0) {
+      // Keyboard, not just mouse: the brief requires activation by both.
+      await openFull.focus();
+      await nav.keyboard.press("Enter");
+      await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
+      await nav.waitForTimeout(1800);
+      check(
+        (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
+        "Open full map opens an expanded geographic map (keyboard)",
+      );
+      check(urlState().drill === "field", "Open full map is a history state");
+
+      // Expanded means more of the world, not the same card scaled up.
+      const cardCells = await nav.locator(".tk-page .tk-eclipsemap rect").count();
+      const fullCells = await nav.locator(".tk-overlay .tk-eclipsemap rect").count();
+      check(
+        fullCells > cardCells,
+        `the expanded map samples more than the card (${fullCells} vs ${cardCells})`,
+      );
+      check(
+        (await nav.locator(".tk-overlay .tk-viz-open").count()) === 0,
+        "the expanded map does not offer to open itself again",
+      );
+      await shot(nav, "16-lunar-full-map", "expanded geographic map");
+
+      // Back must close it and land on the event, not leave Tracker.
+      await nav.goBack();
+      await nav.waitForTimeout(1200);
+      check(
+        (await nav.locator(".tk-overlay").count()) === 0 && urlState().drill === null,
+        "Back closes the expanded map",
+      );
+      check(
+        urlState().event === eventUrl.event,
+        "Back from the map returns to the event, not to the homepage",
+      );
+    }
+
+    // --- Sequence C: Upcoming -> event -> map -> Back -> Back --------------
+    await nav.goBack();
+    await nav.waitForTimeout(1500);
+    check(
+      urlState().view === "upcoming" && urlState().event === null,
+      "Sequence C: a second Back returns to Upcoming",
+    );
+    check(
+      new URL(nav.url()).searchParams.get("app") === "tracker",
+      "Sequence C: Back never leaves Tracker while Tracker states remain",
+    );
+  } else {
+    check(false, "a lunar eclipse is available to exercise the map controls");
+  }
+
+  // --- Sequence D: filter and mode survive a round trip ---------------------
+  await nav.selectOption(".tk-phenomenon-filter select", "eclipses");
+  await nav.waitForTimeout(900);
+  await nav.getByRole("tab", { name: "Calendar" }).click();
+  await nav.waitForSelector(".tk-month", { timeout: 90_000 });
+  await nav.waitForTimeout(1200);
+  const browseState = urlState();
+  check(
+    browseState.filter === "eclipses" && browseState.mode === "calendar",
+    "the filter and the browse mode are written into the URL",
+  );
+
+  const marked = nav.locator(".tk-day.is-marked").first();
+  if ((await marked.count()) > 0) {
+    await marked.click();
+    await nav.waitForTimeout(900);
+    const detail = nav.locator(".tk-month-detail .tk-month-event").first();
+    if ((await detail.count()) > 0) {
+      await detail.click();
+      await nav.waitForSelector(".tk-page", { timeout: 30_000 });
+      await nav.waitForTimeout(2000);
+      check(urlState().event !== null, "Sequence D: opening from the calendar is a step");
+
+      await nav.goBack();
+      await nav.waitForTimeout(1500);
+      const restored = urlState();
+      check(
+        restored.filter === "eclipses" && restored.mode === "calendar",
+        "Sequence D: Back restores the filter and Calendar mode rather than resetting",
+      );
+      check(
+        (await nav.locator(".tk-month").count()) > 0,
+        "Sequence D: the restored state renders the calendar, not the list",
+      );
+
+      // --- Sequence E: Forward returns to where Back came from -------------
+      await nav.goForward();
+      await nav.waitForTimeout(1500);
+      check(
+        urlState().event !== null && (await nav.locator(".tk-page").count()) > 0,
+        "Sequence E: Forward restores the event page",
+      );
+      await nav.goBack();
+      await nav.waitForTimeout(1200);
+    }
+  }
+
+  // --- Sequence B: two events deep, two steps back -------------------------
+  await nav.selectOption(".tk-phenomenon-filter select", "all");
+  await nav.waitForTimeout(700);
+  await nav.getByRole("tab", { name: "List" }).click();
+  await nav.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+  await nav.waitForTimeout(900);
+
+  const navCards = nav.locator(".tk-upcoming-card");
+  if ((await navCards.count()) >= 2) {
+    await navCards.first().click();
+    await nav.waitForSelector(".tk-page", { timeout: 30_000 });
+    await nav.waitForTimeout(2000);
+    const eventA = urlState().event;
+
+    // Move to a second event from the ranked list on the event page itself.
+    const nextRow = nav.locator(".tk-relevant-row").nth(1);
+    if ((await nextRow.count()) > 0) {
+      await nextRow.click();
+      await nav.waitForTimeout(2200);
+      const eventB = urlState().event;
+      check(eventB !== eventA, "Sequence B: moving between events changes the URL");
+
+      await nav.goBack();
+      await nav.waitForTimeout(1500);
+      check(urlState().event === eventA, "Sequence B: Back returns to the first event");
+
+      await nav.goBack();
+      await nav.waitForTimeout(1500);
+      check(
+        urlState().view === "upcoming" && urlState().event === null,
+        "Sequence B: a second Back returns to Upcoming",
+      );
+    }
+  }
+
+  // --- Sequence A, and the boundary: only then does Back leave Tracker -----
+  const beforeLeaving = new URL(nav.url()).searchParams.get("app");
+  check(beforeLeaving === "tracker", "Sequence A: Tracker is still the page after unwinding");
+
+  // Refreshing an event URL must land on that event, not on the homepage.
+  await navCards.first().click().catch(() => {});
+  await nav.waitForTimeout(2000);
+  const deepUrl = nav.url();
+  if (new URL(deepUrl).searchParams.get("event")) {
+    await nav.reload({ waitUntil: "domcontentloaded" });
+    await nav.waitForTimeout(3500);
+    check(
+      new URL(nav.url()).searchParams.get("app") === "tracker",
+      "refreshing an event page stays in Tracker",
+    );
+    check(
+      (await nav.locator(".tk-page").count()) > 0,
+      "refreshing an event page restores an event page",
+    );
+  }
+
+  await nav.close();
+  await navContext.close();
 
   /* --- 6. re-ranking when the place changes ------------------------------ */
   //

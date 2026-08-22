@@ -6,6 +6,41 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker navigation and map corrections
+- **Back no longer leaves Tracker.** Navigation lived in seven `useState` calls
+  across three components and touched the browser's history not at all, so the
+  whole application occupied one history entry: opening Upcoming, an event and
+  its map and then pressing Back returned to the Orbit Studio homepage, because
+  that genuinely was the previous entry. Location is now one object encoded in
+  the URL, meaningful steps push entries, and Back and Forward work because they
+  are the browser's own mechanism rather than an imitation of it. Filters, the
+  List/Calendar mode and the calendar month are written into the current entry
+  instead of pushing new ones, so returning to a list restores the list the
+  reader had rather than resetting it.
+- **`Open full map` did nothing.** It was wired to `onOpenFullMap={() => {}}`
+  on both eclipse maps — a literal no-op behind a control that looked live. It
+  now opens an expanded geographic map: a wider extent at a finer sampling step
+  (19,350 cells against the card's 2,130), not the same card enlarged.
+- **`View visibility map` opened the wrong tool.** On a lunar eclipse it opened
+  the altitude-and-bearing chart, because the overlay chose by what geometry
+  happened to exist rather than by what the control promised. The action's own
+  kind now decides, and the sky chart has its own control, `Where to look`.
+- **The lunar-eclipse map was drawn from a five-degree raster** of sampled
+  altitudes, which rendered a smooth boundary as a staircase of blocks whose
+  edges were artefacts of the sampling. It is now the real structure: the
+  sub-lunar point and the cap of the Earth that can see the Moon, whose measured
+  radius comes out near 89.6° once parallax and refraction are accounted for.
+  Regions distinguish seeing all of it from the Moon rising or setting part-way
+  through, boundaries are drawn as the horizon curves at first and last contact,
+  and the reader's own circumstances quote the crossing time.
+- **Aurora stopped disappearing on quiet nights.** The entry was listed only
+  when the field was active, so a reader who wanted to know about aurora was
+  shown nothing — indistinguishable from Tracker being unable to say. It is now
+  always present where there is a dark sky, ranked below anything actually
+  happening, and states the real outlook. In Upcoming, an empty aurora list
+  explains the three-day forecast horizon and offers a route to tonight rather
+  than reading as an absence.
+
 ### Tracker correctness pass
 
 - **The eclipse centre line is now the shadow axis.** It was derived by

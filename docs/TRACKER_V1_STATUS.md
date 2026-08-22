@@ -81,6 +81,70 @@ inline to NOAA's figure and fed into cross-phenomenon ranking, while the
 documentation claimed NOAA's probability was never rescaled into a Tracker
 judgement. It was. The transformation is now named, anchored and tested.
 
+## Two controls that were furniture, and one that lied
+
+Recorded because both survived a browser walkthrough that reported 142 of 142.
+The harness counted that a control existed and that a page rendered; it never
+pressed the control and never pressed Back, so a button wired to `() => {}` and
+a completely absent history integration both passed.
+
+- `Open full map` on the solar and lunar eclipse maps was `onOpenFullMap={() =>
+  {}}`. Not a broken handler — no handler.
+- `View visibility map` on a lunar eclipse opened the altitude-and-bearing
+  chart, because the overlay branched on whether a sky path existed rather than
+  on what the control said it would do.
+
+The walkthrough now asserts consequences: what opened, what the URL says, and
+what comes back after Back. That is the difference between 142 checks that
+missed these and 194 that cannot.
+
+## Lunar eclipse visibility, and why the first version looked wrong
+
+The first version was not wrong about the astronomy — a lunar eclipse is
+visible wherever the Moon is above the horizon, and it sampled exactly that. It
+was wrong about how to draw it. A five-degree raster of sampled altitudes turns
+a smooth boundary into a staircase whose edges describe the sampling grid rather
+than the eclipse, and the result read as a decorative gradient.
+
+The replacement uses the structure the phenomenon actually has. At any instant
+the Moon is above the horizon within a cap centred on the sub-lunar point, so
+the map computes that point and measures the cap's radius by bisecting the same
+altitude function the reader's own answer uses. The radius lands near 89.6°
+rather than 90° — horizontal parallax lowers the Moon by about 0.95° and
+refraction lifts it by about 0.57°, and parallax wins — which is why it is
+measured rather than assumed.
+
+Classification then costs trigonometry instead of tens of thousands of ephemeris
+evaluations, so the field can afford a fine grid, and the boundaries are drawn
+as the real horizon curves at first and last contact. The three regions are
+different observing situations rather than points on a gradient: the whole
+eclipse above the horizon, the Moon rising or setting part-way through, or not
+visible at all.
+
+Validated against an independent property rather than against itself: a lunar
+eclipse happens at full Moon, so the sub-lunar point must sit at the antipode of
+the sub-solar point. For 3 March 2026 it does, to 0.36°.
+
+## Aurora is a category, not only an event
+
+Aurora used to be listed only when something was happening. That looks
+reasonable and is a mistake: a reader who opens Tracker wanting to know about
+aurora and is shown nothing cannot tell "unlikely tonight" from "Tracker is not
+asking". Silence is not an answer.
+
+The entry is now always present where there is a dark sky to see it in, ranked
+below anything actually happening, and it states the real outlook — including
+"the oval is well away from you and the field is quiet" with NOAA's own 0%
+attributed to NOAA. In Upcoming the list is usually empty and correctly so;
+it now says why (three days for the K-index, half an hour for the nowcast) and
+offers the route to the question that can be answered.
+
+One existing browser check asserted the opposite — that no aurora row appears
+when the feed cannot be read. It was a faithful test of behaviour that was
+wrong, and it has been re-pointed at the required state rather than deleted:
+the entry is reachable, says the conditions are unavailable, and quotes no
+probability.
+
 ## The eclipse centre line, and why it was wrong
 
 Worth recording because the original was plausible and passed its tests. The

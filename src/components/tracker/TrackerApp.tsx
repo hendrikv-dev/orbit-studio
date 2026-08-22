@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { signalAppReady } from "../../lib/appReady";
 import { downloadCalendarFile } from "../../lib/trackerCalendar";
@@ -59,6 +59,7 @@ import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
 import { TrackerOverlay } from "./TrackerOverlay";
+import { useTrackerHistory } from "./useTrackerHistory";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerUpcoming } from "./TrackerUpcoming";
@@ -242,9 +243,29 @@ interface TonightEvent {
 
 function TrackerScreen() {
   const [place, setPlace] = useState<SelectedPlace | null>(() => loadConfirmedPlace());
-  const [view, setView] = useState<TrackerView>("tonight");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [overlay, setOverlay] = useState<Overlay>(null);
+  /**
+   * Every navigable thing about this screen, in the browser's history.
+   *
+   * Was three `useState` calls here and four more in the children, none of
+   * which the browser knew about — so Back left Tracker rather than walking
+   * back through it. See `useTrackerHistory`.
+   */
+  const { location, navigate, back } = useTrackerHistory();
+  const view: TrackerView = location.view;
+  const selectedId = location.view === "tonight" ? location.eventId : null;
+  const overlay: Overlay =
+    location.view === "tonight" && location.drill === "sky"
+      ? "sky-map"
+      : location.view === "tonight" && location.drill === "field"
+        ? "field-map"
+        : null;
+
+  // Read by the plan-identity effect, which must not re-run when the reader
+  // picks a different event — only when the night itself changes.
+  const selectedIdRef = useRef(selectedId);
+  const drillRef = useRef(location.drill);
+  selectedIdRef.current = selectedId;
+  drillRef.current = location.drill;
   const [now, setNow] = useState(() => new Date());
   const [planAnchor, setPlanAnchor] = useState(() => new Date());
 
@@ -287,8 +308,14 @@ function TrackerScreen() {
 
   // The plan changes only when an authoritative input changes or the observing
   // period ends. Selected UI state is derived and cannot survive that identity.
+  //
+  // Replaces rather than pushes: the reader did not navigate here, the night
+  // rolled over underneath them, and a history entry they never chose is one
+  // they would have to press Back through.
   useEffect(() => {
-    setSelectedId(null);
+    if (selectedIdRef.current !== null || drillRef.current !== null) {
+      navigate({ eventId: null, drill: null }, { replace: true });
+    }
     if (!night) return;
     const delay = Math.min(
       Math.max(1_000, Date.parse(night.period.endUtc) - Date.now() + 1_000),
@@ -447,18 +474,28 @@ function TrackerScreen() {
     // anything NOAA published.
     //
     // A stale nowcast scores zero there, so it cannot outrank an event with
-    // current evidence — but it is still *listed*, at a fixed low ordering
-    // value, because a reader at high latitude who sees no aurora entry at all
-    // learns nothing from the silence. The row says the nowcast has expired.
+    // current evidence. It is listed anyway, and so is a quiet one: the row
+    // states what the field is doing, and "unlikely tonight" or "the nowcast
+    // has expired" are both answers, where an absent row is not.
     if (auroraAssessment && darkWindow) {
       const ranking = auroraRankingStrength(auroraAssessment);
       const expired =
         auroraAssessment.freshness === "stale" || auroraAssessment.freshness === "unavailable";
+      // Whether tonight is a night *for* aurora, which decides where it ranks
+      // rather than whether it appears at all.
+      //
+      // It used to decide both, and that was the defect: on a quiet night the
+      // aurora entry vanished, so a reader who wanted to know about aurora was
+      // told nothing — not "unlikely tonight", which is a real and useful
+      // answer, but nothing. Silence is not an answer a reader can act on, and
+      // it is indistinguishable from Tracker being unable to say. So the entry
+      // is always present when there is a dark sky to see it in, and a quiet
+      // field sorts it below everything with something happening.
       const worthListing =
         ranking.strength > 0.08 ||
         (expired && (auroraAssessment.reportedProbabilityPercent ?? 0) >= 10);
 
-      if (worthListing) {
+      {
         // The instant the assessment is actually about. Once darkness has begun
         // that is now; before it, the start of darkness. Everything downstream —
         // the weather sample, the conditions row, the reminder — hangs off this
@@ -526,7 +563,10 @@ function TrackerScreen() {
           // Expired data is listed last rather than ranked. 0.05 is below the
           // 0.08 floor everything else must clear, so it can never displace an
           // event that has current evidence behind it.
-          strength: expired ? 0.05 : ranking.strength,
+          // Present but last, when there is nothing to report. -0.5 sits below
+          // every live recommendation and above events that have already set,
+          // which is where "unlikely tonight" belongs.
+          strength: !worthListing ? -0.5 : expired ? 0.05 : ranking.strength,
           entry: null,
           window: null,
           passed: false,
@@ -689,7 +729,7 @@ function TrackerScreen() {
               label: place.name,
             }}
             clock={clock}
-            onOpenFullMap={() => setOverlay("field-map")}
+            onOpenFullMap={() => navigate({ drill: "field" })}
           />
           </Suspense>
         );
@@ -770,7 +810,7 @@ function TrackerScreen() {
           place={null}
           onSelectPlace={setPlace}
           view={view}
-          onSelectView={setView}
+          onSelectView={(next) => navigate({ view: next, eventId: null, drill: null })}
           freshnessMinutes={null}
           sources={[]}
         />
@@ -788,7 +828,7 @@ function TrackerScreen() {
         place={place}
         onSelectPlace={setPlace}
         view={view}
-        onSelectView={setView}
+        onSelectView={(next) => navigate({ view: next, eventId: null, drill: null })}
         freshnessMinutes={freshnessMinutes}
         sources={sources}
       />
@@ -802,6 +842,9 @@ function TrackerScreen() {
           auroraConditions={aurora.data ?? null}
           snapshots={snapshots}
           evidenceStatus={environment.status}
+          location={location}
+          onNavigate={navigate}
+          onBack={back}
         />
       ) : heroEvent && night ? (
         <>
@@ -819,13 +862,12 @@ function TrackerScreen() {
               // A drill-in belongs to the event it was opened from. Leaving it
               // up while the hero changes underneath shows one event's map over
               // another event's page.
-              setOverlay(null);
-              setSelectedId(id);
+              navigate({ eventId: id, drill: null });
             }}
             onPrimaryAction={() =>
-              setOverlay(
-                heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky-map" : "field-map",
-              )
+              navigate({
+                drill: heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky" : "field",
+              })
             }
             onReminder={() => remind(heroEvent.presentation)}
             safety={heroEvent.safety}
@@ -835,7 +877,7 @@ function TrackerScreen() {
 
           <TrackerOverlay
             open={overlay === "sky-map"}
-            onClose={() => setOverlay(null)}
+            onClose={() => back({ drill: null })}
             title={`Where to look — ${heroEvent.presentation.title}`}
             subtitle={
               gaze
@@ -922,7 +964,7 @@ function TrackerScreen() {
 
           <TrackerOverlay
             open={overlay === "field-map"}
-            onClose={() => setOverlay(null)}
+            onClose={() => back({ drill: null })}
             title={
               heroEvent.id === "aurora" ? "Aurora forecast map" : "Visibility map"
             }

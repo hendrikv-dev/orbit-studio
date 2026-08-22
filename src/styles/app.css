@@ -12754,6 +12754,20 @@ button.primary,
   gap: 16px;
   min-height: 0;
 }
+/* The empty state is prose, not a gallery with a footer.
+   Inheriting the two-row template stretched the heading down the whole panel
+   and stranded the explanation at the bottom of a tall blank box — which is
+   precisely the dead end the copy is there to avoid. */
+.tk-highlights-empty {
+  grid-template-rows: auto;
+  align-content: start;
+  justify-items: start;
+  gap: 12px;
+  max-width: 56ch;
+}
+.tk-highlights-empty .tk-action {
+  margin-top: 4px;
+}
 @media (min-width: 1040px) {
 }
 .tk-feature-kind {
