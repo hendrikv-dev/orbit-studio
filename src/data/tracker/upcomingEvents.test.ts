@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   auroraRiskFor,
+  buildUpcomingEvents,
   filterUpcoming,
+  groupUpcomingByDate,
+  hasFinished,
   mergeUpcoming,
   notableUpcomingEvents,
   solarEclipsesFor,
@@ -144,5 +147,157 @@ describe("the merged list", () => {
       filterUpcoming(merged, "eclipses").every((event) => event.category === "eclipses"),
     ).toBe(true);
     expect(filterUpcoming(merged, "meteors")).toHaveLength(0);
+  });
+});
+
+
+/**
+ * "Upcoming" has to mean upcoming.
+ *
+ * A calendar opened on 21 August was showing events from the 8th, the 11th and
+ * the 19th, because nothing ever tested whether an event had finished. The
+ * naive fix — dropping anything whose start is behind us — introduces the
+ * opposite defect, so the test covers an event already under way as well.
+ */
+describe("what counts as upcoming", () => {
+  const base = {
+    kind: "aurora" as const,
+    id: "x",
+    dateKey: "2026-08-21",
+    category: "auroras" as const,
+    title: "Aurora watch",
+    label: "Aurora",
+    reason: "r",
+    kp: 6,
+  };
+
+  it("drops events that have finished", () => {
+    const finished = {
+      ...base,
+      atUtc: "2026-08-08T06:00:00Z",
+      endUtc: "2026-08-08T09:00:00Z",
+    };
+    expect(hasFinished(finished, NOW)).toBe(true);
+  });
+
+  it("keeps an event that started before now and is still running", () => {
+    const running = {
+      ...base,
+      atUtc: "2026-08-21T06:00:00Z",
+      endUtc: "2026-08-21T09:00:00Z",
+    };
+    expect(hasFinished(running, NOW)).toBe(false);
+  });
+
+  it("keeps events entirely in the future", () => {
+    const ahead = {
+      ...base,
+      atUtc: "2026-08-23T06:00:00Z",
+      endUtc: "2026-08-23T09:00:00Z",
+    };
+    expect(hasFinished(ahead, NOW)).toBe(false);
+  });
+
+  it("carries an end for every kind of event it produces", () => {
+    const plans = planNights(PORTLAND.lat, PORTLAND.lon, NOW, 10, "America/Los_Angeles");
+    const built = buildUpcomingEvents({
+      plans,
+      latitudeDeg: PORTLAND.lat,
+      longitudeDeg: PORTLAND.lon,
+      timeZone: "America/Los_Angeles",
+      auroraConditions: auroraConditions([{ time_tag: "2026-08-22T06:00:00", kp: 6 }]),
+      now: NOW,
+      from: NOW,
+    });
+    expect(built.length).toBeGreaterThan(0);
+    const kinds = new Set(built.map((event) => event.kind));
+    expect(kinds.size).toBeGreaterThan(1);
+    for (const event of built) {
+      expect(Number.isNaN(Date.parse(event.endUtc))).toBe(false);
+      expect(Date.parse(event.endUtc)).toBeGreaterThanOrEqual(Date.parse(event.atUtc));
+    }
+  });
+
+  it("excludes finished events from the canonical list by default", () => {
+    const plans = planNights(PORTLAND.lat, PORTLAND.lon, NOW, 10, "America/Los_Angeles");
+    const inputs = {
+      plans,
+      latitudeDeg: PORTLAND.lat,
+      longitudeDeg: PORTLAND.lon,
+      timeZone: "America/Los_Angeles",
+      auroraConditions: null,
+      // Two weeks after the plans were generated, so some of them are behind us.
+      now: new Date("2026-09-04T08:00:00Z"),
+      from: NOW,
+    };
+    const upcoming = buildUpcomingEvents(inputs);
+    const everything = buildUpcomingEvents({ ...inputs, includeFinished: true });
+    expect(everything.length).toBeGreaterThan(upcoming.length);
+    for (const event of upcoming) {
+      expect(hasFinished(event, inputs.now)).toBe(false);
+    }
+  });
+});
+
+/**
+ * List and Calendar render the same array.
+ *
+ * This is the property the architecture change exists to guarantee, so it is
+ * asserted on the array rather than left to the components: whatever grouping
+ * by date produces must be exactly the events that went in.
+ */
+describe("one list, two renderings", () => {
+  const plans = planNights(PORTLAND.lat, PORTLAND.lon, NOW, 20, "America/Los_Angeles");
+  const events = buildUpcomingEvents({
+    plans,
+    latitudeDeg: PORTLAND.lat,
+    longitudeDeg: PORTLAND.lon,
+    timeZone: "America/Los_Angeles",
+    auroraConditions: auroraConditions([{ time_tag: "2026-08-22T06:00:00", kp: 6 }]),
+    now: NOW,
+    from: NOW,
+  });
+
+  it("loses nothing when grouped by date", () => {
+    const grouped = groupUpcomingByDate(events);
+    const flattened = [...grouped.values()].flat();
+    expect(flattened).toHaveLength(events.length);
+    expect(new Set(flattened.map((event) => event.id))).toEqual(
+      new Set(events.map((event) => event.id)),
+    );
+  });
+
+  it("gives every event a date key its own timestamp agrees with", () => {
+    for (const event of events) {
+      const derived = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(event.atUtc));
+      // Notable events are keyed by observing night, which can begin the
+      // evening before the peak instant's local date. Everything else must
+      // agree exactly.
+      if (event.kind !== "notable") expect(event.dateKey).toBe(derived);
+    }
+  });
+
+  it("carries solar eclipses and aurora into the same array the calendar groups", () => {
+    const grouped = groupUpcomingByDate(events);
+    const categories = new Set(
+      [...grouped.values()].flat().map((event) => event.category),
+    );
+    // The two that Calendar could never previously contain.
+    expect(events.some((event) => event.kind === "solar-eclipse")).toBe(true);
+    expect(events.some((event) => event.kind === "aurora")).toBe(true);
+    expect(categories.has("eclipses")).toBe(true);
+    expect(categories.has("auroras")).toBe(true);
+  });
+
+  it("filters both renderings through the same taxonomy", () => {
+    const eclipses = filterUpcoming(events, "eclipses");
+    const grouped = groupUpcomingByDate(eclipses);
+    expect(eclipses.every((event) => event.category === "eclipses")).toBe(true);
+    expect([...grouped.values()].flat()).toHaveLength(eclipses.length);
   });
 });

@@ -5,6 +5,7 @@ import {
   type ConditionSnapshot,
   type EnvironmentalEvidenceStatus,
 } from "./conditions";
+import { aerosolExtinctionMagnitudes, readAerosol, type AerosolReading } from "./airQuality";
 import { lunarPhaseAt } from "./lunarPhase";
 import { formatTemperature } from "../../lib/localTime";
 
@@ -62,12 +63,43 @@ export interface ConditionCard {
  */
 export const FORECAST_HORIZON_DAYS = 7;
 
+/**
+ * How far into the past an event may reach and still be given a forecast.
+ *
+ * Not zero, because an observing window that opened two hours ago and has not
+ * closed is a live event and the current forecast genuinely describes it. Small,
+ * because beyond that a "forecast" for a time already past is a contradiction:
+ * whatever the sky did, it has done it.
+ */
+export const FORECAST_PAST_TOLERANCE_HOURS = 3;
+
+/**
+ * Whether a forecast can speak about an instant at all.
+ *
+ * The bound used to be one-sided — `daysAhead <= 7` — which is satisfied by
+ * every negative number ever computed. An event from last August therefore
+ * entered the branch that looks for a forecast, and any provider sample within
+ * the matching tolerance was attached to it. A forecast is a claim about the
+ * future; the lower bound is what makes that true in code as well as in prose.
+ */
 export function withinForecastHorizon(atUtc: string, now: Date): boolean {
-  const daysAhead = (Date.parse(atUtc) - now.getTime()) / 86_400_000;
-  return daysAhead <= FORECAST_HORIZON_DAYS;
+  const hoursAhead = (Date.parse(atUtc) - now.getTime()) / 3_600_000;
+  if (hoursAhead < -FORECAST_PAST_TOLERANCE_HOURS) return false;
+  return hoursAhead / 24 <= FORECAST_HORIZON_DAYS;
+}
+
+/** True where the instant is far enough behind that no forecast applies to it. */
+export function isPastEvent(atUtc: string, now: Date): boolean {
+  return (Date.parse(atUtc) - now.getTime()) / 3_600_000 < -FORECAST_PAST_TOLERANCE_HOURS;
 }
 
 const BEYOND_HORIZON = "Forecast closer to date";
+/**
+ * The past has no forecast, and saying "closer to date" about it would be
+ * nonsense — the date has been and gone. Distinct wording, because it is a
+ * distinct situation and the reader can tell them apart.
+ */
+const ALREADY_PAST = "Not recorded";
 
 function unknownCard(
   id: ConditionCardId,
@@ -146,37 +178,73 @@ function cloudCard(snapshot: ConditionSnapshot | null): ConditionCard {
 
 /* ----------------------------------------------------------------- smoke */
 
+const AEROSOL_LABEL: Record<AerosolReading, { value: string; tone: ConditionTone }> = {
+  clean: { value: "Clean", tone: "good" },
+  slight: { value: "Slight haze", tone: "good" },
+  hazy: { value: "Hazy", tone: "fair" },
+  smoky: { value: "Smoky", tone: "poor" },
+  heavy: { value: "Heavy smoke", tone: "poor" },
+};
+
 /**
- * Smoke, reported only where a provider actually measures it.
+ * Haze and smoke, from the aerosol model where one covers this location.
  *
- * Neither shipping adapter carries a smoke layer, so this card is usually an
- * honest "Not reported". That is deliberately not the same statement as "no
- * smoke": a clear-but-smoky sky is the exact case the condition vocabulary
- * exists to express, and filling the card with a zero would assert the sky is
- * transparent on the strength of nobody having looked.
+ * This card used to be permanently empty: neither weather provider carries an
+ * aerosol layer, so it read "Not reported" everywhere while holding a quarter
+ * of the most valuable row on the page. It is now backed by aerosol optical
+ * depth, which is the measurement that answers the observing question — how
+ * much light the atmosphere is taking away — expressed in the magnitudes an
+ * observer already thinks in.
+ *
+ * The fallbacks below it remain, and so does the honest empty state: a
+ * location the model does not reach still says nobody measured it, because
+ * "clean" and "unmeasured" are different claims and only one of them is safe
+ * to make on no evidence.
  */
 function smokeCard(snapshot: ConditionSnapshot | null): ConditionCard {
-  if (!snapshot) return unknownCard("smoke", "Smoke", "Not reported");
+  if (!snapshot) return unknownCard("smoke", "Haze & smoke", "Not reported");
+
+  const opticalDepth = snapshot.aerosolOpticalDepth;
+  if (opticalDepth !== null && opticalDepth !== undefined) {
+    const reading = AEROSOL_LABEL[readAerosol(opticalDepth)];
+    const magnitudes = aerosolExtinctionMagnitudes(opticalDepth);
+    return {
+      id: "smoke",
+      label: "Haze & smoke",
+      value: reading.value,
+      // Quoted as what it costs rather than as an index. "0.34" tells nobody
+      // anything; "dims the sky by 0.4 mag" is the same number in the unit the
+      // decision is made in.
+      interpretation:
+        magnitudes < 0.12
+          ? "Transparent"
+          : `Dims the sky by ${magnitudes.toFixed(1)} mag`,
+      tone: reading.tone,
+    };
+  }
+
   const column = snapshot.smokeColumnMgM2;
   const surface = snapshot.surfacePm25;
   if (column === null && surface === null) {
-    return unknownCard("smoke", "Smoke", "Not reported", "No provider measures it");
+    return unknownCard("smoke", "Haze & smoke", "Not reported", "No model covers here");
   }
   if (column !== null) {
     if (column >= 100) {
-      return { id: "smoke", label: "Smoke", value: "Heavy", interpretation: "Faint objects lost", tone: "poor" };
+      return { id: "smoke", label: "Haze & smoke", value: "Heavy", interpretation: "Faint objects lost", tone: "poor" };
     }
     if (column >= 20) {
-      return { id: "smoke", label: "Smoke", value: "Moderate", interpretation: "Dims faint detail", tone: "fair" };
+      return { id: "smoke", label: "Haze & smoke", value: "Moderate", interpretation: "Dims faint detail", tone: "fair" };
     }
-    return { id: "smoke", label: "Smoke", value: "Low", interpretation: "Good", tone: "good" };
+    return { id: "smoke", label: "Haze & smoke", value: "Low", interpretation: "Good", tone: "good" };
   }
   const pm = surface as number;
   return {
     id: "smoke",
-    label: "Smoke",
-    value: pm >= 55 ? "Heavy" : pm >= 25 ? "Moderate" : "Low",
-    interpretation: pm >= 55 ? "Faint objects lost" : pm >= 25 ? "Dims faint detail" : "Good",
+    label: "Haze & smoke",
+    // Surface particulate is a health measure, and the label says so rather
+    // than letting it stand in for sky transparency.
+    value: pm >= 55 ? "Heavy at ground" : pm >= 25 ? "Moderate at ground" : "Low at ground",
+    interpretation: pm >= 55 ? "Poor air to stand in" : pm >= 25 ? "Noticeable at ground" : "Good",
     tone: pm >= 55 ? "poor" : pm >= 25 ? "fair" : "good",
   };
 }
@@ -223,10 +291,22 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
   const { atUtc, latitudeDeg, longitudeDeg, snapshots, evidenceStatus, now, pending } = input;
   const moonlight = moonlightCard(atUtc, latitudeDeg, longitudeDeg);
 
+  if (isPastEvent(atUtc, now)) {
+    // Tracker keeps no weather history, so it has nothing to say about a sky
+    // that has already happened. The Moon still answers, because the Moon's
+    // position on a past date is as computable as on a future one.
+    return [
+      unknownCard("cloud", "Cloud cover", ALREADY_PAST),
+      unknownCard("smoke", "Haze & smoke", ALREADY_PAST),
+      moonlight,
+      unknownCard("temperature", "Temperature", ALREADY_PAST),
+    ];
+  }
+
   if (!withinForecastHorizon(atUtc, now)) {
     return [
       unknownCard("cloud", "Cloud cover", BEYOND_HORIZON),
-      unknownCard("smoke", "Smoke", BEYOND_HORIZON),
+      unknownCard("smoke", "Haze & smoke", BEYOND_HORIZON),
       moonlight,
       unknownCard("temperature", "Temperature", BEYOND_HORIZON),
     ];
@@ -235,7 +315,7 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
   if (pending) {
     return [
       unknownCard("cloud", "Cloud cover", "Checking…"),
-      unknownCard("smoke", "Smoke", "Checking…"),
+      unknownCard("smoke", "Haze & smoke", "Checking…"),
       moonlight,
       unknownCard("temperature", "Temperature", "Checking…"),
     ];
@@ -246,7 +326,7 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
       evidenceStatus === "not-supported" ? "No provider covers here" : "Forecast unavailable";
     return [
       unknownCard("cloud", "Cloud cover", message),
-      unknownCard("smoke", "Smoke", message),
+      unknownCard("smoke", "Haze & smoke", message),
       moonlight,
       unknownCard("temperature", "Temperature", message),
     ];

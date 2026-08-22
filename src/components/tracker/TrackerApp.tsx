@@ -28,6 +28,11 @@ import {
   type WeatherSourceInfo,
 } from "../../data/tracker/conditions";
 import { adaptersFor, conditionsForLocation } from "../../data/tracker/weatherProviders";
+import {
+  fetchAerosol,
+  OPEN_METEO_AIR_QUALITY_SOURCE,
+  withAerosol,
+} from "../../data/tracker/airQuality";
 import { heroImageryFor } from "../../data/tracker/imagery";
 import { conditionCards } from "../../data/tracker/conditionCards";
 import {
@@ -39,6 +44,7 @@ import {
 import { categoryForOpportunityKind } from "../../data/tracker/eventCategories";
 import {
   assessAurora,
+  auroraRankingStrength,
   fetchAuroraGrid,
   fetchAuroraIndex,
   NOAA_SWPC_SOURCE,
@@ -132,6 +138,29 @@ function useConditions(place: SelectedPlace | null) {
     queryFn: async ({ signal }) => {
       if (!place) throw new Error("No location");
       return conditionsForLocation(place.latitude, place.longitude, signal, adapters);
+    },
+  });
+}
+
+/**
+ * Aerosol, as its own query.
+ *
+ * Separate from the weather providers because it is a separate model from a
+ * separate operator, and because a failure here must cost the smoke card and
+ * nothing else. Cached for an hour like the forecast: it is a model output on
+ * a grid, not a per-user measurement.
+ */
+function useAerosol(place: SelectedPlace | null) {
+  return useQuery({
+    queryKey: [
+      "aerosol",
+      place ? place.latitude.toFixed(2) : null,
+      place ? place.longitude.toFixed(2) : null,
+    ],
+    enabled: Boolean(place),
+    queryFn: ({ signal }) => {
+      if (!place) throw new Error("No location");
+      return fetchAerosol(place.latitude, place.longitude, signal);
     },
   });
 }
@@ -245,6 +274,7 @@ function TrackerScreen() {
   }, [place]);
 
   const weather = useConditions(place);
+  const aerosol = useAerosol(place);
   const aurora = useAurora(Boolean(place));
 
   const night = useMemo(
@@ -305,7 +335,18 @@ function TrackerScreen() {
     );
   }, [now, place, weather.data, weather.error, weather.isError]);
 
-  const snapshots = environment.snapshots ?? EMPTY_SNAPSHOTS;
+  /**
+   * The forecast with aerosol folded in.
+   *
+   * Two models, matched by time rather than by index, and a snapshot with no
+   * aerosol within tolerance keeps its nulls. The merge lives here rather than
+   * in the provider layer so that losing the aerosol request degrades exactly
+   * one card instead of the whole row.
+   */
+  const snapshots = useMemo(() => {
+    const base = environment.snapshots ?? EMPTY_SNAPSHOTS;
+    return aerosol.data ? withAerosol(base, aerosol.data) : base;
+  }, [aerosol.data, environment.snapshots]);
   // "Not asked yet" is not "asked and failed". Conflating them is what made the
   // interface claim conditions were unavailable while it was still fetching.
   const conditionsPending = weather.isPending && !weather.data;
@@ -400,52 +441,64 @@ function TrackerScreen() {
       };
     });
 
-    // Aurora joins the same ranking rather than being pinned above or below it.
-    // The strength is NOAA's own probability mapped into the ranking's 0–1
-    // space, so a quiet night puts it below Saturn and a G3 storm puts it on
-    // top — which is the correct behaviour in both cases and needs no special
-    // rule for either.
-    if (auroraAssessment && auroraAssessment.outlook !== "unknown" && darkWindow) {
-      const probability = auroraAssessment.probabilityPercent;
-      const kp = auroraAssessment.kp;
-      const strength =
-        probability !== null
-          ? Math.min(1, probability / 55)
-          : kp !== null
-            ? Math.max(0, Math.min(1, (kp - 3.5) / 4))
-            : 0;
-      if (strength > 0.08) {
-        const windowText = formatClockRange(darkWindow.startUtc, darkWindow.endUtc, clock);
-        const snapshot = nearestSnapshot(snapshots, darkWindow.startUtc);
+    // Aurora joins the same ranking rather than being pinned above or below it,
+    // through a transformation that lives in `auroraRankingStrength` and says in
+    // its own documentation that it is Tracker's editorial judgement rather than
+    // anything NOAA published.
+    //
+    // A stale nowcast scores zero there, so it cannot outrank an event with
+    // current evidence — but it is still *listed*, at a fixed low ordering
+    // value, because a reader at high latitude who sees no aurora entry at all
+    // learns nothing from the silence. The row says the nowcast has expired.
+    if (auroraAssessment && darkWindow) {
+      const ranking = auroraRankingStrength(auroraAssessment);
+      const expired =
+        auroraAssessment.freshness === "stale" || auroraAssessment.freshness === "unavailable";
+      const worthListing =
+        ranking.strength > 0.08 ||
+        (expired && (auroraAssessment.reportedProbabilityPercent ?? 0) >= 10);
+
+      if (worthListing) {
+        // The instant the assessment is actually about. Once darkness has begun
+        // that is now; before it, the start of darkness. Everything downstream —
+        // the weather sample, the conditions row, the reminder — hangs off this
+        // one value so a nowcast about 2 AM cannot be paired with the weather at
+        // dusk, which is exactly what the previous version did.
+        const assessedAtUtc =
+          now.getTime() >= Date.parse(darkWindow.startUtc)
+            ? now.toISOString()
+            : darkWindow.startUtc;
+        const snapshot = expired ? null : nearestSnapshot(snapshots, assessedAtUtc);
+        const access = snapshot ? skyAccess(snapshot, "high") : null;
+
         events.push({
           id: "aurora",
           presentation: presentAuroraEvent(
             auroraAssessment,
-            now.getTime() >= Date.parse(darkWindow.startUtc)
-              ? now.toISOString()
-              : darkWindow.startUtc,
+            assessedAtUtc,
             clock,
-            windowText,
+            darkWindow,
             // Aurora is as demanding of a transparent sky as meteors are, so the
-            // same reading is used rather than a softer one.
-            snapshot
+            // same reading is used rather than a softer one — sampled at the
+            // moment being assessed, not at the start of the night.
+            snapshot && access !== null
               ? visibilityMetric(
                   {
-                    startUtc: darkWindow.startUtc,
-                    endUtc: darkWindow.endUtc,
-                    peakUtc: darkWindow.startUtc,
-                    brief: false,
+                    startUtc: assessedAtUtc,
+                    endUtc: assessedAtUtc,
+                    peakUtc: assessedAtUtc,
+                    brief: true,
                     movedByWeather: false,
                     viewability: {
                       band:
-                        skyAccess(snapshot, "high") > 0.7
+                        access > 0.7
                           ? "excellent"
-                          : skyAccess(snapshot, "high") > 0.45
+                          : access > 0.45
                             ? "good"
-                            : skyAccess(snapshot, "high") > 0.2
+                            : access > 0.2
                               ? "possible"
                               : "unlikely",
-                      access: skyAccess(snapshot, "high"),
+                      access,
                       reading: { condition: "clear", label: "", phrase: "", smokeDominant: false },
                       freshness: "current",
                       evidenceStatus: "available",
@@ -459,14 +512,21 @@ function TrackerScreen() {
           ),
           media: {
             kind: "drawn" as const,
-            node: <TrackerAuroraArt probabilityPercent={probability} />,
+            node: (
+              <TrackerAuroraArt
+                probabilityPercent={auroraAssessment.probabilityPercent}
+              />
+            ),
             claim: "Forecast visualisation",
             credit: "Drawn from the NOAA OVATION nowcast — not a photograph.",
           },
           expectation:
             "To the eye, aurora at these latitudes is usually a pale grey-green glow low in the sky. Cameras see the colour long before you do.",
           safety: null,
-          strength,
+          // Expired data is listed last rather than ranked. 0.05 is below the
+          // 0.08 floor everything else must clear, so it can never displace an
+          // event that has current evidence behind it.
+          strength: expired ? 0.05 : ranking.strength,
           entry: null,
           window: null,
           passed: false,
@@ -563,9 +623,10 @@ function TrackerScreen() {
   const sources = useMemo<WeatherSourceInfo[]>(() => {
     const found: WeatherSourceInfo[] = [];
     if (environment.source) found.push(environment.source);
+    if (aerosol.data && aerosol.data.length > 0) found.push(OPEN_METEO_AIR_QUALITY_SOURCE);
     if (aurora.data?.grid) found.push(NOAA_SWPC_SOURCE);
     return found;
-  }, [aurora.data, environment.source]);
+  }, [aerosol.data, aurora.data, environment.source]);
 
   // The tab title is how this page is found again in a row of tabs, in history
   // and in a shared link. "Orbit Studio" on every view told nobody anything.
@@ -751,7 +812,7 @@ function TrackerScreen() {
             media={heroEvent.media}
             visualization={visualization}
             conditions={conditions}
-            conditionsCaption={conditionsCaption(environment.source, aurora.data ?? null)}
+            conditionsCaption={conditionsCaption(sources)}
             evidenceStatus={environment.status}
             rows={rows}
             onSelectEvent={(id) => {
@@ -866,9 +927,15 @@ function TrackerScreen() {
               heroEvent.id === "aurora" ? "Aurora forecast map" : "Visibility map"
             }
             subtitle={
-              heroEvent.id === "aurora"
-                ? "NOAA OVATION nowcast, valid for roughly the next half hour."
-                : "Computed geometry for your location."
+              heroEvent.id !== "aurora"
+                ? "Computed geometry for your location."
+                : auroraAssessment?.freshness === "stale" ||
+                    auroraAssessment?.freshness === "unavailable"
+                  ? // The drill-in inherits the same field the card shows, so it
+                    // inherits the same obligation not to describe an expired
+                    // nowcast as one that is valid for the next half hour.
+                    "NOAA OVATION nowcast, expired. Shown as what was last published, not as now."
+                  : "NOAA OVATION nowcast, valid for roughly the next half hour."
             }
           >
             <div className="tk-overlay-map">{visualization}</div>
@@ -908,14 +975,16 @@ function auroraBounds(latitudeDeg: number, longitudeDeg: number) {
   };
 }
 
-/** One attribution line for the whole conditions row. */
-function conditionsCaption(
-  source: WeatherSourceInfo | null,
-  aurora: AuroraConditions | null,
-): string | null {
-  const parts: string[] = [];
-  if (source) parts.push(source.attribution);
-  if (aurora?.grid) parts.push(NOAA_SWPC_SOURCE.attribution);
+/**
+ * One attribution line for the whole conditions row.
+ *
+ * Built from the sources that actually answered, so a provider that failed is
+ * not credited for numbers it did not supply. The last clause distinguishes the
+ * computed value from the fetched ones, which is the distinction the row's
+ * whole credibility rests on.
+ */
+function conditionsCaption(sources: WeatherSourceInfo[]): string | null {
+  const parts = sources.map((source) => source.attribution);
   parts.push("Moon phase and altitude computed on this device.");
   return parts.join(" ");
 }

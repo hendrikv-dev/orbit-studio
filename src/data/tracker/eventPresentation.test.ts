@@ -78,11 +78,13 @@ function auroraPresentation(): EventPresentation {
     failures: [],
   };
   const assessment = assessAurora(conditions, 65, -148, "2026-08-21T08:20:00Z", NOW);
-  return presentAuroraEvent(assessment, "2026-08-21T08:20:00Z", CLOCK, "10 PM – 4 AM", {
-    label: "Visibility",
-    value: "Good",
-    tone: "good",
-  });
+  return presentAuroraEvent(
+    assessment,
+    "2026-08-21T08:20:00Z",
+    CLOCK,
+    { startUtc: "2026-08-21T05:51:00Z", endUtc: "2026-08-21T13:57:00Z" },
+    { label: "Visibility", value: "Good", tone: "good" },
+  );
 }
 
 function solarEclipsePresentation(): EventPresentation {
@@ -177,9 +179,16 @@ describe("what the eclipse card claims", () => {
 
   it("reports the observer's own view, not the event's headline", () => {
     // Luxor is inside the path, so both agree here — but the metric must be
-    // labelled as the local view rather than as the eclipse's global kind.
+    // labelled as the local view rather than as the eclipse's global kind, and
+    // it must carry the duration: "Totality" is the same word for six minutes
+    // and for forty seconds, and the difference is what somebody travels on.
     expect(presentation.metrics[2].label).toBe("Your view");
-    expect(presentation.metrics[2].value).toBe("Totality");
+    expect(presentation.metrics[2].value).toMatch(/^Totality · \d+m \d+s$/);
+    const seconds = /(\d+)m (\d+)s/.exec(presentation.metrics[2].value);
+    const total = Number(seconds![1]) * 60 + Number(seconds![2]);
+    // Published: about 6m 23s at Luxor.
+    expect(total).toBeGreaterThan(370);
+    expect(total).toBeLessThan(400);
   });
 
   it("names the eclipse by kind rather than calling everything an eclipse", () => {

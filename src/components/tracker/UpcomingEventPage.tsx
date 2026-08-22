@@ -245,7 +245,9 @@ function buildPresentation(
     // Tracing a shadow path is a few hundred milliseconds of ephemeris work,
     // and doing it for every eclipse in the list would be paying it four times
     // for a page showing one.
-    const centralPath = withVisualization ? traceCentralPath(event.event) : [];
+    // Limits are needed only for the drawing, and cost a bisection per side per
+    // point, so they follow the same flag as everything else visual.
+    const centralPath = withVisualization ? traceCentralPath(event.event, 6, 240, true) : [];
     const bounds = mapExtentFor(place.latitude, place.longitude, centralPath);
     const coverage = withVisualization
       ? coverageField(event.event, bounds, 1.5)
@@ -308,18 +310,14 @@ function buildPresentation(
       event.atUtc,
       now,
     );
-    const presentation = presentAuroraEvent(
-      assessment,
-      event.atUtc,
-      clock,
-      new Intl.DateTimeFormat(undefined, {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        timeZone: clock.timeZone ?? "UTC",
-      }).format(new Date(event.atUtc)),
-      { label: "Visibility", value: "Not known", tone: "unknown" },
-    );
+    // No darkness window: a K-index forecast is about a date, and this page has
+    // not computed that night's observing period. Passing null is what keeps the
+    // support line from claiming a darkness interval it has not established.
+    const presentation = presentAuroraEvent(assessment, event.atUtc, clock, null, {
+      label: "Visibility",
+      value: "Not known",
+      tone: "unknown",
+    });
     return {
       presentation,
       media: {

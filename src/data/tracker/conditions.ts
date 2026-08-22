@@ -74,6 +74,18 @@ export interface ConditionSnapshot {
   smokeColumnMgM2: number | null;
   /** Near-surface smoke as PM2.5, µg/m³. A health signal, not a sky one. */
   surfacePm25 : number | null;
+  /**
+   * Aerosol optical depth at 550 nm, dimensionless, where an aerosol model
+   * covers this location.
+   *
+   * The one atmospheric quantity here that converts directly into what an
+   * observer loses: transmission is `e^(-tau)`, so tau is magnitudes of
+   * extinction divided by 1.086. Kept separate from the two smoke fields above
+   * because it is a different measurement of a different thing, and averaging
+   * it into them would destroy the only one that answers the observing
+   * question.
+   */
+  aerosolOpticalDepth?: number | null;
   /** Which adapter produced this, for attribution and for the details view. */
   source: string;
 }
@@ -233,13 +245,26 @@ export function skyAccess(
     demand === "high" ? Math.pow(open, 1.6) : demand === "medium" ? Math.pow(open, 1.2) : open;
 
   let smokeTerm = 1;
+
+  // Aerosol first, because it is measured in exactly the currency this function
+  // trades in: light that does not arrive. A demanding target loses the whole
+  // extinction; a bright one barely notices it.
+  const opticalDepth = snapshot.aerosolOpticalDepth;
+  if (opticalDepth !== null && opticalDepth !== undefined) {
+    const magnitudes = 1.0857362 * opticalDepth;
+    const weight = demand === "high" ? 0.55 : demand === "medium" ? 0.32 : 0.12;
+    // Two magnitudes of aerosol extinction is a sky nobody is observing faint
+    // things through, and is the point the term saturates.
+    smokeTerm *= 1 - weight * Math.min(1, magnitudes / 2);
+  }
+
   const smoke = snapshot.smokeColumnMgM2;
   if (smoke !== null) {
     // Smoke does not block, it dims. So it scales what is left rather than
     // gating it, and it costs a faint target far more than a bright one.
     const severity = Math.min(1, smoke / VERY_SMOKY_COLUMN);
     const weight = demand === "high" ? 0.65 : demand === "medium" ? 0.4 : 0.15;
-    smokeTerm = 1 - weight * severity;
+    smokeTerm *= 1 - weight * severity;
   }
 
   return Math.max(0, Math.min(1, cloudTerm * smokeTerm));
@@ -573,13 +598,33 @@ export function hasPassedTonight(profile: OpportunitySample[], now: Date): boole
   );
 }
 
-/** The forecast nearest an instant, or null where none is close enough. */
+/**
+ * The largest gap between an instant and a forecast sample that still counts as
+ * describing it.
+ *
+ * Ninety minutes is a different part of the night: cloud can arrive and clear
+ * inside it. The bound is what makes `nearestSnapshot` a lookup rather than an
+ * extrapolation — without it, "nearest" is satisfied by *any* sample, including
+ * one from a different day, because there is always a nearest.
+ */
+export const MAX_SNAPSHOT_GAP_MINUTES = 90;
+
+/**
+ * The forecast nearest an instant, or null where none is close enough.
+ *
+ * The distance cap is the whole of the function's honesty. A caller asking
+ * about a date the provider does not cover — most obviously a date in the past,
+ * for which no provider returns anything — must get null, not the closest
+ * sample the provider happened to send. Returning tonight's cloud cover for an
+ * event last August would be arithmetically correct and a fabrication.
+ */
 export function nearestSnapshot(
   conditions: ConditionSnapshot[],
   atUtc: string,
 ): ConditionSnapshot | null {
   if (conditions.length === 0) return null;
   const target = Date.parse(atUtc);
+  if (Number.isNaN(target)) return null;
   let best: ConditionSnapshot | null = null;
   let bestGap = Infinity;
   for (const snapshot of conditions) {
@@ -589,9 +634,7 @@ export function nearestSnapshot(
       best = snapshot;
     }
   }
-  // Beyond 90 minutes it is a different part of the night, and interpolating
-  // across that gap would be inventing a forecast.
-  return bestGap <= 90 * 60_000 ? best : null;
+  return bestGap <= MAX_SNAPSHOT_GAP_MINUTES * 60_000 ? best : null;
 }
 
 /* ----------------------------------------------------------- the one line */

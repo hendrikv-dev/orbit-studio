@@ -84,11 +84,23 @@ export function TrackerAuroraMap({
     return found;
   }, [bounds, grid]);
 
+  /**
+   * Whether this field is still describing now.
+   *
+   * The rest of the page withdraws its conclusions once the nowcast expires,
+   * but the map went on painting the same saturated oval underneath the words
+   * "current auroral conditions are unavailable". A picture is a claim, and a
+   * bright one is a confident claim: the two disagreed, and the picture is the
+   * one a reader believes. It is still drawn, because what NOAA last published
+   * is worth seeing, but drawn as history — faint, and labelled as expired.
+   */
+  const expired = assessment.freshness === "stale" || assessment.freshness === "unavailable";
+
   const field = (projection: MapProjection) => {
     const cellWidth = Math.abs(projection.x(1) - projection.x(0));
     const cellHeight = Math.abs(projection.y(1) - projection.y(0));
     return (
-      <g filter="url(#tk-geomap-smooth)">
+      <g filter="url(#tk-geomap-smooth)" opacity={expired ? 0.22 : 1}>
         {cells.map((cell) => {
           const color = colorFor(cell.probability);
           if (!color) return null;
@@ -112,7 +124,7 @@ export function TrackerAuroraMap({
   const age = assessment.gridAgeMinutes;
 
   return (
-    <div className="tk-viz-panel tk-auroramap">
+    <div className={`tk-viz-panel tk-auroramap${expired ? " is-expired" : ""}`}>
       <TrackerGeoMap
         bounds={bounds}
         marker={observer}
@@ -123,10 +135,19 @@ export function TrackerAuroraMap({
           { swatch: "rgba(196, 226, 122, 0.8)", label: "50%" },
           { swatch: "rgba(240, 169, 92, 0.85)", label: "75%+" },
         ]}
-        title="Aurora nowcast"
-        timing={`Observed ${issued} · valid to about ${valid}`}
+        title={expired ? "Aurora nowcast — expired" : "Aurora nowcast"}
+        timing={
+          expired
+            ? `Last observed ${issued} · expired ${valid}`
+            : `Observed ${issued} · valid to about ${valid}`
+        }
         action={{ label: "Open full map", onSelect: onOpenFullMap }}
-        ariaLabel={`Aurora forecast map centred on ${observer.label}. ${assessment.statement}`}
+        ariaLabel={
+          expired
+            ? `Expired aurora nowcast centred on ${observer.label}, shown as history. ` +
+              assessment.statement
+            : `Aurora forecast map centred on ${observer.label}. ${assessment.statement}`
+        }
       >
         {field}
       </TrackerGeoMap>

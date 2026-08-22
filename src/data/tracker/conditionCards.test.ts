@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   conditionCards,
+  isPastEvent,
   moonlightCard,
   withinForecastHorizon,
   type ConditionCard,
 } from "./conditionCards";
+import { nearestSnapshot } from "./conditions";
 import type { ConditionSnapshot } from "./conditions";
 
 /**
@@ -96,6 +98,101 @@ describe("beyond the forecast horizon", () => {
   it("draws the horizon at a week", () => {
     expect(withinForecastHorizon("2026-08-25T00:00:00Z", NOW)).toBe(true);
     expect(withinForecastHorizon("2026-09-05T00:00:00Z", NOW)).toBe(false);
+  });
+});
+
+/**
+ * The forecast horizon has two ends.
+ *
+ * The bound used to be `daysAhead <= 7`, which every negative number satisfies,
+ * so a date in the past entered the branch that looks for a forecast. These
+ * cases are the ones the brief names, written out one by one because "the
+ * arithmetic is symmetric" is exactly the assumption that produced the defect.
+ */
+describe("the forecast horizon, at both ends", () => {
+  const cases: [string, string, boolean][] = [
+    ["yesterday", "2026-08-20T08:00:00Z", false],
+    ["a week ago", "2026-08-14T08:00:00Z", false],
+    ["four hours in the past", "2026-08-21T04:00:00Z", false],
+    ["one hour in the past — an event still under way", "2026-08-21T07:00:00Z", true],
+    ["now", "2026-08-21T08:00:00Z", true],
+    ["later today", "2026-08-21T22:00:00Z", true],
+    ["the horizon boundary", "2026-08-28T07:00:00Z", true],
+    ["just beyond the horizon", "2026-08-28T09:00:00Z", false],
+  ];
+
+  for (const [label, atUtc, expected] of cases) {
+    it(`${expected ? "accepts" : "refuses"} ${label}`, () => {
+      expect(withinForecastHorizon(atUtc, NOW)).toBe(expected);
+    });
+  }
+
+  it("separates the past from the not-yet-forecastable", () => {
+    expect(isPastEvent("2026-08-20T08:00:00Z", NOW)).toBe(true);
+    expect(isPastEvent("2026-09-30T08:00:00Z", NOW)).toBe(false);
+    const past = byId(
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-08T08:00:00Z",
+        snapshots: [snapshot()],
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }),
+    );
+    const future = byId(
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2029-01-14T16:30:00Z",
+        snapshots: [snapshot()],
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }),
+    );
+    expect(past.cloud.value).toBe("Not recorded");
+    expect(future.cloud.value).toBe("Forecast closer to date");
+  });
+
+  it("never attaches a live forecast to a historical event", () => {
+    // The specific failure: a provider's samples are all around now, and a
+    // "nearest" match with no distance cap would hand one of them to an event
+    // from a fortnight ago.
+    const samples = [
+      snapshot({ atUtc: "2026-08-21T06:00:00Z", cloudCoverPercent: 5 }),
+      snapshot({ atUtc: "2026-08-21T09:00:00Z", cloudCoverPercent: 9 }),
+    ];
+    expect(nearestSnapshot(samples, "2026-08-08T08:00:00Z")).toBeNull();
+    expect(nearestSnapshot(samples, "2026-08-21T08:30:00Z")).not.toBeNull();
+
+    const cards = byId(
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-08T08:00:00Z",
+        snapshots: samples,
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }),
+    );
+    for (const id of ["cloud", "smoke", "temperature"] as const) {
+      expect(cards[id].tone).toBe("unknown");
+      expect(cards[id].value).not.toMatch(/\d/);
+    }
+  });
+
+  it("still answers the Moon for a past date, because that is geometry", () => {
+    const cards = byId(
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-08T08:00:00Z",
+        snapshots: [snapshot()],
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }),
+    );
+    expect(cards.moonlight.value).toMatch(/%/);
   });
 });
 

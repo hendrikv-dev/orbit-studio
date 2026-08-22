@@ -1,11 +1,17 @@
 import {
   Body,
   Equator,
+  GeoMoon,
+  GeoVector,
+  Vector,
   Horizon,
   MakeTime,
   NextGlobalSolarEclipse,
   Observer,
+  RotateVector,
+  Rotation_EQJ_EQD,
   SearchGlobalSolarEclipse,
+  SiderealTime,
   type AstroTime,
 } from "astronomy-engine";
 import { utcInstant, type UtcInstant } from "./scientificUnits";
@@ -19,34 +25,40 @@ import { utcInstant, type UtcInstant } from "./scientificUnits";
  * the picture has to be the real shadow, not a plausible band drawn across a
  * continent.
  *
- * Everything here comes from two primitives:
+ * Three primitives, and it matters which answers which question:
  *
- * - `SearchGlobalSolarEclipse` / `NextGlobalSolarEclipse` for the catalogue of
- *   eclipses and the instant of greatest eclipse.
- * - Topocentric Sun and Moon positions, from which obscuration at any point on
- *   Earth follows by ordinary disc geometry.
+ * - **The shadow axis.** The line through the centre of the Sun and the centre
+ *   of the Moon, intersected with the Earth ellipsoid. This — and only this —
+ *   is the centre line.
+ * - **Disc geometry.** Topocentric Sun and Moon positions, from which the
+ *   angular separation of the two centres, and hence obscuration, follows at
+ *   any point on Earth. This gives coverage and local circumstances.
+ * - **`SearchGlobalSolarEclipse`** for the catalogue and the instant of
+ *   greatest eclipse.
  *
- * The second is worth stating plainly, because it is the part that makes a
- * coverage map affordable. Astronomy Engine also offers `SearchLocalSolarEclipse`,
- * which runs a root search per observer; sampling a global grid with it takes
- * about sixteen seconds. Obscuration is the overlap area of two circles whose
- * radii and separation are known the moment both bodies have been placed, and
- * placing them is four ephemeris calls. The same grid costs under half a second
- * that way, which is the difference between a map that can be drawn while
- * somebody waits and one that cannot.
+ * ## Why the centre line is not a maximum of obscuration
  *
- * The output was checked against the total eclipse of 2 August 2027: the traced
- * central line leaves the Atlantic off Morocco, crosses Algeria, Libya and
- * Egypt within a degree of Luxor at greatest eclipse, and exits over the Indian
- * Ocean past Somalia. That is the published path.
+ * The first version of this file traced the central path by hill-climbing on
+ * obscuration, and that is invalid for exactly the eclipses the line matters
+ * for. Inside the umbra of a total eclipse obscuration is 1 *everywhere* — a
+ * flat optimum two hundred kilometres wide — so the optimiser stops at whatever
+ * point it happened to reach first. The result was a line somewhere in the
+ * band, labelled as the axis, with a distance quoted from it.
+ *
+ * The axis is a geometric object and is computed as one. `shadowAxisPoint`
+ * reproduces Astronomy Engine's own greatest-eclipse coordinates to better than
+ * a metre at the instant the engine reports them (asserted in the tests), which
+ * is the strongest available check: the engine's figure is validated against
+ * published circumstances, and this walks the same construction at arbitrary
+ * times so the whole line can be drawn rather than one point of it.
  *
  * ## What is not modelled
  *
- * Observer elevation and lunar limb profile. Both shift the edge of the
- * umbra by a scale far below the resolution of any map drawn here, and neither
- * changes an answer of the form "you are two hundred kilometres north of the
- * track". The grid resolution is the honest limit and is reported with the
- * result rather than smoothed away.
+ * Observer elevation and the lunar limb profile. Both move the *edge* of the
+ * umbra — by up to a few kilometres in rough terrain — and neither moves the
+ * axis. Path limits are therefore reported as the smooth-limb approximation
+ * they are. The coverage field states its own sampling resolution rather than
+ * smoothing it away.
  */
 
 const KM_PER_AU = 1.495978707e8;
@@ -54,6 +66,8 @@ const KM_PER_AU = 1.495978707e8;
 const SUN_RADIUS_KM = 695_700;
 /** IAU mean lunar radius, km. */
 const MOON_RADIUS_KM = 1_737.4;
+/** Mean Earth radius, for the great-circle work that does not need the figure. */
+const EARTH_RADIUS_KM = 6371;
 const DEG = Math.PI / 180;
 
 export type SolarEclipseKind = "partial" | "annular" | "total";
@@ -82,6 +96,28 @@ export interface CentralPathPoint {
   obscuration: number;
   /** Sun altitude on the central line, which falls to zero at both ends. */
   sunAltitudeDeg: number;
+  /**
+   * Which central phase this point is in.
+   *
+   * A single eclipse can be both: a hybrid starts annular, becomes total as the
+   * Earth's curvature brings the surface closer to the umbra's tip, and returns
+   * to annular. Carrying it per point rather than per eclipse is what lets the
+   * map label the band correctly along its length.
+   */
+  central: "total" | "annular";
+  /**
+   * The edges of the central phase, perpendicular to the track. Null where the
+   * limits were not requested, or where the umbra is leaving Earth and the
+   * band has no measurable width.
+   */
+  limits: {
+    northLatitudeDeg: number;
+    northLongitudeDeg: number;
+    southLatitudeDeg: number;
+    southLongitudeDeg: number;
+    /** Full width of the central band here, km. */
+    widthKm: number;
+  } | null;
 }
 
 /** Greatest obscuration reached at one place, across the whole eclipse. */
@@ -119,6 +155,15 @@ export interface LocalSolarCircumstances {
   partialEndUtc: UtcInstant | null;
   centralBeginUtc: UtcInstant | null;
   centralEndUtc: UtcInstant | null;
+  /**
+   * How long totality or annularity lasts here, in seconds.
+   *
+   * Reported rather than left for the caller to subtract, because the two
+   * contacts are found independently and a caller differencing them would be
+   * reproducing an assumption — that both exist — which is false for an
+   * observer on the very edge of the band.
+   */
+  centralDurationSeconds: number | null;
   /** Sun altitude at local maximum. Negative means it happens below the horizon. */
   sunAltitudeAtPeakDeg: number;
   /**
@@ -262,110 +307,224 @@ export function nextSolarEclipses(from: Date, count = 4): SolarEclipseEvent[] {
   return events;
 }
 
+/* -------------------------------------------------------------- the axis */
+
+/**
+ * Astronomy Engine's own Earth figure, so the intersection below lands where
+ * the engine's validated greatest-eclipse coordinates land.
+ */
+const EARTH_FLATTENING = 0.996647180302104;
+const EARTH_FLATTENING_SQUARED = EARTH_FLATTENING * EARTH_FLATTENING;
+const EARTH_EQUATORIAL_RADIUS_KM = 6378.1366;
+const RAD2DEG = 180 / Math.PI;
+
+/**
+ * Where the shadow axis meets the Earth ellipsoid, at any instant.
+ *
+ * The axis is the line through the centre of the Sun and the centre of the
+ * Moon. This is the only construction in the file that produces a *centre*
+ * line; everything derived from obscuration produces a band.
+ *
+ * The construction deliberately mirrors Astronomy Engine's internal
+ * `GeoidIntersect`, down to the choice of an aberration-corrected Sun and a
+ * geometric `GeoMoon`, the dilation of z by the flattening so the ellipsoid
+ * becomes a sphere, and the use of Greenwich apparent sidereal time for the
+ * longitude. That is not imitation for its own sake: the engine exposes the
+ * result of that calculation only at greatest eclipse, and reproducing it
+ * exactly is what lets the tests assert agreement to under a metre and then
+ * trust the same code at every other instant along the track.
+ *
+ * Returns null when the axis misses Earth entirely, which is what makes an
+ * eclipse partial everywhere — that null is the honest end of the central path
+ * rather than a reason to keep drawing.
+ */
+export function shadowAxisPoint(at: Date): { latitudeDeg: number; longitudeDeg: number } | null {
+  const time = MakeTime(at);
+  const sun = GeoVector(Body.Sun, time, true);
+  const moon = GeoMoon(time);
+
+  // Lunacentric Earth, and the heliocentric Moon which lies along the axis.
+  const target = new Vector(-moon.x, -moon.y, -moon.z, time);
+  const direction = new Vector(moon.x - sun.x, moon.y - sun.y, moon.z - sun.z, time);
+
+  const rotation = Rotation_EQJ_EQD(time);
+  const v = RotateVector(rotation, direction);
+  const e = RotateVector(rotation, target);
+
+  const vx = v.x * KM_PER_AU;
+  const vy = v.y * KM_PER_AU;
+  const vz = (v.z * KM_PER_AU) / EARTH_FLATTENING;
+  const ex = e.x * KM_PER_AU;
+  const ey = e.y * KM_PER_AU;
+  const ez = (e.z * KM_PER_AU) / EARTH_FLATTENING;
+
+  const a = vx * vx + vy * vy + vz * vz;
+  const b = -2 * (vx * ex + vy * ey + vz * ez);
+  const c = ex * ex + ey * ey + ez * ez - EARTH_EQUATORIAL_RADIUS_KM * EARTH_EQUATORIAL_RADIUS_KM;
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant <= 0) return null;
+
+  // The nearer of the two roots, which is the day side.
+  const u = (-b - Math.sqrt(discriminant)) / (2 * a);
+  const px = u * vx - ex;
+  const py = u * vy - ey;
+  const pz = (u * vz - ez) * EARTH_FLATTENING;
+
+  const projected = Math.hypot(px, py) * EARTH_FLATTENING_SQUARED;
+  const latitudeDeg =
+    projected === 0 ? (pz > 0 ? 90 : -90) : RAD2DEG * Math.atan(pz / projected);
+
+  let longitudeDeg = RAD2DEG * Math.atan2(py, px) - 15 * SiderealTime(time);
+  longitudeDeg = ((longitudeDeg % 360) + 540) % 360 - 180;
+
+  return { latitudeDeg, longitudeDeg };
+}
+
 /* ------------------------------------------------------------ central path */
 
-/** Hill-climb to the most-eclipsed point on Earth at one instant. */
-function shadowPointAt(
-  at: Date,
-  seed: { latitudeDeg: number; longitudeDeg: number } | null,
-): { latitudeDeg: number; longitudeDeg: number; sample: EclipseSample } | null {
-  let bestLat = seed?.latitudeDeg ?? 0;
-  let bestLon = seed?.longitudeDeg ?? 0;
-  let bestValue = -1;
+/** Bearing from one point to another, degrees clockwise from north. */
+function bearingBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const dLon = (bLon - aLon) * DEG;
+  const y = Math.sin(dLon) * Math.cos(bLat * DEG);
+  const x =
+    Math.cos(aLat * DEG) * Math.sin(bLat * DEG) -
+    Math.sin(aLat * DEG) * Math.cos(bLat * DEG) * Math.cos(dLon);
+  return (Math.atan2(y, x) / DEG + 360) % 360;
+}
 
-  const valueAt = (lat: number, lon: number) => {
-    const sample = eclipseSampleAt(at, lat, lon);
-    // Below the horizon there is no shadow to be in, so those points must never
-    // win the search — otherwise the traced line jumps to the night side the
-    // moment the true track leaves the sunlit hemisphere.
-    return sample.sunAltitudeDeg > -2 ? sample.obscuration : -1;
-  };
-
-  if (!seed) {
-    // A coarse global pass only on the first step; every step after it starts
-    // from where the shadow was fifteen minutes ago, which is never far.
-    for (let lat = -84; lat <= 84; lat += 6) {
-      for (let lon = -180; lon < 180; lon += 6) {
-        const value = valueAt(lat, lon);
-        if (value > bestValue) {
-          bestValue = value;
-          bestLat = lat;
-          bestLon = lon;
-        }
-      }
-    }
-  } else {
-    bestValue = valueAt(bestLat, bestLon);
-  }
-
-  // Successive refinement rather than a single fine grid: the same accuracy for
-  // a small fraction of the evaluations.
-  for (const step of [4, 2, 1, 0.5, 0.25, 0.1]) {
-    let improved = true;
-    while (improved) {
-      improved = false;
-      for (const [dLat, dLon] of [
-        [step, 0],
-        [-step, 0],
-        [0, step],
-        [0, -step],
-        [step, step],
-        [step, -step],
-        [-step, step],
-        [-step, -step],
-      ]) {
-        const lat = Math.max(-89, Math.min(89, bestLat + dLat));
-        const lon = ((bestLon + dLon + 540) % 360) - 180;
-        const value = valueAt(lat, lon);
-        if (value > bestValue + 1e-9) {
-          bestValue = value;
-          bestLat = lat;
-          bestLon = lon;
-          improved = true;
-        }
-      }
-    }
-  }
-
-  if (bestValue <= 0) return null;
+/** Move a given distance along a bearing, on a sphere. */
+function offsetPoint(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  bearingDeg: number,
+  distanceKm: number,
+): { latitudeDeg: number; longitudeDeg: number } {
+  const angular = distanceKm / EARTH_RADIUS_KM;
+  const lat = latitudeDeg * DEG;
+  const lon = longitudeDeg * DEG;
+  const bearing = bearingDeg * DEG;
+  const sinLat =
+    Math.sin(lat) * Math.cos(angular) + Math.cos(lat) * Math.sin(angular) * Math.cos(bearing);
+  const newLat = Math.asin(Math.min(1, Math.max(-1, sinLat)));
+  const newLon =
+    lon +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angular) * Math.cos(lat),
+      Math.cos(angular) - Math.sin(lat) * sinLat,
+    );
   return {
-    latitudeDeg: bestLat,
-    longitudeDeg: bestLon,
-    sample: eclipseSampleAt(at, bestLat, bestLon),
+    latitudeDeg: newLat / DEG,
+    longitudeDeg: ((newLon / DEG + 540) % 360) - 180,
   };
 }
 
 /**
- * The central line, traced by following the shadow across the sunlit hemisphere.
+ * How far the central phase extends either side of the axis, at one instant.
  *
- * Returns an empty path for an eclipse whose axis misses Earth: that eclipse has
- * no central line, and drawing one would be the exact failure this module exists
- * to avoid.
+ * Walked outwards perpendicular to the track until the Moon's disc stops
+ * covering the Sun's, then bisected. This is the umbral limit under a smooth
+ * lunar limb — the real edge is serrated by mountains on the Moon's profile by
+ * a kilometre or two, which is below the resolution of anything drawn here and
+ * is stated as a limitation rather than modelled.
+ *
+ * Returns null where the axis point is not itself in central eclipse, which
+ * happens at the very ends of the track where the umbra is leaving Earth.
+ */
+function centralHalfWidthKm(
+  at: Date,
+  latitudeDeg: number,
+  longitudeDeg: number,
+  bearingDeg: number,
+  maximumKm = 400,
+): number | null {
+  const isCentral = (distance: number) => {
+    const point = offsetPoint(latitudeDeg, longitudeDeg, bearingDeg, distance);
+    return eclipseSampleAt(at, point.latitudeDeg, point.longitudeDeg).central;
+  };
+  if (!isCentral(0)) return null;
+  let inside = 0;
+  let outside = maximumKm;
+  if (isCentral(outside)) return outside;
+  for (let step = 0; step < 18; step += 1) {
+    const middle = (inside + outside) / 2;
+    if (isCentral(middle)) inside = middle;
+    else outside = middle;
+  }
+  return inside;
+}
+
+/**
+ * The central line, traced along the shadow axis.
+ *
+ * Every point is an axis intersection, not a search result. Where the axis
+ * misses Earth the point is simply absent, which is the true beginning and end
+ * of the track.
+ *
+ * `withLimits` adds the northern and southern edges of the central phase. It is
+ * off by default because the caller that needs a distance to the line does not
+ * need the band, and the band costs a bisection per side per point.
  */
 export function traceCentralPath(
   event: SolarEclipseEvent,
-  stepMinutes = 12,
-  halfSpanMinutes = 180,
+  stepMinutes = 6,
+  halfSpanMinutes = 240,
+  withLimits = false,
 ): CentralPathPoint[] {
   if (!event.greatestPoint) return [];
   const peak = Date.parse(event.peakUtc);
   const points: CentralPathPoint[] = [];
-  let seed: { latitudeDeg: number; longitudeDeg: number } | null = null;
 
   for (let offset = -halfSpanMinutes; offset <= halfSpanMinutes; offset += stepMinutes) {
     const at = new Date(peak + offset * 60_000);
-    const found = shadowPointAt(at, seed);
-    if (!found) continue;
-    seed = { latitudeDeg: found.latitudeDeg, longitudeDeg: found.longitudeDeg };
-    if (!found.sample.central) continue;
+    const axis = shadowAxisPoint(at);
+    if (!axis) continue;
+    const sample = eclipseSampleAt(at, axis.latitudeDeg, axis.longitudeDeg);
+    // The axis can meet Earth while the umbra has not yet arrived, at the very
+    // edge of the penumbral season. Only central points belong on a centre line.
+    if (!sample.central) continue;
     points.push({
       atUtc: utcInstant(at),
-      latitudeDeg: found.latitudeDeg,
-      longitudeDeg: found.longitudeDeg,
-      obscuration: found.sample.obscuration,
-      sunAltitudeDeg: found.sample.sunAltitudeDeg,
+      latitudeDeg: axis.latitudeDeg,
+      longitudeDeg: axis.longitudeDeg,
+      obscuration: sample.obscuration,
+      sunAltitudeDeg: sample.sunAltitudeDeg,
+      central: sample.totality ? "total" : "annular",
+      limits: null,
     });
   }
+
+  if (withLimits) {
+    for (let index = 0; index < points.length; index += 1) {
+      const point = points[index];
+      const neighbour = points[index + 1] ?? points[index - 1];
+      if (!neighbour) continue;
+      const along = bearingBetween(
+        point.latitudeDeg,
+        point.longitudeDeg,
+        neighbour.latitudeDeg,
+        neighbour.longitudeDeg,
+      );
+      // Perpendicular to the direction of travel, both ways.
+      const left = (along + 270) % 360;
+      const right = (along + 90) % 360;
+      const at = new Date(point.atUtc);
+      const leftKm = centralHalfWidthKm(at, point.latitudeDeg, point.longitudeDeg, left);
+      const rightKm = centralHalfWidthKm(at, point.latitudeDeg, point.longitudeDeg, right);
+      if (leftKm === null || rightKm === null) continue;
+      const leftEdge = offsetPoint(point.latitudeDeg, point.longitudeDeg, left, leftKm);
+      const rightEdge = offsetPoint(point.latitudeDeg, point.longitudeDeg, right, rightKm);
+      const northern = leftEdge.latitudeDeg >= rightEdge.latitudeDeg ? leftEdge : rightEdge;
+      const southern = leftEdge.latitudeDeg >= rightEdge.latitudeDeg ? rightEdge : leftEdge;
+      point.limits = {
+        northLatitudeDeg: northern.latitudeDeg,
+        northLongitudeDeg: northern.longitudeDeg,
+        southLatitudeDeg: southern.latitudeDeg,
+        southLongitudeDeg: southern.longitudeDeg,
+        widthKm: leftKm + rightKm,
+      };
+    }
+  }
+
   return points;
 }
 
@@ -423,8 +582,6 @@ export function coverageField(
 }
 
 /* -------------------------------------------------------------- one place */
-
-const EARTH_RADIUS_KM = 6371;
 
 function greatCircleKm(
   aLat: number,
@@ -492,87 +649,214 @@ function distanceToPath(
 }
 
 /**
- * What this eclipse does from one place, sampled at one minute around its own
- * local maximum.
+ * What this eclipse does from one place.
  *
- * A minute is finer than any presentation Tracker makes of it, and it is what
- * keeps the contact times honest for a partial eclipse whose edges are gradual.
+ * ## Why maximum eclipse is not the first moment of totality
+ *
+ * The first version of this function scanned obscuration at one-minute steps
+ * and kept the first sample that reached the maximum. For a partial eclipse
+ * that is very nearly right. For a total eclipse it is wrong by the whole of
+ * totality: obscuration reaches exactly 1 at second contact and stays there
+ * until third, so "the first sample at the maximum value" is the *beginning* of
+ * totality, and Tracker was labelling it "maximum here" — an error of up to
+ * three minutes, in the one direction that matters, on the one event where
+ * people set an alarm.
+ *
+ * Maximum eclipse is defined by geometry rather than by a plateau: it is the
+ * instant of least angular separation between the two disc centres. That
+ * function is smooth and has a single minimum across an eclipse, so it is
+ * bracketed by a coarse scan and refined by golden section to under a second.
+ *
+ * Contacts come from the same separation curve by bisection: first and fourth
+ * where the discs touch externally, second and third where the Moon's disc
+ * fits inside the Sun's or the reverse. Walking a one-minute grid, as before,
+ * quantised every contact to the nearest minute.
  */
 export function localSolarCircumstances(
   event: SolarEclipseEvent,
   latitudeDeg: number,
   longitudeDeg: number,
   centralPath: CentralPathPoint[] = [],
-  halfSpanMinutes = 200,
+  halfSpanMinutes = 240,
 ): LocalSolarCircumstances {
   const peak = Date.parse(event.peakUtc);
-  let bestOffset: number | null = null;
-  let best: EclipseSample | null = null;
+  const at = (offsetMinutes: number) => new Date(peak + offsetMinutes * 60_000);
+  const geometryAt = (offsetMinutes: number) =>
+    discGeometry(MakeTime(at(offsetMinutes)), latitudeDeg, longitudeDeg);
 
-  for (let offset = -halfSpanMinutes; offset <= halfSpanMinutes; offset += 1) {
-    const sample = eclipseSampleAt(new Date(peak + offset * 60_000), latitudeDeg, longitudeDeg);
-    if (!best || sample.obscuration > best.obscuration) {
-      best = sample;
-      bestOffset = offset;
-    }
-  }
+  /** Separation of the two centres, in degrees. The function being minimised. */
+  const separation = (offsetMinutes: number) => geometryAt(offsetMinutes).separationDeg;
 
   const distanceToCentralLineKm = distanceToPath(latitudeDeg, longitudeDeg, centralPath);
-
-  if (!best || best.obscuration <= 0 || bestOffset === null) {
-    return {
-      kind: "none",
-      obscurationFraction: 0,
-      peakUtc: null,
-      partialBeginUtc: null,
-      partialEndUtc: null,
-      centralBeginUtc: null,
-      centralEndUtc: null,
-      sunAltitudeAtPeakDeg: best?.sunAltitudeDeg ?? -90,
-      visibleFromHere: false,
-      distanceToCentralLineKm,
-    };
-  }
-
-  // Walk outwards from the maximum to the first minute with no overlap at all,
-  // and separately to the edges of the central phase where there is one.
-  const edge = (direction: 1 | -1, predicate: (sample: EclipseSample) => boolean) => {
-    let offset = bestOffset;
-    while (Math.abs(offset) <= halfSpanMinutes) {
-      const next = offset + direction;
-      const sample = eclipseSampleAt(new Date(peak + next * 60_000), latitudeDeg, longitudeDeg);
-      if (!predicate(sample)) return offset;
-      offset = next;
-    }
-    return offset;
+  const none: LocalSolarCircumstances = {
+    kind: "none",
+    obscurationFraction: 0,
+    peakUtc: null,
+    partialBeginUtc: null,
+    partialEndUtc: null,
+    centralBeginUtc: null,
+    centralEndUtc: null,
+    centralDurationSeconds: null,
+    sunAltitudeAtPeakDeg: -90,
+    visibleFromHere: false,
+    distanceToCentralLineKm,
   };
 
-  const anyOverlap = (sample: EclipseSample) => sample.obscuration > 0;
-  const isCentral = (sample: EclipseSample) => sample.central;
+  // Bracket the minimum with a coarse scan, then refine.
+  let bracketOffset = -halfSpanMinutes;
+  let bracketValue = Number.POSITIVE_INFINITY;
+  for (let offset = -halfSpanMinutes; offset <= halfSpanMinutes; offset += 2) {
+    const value = separation(offset);
+    if (value < bracketValue) {
+      bracketValue = value;
+      bracketOffset = offset;
+    }
+  }
 
-  const instant = (offset: number) => utcInstant(new Date(peak + offset * 60_000));
-  const centralHere = best.central;
+  const maximumOffset = goldenSectionMinimum(
+    separation,
+    bracketOffset - 2,
+    bracketOffset + 2,
+    1 / 120, // half a second, expressed in minutes
+  );
+
+  const atMaximum = geometryAt(maximumOffset);
+  const obscurationFraction = discObscuration(
+    atMaximum.separationDeg,
+    atMaximum.sunRadiusDeg,
+    atMaximum.moonRadiusDeg,
+  );
+  if (obscurationFraction <= 0) {
+    return { ...none, sunAltitudeAtPeakDeg: atMaximum.sunAltitudeDeg };
+  }
+
+  const partialThreshold = (offset: number) => {
+    const g = geometryAt(offset);
+    return g.separationDeg - (g.sunRadiusDeg + g.moonRadiusDeg);
+  };
+  const centralThreshold = (offset: number) => {
+    const g = geometryAt(offset);
+    return g.separationDeg - Math.abs(g.moonRadiusDeg - g.sunRadiusDeg);
+  };
+
+  const partialBegin = bisectCrossing(partialThreshold, maximumOffset, -1, halfSpanMinutes);
+  const partialEnd = bisectCrossing(partialThreshold, maximumOffset, +1, halfSpanMinutes);
+
+  const centralHere = atMaximum.separationDeg <= Math.abs(atMaximum.moonRadiusDeg - atMaximum.sunRadiusDeg);
+  const centralBegin = centralHere
+    ? bisectCrossing(centralThreshold, maximumOffset, -1, halfSpanMinutes)
+    : null;
+  const centralEnd = centralHere
+    ? bisectCrossing(centralThreshold, maximumOffset, +1, halfSpanMinutes)
+    : null;
+
   // Visibility is about the Sun being up during the eclipse, not only at its
   // maximum: an eclipse already under way at sunrise is genuinely observable.
-  const beginOffset = edge(-1, anyOverlap);
-  const endOffset = edge(1, anyOverlap);
-  const altitudeAt = (offset: number) =>
-    eclipseSampleAt(new Date(peak + offset * 60_000), latitudeDeg, longitudeDeg).sunAltitudeDeg;
+  const altitudeAt = (offset: number | null) =>
+    offset === null ? -90 : geometryAt(offset).sunAltitudeDeg;
   const visibleFromHere =
-    best.sunAltitudeDeg > 0 || altitudeAt(beginOffset) > 0 || altitudeAt(endOffset) > 0;
+    atMaximum.sunAltitudeDeg > 0 ||
+    altitudeAt(partialBegin) > 0 ||
+    altitudeAt(partialEnd) > 0;
+
+  const instant = (offset: number | null) => (offset === null ? null : utcInstant(at(offset)));
 
   return {
-    kind: centralHere ? (best.totality ? "total" : "annular") : "partial",
-    obscurationFraction: best.obscuration,
-    peakUtc: instant(bestOffset),
-    partialBeginUtc: instant(beginOffset),
-    partialEndUtc: instant(endOffset),
-    centralBeginUtc: centralHere ? instant(edge(-1, isCentral)) : null,
-    centralEndUtc: centralHere ? instant(edge(1, isCentral)) : null,
-    sunAltitudeAtPeakDeg: best.sunAltitudeDeg,
+    kind: centralHere
+      ? atMaximum.moonRadiusDeg >= atMaximum.sunRadiusDeg
+        ? "total"
+        : "annular"
+      : "partial",
+    obscurationFraction,
+    peakUtc: instant(maximumOffset),
+    partialBeginUtc: instant(partialBegin),
+    partialEndUtc: instant(partialEnd),
+    centralBeginUtc: instant(centralBegin),
+    centralEndUtc: instant(centralEnd),
+    centralDurationSeconds:
+      centralBegin !== null && centralEnd !== null
+        ? Math.round((centralEnd - centralBegin) * 60)
+        : null,
+    sunAltitudeAtPeakDeg: atMaximum.sunAltitudeDeg,
     visibleFromHere,
     distanceToCentralLineKm,
   };
+}
+
+/**
+ * Golden-section minimisation on a unimodal function.
+ *
+ * Chosen over a finer grid because the quantity being found is a *time*, and a
+ * grid fine enough to place totality's midpoint to the second would cost two
+ * hundred times the ephemeris calls that eleven golden-section steps do.
+ */
+function goldenSectionMinimum(
+  f: (x: number) => number,
+  low: number,
+  high: number,
+  tolerance: number,
+): number {
+  const phi = (Math.sqrt(5) - 1) / 2;
+  let a = low;
+  let b = high;
+  let c = b - phi * (b - a);
+  let d = a + phi * (b - a);
+  let fc = f(c);
+  let fd = f(d);
+  while (b - a > tolerance) {
+    if (fc < fd) {
+      b = d;
+      d = c;
+      fd = fc;
+      c = b - phi * (b - a);
+      fc = f(c);
+    } else {
+      a = c;
+      c = d;
+      fc = fd;
+      d = a + phi * (b - a);
+      fd = f(d);
+    }
+  }
+  return (a + b) / 2;
+}
+
+/**
+ * The first sign change of `f` walking away from `from`, refined by bisection.
+ *
+ * `f` is negative during the phase and positive outside it, so the crossing is
+ * the contact. Returns null when the phase never ends inside the search window,
+ * which the caller must treat as "not established" rather than as an edge.
+ */
+function bisectCrossing(
+  f: (x: number) => number,
+  from: number,
+  direction: 1 | -1,
+  limitMinutes: number,
+  coarseStep = 1,
+): number | null {
+  let inside = from;
+  if (f(inside) > 0) return null;
+  let outside: number | null = null;
+  for (
+    let offset = from + direction * coarseStep;
+    Math.abs(offset) <= limitMinutes;
+    offset += direction * coarseStep
+  ) {
+    if (f(offset) > 0) {
+      outside = offset;
+      break;
+    }
+    inside = offset;
+  }
+  if (outside === null) return null;
+  let bracket = outside;
+  for (let step = 0; step < 24; step += 1) {
+    const middle = (inside + bracket) / 2;
+    if (f(middle) > 0) bracket = middle;
+    else inside = middle;
+  }
+  return (inside + bracket) / 2;
 }
 
 /**

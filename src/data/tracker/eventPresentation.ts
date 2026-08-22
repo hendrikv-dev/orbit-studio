@@ -413,33 +413,75 @@ function rowStateFor(
 /**
  * Aurora in the same hero shape as everything else.
  *
- * The metrics are chosen so the horizon is legible from the card alone. A
- * nowcast reports NOAA's probability at the observer; a three-day forecast
+ * ## What the first metric is, and what it is not
+ *
+ * It is the interval the *source* covers, and for a nowcast that is about half
+ * an hour. The first version put the whole of astronomical darkness there under
+ * the label "Best window", which took a claim NOAA makes about the next thirty
+ * minutes and presented it as a claim about the next eight hours. Darkness is a
+ * precondition, not a forecast: the sky being dark from 9:51 PM says nothing
+ * about whether the oval will be overhead at 3 AM.
+ *
+ * Darkness has not been dropped — it moves to the supporting line, where it
+ * reads as the constraint it is.
+ *
+ * ## The metrics change label with the horizon
+ *
+ * A nowcast reports NOAA's probability at the observer; a three-day forecast
  * reports Kp and nothing spatial, because nothing spatial is known that far
- * out. The middle metric changing its own label is the honest way to express
- * that — a fixed "Chance" label showing a Kp-derived guess would be the
- * dishonest one.
+ * out. A fixed label showing a Kp-derived guess would be the dishonest way to
+ * keep the row tidy.
  */
 export function presentAuroraEvent(
   assessment: AuroraAssessment,
   atUtc: string,
   clock: PlaceClock,
-  windowText_: string,
+  /** When the sky is actually dark, which is a precondition and not a forecast. */
+  darkness: { startUtc: string; endUtc: string } | null,
   visibility: EventMetric,
 ): EventPresentation {
   const pills: EventPill[] = [];
-  if (assessment.horizon === "nowcast") {
-    pills.push({ label: "Nowcast", tone: "live" });
+  if (assessment.freshness === "stale") {
+    pills.push({ label: "Nowcast expired", tone: "caution" });
+  } else if (assessment.freshness === "unavailable") {
+    pills.push({ label: "No nowcast", tone: "caution" });
+  } else if (assessment.horizon === "nowcast") {
+    pills.push({
+      label: assessment.freshness === "aging" ? "Nowcast · ageing" : "Nowcast",
+      tone: assessment.freshness === "aging" ? "state" : "live",
+    });
   } else if (assessment.horizon === "short-range") {
     pills.push({ label: "3-day outlook", tone: "state" });
   } else {
     pills.push({ label: "Beyond forecast", tone: "caution" });
   }
+
   if (assessment.outlook === "north-of-you") {
     pills.push({ label: "Poleward of you", tone: "state" });
   } else if (assessment.outlook === "quiet") {
     pills.push({ label: "Quiet", tone: "state" });
   }
+
+  // The interval the source covers, labelled as what it is.
+  const window: EventMetric =
+    assessment.validity && assessment.freshness !== "stale"
+      ? {
+          label: "Nowcast covers",
+          value: `${formatClockTime(assessment.validity.fromUtc, clock)}–${formatClockTime(assessment.validity.toUtc, clock)}`,
+          tone: "plain",
+        }
+      : assessment.horizon === "short-range"
+        ? {
+            label: "Forecast for",
+            value: new Intl.DateTimeFormat(undefined, {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              timeZone: clock.timeZone ?? "UTC",
+            }).format(new Date(atUtc)),
+            tone: "plain",
+          }
+        : { label: "Nowcast covers", value: "Expired", tone: "unknown" };
 
   const middle: EventMetric =
     assessment.probabilityPercent !== null
@@ -453,13 +495,27 @@ export function presentAuroraEvent(
                 ? "fair"
                 : "poor",
         }
-      : assessment.kp !== null
+      : assessment.freshness === "stale" && assessment.reportedProbabilityPercent !== null
         ? {
-            label: "Forecast Kp",
-            value: assessment.kp.toFixed(1),
-            tone: assessment.kp >= 5 ? "good" : assessment.kp >= 4 ? "fair" : "poor",
+            // Shown as history, not as advice: the label says when, the tone is
+            // the same "not known" the rest of the row uses for absent evidence.
+            label: "NOAA last reported",
+            value: `${assessment.reportedProbabilityPercent}%`,
+            tone: "unknown",
           }
-        : { label: "Activity", value: "Not known", tone: "unknown" };
+        : assessment.kp !== null && assessment.horizon === "short-range"
+          ? {
+              label: "Forecast Kp",
+              value: assessment.kp.toFixed(1),
+              tone: assessment.kp >= 5 ? "good" : assessment.kp >= 4 ? "fair" : "poor",
+            }
+          : { label: "Activity", value: "Not known", tone: "unknown" };
+
+  const darknessLine = darkness
+    ? `Dark from ${formatClockTime(darkness.startUtc, clock)} to ${formatClockTime(darkness.endUtc, clock)}.`
+    : null;
+
+  const usable = assessment.freshness !== "stale" && assessment.freshness !== "unavailable";
 
   return {
     id: "aurora",
@@ -468,35 +524,41 @@ export function presentAuroraEvent(
     pills: pills.slice(0, 2),
     recommendation: assessment.statement,
     // Aurora is never "confident": the nowcast is half an hour of validity and
-    // the three-day product says nothing about where the oval will be.
+    // the three-day product says nothing about where the oval will be. A stale
+    // or missing nowcast is not a weaker version of that — it is no claim.
     recommendationLevel:
-      assessment.horizon === "nowcast" && assessment.outlook === "plausible-tonight"
+      usable && assessment.horizon === "nowcast" && assessment.outlook === "plausible-tonight"
         ? "Good if you're already outside"
         : "Conditions unknown — check before going",
-    support: assessment.certainty,
-    metrics: [
-      { label: "Best window", value: windowText_, tone: "plain" },
-      middle,
-      visibility,
-    ],
+    support: darknessLine ? `${assessment.certainty} ${darknessLine}` : assessment.certainty,
+    metrics: [window, middle, visibility],
     primaryAction: { label: "View forecast map", kind: "forecast-map" },
     secondaryAction: { label: "Set reminder", kind: "reminder" },
     atUtc,
     row: {
       state:
-        assessment.outlook === "plausible-tonight"
-          ? "Possible tonight"
-          : assessment.outlook === "north-of-you"
-            ? "Poleward of you"
-            : assessment.outlook === "quiet"
-              ? "Quiet"
-              : "Not known",
-      window: windowText_,
-      quality: visibility,
+        assessment.freshness === "stale"
+          ? "Nowcast expired"
+          : assessment.outlook === "plausible-tonight"
+            ? "Possible now"
+            : assessment.outlook === "north-of-you"
+              ? "Poleward of you"
+              : assessment.outlook === "quiet"
+                ? "Quiet"
+                : "Not known",
+      window: window.value,
+      quality: usable ? visibility : { label: "Visibility", value: "Not known", tone: "unknown" },
     },
     reminder: {
       title: "Aurora watch — Orbit Studio Tracker",
-      description: `${assessment.statement}\n\n${assessment.certainty}\n\nCheck the nowcast again before going out; aurora changes over tens of minutes.`,
+      description: [
+        assessment.statement,
+        assessment.certainty,
+        darknessLine,
+        "Check the nowcast again before going out; aurora changes over tens of minutes.",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       startUtc: atUtc,
       durationMinutes: 90,
     },
@@ -504,6 +566,13 @@ export function presentAuroraEvent(
 }
 
 /* --------------------------------------------------------- solar eclipse */
+
+/** "6m 23s", the way eclipse durations are always quoted. */
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round(seconds % 60);
+  return minutes > 0 ? `${minutes}m ${rest}s` : `${rest}s`;
+}
 
 const ECLIPSE_KIND_LABEL: Record<string, string> = {
   total: "Total Solar Eclipse",
@@ -539,12 +608,25 @@ export function presentSolarEclipseEvent(
       : { label: "Not visible from here", tone: "caution" },
   );
 
+  // Duration belongs with the central phase and nowhere else. "Totality" alone
+  // is the same word for four minutes and for forty seconds, and the difference
+  // is most of what somebody decides a journey on.
+  const centralDuration =
+    local.centralDurationSeconds !== null ? formatDuration(local.centralDurationSeconds) : null;
   const yourView: EventMetric = !local.visibleFromHere
     ? { label: "Your view", value: "Below the horizon", tone: "unknown" }
     : local.kind === "total"
-      ? { label: "Your view", value: "Totality", tone: "good" }
+      ? {
+          label: "Your view",
+          value: centralDuration ? `Totality · ${centralDuration}` : "Totality",
+          tone: "good",
+        }
       : local.kind === "annular"
-        ? { label: "Your view", value: "Annular", tone: "good" }
+        ? {
+            label: "Your view",
+            value: centralDuration ? `Annular · ${centralDuration}` : "Annular",
+            tone: "good",
+          }
         : {
             label: "Your view",
             value: `${localPercent}% partial`,
@@ -595,8 +677,13 @@ export function presentSolarEclipseEvent(
         local.visibleFromHere
           ? `From ${placeName} the Sun is ${localPercent}% covered at maximum.`
           : `Not visible from ${placeName}: the Sun is below the horizon.`,
+        local.centralBeginUtc && local.centralEndUtc && centralDuration
+          ? `${local.kind === "annular" ? "Annularity" : "Totality"} lasts ${centralDuration}, from ${formatClockTime(local.centralBeginUtc, clock)} to ${formatClockTime(local.centralEndUtc, clock)}.`
+          : "",
         "Never look at the Sun without a certified solar filter. Sunglasses, exposed film and smoked glass are not filters.",
-      ].join("\n\n"),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       startUtc: local.peakUtc ?? event.peakUtc,
       durationMinutes: 120,
     },
@@ -613,16 +700,27 @@ function recommendationForSolarEclipse(
     return `This eclipse happens while the Sun is below the horizon at ${place}, so there is nothing to see from here.`;
   }
   if (local.kind === "total") {
-    return `${place} is inside the path of totality. The Sun is completely covered at maximum.`;
+    const duration =
+      local.centralDurationSeconds !== null
+        ? ` The Sun is completely covered for ${formatDuration(local.centralDurationSeconds)}.`
+        : " The Sun is completely covered at maximum.";
+    return `${place} is inside the path of totality.${duration}`;
   }
   if (local.kind === "annular") {
-    return `${place} is inside the annular path, so the Moon leaves a ring of Sun at maximum.`;
+    const duration =
+      local.centralDurationSeconds !== null
+        ? ` for ${formatDuration(local.centralDurationSeconds)}`
+        : " at maximum";
+    return `${place} is inside the annular path, so the Moon leaves a ring of Sun${duration}.`;
   }
   const percent = Math.round(local.obscurationFraction * 100);
   const distance = local.distanceToCentralLineKm;
+  // Quoted only where there is a shadow axis to measure from. An eclipse whose
+  // axis misses Earth has no centre line, and a distance to one would be a
+  // distance to nothing.
   const travel =
     distance !== null && distance > 40 && event.greatestPoint
-      ? ` The central track passes about ${Math.round(distance / 10) * 10} km away.`
+      ? ` The centre line passes about ${Math.round(distance / 10) * 10} km away.`
       : "";
   return `${place} sees a ${percent}% partial eclipse — a bite out of the Sun, not darkness.${travel}`;
 }

@@ -6,6 +6,71 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker correctness pass
+
+- **The eclipse centre line is now the shadow axis.** It was derived by
+  hill-climbing on obscuration, which is invalid for exactly the eclipses it
+  matters for: inside the umbra of a total eclipse obscuration is 1 everywhere,
+  a flat optimum two hundred kilometres wide, so the optimiser stopped wherever
+  it happened to arrive. `shadowAxisPoint` intersects the Sun-Moon axis with the
+  Earth ellipsoid and reproduces Astronomy Engine's own greatest-eclipse
+  coordinates to under a metre. Path limits are measured by bisection outward
+  from the axis, giving a totality band 261 km wide at greatest eclipse for
+  2 August 2027 against a published 258 km.
+- **"Maximum here" is no longer the start of totality.** Local circumstances
+  took the first sample reaching peak obscuration, which for a total eclipse is
+  second contact — up to three minutes early, on the one event people set an
+  alarm for. Maximum is now the instant of least angular separation, found by
+  golden section, with all four contacts by bisection and the central duration
+  reported. Luxor: 6m 25s against a published 6m 23s, maximum midway between the
+  contacts rather than at the first of them.
+- **A stale aurora nowcast is no longer actionable.** Freshness is read from the
+  product's own forecast time — fresh, ageing, stale, unavailable. Once stale,
+  the outlook, the probability, the nearby suggestion and the ranking weight are
+  all withdrawn rather than qualified with a warning under a confident
+  recommendation. What NOAA last reported is kept in a separate field and shown
+  as history.
+- **The aurora card no longer labels a night "Best window".** A half-hour
+  nowcast was being stretched across eight hours of astronomical darkness. The
+  first metric is now the interval the source covers; darkness moves to the
+  supporting line as the precondition it is.
+- **Weather for aurora is sampled at the moment being assessed**, not at the
+  start of darkness.
+- **The aurora ranking transformation is declared as Tracker's.**
+  `auroraRankingStrength` replaces an inline `probability / 55` that had no
+  stated reasoning and no test, while the documentation claimed NOAA's figure
+  was never rescaled into a Tracker judgement. It returns `editorial: true` with
+  a basis string and stated anchors.
+- **List and Calendar are two renderings of one array.** They ran separate
+  pipelines, so solar eclipses existed in one and not the other and the aurora
+  filter could be selected in a view that could never contain one.
+  `buildUpcomingEvents` is now the only place an upcoming event is created.
+- **Upcoming excludes events that have finished**, judged on the end rather than
+  the start so an event already under way is kept.
+- **The forecast horizon has a lower bound.** `daysAhead <= 7` is satisfied by
+  every negative number, so a date in the past entered the branch that looks for
+  a forecast. Past events now read "Not recorded" rather than borrowing a live
+  sample.
+- **The smoke card is backed by a real source.** It read "Not reported"
+  everywhere, permanently, while holding a quarter of the conditions row.
+  Aerosol optical depth from Open-Meteo's air-quality API (CAMS) now drives it,
+  quoted as magnitudes of extinction, and folded into sky access. Surface
+  particulate is labelled as a ground measurement rather than as transparency.
+- **One document heading per page.** The event name was a second `<h1>`
+  competing with the category heading; it is an `<h2>` with unchanged styling.
+- **Mobile ranked rows keep every decision variable.** They dropped the
+  observing window and the visibility and kept the state label — what and
+  roughly what kind, without when or whether it is worth it.
+- Aurora's "not overhead" no longer reads as "not visible": strong aurora can
+  show low on the horizon from outside the modelled oval, and the copy says so.
+- **An expired nowcast map is drawn as history.** The words withdrew their
+  conclusion and the map went on painting the same saturated oval underneath
+  them. A picture is a claim, and the bright one is what a reader believes. The
+  field is still shown — what NOAA last published is worth seeing — at a fifth
+  of its strength, titled "Aurora nowcast — expired", with the drill-in saying
+  the same thing.
+
+
 - Rebuilt Tracker around one universal event page. Heading, a two-thirds hero, a one-third
   visualization slot, four condition cards and ranked rows now hold the same positions for every
   phenomenon; a phenomenon supplies content for those slots and cannot introduce a layout.

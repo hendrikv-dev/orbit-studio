@@ -30,6 +30,7 @@
       "127.0.0.1",
       "aa.usno.navy.mil",
       "ads.atmosphere.copernicus.eu",
+      "air-quality-api.open-meteo.com",
       "api.met.no",
       "api.weather.gov",
       "apps.apple.com",
@@ -1206,6 +1207,52 @@
       }
     },
     {
+      "id": "tracker-aerosol-air-quality",
+      "category": "runtime-air-quality",
+      "repositoryPaths": [
+        "src/data/tracker/airQuality.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Open-Meteo Air Quality API (Copernicus Atmosphere Monitoring Service)",
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality",
+        "publicationUrl": "https://open-meteo.com/en/docs/air-quality-api",
+        "publisher": "Open-Meteo, serving Copernicus Atmosphere Monitoring Service model output",
+        "version": "Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5",
+        "retrievedAt": "2026-08-21"
+      },
+      "localSha256": {
+        "src/data/tracker/airQuality.ts": "9c8739bda3b45959d93ca90ed4359c4efc23f6351636f4e0dbbb1ef0aceb88b4"
+      },
+      "processing": [
+        "Fetched from the browser at the observer’s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key.",
+        "Aerosol optical depth at 550 nm is the value the interface reasons from; it is converted to magnitudes of extinction (1.0857 per unit optical depth) rather than shown as a bare index, because magnitudes are the unit the observing judgement is made in. The conversion is the definition of optical depth, not a calibration.",
+        "Surface PM2.5 is carried as a fallback and is labelled in the interface as a ground-level measurement, never as sky transparency. The two are different quantities and the card says which one it is showing.",
+        "Merged into the weather snapshots by timestamp with a 45-minute tolerance. A snapshot with no aerosol sample within tolerance keeps its nulls and renders as unmeasured rather than as clean air.",
+        "Requested as a separate query from the weather providers so that losing it costs one condition card rather than the whole row."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. The underlying model output is the Copernicus Atmosphere Monitoring Service, whose data are available under the Copernicus licence permitting free use and redistribution with attribution. The endpoint sends access-control-allow-origin: *, so direct browser use is the intended access pattern.",
+        "evidenceUrls": [
+          "https://open-meteo.com/en/features",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://atmosphere.copernicus.eu/"
+        ],
+        "attribution": "Aerosol and particulate data from Open-Meteo, derived from the Copernicus Atmosphere Monitoring Service, licensed CC BY 4.0. Rendered in the Tracker conditions caption and in the data-and-privacy panel.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Attribution must remain visible wherever aerosol figures are shown. Optical depth must not be presented as a smoke concentration, and surface particulate must not be presented as sky transparency. Caching must stay keyed by model cell and never by user. If Orbit Studio ever becomes commercial, Open-Meteo’s non-commercial terms must be re-reviewed before this remains on the free path."
+      }
+    },
+    {
       "id": "tracker-aurora-space-weather",
       "category": "runtime-space-weather",
       "repositoryPaths": [
@@ -1223,13 +1270,15 @@
         "retrievedAt": "2026-08-21"
       },
       "localSha256": {
-        "src/data/tracker/aurora.ts": "fc6f49396aa2d0e5952215019feda61c282dd7d520ddafc933d0c7444d21f296"
+        "src/data/tracker/aurora.ts": "e96c0e8174f68144aa22a78b7d419865c1bbce0a359db1b2053fd0d849541b39"
       },
       "processing": [
         "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
         "The OVATION grid is parsed into a typed array indexed by whole degrees. NOAA’s published quantity — the probability of visible aurora in percent — is carried through unmodified and is attributed to NOAA wherever it is shown. Tracker applies no model of its own on top of it.",
         "Three horizons are kept apart rather than merged: the OVATION nowcast (valid roughly half an hour), the three-day planetary K-index forecast, and nothing at all beyond that. The interface refuses to speak past the third.",
-        "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only."
+        "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only.",
+        "Freshness is read from the product’s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
+        "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn."
       ],
       "rights": {
         "verification": "verified",
@@ -1247,7 +1296,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. The published probability must be attributed to NOAA and never rescaled into a Tracker judgement. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence."
+        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence."
       }
     },
     {

@@ -306,7 +306,7 @@ async function chooseFirstResult(page, query) {
   await scan(page, "place confirmation");
 
   await page.keyboard.press("Enter");
-  await page.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
+  await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
 }
 
 /** Waits for the worker-backed future view to finish without mistaking its
@@ -482,7 +482,7 @@ async function run() {
     }
 
     await page.getByRole("button", { name: "Tonight" }).click();
-    await page.waitForSelector(".tracker-hero h1");
+    await page.waitForSelector(".tracker-hero .tk-hero-name");
 
     // "Already set" cards are styled differently and were the source of every
     // contrast violation the audit found, so the state is forced rather than
@@ -559,7 +559,7 @@ async function run() {
     });
     const narrowPage = await narrow.newPage();
     await narrowPage.goto(TRACKER, { waitUntil: "networkidle" });
-    await narrowPage.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
+    await narrowPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
     await scan(narrowPage, "recommendation at 320 CSS pixels");
     assertNoHorizontalClipping(await visibleBounds(narrowPage), "320px Tonight");
     await narrow.close();
@@ -586,7 +586,7 @@ async function run() {
     });
     const reducedPage = await reduced.newPage();
     await reducedPage.goto(TRACKER, { waitUntil: "networkidle" });
-    await reducedPage.waitForSelector(".tracker-hero h1", { timeout: 30_000 });
+    await reducedPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
     expect(
       await reducedPage.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),
       "the reduced-motion production context should expose the requested preference",

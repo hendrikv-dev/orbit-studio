@@ -26,7 +26,57 @@ const OUT = path.resolve("screenshots/tracker-universal");
 const PLACES = {
   portland: { name: "Portland", context: "Oregon, United States", latitude: 45.5152, longitude: -122.6784 },
   fairbanks: { name: "Fairbanks", context: "Alaska, United States", latitude: 64.8378, longitude: -147.7164 },
+  // Inside the path of totality for 2 August 2027.
+  luxor: { name: "Luxor", context: "Egypt", latitude: 25.6872, longitude: 32.6396 },
 };
+
+/**
+ * High-latitude places to test aurora from, and why there is more than one.
+ *
+ * The nowcast describes *now*. Tracker therefore assesses aurora at now once
+ * darkness has begun, and at the start of darkness before it — and the start of
+ * darkness, seen from the middle of the afternoon, is hours outside the
+ * nowcast's horizon, so the product correctly falls back to the three-day
+ * K-index and offers no nowcast card at all.
+ *
+ * That is right, and it makes a fixed test location useless: run the walk at
+ * noon in Alaska and the nowcast path is unreachable no matter what the feed
+ * says. So the walk picks whichever candidate is closest to local midnight when
+ * it runs. Nothing is faked; the location is real and really in darkness.
+ */
+const AURORA_CANDIDATES = [
+  {
+    name: "Fairbanks",
+    context: "Alaska, United States",
+    latitude: 64.8378,
+    longitude: -147.7164,
+  },
+  {
+    name: "Yellowknife",
+    context: "Northwest Territories, Canada",
+    latitude: 62.454,
+    longitude: -114.3718,
+  },
+  {
+    name: "Reykjavik",
+    context: "Iceland",
+    latitude: 64.1466,
+    longitude: -21.9426,
+  },
+  { name: "Tromso", context: "Norway", latitude: 69.6492, longitude: 18.9553 },
+  {
+    name: "Murmansk",
+    context: "Russia",
+    latitude: 68.9585,
+    longitude: 33.0827,
+  },
+  {
+    name: "Yakutsk",
+    context: "Russia",
+    latitude: 62.0339,
+    longitude: 129.7331,
+  },
+];
 
 const findings = [];
 function check(condition, label) {
@@ -299,6 +349,129 @@ async function main() {
     "the calendar marks the dates worth knowing about",
   );
 
+  /**
+   * List and Calendar must be two renderings of one array.
+   *
+   * They used to be two pipelines, so an event could exist in one and not the
+   * other — solar eclipses in particular, which come from an eclipse search
+   * rather than from a night plan and only List knew about.
+   *
+   * Each mode switch changes the planning request and costs a recompute, so the
+   * walk visits each mode once and cycles the filter inside it. The first
+   * version switched per category and spent minutes doing nothing else.
+   */
+  const categoryOptions = await portland
+    .getByLabel("Show")
+    .locator("option")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({ value: node.value, label: node.textContent })),
+    );
+  check(
+    !categoryOptions.some((option) =>
+      /satellite|comet|occultation/i.test(option.label ?? ""),
+    ),
+    "the filter offers no category Tracker has no source for",
+  );
+
+  const listByCategory = new Map();
+  await portland.getByRole("tab", { name: "List" }).click();
+  await portland.waitForSelector(
+    '.tk-highlights[data-planning-state="ready"]',
+    {
+      timeout: 90_000,
+    },
+  );
+  for (const option of categoryOptions) {
+    await portland.getByLabel("Show").selectOption(option.value);
+    await portland.waitForTimeout(250);
+    listByCategory.set(
+      option.value,
+      await portland
+        .locator(".tk-upcoming-card .tk-upcoming-card-name")
+        .allInnerTexts(),
+    );
+  }
+
+  const calendarByCategory = new Map();
+  await portland.getByRole("tab", { name: "Calendar" }).click();
+  await portland.waitForSelector('.tk-month[data-planning-state="ready"]', {
+    timeout: 90_000,
+  });
+  for (const option of categoryOptions) {
+    await portland.getByLabel("Show").selectOption(option.value);
+    await portland.waitForTimeout(250);
+    calendarByCategory.set(option.value, {
+      agenda: await portland.locator(".tk-month-agenda strong").allInnerTexts(),
+      marks: await portland.locator(".tk-day.is-marked").count(),
+    });
+  }
+
+  for (const option of categoryOptions) {
+    const list = listByCategory.get(option.value) ?? [];
+    const calendar = calendarByCategory.get(option.value) ?? {
+      agenda: [],
+      marks: 0,
+    };
+    // Anything Calendar shows must be something the canonical list knows about.
+    // The reverse does not hold: the list spans thirty nights and the calendar
+    // one month, so a list event can legitimately fall outside the visible month.
+    const unknown = calendar.agenda.filter((title) => !list.includes(title));
+    check(
+      unknown.length === 0,
+      `${option.value}: Calendar shows nothing List does not (${unknown.join(", ") || "none"})`,
+    );
+    // A marked date must have an agenda entry behind it, in both renderings.
+    check(
+      calendar.marks === 0 || calendar.agenda.length > 0,
+      `${option.value}: every marked date has an event behind it`,
+    );
+  }
+  console.log(
+    `  · category parity: ${JSON.stringify(
+      categoryOptions.map((option) => ({
+        category: option.value,
+        list: (listByCategory.get(option.value) ?? []).length,
+        calendar: (calendarByCategory.get(option.value) ?? { agenda: [] })
+          .agenda.length,
+      })),
+    )}`,
+  );
+
+  // The two categories Calendar previously could never contain.
+  const eclipseInCalendar = (
+    calendarByCategory.get("eclipses") ?? { agenda: [] }
+  ).agenda;
+  check(
+    eclipseInCalendar.length > 0 ||
+      (listByCategory.get("eclipses") ?? []).length === 0,
+    "eclipses reach Calendar, not only List",
+  );
+
+  await portland.getByLabel("Show").selectOption("all");
+  await portland.waitForTimeout(300);
+
+  /**
+   * Upcoming must not silently include the past.
+   *
+   * A calendar opened on the 21st was offering events from the 8th, the 11th
+   * and the 19th, because nothing tested whether an event had finished.
+   */
+  const pastDates = await portland.evaluate(() => {
+    const now = Date.now();
+    return [...document.querySelectorAll(".tk-month-agenda time")]
+      .map((node) => node.getAttribute("datetime"))
+      .filter((key) => {
+        if (!key) return false;
+        const [year, month, day] = key.split("-").map(Number);
+        // End of that local day, so an event earlier today still counts.
+        return new Date(year, month - 1, day, 23, 59, 59).getTime() < now;
+      });
+  });
+  check(
+    pastDates.length === 0,
+    `Upcoming excludes events that have finished (${pastDates.join(", ") || "none"})`,
+  );
+
   await portland.getByRole("tab", { name: "List" }).click();
   await portland.waitForSelector('.tk-highlights[data-planning-state="ready"]', {
     timeout: 90_000,
@@ -364,50 +537,272 @@ async function main() {
     captured.lunarEclipse = lunarState;
   }
 
+  /**
+   * The corrected centre line, from a place that actually has one.
+   *
+   * Portland's next solar eclipse is partial, and a partial eclipse has no
+   * central path — so the fix at the heart of this pass is invisible from
+   * there. Luxor sits inside the track of the total eclipse of 2 August 2027,
+   * which is the event the geometry was validated against. Nothing is faked:
+   * it is a real place, and the band drawn across it is measured from the
+   * shadow axis at run time.
+   */
+  const luxorContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+  await seedPlace(luxorContext, PLACES.luxor);
+  const luxor = await luxorContext.newPage();
+  await luxor.goto(TRACKER, { waitUntil: "networkidle" });
+  await luxor.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await luxor.getByRole("button", { name: "Upcoming", exact: true }).click();
+  await luxor.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+  const total = luxor.locator(".tk-upcoming-card", { hasText: /total solar eclipse/i }).first();
+  if ((await total.count()) > 0) {
+    await total.click();
+    await luxor.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+    await luxor.waitForTimeout(2500);
+    const totalState = await readPageState(luxor);
+    assertUniversalGeometry(totalState, "total solar eclipse");
+    check(
+      (await luxor.locator(".tk-eclipse-band").count()) > 0,
+      "a total eclipse draws the measured umbral band, not a nominal one",
+    );
+    const verdict = await luxor.locator(".tk-viz-verdict").innerText();
+    // Totality at Luxor is 6m 25s. The check is that a duration is quoted at
+    // all and that it is minutes rather than hours or seconds — the exact
+    // figure is asserted against published circumstances in the unit tests.
+    const duration = verdict.match(/(\d+)m\s*(\d+)s/);
+    check(
+      duration !== null && Number(duration[1]) >= 1 && Number(duration[1]) <= 8,
+      `the verdict quotes the central duration (${duration ? duration[0] : verdict.split("\n")[0]})`,
+    );
+    check(
+      /km/i.test(verdict) || /km/i.test(await luxor.locator(".tk-viz-panel").innerText()),
+      "the path width is stated in kilometres, because it was measured",
+    );
+    await shot(luxor, "15-eclipse-total", totalState.heroName ?? "");
+  } else {
+    check(false, "the 2027 total eclipse is offered from inside its own path");
+  }
+  await luxor.close();
+  await luxorContext.close();
+
   await portland.close();
   await portlandContext.close();
 
-  /* --- 5. aurora --------------------------------------------------------- */
+  /* --- 5. aurora, with the feed under control ---------------------------- */
+  //
+  // The aurora page only exists when there is aurora, so reading the live feed
+  // makes these checks a lottery: a quiet night reports "not applicable" and
+  // proves nothing. The four freshness states are what the interface must get
+  // right, and they are properties of the data's age rather than of the solar
+  // wind — so the grid is served from a fixture with a chosen timestamp.
   console.log("\nAurora");
-  const northContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
-  await seedPlace(northContext, PLACES.fairbanks);
-  const north = await northContext.newPage();
-  await north.goto(TRACKER, { waitUntil: "networkidle" });
-  await north.waitForSelector(".tk-tonight", { timeout: 30_000 });
-  await north.waitForTimeout(6000);
 
-  if (await clickRow(north, /Aurora/i)) {
-    const auroraState = await readPageState(north);
-    assertUniversalGeometry(auroraState, "aurora");
-    check(auroraState.heading === "Auroras", "the aurora page uses the aurora heading");
-    check(
-      auroraState.metrics.some((metric) => /NOAA/i.test(metric.label ?? "")),
-      "the probability is attributed to NOAA rather than presented as Tracker's",
+  /**
+   * A fixed instant at which the test location is genuinely observing.
+   *
+   * The four freshness states are the thing that must be right, and they are
+   * properties of the data's age — but they are only *reachable* when Tracker
+   * is assessing a moment the nowcast horizon covers, which means the observer
+   * has to be in darkness. Run this walk at the wrong hour and the aurora card
+   * correctly does not exist, and the checks report nothing.
+   *
+   * So the clock is pinned as well as the feed. Both are fixtures; neither
+   * changes what the product does with them. Without this the aurora section
+   * passed or abstained depending on the time of day, which is not a test.
+   */
+  const auroraPlace = AURORA_CANDIDATES.find((place) => place.name === "Fairbanks");
+  // Local solar midnight at Fairbanks, on the day the walk runs.
+  const auroraInstant = (() => {
+    const today = new Date();
+    const midnightUtcHours = -auroraPlace.longitude / 15; // solar midnight, in UTC hours
+    const at = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+        Math.floor(midnightUtcHours),
+        Math.round((midnightUtcHours % 1) * 60),
+      ),
     );
-    check(
-      /nowcast|3-day/i.test(auroraState.pills.join(" ")),
-      "the forecast horizon is stated on the card",
-    );
-    const support = await north.locator(".tk-hero-support").innerText();
-    check(
-      /half an hour|three-day|cannot be forecast/i.test(support),
-      "uncertainty is stated in the hero, not buried",
-    );
-    await shot(north, "10-aurora-tonight", auroraState.heroName ?? "");
-    captured.aurora = auroraState;
+    return at;
+  })();
 
-    await north.getByRole("button", { name: "View forecast map" }).click();
-    await north.waitForSelector(".tk-overlay", { timeout: 5000 });
-    await north.waitForTimeout(800);
-    await shot(north, "11-aurora-forecast-map", "full forecast map drill-in");
-    await north.keyboard.press("Escape");
-  } else {
-    console.log("  · aurora is below the reporting threshold right now — nothing to capture");
-    findings.push({ label: "aurora present tonight (activity-dependent)", pass: null });
+  console.log(
+    `  · testing aurora from ${auroraPlace.name} at a pinned ${auroraInstant.toISOString()}`,
+  );
+
+  async function auroraContext(routeHandler) {
+    const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+    await seedPlace(context, auroraPlace);
+    await context.route("**/ovation_aurora_latest.json", routeHandler);
+    const page = await context.newPage();
+    await page.clock.setFixedTime(auroraInstant);
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await page.waitForTimeout(4000);
+    return { context, page };
   }
 
-  await north.close();
-  await northContext.close();
+  const serveGrid = (body) => (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+
+  /**
+   * A one-cell-per-degree OVATION grid over Alaska.
+   *
+   * Timed against the pinned instant rather than against wall-clock now, so the
+   * ages the interface computes are the ages this fixture intends.
+   */
+  const auroraGridAt = (probability, observedMinutesAgo, validForMinutes) => {
+    const observed = new Date(auroraInstant.getTime() - observedMinutesAgo * 60_000);
+    const forecast = new Date(observed.getTime() + validForMinutes * 60_000);
+    const coordinates = [];
+    for (let lat = 55; lat <= 80; lat += 1) {
+      for (let lon = 200; lon <= 225; lon += 1) {
+        coordinates.push([lon, lat, probability]);
+      }
+    }
+    return {
+      "Observation Time": observed.toISOString().replace(/\.\d+Z$/, "Z"),
+      "Forecast Time": forecast.toISOString().replace(/\.\d+Z$/, "Z"),
+      "Data Format": "[Longitude, Latitude, Aurora]",
+      coordinates,
+    };
+  };
+
+  // --- fresh -------------------------------------------------------------
+  {
+    const { context, page } = await auroraContext(serveGrid(auroraGridAt(38, 5, 30)));
+    const opened = await clickRow(page, /Aurora/i);
+    check(opened, "fresh: aurora is offered in the ranked list");
+    if (!opened) {
+      // Nothing below can be asserted without the page, and waiting on
+      // selectors that will never appear is how this walk used to hang for half
+      // an hour with the browser still open.
+      console.log(
+        `  · no aurora row from ${auroraPlace.name} at ${auroraInstant.toISOString()}`,
+      );
+      await page.close();
+      await context.close();
+    } else {
+      const state = await readPageState(page);
+      assertUniversalGeometry(state, "aurora");
+      check(state.heading === "Auroras", "the aurora page uses the aurora heading");
+      check(
+        state.metrics.some((metric) => /NOAA/i.test(metric.label ?? "")),
+        "the probability is attributed to NOAA rather than presented as Tracker's",
+      );
+      check(
+        state.metrics.some((metric) => /nowcast covers/i.test(metric.label ?? "")),
+        "the first metric is the interval the nowcast covers, not the whole night",
+      );
+      // The defect: astronomical darkness presented as "Best window".
+      check(
+        !/best window/i.test(state.metrics.map((metric) => metric.label).join(" ")),
+        "no metric on the aurora card is labelled a best window",
+      );
+      const support = await page.locator(".tk-hero-support").innerText();
+      check(/dark from/i.test(support), "darkness is stated as a precondition, in the support line");
+      check(
+        /half an hour|three-day|cannot be forecast/i.test(support),
+        "uncertainty is stated in the hero, not buried",
+      );
+      check(/nowcast/i.test(state.pills.join(" ")), "the forecast horizon is stated on the card");
+      await shot(page, "10-aurora-tonight", "fresh nowcast");
+      captured.aurora = state;
+
+      await page.getByRole("button", { name: "View forecast map" }).click();
+      await page.waitForSelector(".tk-overlay", { timeout: 5000 });
+      await page.waitForTimeout(800);
+      await shot(page, "11-aurora-forecast-map", "full forecast map drill-in");
+      await page.keyboard.press("Escape");
+      await page.close();
+      await context.close();
+    }
+  }
+
+  // --- stale -------------------------------------------------------------
+  {
+    // Observed four hours ago, expired three and a half hours ago.
+    const { context, page } = await auroraContext(serveGrid(auroraGridAt(38, 240, 30)));
+
+    // The ranking has to be read on arrival, before anything is opened. An
+    // event page puts the event you are looking at first in its own ranked
+    // list, so clicking the top row from the aurora page re-opens aurora and
+    // proves nothing — which is exactly what the previous version of this check
+    // did, and it reported a defect the product did not have.
+    const arrival = await readPageState(page);
+    const arrivalRows = await page.locator(".tk-relevant-row").allInnerTexts();
+    const nameOf = (row) => (row ?? "").split("\n")[1] ?? "nothing";
+    check(
+      arrival.category !== "auroras",
+      `stale: an expired nowcast does not take the hero (it is ${arrival.category})`,
+    );
+    check(
+      !/aurora/i.test(nameOf(arrivalRows[0])),
+      `stale: an expired nowcast does not lead the ranking (top is ${nameOf(arrivalRows[0])})`,
+    );
+
+    const listed = await clickRow(page, /Aurora/i);
+    check(listed, "stale: aurora is still listed, so the silence is explained");
+    if (listed) {
+      const state = await readPageState(page);
+      assertUniversalGeometry(state, "aurora");
+      check(
+        /expired/i.test(state.pills.join(" ")),
+        "stale: the pill says the nowcast has expired",
+      );
+      check(
+        state.recommendationLevel === "Conditions unknown — check before going",
+        `stale: the recommendation is withdrawn, not qualified (${state.recommendationLevel})`,
+      );
+      const recommendation = await page.locator(".tk-hero-recommendation").innerText();
+      check(
+        /unavailable/i.test(recommendation),
+        "stale: the headline says current conditions are unavailable",
+      );
+      // What NOAA last said survives, but as history rather than as advice.
+      check(
+        state.metrics.some((metric) => /last reported/i.test(metric.label ?? "")),
+        "stale: NOAA's last figure is shown, labelled as what was last reported",
+      );
+      check(
+        !state.metrics.some((metric) => /NOAA chance here/i.test(metric.label ?? "")),
+        "stale: no live probability is presented",
+      );
+      // A picture is a claim. The words withdrew; the map has to withdraw too,
+      // or the reader believes the picture.
+      const mapTitle = await page.locator(".tk-viz-title").first().innerText();
+      check(
+        /expired/i.test(mapTitle),
+        `stale: the map titles itself as expired (${mapTitle})`,
+      );
+      const fieldOpacity = await page
+        .locator(".tk-auroramap svg g[filter]")
+        .first()
+        .getAttribute("opacity");
+      check(
+        fieldOpacity !== null && Number(fieldOpacity) < 0.5,
+        `stale: the probability field is drawn as history rather than at full strength (${fieldOpacity})`,
+      );
+      await shot(page, "14-aurora-stale", "expired nowcast");
+    }
+    await page.close();
+    await context.close();
+  }
+
+  // --- unavailable -------------------------------------------------------
+  {
+    const { context, page } = await auroraContext((route) =>
+      route.fulfill({ status: 503, contentType: "text/plain", body: "down" }),
+    );
+    const rows = await page.locator(".tk-relevant-row").allInnerTexts();
+    check(
+      !rows.some((row) => /aurora/i.test(row)),
+      "unavailable: no aurora event is offered when the nowcast cannot be read",
+    );
+    await page.close();
+    await context.close();
+  }
 
   /* --- 6. re-ranking when the place changes ------------------------------ */
   //
@@ -606,4 +1001,7 @@ async function main() {
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
+  // A throw before `browser.close()` leaves Chromium running and Node with a
+  // live handle, so the process never exits and the failure looks like a hang.
+  process.exit(1);
 });

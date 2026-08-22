@@ -58,20 +58,75 @@ decision rather than an implementation one.
 Nothing has been faked in the meantime. There is no placeholder pass list,
 because §11 forbids presenting a fallback as a current observation.
 
+## The correctness pass
+
+`docs/TRACKER_CORRECTNESS_PASS.md` is the engineering handoff for the review
+that produced the two sections below: what was wrong, why, what each number now
+means, and the commands and results that check it.
+
+## What each number actually is
+
+Added after a correctness review found the product presenting three different
+kinds of value in the same voice. The distinction is now maintained in code as
+well as in copy:
+
+| Kind | Examples | How it is marked |
+|---|---|---|
+| **Directly sourced** | NOAA's probability of visible aurora; cloud cover, temperature; aerosol optical depth | Attributed to the provider by name wherever shown ("NOAA chance here"), and in the conditions caption |
+| **Derived by calculation** | Eclipse contacts, centre line, path width, obscuration; Moon phase and altitude; meteor rates; rise/set/culmination | Stated as computed on the device; eclipse geometry is validated against published circumstances in the tests |
+| **Tracker's editorial judgement** | The ranked order; the recommendation wording; the aurora ranking weight; the observing-quality bands | `auroraRankingStrength` returns `editorial: true` with a stated basis; the ranking's gates and caps are named in `opportunity.ts` |
+
+The specific failure this table exists to prevent: `probability / 55` was applied
+inline to NOAA's figure and fed into cross-phenomenon ranking, while the
+documentation claimed NOAA's probability was never rescaled into a Tracker
+judgement. It was. The transformation is now named, anchored and tested.
+
+## The eclipse centre line, and why it was wrong
+
+Worth recording because the original was plausible and passed its tests. The
+central path was traced by hill-climbing on obscuration. Inside the umbra of a
+total eclipse obscuration is exactly 1 across the whole band — a flat optimum
+two hundred kilometres wide — so the optimiser stopped at whatever point it
+reached first, and the result was labelled "the centre line" with a distance
+quoted from it.
+
+The axis is a geometric object: the line through the centres of the Sun and the
+Moon, intersected with the Earth ellipsoid. `shadowAxisPoint` computes it, and
+reproduces Astronomy Engine's own greatest-eclipse coordinates to under a metre
+at the instant the engine reports them — which is the strongest check available,
+since the engine's figure is validated against published circumstances and this
+walks the same construction at every other instant so the whole line can be
+drawn. Path limits are measured outward from the axis by bisection: 261 km at
+greatest eclipse for 2 August 2027, against a published 258 km.
+
+The same review found local maximum eclipse being reported as the *first* sample
+to reach peak obscuration, which for a total eclipse is second contact rather
+than maximum — up to three minutes early. It is now the instant of least angular
+separation.
+
 ## Also not built
 
 - **Comets, Milky Way and zodiacal light** (§7.5). No brightness model and no
   event source for any of them.
+- **A visibility line for aurora.** Tracker reads OVATION, which gives the
+  probability of aurora being *overhead* at a point. Aurora can be seen low on
+  the horizon from well outside the oval, and NOAA publishes a viewline product
+  that answers that question directly. Until it is read, the copy says the oval
+  is elsewhere and stops short of saying nothing is visible.
 - **Push, email and SMS reminders** (§10). Calendar export is the free path;
   everything else costs per message.
 
 ## Since built
 
 - **Eclipses of the Sun** (§7.5). Global eclipse search, per-observer
-  circumstances, a traced central line and a sampled coverage field, all from the
-  ephemeris rather than from a published map. The §9 safety mechanism — which
-  existed with nothing setting it — is now set by every solar event, and renders
-  above all other guidance, unsuppressed.
+  circumstances, a true shadow-axis centre line with measured path limits, and a
+  sampled coverage field, all from the ephemeris rather than from a published
+  map. The §9 safety mechanism — which existed with nothing setting it — is now
+  set by every solar event, and renders above all other guidance, unsuppressed.
+- **Aerosol**, which is what the smoke card always meant. Aerosol optical depth
+  from Open-Meteo's air-quality API, quoted as magnitudes of extinction and
+  folded into sky access. The card had been a permanently empty slot in the
+  conditions row.
 - **Tonight and Upcoming** as the two time perspectives (§3), with Calendar as a
   representation inside Upcoming rather than a fourth destination. "Now" was
   removed: Tracker already knows the time, and asking the reader to choose
@@ -83,8 +138,10 @@ Ranked by how much they could mislead someone:
 
 0. **Aurora is a forecast, not a computation, and a short one.** Everything else
    in Tracker is as good a century out as it is tonight. The aurora nowcast is
-   good for about half an hour and the K-index for three days, and the interface
-   states which of the two it is using every time it speaks.
+   good for about half an hour and the K-index for three days, the interface
+   states which of the two it is using every time it speaks, and once the
+   nowcast passes its own forecast time Tracker stops concluding from it
+   entirely rather than qualifying the conclusion.
 1. **Light pollution is not modelled at all.** The meteor rate is a ceiling for a
    genuinely dark sky. A suburban observer will see a fraction of it. This is
    stated in the interface as a missing input rather than assumed away, but it is

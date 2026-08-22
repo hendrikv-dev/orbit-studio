@@ -83,7 +83,15 @@ export function EventHero({
           </p>
         ) : null}
 
-        <h1 className="tk-hero-name">{presentation.title}</h1>
+        {/* An h2, not an h1.
+        
+            The page already has one: the category heading above. Two
+            document-level headings on one page is not a styling question — it
+            leaves a screen-reader user with no single answer to "what is this
+            page", and both were competing for it because both are visually
+            large. The category names the page; the event is a section of it.
+            Nothing about the appearance changes. */}
+        <h2 className="tk-hero-name">{presentation.title}</h2>
 
         <div className="tk-hero-pills">
           {presentation.pills.map((pill) => (

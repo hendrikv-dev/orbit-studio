@@ -4,14 +4,9 @@ import {
   type PhenomenonCategoryId,
 } from "../../data/tracker/phenomenonCategories";
 import {
-  auroraRiskFor,
+  buildUpcomingEvents,
   filterUpcoming,
-  mergeUpcoming,
-  notableUpcomingEvents,
-  solarEclipsesFor,
-  type UpcomingEvent,
 } from "../../data/tracker/upcomingEvents";
-import { categoryForOpportunityKind } from "../../data/tracker/eventCategories";
 import type { AuroraConditions } from "../../data/tracker/aurora";
 import type {
   ConditionSnapshot,
@@ -36,9 +31,17 @@ import { useTrackerPlans } from "./useTrackerPlans";
  * arranged by date, and promoting it to a global mode implied Tracker had four
  * things to say when it has two.
  *
+ * ## One pipeline
+ *
+ * This component owns the event generation for both. It used to own it for
+ * neither: List merged its own sources here and Calendar ran a second,
+ * unrelated pipeline inside itself, so the two disagreed about what an event
+ * was — solar eclipses existed in one and not the other. Now the range changes
+ * with the mode, the planner is asked once, `buildUpcomingEvents` produces one
+ * array, and the two children render it differently.
+ *
  * Selecting anything in either representation opens the universal event page —
- * the same component Tonight uses, with the same geometry — rather than a
- * detail panel that only exists here.
+ * the same component Tonight uses, with the same geometry.
  */
 
 interface Props {
@@ -63,63 +66,77 @@ export function TrackerUpcoming({
   const [mode, setMode] = useState<"list" | "calendar">("list");
   const [category, setCategory] = useState<PhenomenonCategoryId>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  /**
-   * Events opened from a month the horizon list never reached.
-   *
-   * Calendar navigates by month and computes on demand, so it can surface a
-   * night in November that the thirty-night list has no entry for. Adopting it
-   * here keeps one selection model — everything that can be opened lives in one
-   * array — instead of Calendar growing a second, parallel way to open things.
-   */
-  const [adopted, setAdopted] = useState<UpcomingEvent[]>([]);
-
-  const request = useMemo<TrackerPlanningRequest>(
-    () => ({
-      kind: "nights",
-      latitudeDeg: place.latitude,
-      longitudeDeg: place.longitude,
-      fromUtc: planAnchor.toISOString(),
-      nights: DEFAULT_HORIZON_NIGHTS,
-      timeZone: clock.timeZone,
-    }),
-    [place.latitude, place.longitude, planAnchor, clock.timeZone],
-  );
   const [retryNonce, setRetryNonce] = useState(0);
+
+  const todayParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: clock.timeZone ?? "UTC",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(now);
+  const [cursor, setCursor] = useState({
+    year: Number(todayParts.find((part) => part.type === "year")?.value),
+    month: Number(todayParts.find((part) => part.type === "month")?.value),
+  });
+
+  /**
+   * What the planner is asked for, which follows the mode.
+   *
+   * A list wants the next month of nights from now; a calendar wants the month
+   * on screen. Both produce `NightPlan[]`, and everything downstream treats
+   * them identically — the range is the only difference between the two views
+   * at the data layer.
+   */
+  const request = useMemo<TrackerPlanningRequest>(
+    () =>
+      mode === "calendar"
+        ? {
+            kind: "month",
+            latitudeDeg: place.latitude,
+            longitudeDeg: place.longitude,
+            year: cursor.year,
+            month: cursor.month,
+            timeZone: clock.timeZone,
+          }
+        : {
+            kind: "nights",
+            latitudeDeg: place.latitude,
+            longitudeDeg: place.longitude,
+            fromUtc: planAnchor.toISOString(),
+            nights: DEFAULT_HORIZON_NIGHTS,
+            timeZone: clock.timeZone,
+          },
+    [mode, cursor.year, cursor.month, place.latitude, place.longitude, planAnchor, clock.timeZone],
+  );
   const planning = useTrackerPlans(request, retryNonce);
 
-  /**
-   * Eclipses of the Sun, computed here rather than in the planning worker.
-   *
-   * The worker generates observing *nights*, and a solar eclipse happens in
-   * daylight — it belongs to no night and would never appear in a plan however
-   * far ahead the worker looked. This is the layer where that structural gap is
-   * closed, and it is also why the previous version had no solar events at all.
-   */
-  const solarEclipses = useMemo(
-    () => solarEclipsesFor(place.latitude, place.longitude, planAnchor, clock.timeZone),
-    [clock.timeZone, place.latitude, place.longitude, planAnchor],
+  const events = useMemo(
+    () =>
+      planning.status === "ready"
+        ? buildUpcomingEvents({
+            plans: planning.plans,
+            latitudeDeg: place.latitude,
+            longitudeDeg: place.longitude,
+            timeZone: clock.timeZone,
+            auroraConditions,
+            now,
+            from: planAnchor,
+            // A month view can legitimately hold more than the list features.
+            notableLimit: mode === "calendar" ? 20 : 12,
+          })
+        : [],
+    [
+      auroraConditions,
+      clock.timeZone,
+      mode,
+      now,
+      place.latitude,
+      place.longitude,
+      planAnchor,
+      planning,
+    ],
   );
 
-  const auroraRisk = useMemo(
-    () => auroraRiskFor(auroraConditions, now, clock.timeZone),
-    [auroraConditions, clock.timeZone, now],
-  );
-
-  const events = useMemo(() => {
-    const notable = planning.status === "ready" ? notableUpcomingEvents(planning.plans, 12) : [];
-    const known = new Set(notable.map((entry) => entry.id));
-    return mergeUpcoming(
-      notable,
-      solarEclipses,
-      auroraRisk,
-      adopted.filter((entry) => !known.has(entry.id)),
-    );
-  }, [adopted, auroraRisk, planning, solarEclipses]);
-
-  const visible = useMemo(
-    () => filterUpcoming(events, category === "all" ? "all" : category),
-    [category, events],
-  );
+  const visible = useMemo(() => filterUpcoming(events, category), [category, events]);
 
   const selected = selectedId
     ? events.find((event) => event.id === selectedId) ?? null
@@ -228,27 +245,12 @@ export function TrackerUpcoming({
             place={place}
             clock={clock}
             now={now}
-            category={category}
-            onSelectEvent={(notable) => {
-              const id = `${notable.plan.dateKey}:${notable.entry.opportunity.id}`;
-              if (!events.some((entry) => entry.id === id)) {
-                setAdopted((current) => [
-                  ...current,
-                  {
-                    kind: "notable",
-                    id,
-                    dateKey: notable.plan.dateKey,
-                    atUtc: notable.entry.opportunity.guidance.whenUtc,
-                    category: categoryForOpportunityKind(notable.entry.opportunity.kind),
-                    title: notable.entry.opportunity.title,
-                    label: "Calendar event",
-                    reason: notable.reason,
-                    notable,
-                  },
-                ]);
-              }
-              setSelectedId(id);
-            }}
+            events={visible}
+            cursor={cursor}
+            onNavigate={setCursor}
+            planning={planning}
+            onRetry={() => setRetryNonce((value) => value + 1)}
+            onSelectEvent={setSelectedId}
           />
         )}
       </div>

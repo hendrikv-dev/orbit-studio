@@ -76,6 +76,13 @@ export function TrackerEclipseMap(props: TrackerEclipseMapProps) {
   return props.kind === "solar" ? <SolarEclipseMap {...props} /> : <LunarEclipseMap {...props} />;
 }
 
+/** "6m 23s", the way eclipse durations are always quoted. */
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round(seconds % 60);
+  return minutes > 0 ? `${minutes}m ${rest}s` : `${rest}s`;
+}
+
 /* ----------------------------------------------------------------- solar */
 
 function SolarEclipseMap({
@@ -113,6 +120,32 @@ function SolarEclipseMap({
           .join(" L ")}`
       : "";
 
+    // The band of central eclipse, drawn from its measured limits rather than
+    // implied by a coverage contour. The two are different things: the 90%
+    // contour is where nine tenths of the Sun is covered, and the band is where
+    // the Moon covers it completely. Conflating them is what a stroked line of
+    // arbitrary width would have done.
+    const banded = visiblePath.filter((point) => point.limits !== null);
+    const bandData =
+      banded.length > 1
+        ? `M ${banded
+            .map(
+              (point) =>
+                `${projection.x(point.limits!.northLongitudeDeg).toFixed(1)},${projection
+                  .y(point.limits!.northLatitudeDeg)
+                  .toFixed(1)}`,
+            )
+            .join(" L ")} L ${[...banded]
+            .reverse()
+            .map(
+              (point) =>
+                `${projection.x(point.limits!.southLongitudeDeg).toFixed(1)},${projection
+                  .y(point.limits!.southLatitudeDeg)
+                  .toFixed(1)}`,
+            )
+            .join(" L ")} Z`
+        : "";
+
     return (
       <>
         <g filter="url(#tk-geomap-smooth)">
@@ -131,6 +164,7 @@ function SolarEclipseMap({
             );
           })}
         </g>
+        {bandData ? <path d={bandData} className="tk-eclipse-band" /> : null}
         {pathData ? (
           <>
             <path d={pathData} className="tk-eclipse-track-glow" />
@@ -142,9 +176,19 @@ function SolarEclipseMap({
   };
 
   const centralLabel = event.kind === "annular" ? "Annular centre line" : "Totality centre line";
+  const bandLabel = event.kind === "annular" ? "Annular band" : "Totality band";
+  const widest = centralPath.reduce(
+    (best, point) => Math.max(best, point.limits?.widthKm ?? 0),
+    0,
+  );
   const legend = [
     ...(centralPath.length
-      ? [{ swatch: "var(--tk-eclipse-track)", label: centralLabel }]
+      ? [
+          { swatch: "var(--tk-eclipse-track)", label: centralLabel },
+          ...(widest > 0
+            ? [{ swatch: "var(--tk-eclipse-band)", label: `${bandLabel} (${Math.round(widest)} km)` }]
+            : []),
+        ]
       : []),
     ...SOLAR_BANDS.map((band) => ({ swatch: band.color, label: band.label })),
   ];
@@ -202,7 +246,13 @@ function SolarEclipseMap({
           {local.distanceToCentralLineKm !== null && local.kind === "partial"
             ? `The centre line passes about ${Math.round(local.distanceToCentralLineKm / 10) * 10} km away. `
             : ""}
-          Coverage sampled every {coverage.stepDeg}°; the centre line is exact.
+          {local.centralDurationSeconds !== null
+            ? `${formatDuration(local.centralDurationSeconds)} of ${
+                local.kind === "annular" ? "annularity" : "totality"
+              } here. `
+            : ""}
+          The centre line is the shadow axis; coverage is sampled every{" "}
+          {coverage.stepDeg}°.
         </p>
       </div>
     </div>

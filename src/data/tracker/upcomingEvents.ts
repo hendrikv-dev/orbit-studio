@@ -13,6 +13,18 @@ import { notableEvents } from "./schedule";
 /**
  * Everything beyond tonight, from three sources that cannot be merged upstream.
  *
+ * ## One list, two renderings
+ *
+ * List and Calendar used to generate their own events: List merged notable
+ * nights with solar eclipses and auroral risk, Calendar called `notableEvents`
+ * on a month of plans and knew about neither. So the two disagreed about what
+ * an event *is* — a solar eclipse existed in one and not the other, and the
+ * category filter offered aurora in a view that could never contain one.
+ *
+ * `buildUpcomingEvents` is now the only place an upcoming event is created.
+ * List renders the array in date order; Calendar groups the same array by date.
+ * Neither interprets what counts as an event.
+ *
  * Notable events come out of the ranking layer, one plan per night. Solar
  * eclipses come out of an eclipse search and belong to no observing night at
  * all — they happen in daylight, which is why they never appear in Tonight and
@@ -42,6 +54,14 @@ export type UpcomingEvent =
       title: string;
       label: string;
       reason: string;
+      /**
+       * When the event stops being available.
+       *
+       * Carried so "upcoming" can mean what it says. Without it the only test
+       * available was the start time, and an event that began an hour ago and
+       * runs for three was indistinguishable from one that finished last week.
+       */
+      endUtc: string;
       notable: NotableEvent;
     }
   | {
@@ -53,6 +73,7 @@ export type UpcomingEvent =
       title: string;
       label: string;
       reason: string;
+      endUtc: string;
       event: SolarEclipseEvent;
       local: LocalSolarCircumstances;
     }
@@ -65,6 +86,7 @@ export type UpcomingEvent =
       title: string;
       label: string;
       reason: string;
+      endUtc: string;
       kp: number;
     };
 
@@ -125,6 +147,8 @@ export function solarEclipsesFor(
       id: event.id,
       dateKey: dateKeyFor(new Date(local.peakUtc ?? event.peakUtc), timeZone),
       atUtc: local.peakUtc ?? event.peakUtc,
+      // Last contact, where the geometry established one.
+      endUtc: local.partialEndUtc ?? local.peakUtc ?? event.peakUtc,
       category: "eclipses",
       title: SOLAR_LABEL[event.kind],
       label: "Solar eclipse",
@@ -182,6 +206,9 @@ export function auroraRiskFor(
       id: `aurora-${dateKey}`,
       dateKey,
       atUtc: entry.atUtc,
+      // A K-index value describes a three-hour bin, and that bin is the whole
+      // of what the forecast claims.
+      endUtc: new Date(Date.parse(entry.atUtc) + 3 * 3_600_000).toISOString(),
       category: "auroras" as const,
       title: "Aurora watch",
       label: "Aurora",
@@ -195,17 +222,23 @@ export function auroraRiskFor(
 
 /** Notable events from the plan layer, in this module's shared shape. */
 export function notableUpcomingEvents(plans: NightPlan[], limit = 12): UpcomingEvent[] {
-  return notableEvents(plans, limit).map((notable) => ({
-    kind: "notable" as const,
-    id: `${notable.plan.dateKey}:${notable.entry.opportunity.id}`,
-    dateKey: notable.plan.dateKey,
-    atUtc: notable.entry.opportunity.guidance.whenUtc,
-    category: categoryForOpportunityKind(notable.entry.opportunity.kind),
-    title: notable.entry.opportunity.title,
-    label: KIND_LABEL[notable.kind],
-    reason: notable.reason,
-    notable,
-  }));
+  return notableEvents(plans, limit).map((notable) => {
+    const { guidance } = notable.entry.opportunity;
+    return {
+      kind: "notable" as const,
+      id: `${notable.plan.dateKey}:${notable.entry.opportunity.id}`,
+      dateKey: notable.plan.dateKey,
+      atUtc: guidance.whenUtc,
+      endUtc: new Date(
+        Date.parse(guidance.whenUtc) + guidance.durationMinutes * 60_000,
+      ).toISOString(),
+      category: categoryForOpportunityKind(notable.entry.opportunity.kind),
+      title: notable.entry.opportunity.title,
+      label: KIND_LABEL[notable.kind],
+      reason: notable.reason,
+      notable,
+    };
+  });
 }
 
 /**
@@ -221,6 +254,65 @@ export function mergeUpcoming(...groups: UpcomingEvent[][]): UpcomingEvent[] {
   return groups
     .flat()
     .sort((left, right) => Date.parse(left.atUtc) - Date.parse(right.atUtc));
+}
+
+/**
+ * True where an event has finished.
+ *
+ * Judged on the end rather than the start, so an eclipse that began forty
+ * minutes ago and runs for another hour is still upcoming, and a shower peak
+ * from a fortnight ago is not. "Upcoming" that quietly included last week is
+ * the defect; a naive `atUtc >= now` would have introduced a different one by
+ * dropping events already under way.
+ */
+export function hasFinished(event: UpcomingEvent, now: Date): boolean {
+  return Date.parse(event.endUtc) < now.getTime();
+}
+
+export interface UpcomingEventInputs {
+  plans: NightPlan[];
+  latitudeDeg: number;
+  longitudeDeg: number;
+  timeZone: string | null;
+  auroraConditions: AuroraConditions | null;
+  now: Date;
+  /** Where the eclipse search starts. Usually the plan anchor. */
+  from: Date;
+  notableLimit?: number;
+  /** Events already finished are dropped unless this is set. */
+  includeFinished?: boolean;
+}
+
+/**
+ * The canonical upcoming list: generated once, rendered two ways.
+ *
+ * Everything a Tracker upcoming view can show is created here and nowhere
+ * else, so List and Calendar cannot disagree about what an event is, which
+ * category it belongs to, or whether it has already happened.
+ */
+export function buildUpcomingEvents(input: UpcomingEventInputs): UpcomingEvent[] {
+  const merged = mergeUpcoming(
+    notableUpcomingEvents(input.plans, input.notableLimit ?? 12),
+    solarEclipsesFor(input.latitudeDeg, input.longitudeDeg, input.from, input.timeZone),
+    auroraRiskFor(input.auroraConditions, input.now, input.timeZone),
+  );
+  return input.includeFinished
+    ? merged
+    : merged.filter((event) => !hasFinished(event, input.now));
+}
+
+/** The events falling on one local calendar date, in time order. */
+export function groupUpcomingByDate(events: UpcomingEvent[]): Map<string, UpcomingEvent[]> {
+  const byDate = new Map<string, UpcomingEvent[]>();
+  for (const event of events) {
+    const held = byDate.get(event.dateKey) ?? [];
+    held.push(event);
+    byDate.set(event.dateKey, held);
+  }
+  for (const held of byDate.values()) {
+    held.sort((left, right) => Date.parse(left.atUtc) - Date.parse(right.atUtc));
+  }
+  return byDate;
 }
 
 export function filterUpcoming(

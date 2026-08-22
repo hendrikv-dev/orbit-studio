@@ -444,6 +444,29 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Authenticated acquisitions and credentials remain ignored and local only. Public inclusion requires a separate evidence-backed decision.
 
+## Open-Meteo Air Quality API (Copernicus Atmosphere Monitoring Service)
+
+- Inventory ID: `tracker-aerosol-air-quality`
+- Category: runtime-air-quality
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Open-Meteo, serving Copernicus Atmosphere Monitoring Service model output
+- Version or snapshot: Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5
+- Retrieval date: 2026-08-21
+- Authoritative source: https://open-meteo.com/en/docs/air-quality-api
+- Authoritative source: https://air-quality-api.open-meteo.com/v1/air-quality
+- Rights basis: Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. The underlying model output is the Copernicus Atmosphere Monitoring Service, whose data are available under the Copernicus licence permitting free use and redistribution with attribution. The endpoint sends access-control-allow-origin: *, so direct browser use is the intended access pattern.
+- Rights evidence: https://open-meteo.com/en/features
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Rights evidence: https://atmosphere.copernicus.eu/
+- Attribution: Aerosol and particulate data from Open-Meteo, derived from the Copernicus Atmosphere Monitoring Service, licensed CC BY 4.0. Rendered in the Tracker conditions caption and in the data-and-privacy panel.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/airQuality.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Attribution must remain visible wherever aerosol figures are shown. Optical depth must not be presented as a smoke concentration, and surface particulate must not be presented as sky transparency. Caching must stay keyed by model cell and never by user. If Orbit Studio ever becomes commercial, Open-Meteo’s non-commercial terms must be re-reviewed before this remains on the free path.
+
 ## NOAA SWPC OVATION aurora nowcast and planetary K-index products
 
 - Inventory ID: `tracker-aurora-space-weather`
@@ -465,7 +488,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Modification status: permitted
 - Repository paths: `src/data/tracker/aurora.ts`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. The published probability must be attributed to NOAA and never rescaled into a Tracker judgement. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence.
+- Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence.
 
 ## Photon geocoder over OpenStreetMap data
 

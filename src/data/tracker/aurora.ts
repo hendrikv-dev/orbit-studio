@@ -54,12 +54,45 @@ const KP_NOW_URL = "https://services.swpc.noaa.gov/json/planetary_k_index_1m.jso
 /**
  * How far ahead each product is worth quoting.
  *
- * The nowcast figure is NOAA's own: the OVATION model's forecast time runs
- * about thirty to ninety minutes ahead of its observation time. Two hours is a
- * deliberately generous outer edge for treating the grid as current at all,
- * after which the interface reports it as stale rather than silently ageing.
+ * `NOWCAST_VALID_MINUTES` is the outer edge for treating a *request* as being
+ * about the nowcast at all, not a statement about the data's own age — that is
+ * what `auroraFreshness` below is for, and conflating the two is what let a
+ * six-hour-old grid drive a present-tense recommendation.
  */
 export const NOWCAST_VALID_MINUTES = 120;
+
+/**
+ * How old a nowcast may be before Tracker stops concluding from it.
+ *
+ * Taken from the product rather than chosen for the interface. Each OVATION
+ * file carries an observation time and a forecast time, and the forecast time
+ * is the instant the model is predicting for — roughly half an hour ahead. So
+ * the grid has an explicit expiry printed on it, and the states are defined
+ * against that:
+ *
+ * - **fresh** — now is at or before the forecast time. The grid is describing
+ *   the sky Tracker is being asked about.
+ * - **aging** — up to `AURORA_AGING_GRACE_MINUTES` past it. The oval has moved,
+ *   but the broad picture usually has not, so the figure is still worth
+ *   showing while being explicitly out of date.
+ * - **stale** — beyond that. Aurora restructures itself over tens of minutes;
+ *   a grid this old cannot support a claim about now, and Tracker must stop
+ *   making one rather than making it with a caveat attached.
+ *
+ * The grace period is one further OVATION cycle plus a margin. It is a
+ * judgement, and it is the only number here that is.
+ */
+export const AURORA_AGING_GRACE_MINUTES = 30;
+
+export type AuroraFreshness = "fresh" | "aging" | "stale" | "unavailable";
+
+export function auroraFreshness(grid: AuroraGrid | null, now: Date): AuroraFreshness {
+  if (!grid) return "unavailable";
+  const pastValidity = (now.getTime() - Date.parse(grid.forecastUtc)) / 60_000;
+  if (pastValidity <= 0) return "fresh";
+  if (pastValidity <= AURORA_AGING_GRACE_MINUTES) return "aging";
+  return "stale";
+}
 /** The planetary K-index forecast NOAA publishes runs three days. */
 export const SHORT_RANGE_HORIZON_DAYS = 3;
 
@@ -92,9 +125,14 @@ export function auroraHorizonFor(atUtc: string, now: Date): AuroraHorizon {
  * that stalls.
  *
  * `aurora` is NOAA's own published quantity: the probability, in percent, of
- * visible aurora at that location. It is reported as theirs and never rescaled
- * into a Tracker judgement — the product's rule against inventing a percentage
- * is a rule against inventing one, not against quoting a source's.
+ * visible aurora at that location. Wherever a percentage is shown it is this
+ * number, unmodified and attributed — the product's rule against inventing a
+ * percentage is a rule against inventing one, not against quoting a source's.
+ *
+ * Tracker does derive from it: `auroraRankingStrength` turns it into a position
+ * in the cross-phenomenon ranking. That derivation is declared as Tracker's and
+ * never surfaces as a percentage, so the two never trade on each other's
+ * authority.
  */
 export interface AuroraGrid {
   observationUtc: string;
@@ -384,18 +422,44 @@ export async function fetchAuroraConditions(signal?: AbortSignal): Promise<Auror
 /* ------------------------------------------------------------- judgement */
 
 export type AuroraOutlook =
-  /** The oval is over the observer or close enough to show low on the horizon. */
+  /** NOAA's grid gives a real chance of visible aurora at the observer. */
   | "plausible-tonight"
-  /** Activity exists but is well poleward; a drive might reach it. */
+  /**
+   * The modelled oval is poleward of the observer.
+   *
+   * Deliberately not "not visible". The OVATION grid reports the probability of
+   * aurora being *overhead* at each point, and a display well poleward of you
+   * can still be seen low on the horizon — the two questions are different, and
+   * the product that answers the second (NOAA's viewline) is not read here. The
+   * copy says the oval is elsewhere and stops short of saying you cannot see
+   * anything.
+   */
   | "north-of-you"
   /** Quiet. Nothing worth going out for. */
   | "quiet"
-  /** No usable product reached this instant. */
+  /**
+   * No usable product reached this instant — including the case where one did
+   * arrive but has since expired. Staleness lands here rather than in a
+   * qualifier on a live outlook.
+   */
   | "unknown";
 
 export interface AuroraAssessment {
   outlook: AuroraOutlook;
   horizon: AuroraHorizon;
+  /** Whether the nowcast is current enough to conclude from. */
+  freshness: AuroraFreshness;
+  /**
+   * What NOAA last published for this location, whatever its age.
+   *
+   * Kept separate from `probabilityPercent` on purpose. The two answer
+   * different questions — "what did the source say" and "what may Tracker
+   * conclude" — and the interface shows them in different places. A stale grid
+   * still has a reported figure worth surfacing for transparency; it has no
+   * figure worth acting on.
+   */
+  reportedProbabilityPercent: number | null;
+  /** The figure Tracker is willing to reason from. Null once the grid is stale. */
   probabilityPercent: number | null;
   kp: number | null;
   nearby: NearbyAurora | null;
@@ -404,6 +468,15 @@ export interface AuroraAssessment {
   /** What the reader should understand about how far ahead this can be trusted. */
   certainty: string;
   gridAgeMinutes: number | null;
+  /**
+   * The interval the nowcast actually covers.
+   *
+   * This is the aurora equivalent of an observing window, and it is minutes
+   * long rather than hours. Tracker used to hand the interface the whole of
+   * astronomical darkness under the label "best window", which took a
+   * half-hour claim and stretched it across eight.
+   */
+  validity: { fromUtc: string; toUtc: string } | null;
 }
 
 /**
@@ -411,9 +484,21 @@ export interface AuroraAssessment {
  *
  * The three horizons produce three different *kinds* of sentence, not three
  * confidence levels attached to the same one. That is the whole point: "27%
- * chance from your location in the next hour" and "Kp 5 expected on Thursday
- * evening" are different claims, and a single template that produced both from
- * one number would be dressing the weaker of them in the stronger's clothes.
+ * chance from your location in the next half hour" and "Kp 5 expected on
+ * Thursday evening" are different claims, and a single template that produced
+ * both from one number would be dressing the weaker of them in the stronger's
+ * clothes.
+ *
+ * ## Staleness ends the claim rather than qualifying it
+ *
+ * An earlier version noticed an old grid and appended a warning sentence, while
+ * leaving the probability, the outlook and the ranking weight exactly as they
+ * were. The result was a confident recommendation with a disclaimer under it —
+ * which is worse than either, because the recommendation is what gets read. A
+ * stale grid now produces `outlook: "unknown"` and a null
+ * `probabilityPercent`, so nothing downstream can conclude from it, and the
+ * figure NOAA last reported moves to `reportedProbabilityPercent` where the
+ * interface can show it as history rather than as advice.
  */
 export function assessAurora(
   conditions: AuroraConditions | null,
@@ -423,30 +508,34 @@ export function assessAurora(
   now: Date,
 ): AuroraAssessment {
   const horizon = auroraHorizonFor(atUtc, now);
+  const freshness = auroraFreshness(conditions?.grid ?? null, now);
+  const blank = {
+    freshness,
+    reportedProbabilityPercent: null,
+    probabilityPercent: null,
+    kp: null,
+    nearby: null,
+    gridAgeMinutes: null,
+    validity: null,
+  } as const;
 
   if (!conditions) {
     return {
+      ...blank,
       outlook: "unknown",
       horizon,
-      probabilityPercent: null,
-      kp: null,
-      nearby: null,
       statement: "No space-weather product has been read yet.",
       certainty: "Aurora cannot be computed from geometry; it needs a live feed.",
-      gridAgeMinutes: null,
     };
   }
 
   if (horizon === "beyond-forecast") {
     return {
+      ...blank,
       outlook: "unknown",
       horizon,
-      probabilityPercent: null,
-      kp: null,
-      nearby: null,
       statement: "Too far ahead for any aurora forecast.",
       certainty: `Nothing beyond ${SHORT_RANGE_HORIZON_DAYS} days is forecastable. Check again closer to the night.`,
-      gridAgeMinutes: null,
     };
   }
 
@@ -454,73 +543,192 @@ export function assessAurora(
     const point = kpNear(conditions.kpForecast, atUtc);
     if (!point) {
       return {
+        ...blank,
         outlook: "unknown",
         horizon,
-        probabilityPercent: null,
-        kp: null,
-        nearby: null,
         statement: "The three-day forecast does not reach this night.",
         certainty: "Only the planetary K-index reaches beyond the next hour, and it stops here.",
-        gridAgeMinutes: null,
       };
     }
     const storm = stormScaleFor(point.kp);
     return {
+      ...blank,
       outlook: point.kp >= 5 ? "plausible-tonight" : point.kp >= 4 ? "north-of-you" : "quiet",
       horizon,
-      probabilityPercent: null,
       kp: point.kp,
-      nearby: null,
       statement: storm
         ? `Kp ${point.kp.toFixed(1)} forecast — ${storm.label} conditions.`
         : `Kp ${point.kp.toFixed(1)} forecast: ordinary activity.`,
       certainty:
         "A three-day K-index forecast describes how disturbed the field will be, not where the oval will sit. Nothing finer is knowable this far out.",
-      gridAgeMinutes: null,
     };
   }
 
   const { grid } = conditions;
   if (!grid) {
     return {
+      ...blank,
       outlook: "unknown",
       horizon,
-      probabilityPercent: null,
       kp: conditions.currentKp,
-      nearby: null,
       statement: "The aurora nowcast is unavailable.",
       certainty: "Without the nowcast grid there is nothing to say about where the oval is.",
-      gridAgeMinutes: null,
     };
   }
 
-  const ageMinutes = Math.round(
-    (now.getTime() - Date.parse(grid.observationUtc)) / 60_000,
-  );
-  const probability = auroraProbabilityAt(grid, latitudeDeg, longitudeDeg);
-  const nearby = strongestNearby(grid, latitudeDeg, longitudeDeg);
+  const ageMinutes = Math.round((now.getTime() - Date.parse(grid.observationUtc)) / 60_000);
+  const reported = auroraProbabilityAt(grid, latitudeDeg, longitudeDeg);
+  const validity = { fromUtc: grid.observationUtc, toUtc: grid.forecastUtc };
 
+  if (freshness === "stale") {
+    // Deliberately terminal. No outlook, no probability, no nearby suggestion —
+    // a stale grid cannot support "drive north" any more than it can support
+    // "go outside", and offering one would be the same error in a smaller box.
+    return {
+      outlook: "unknown",
+      horizon,
+      freshness,
+      reportedProbabilityPercent: reported,
+      probabilityPercent: null,
+      kp: conditions.currentKp,
+      nearby: null,
+      gridAgeMinutes: ageMinutes,
+      validity,
+      statement: "Current auroral conditions are unavailable.",
+      certainty: `The last nowcast reached this device ${describeAge(ageMinutes)} and has expired. Aurora restructures itself over tens of minutes, so it cannot say what the sky is doing now.`,
+    };
+  }
+
+  const nearby = strongestNearby(grid, latitudeDeg, longitudeDeg);
   const outlook: AuroraOutlook =
-    probability >= 10 ? "plausible-tonight" : nearby ? "north-of-you" : "quiet";
+    reported >= 10 ? "plausible-tonight" : nearby ? "north-of-you" : "quiet";
 
   return {
     outlook,
     horizon,
-    probabilityPercent: probability,
+    freshness,
+    reportedProbabilityPercent: reported,
+    probabilityPercent: reported,
     kp: conditions.currentKp,
     nearby,
+    gridAgeMinutes: ageMinutes,
+    validity,
     statement:
-      probability >= 10
-        ? `NOAA puts the chance of visible aurora at ${probability}% over your location.`
+      reported >= 10
+        ? `NOAA puts the chance of visible aurora at ${reported}% over your location.`
         : nearby
-          ? `Nothing over you, but ${nearby.probabilityPercent}% about ${Math.round(nearby.distanceKm)} km ${compassWord(nearby.bearingDeg)}.`
+          ? `The oval is not over you — NOAA gives ${nearby.probabilityPercent}% about ${Math.round(nearby.distanceKm)} km ${compassWord(nearby.bearingDeg)}. Strong aurora can still show low on the horizon from outside it.`
           : "The oval is well away from you and the field is quiet.",
     certainty:
-      ageMinutes > NOWCAST_VALID_MINUTES
-        ? "This nowcast is out of date. Aurora changes over tens of minutes."
-        : "A nowcast, valid for roughly the next half hour. Aurora cannot be forecast reliably further ahead than that.",
-    gridAgeMinutes: ageMinutes,
+      freshness === "aging"
+        ? `This nowcast expired ${describeAge(Math.round((now.getTime() - Date.parse(grid.forecastUtc)) / 60_000))} — treat it as the last known picture rather than the current one.`
+        : "A nowcast, valid for about half an hour from its observation. Aurora cannot be forecast reliably further ahead than that.",
   };
+}
+
+/* ------------------------------------------------- Tracker's own judgement */
+
+export interface AuroraRanking {
+  /** 0-1, in the same space the rest of the ranking uses. */
+  strength: number;
+  /** Where the number came from, in words the interface can attribute. */
+  basis: string;
+  /** True where this is Tracker's editorial model rather than a source figure. */
+  editorial: true;
+}
+
+/**
+ * How strongly Tracker recommends aurora relative to everything else tonight.
+ *
+ * **This is Tracker's judgement, not NOAA's.** NOAA publishes a probability of
+ * visible aurora; it does not publish an opinion about whether that is a better
+ * use of an evening than Saturn. Turning one into the other is an editorial
+ * act, and the previous implementation performed it invisibly — `probability /
+ * 55`, inline, with no stated reasoning and no test — while the documentation
+ * claimed NOAA's figure was never rescaled into a Tracker judgement. It was.
+ * This is the same act, named and argued.
+ *
+ * The ranking space runs 0-1, and the rest of the product treats about 0.6 as
+ * "worth going out for". The anchors below place aurora against that scale:
+ *
+ * - **10%** — the lowest figure Tracker will call possible at all. Ranked
+ *   `marginal`: worth knowing about, not worth a journey.
+ * - **30%** — ranked around `good`. On a clear night this is a real chance and
+ *   people do drive for it.
+ * - **60%** — ranked `very good`. At this level aurora is the best thing in the
+ *   sky for most observers who can see it.
+ *
+ * Between the anchors it interpolates; outside them it clamps. Straight-line
+ * segments rather than a curve, because a curve would imply a calibration
+ * against observed outcomes that does not exist.
+ *
+ * The three-day K-index is capped far below any of that on purpose. It says how
+ * disturbed the field will be and nothing about where the oval will sit, so it
+ * can never outrank an event whose position is known.
+ *
+ * A stale or missing nowcast scores zero. Data that cannot support a claim about
+ * now must not win a ranking against data that can.
+ */
+export function auroraRankingStrength(assessment: AuroraAssessment): AuroraRanking {
+  if (assessment.freshness === "stale" || assessment.freshness === "unavailable") {
+    return {
+      strength: 0,
+      basis: "No current nowcast, so aurora is not ranked against tonight's other options.",
+      editorial: true,
+    };
+  }
+
+  if (assessment.probabilityPercent !== null) {
+    const anchors: [number, number][] = [
+      [0, 0],
+      [10, 0.2],
+      [30, 0.45],
+      [60, 0.85],
+      [100, 1],
+    ];
+    const p = Math.max(0, Math.min(100, assessment.probabilityPercent));
+    let strength = 0;
+    for (let index = 1; index < anchors.length; index += 1) {
+      const [x0, y0] = anchors[index - 1];
+      const [x1, y1] = anchors[index];
+      if (p <= x1) {
+        strength = y0 + ((p - x0) / (x1 - x0)) * (y1 - y0);
+        break;
+      }
+    }
+    return {
+      strength,
+      basis: `Tracker's ranking, from NOAA's ${assessment.probabilityPercent}% chance of visible aurora.`,
+      editorial: true,
+    };
+  }
+
+  if (assessment.kp !== null && assessment.horizon === "short-range") {
+    if (assessment.kp < 5) {
+      return {
+        strength: 0,
+        basis: "Below storm level, which rarely rewards a journey.",
+        editorial: true,
+      };
+    }
+    // Kp 5 -> 0.25, Kp 9 -> 0.40. Capped low because it locates nothing.
+    const strength = 0.25 + Math.min(1, (assessment.kp - 5) / 4) * 0.15;
+    return {
+      strength,
+      basis: `Tracker's ranking, from a forecast Kp of ${assessment.kp.toFixed(1)}. The K-index says nothing about where the oval will be.`,
+      editorial: true,
+    };
+  }
+
+  return { strength: 0, basis: "Nothing to rank from.", editorial: true };
+}
+
+/** "12 minutes ago", "3 hours ago" — for an age already measured in minutes. */
+function describeAge(minutes: number): string {
+  if (minutes < 1) return "just now";
+  if (minutes < 90) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours} hour${hours === 1 ? "" : "s"} ago`;
 }
 
 const COMPASS = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
