@@ -488,7 +488,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Modification status: permitted
 - Repository paths: `src/data/tracker/aurora.ts`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence.
+- Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence. The derived horizon-visibility angle and look direction are Tracker's own geometry, not a NOAA product, and must not be presented as NOAA's viewline.
 
 ## Photon geocoder over OpenStreetMap data
 

@@ -13944,11 +13944,95 @@ button.primary,
   gap: 10px;
 }
 .tk-geomap-frame {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--tk-line);
   border-radius: 10px;
   background: #060a14;
 }
+/* The interactive map owns its gestures.
+   `touch-action: none` is what stops a one-finger drag from scrolling the page
+   instead of panning the map, and it is scoped to the interactive frame so the
+   glanceable panel beside the hero keeps scrolling normally under a finger. */
+.tk-geomap-frame[data-interactive="true"] {
+  cursor: grab;
+  touch-action: none;
+  /* Tall enough to hold the control stack. Without a floor the frame can be
+     flexed shorter than its own controls, which pushes them above its top edge
+     and under the title bar — where they are visible and untappable. */
+  min-height: 260px;
+}
+.tk-geomap-frame[data-interactive="true"]:active { cursor: grabbing; }
+.tk-geomap-frame[data-interactive="true"]:focus-visible {
+  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline-offset: 2px;
+}
+.tk-geomap-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tk-map-control {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--tk-line);
+  border-radius: 8px;
+  background: rgba(10, 16, 30, 0.86);
+  color: var(--tk-ink);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tk-map-control:hover:not(:disabled) { background: rgba(26, 36, 58, 0.94); }
+.tk-map-control:disabled { opacity: 0.4; cursor: default; }
+.tk-map-control:focus-visible {
+  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline-offset: 2px;
+}
+/* Touch targets: 34px is comfortable with a mouse and small for a thumb.
+   Width as well as pointer type, because a 390px viewport is a phone in every
+   way that matters here — and a pointer query alone leaves a narrow window on a
+   laptop with targets sized for a mouse it may not be using. */
+@media (pointer: coarse), (max-width: 640px) {
+  .tk-map-control { width: 44px; height: 44px; }
+  .tk-geomap-controls { gap: 8px; }
+}
+.tk-geomap-selected-halo { fill: rgba(255, 226, 190, 0.16); }
+.tk-geomap-selected-dot {
+  fill: #ffe2be;
+  stroke: rgba(10, 14, 24, 0.85);
+  stroke-width: 1.2;
+}
+.tk-geomap-selected-label {
+  fill: #ffe2be;
+  font-size: 10px;
+  font-family: var(--tk-mono, monospace);
+  paint-order: stroke;
+  stroke: rgba(6, 10, 20, 0.9);
+  stroke-width: 3px;
+}
+.tk-geomap-summary {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tk-line);
+  font-size: 0.84rem;
+  color: var(--tk-ink-dim);
+}
+.tk-geomap-summary dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 0;
+}
+.tk-geomap-summary dt { color: var(--tk-ink-faint, var(--tk-ink-dim)); }
+.tk-geomap-summary dd { margin: 0; color: var(--tk-ink); }
 .tk-geomap-frame svg { display: block; width: 100%; height: auto; }
 .tk-geomap-sea { fill: #070d1a; }
 .tk-geomap-land {
@@ -14215,7 +14299,9 @@ button.primary,
 }
 .tk-overlay-head p { margin: 0; color: var(--tk-ink-dim); font-size: 0.82rem; max-width: 60ch; }
 .tk-overlay-body { padding: 18px; overflow: auto; max-height: calc(92vh - 82px); }
-.tk-overlay-body svg { width: 100%; height: auto; }
+.tk-overlay-body > svg,
+.tk-overlay-body .tk-viz-panel > svg,
+.tk-overlay-body .tk-geomap-frame > svg { width: 100%; height: auto; }
 .tk-overlay-map .tk-viz-panel { border: 0; padding: 0; background: transparent; }
 /* The control that opened this overlay has nothing left to open. */
 .tk-overlay-map .tk-viz-open { display: none; }

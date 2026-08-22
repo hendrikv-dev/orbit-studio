@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { conditionCards } from "../../data/tracker/conditionCards";
 import {
   bestViewingWindow,
@@ -95,6 +95,37 @@ export function UpcomingEventPage({
   onOpenDrill,
   onCloseDrill,
 }: Props) {
+  /**
+   * A place the reader is asking about, which is not where they live.
+   *
+   * Held here rather than in `TrackerLocation` on purpose. It is not
+   * navigation: it does not name a page, nobody would expect Back to step
+   * through a series of pin drops, and putting it in the URL would make a
+   * throwaway question look like a destination. It is cleared whenever the map
+   * closes, which is also what guarantees it can never be mistaken later for
+   * the confirmed place — `setPlace` is never called from here, and the
+   * persisted location is written by the place picker alone.
+   */
+  const [inspected, setInspected] = useState<{
+    latitudeDeg: number;
+    longitudeDeg: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (drill !== "field") setInspected(null);
+  }, [drill]);
+  // A different event is a different question; the old pin does not belong to it.
+  useEffect(() => setInspected(null), [event.id]);
+
+  const inspection = useMemo(
+    () => ({
+      point: inspected,
+      onSelect: (latitudeDeg: number, longitudeDeg: number) =>
+        setInspected({ latitudeDeg, longitudeDeg }),
+    }),
+    [inspected],
+  );
+
   const built = useMemo(
     () =>
       buildPresentation(
@@ -134,9 +165,10 @@ export function UpcomingEventPage({
             true,
             "full",
             null,
+            inspection,
           ).visualization
         : null,
-    [auroraConditions, clock, drill, event, evidenceStatus, now, place, snapshots],
+    [auroraConditions, clock, drill, event, evidenceStatus, inspection, now, place, snapshots],
   );
 
   const conditions = useMemo(
@@ -311,6 +343,11 @@ function buildPresentation(
   extent: "card" | "full" = "card",
   /** Null on the expanded map itself, and on rows that draw nothing. */
   onOpenFullMap: (() => void) | null = null,
+  /** Present only on the expanded map, which is the one a reader can explore. */
+  inspection: {
+    point: { latitudeDeg: number; longitudeDeg: number } | null;
+    onSelect: (latitudeDeg: number, longitudeDeg: number) => void;
+  } | null = null,
 ): BuiltEvent {
   const full = extent === "full";
   if (event.kind === "solar-eclipse") {
@@ -374,6 +411,8 @@ function buildPresentation(
           }}
           clock={clock}
           onOpenFullMap={onOpenFullMap}
+          interactive={full}
+          inspection={inspection}
         />
         </Suspense>
       ) : null,
@@ -502,6 +541,9 @@ function buildPresentation(
         }}
         clock={clock}
         onOpenFullMap={onOpenFullMap}
+        interactive={full}
+        inspection={inspection}
+        timing={timingModel}
         observerAltitudeDeg={
           opportunity.science.localContactAltitudesDeg?.maximum ??
           Object.values(opportunity.science.localContactAltitudesDeg ?? {})[0] ??

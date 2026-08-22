@@ -81,6 +81,63 @@ inline to NOAA's figure and fed into cross-phenomenon ranking, while the
 documentation claimed NOAA's probability was never rescaled into a Tracker
 judgement. It was. The transformation is now named, anchored and tested.
 
+## Why the maps are not a mapping library
+
+Asked and answered explicitly, because "add Leaflet" is the obvious move and it
+is the wrong one here.
+
+Tracker's projection is equirectangular, which is linear in longitude and
+latitude: a degree is the same number of pixels everywhere on the drawing. Pan
+is a translation, zoom is a scale, and both are expressible as an SVG `viewBox`
+— which means every layer already rendered moves and scales with it at no cost
+and with no knowledge of zoom. A tile-based library would bring a projection
+engine for a projection that is one multiply and one add, several hundred
+kilobytes into a bundle that exists precisely so an observer's page does not
+pay for data it never shows, and a tile source to license, attribute and
+survive the outage of.
+
+The viewport arithmetic lives in `mapViewport.ts` with no React and no DOM in
+it, which is what makes it testable: focus-preserving zoom, edge clamping,
+aspect stability across clamped sequences, and the letterbox correction that
+turns a click into a place.
+
+Two limits are deliberate. Zoom stops at 4x because the phenomenon fields
+underneath are sampled at one to two degrees and past that the map would be
+showing the reader its own sampling lattice. The embedded panel beside the hero
+is not interactive at all: it shares a scroll surface with the page, and a map
+that captured drags there would fight the reader for the wheel.
+
+## Aurora: overhead is not the same question as visible
+
+The gap this pass closed. OVATION answers "how likely is aurora to be overhead
+at this point", and readers ask "can I see it from here". Aurora forms 80 to
+500 km up, so it clears the horizon from a long way outside the oval — an
+interface that reports 0% overhead as "nothing tonight" is wrong in the
+direction that costs somebody the aurora.
+
+NOAA publishes exactly this as the aurora viewline, and it cannot be consumed.
+It exists only as `tonights_static_viewline_forecast.png` and its `.jpg` twin
+under `/experimental/images/aurora_dashboard/`. There is no coordinate form
+anywhere in the service — not `/json/`, not `/experimental/json/`, not
+`/products/` — which was checked directly rather than assumed. Using it would
+mean reading pixels out of a picture of a line and inferring latitudes, which is
+deriving data from a rendering of data.
+
+So the geometry is computed instead, from the OVATION grid Tracker already
+reads. Emission at height h sits on the horizon at ground distance
+`R*arccos(R/(R+h))` and stands at a computable angle closer in. The heights are
+NOAA's own published range, 80 to 500 km, with 100 km for the bright lower
+border and 400 km for tall red emission. Neither is a claim about this aurora's
+height; they bound the question, and the interface says which bound it used.
+
+Two things this deliberately does not do. It never attributes the derived angle
+to NOAA — the probability is quoted as NOAA's and the geometry as Tracker's,
+and `AuroraVisibility.derived` is a literal `true` so no call site can forget.
+And it refuses the verdict below one degree: something sitting on the geometric
+horizon is not something anybody sees, and a live check found the model
+reporting "about 0° above your north horizon" while the page offered it as
+worth a look. That is precision the model does not have, presented as advice.
+
 ## Two controls that were furniture, and one that lied
 
 Recorded because both survived a browser walkthrough that reported 142 of 142.

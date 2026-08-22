@@ -736,3 +736,261 @@ const COMPASS = ["north", "north-east", "east", "south-east", "south", "south-we
 export function compassWord(bearingDeg: number): string {
   return COMPASS[Math.round((((bearingDeg % 360) + 360) % 360) / 45) % 8];
 }
+
+/* ------------------------------------------------ can it be seen from here? */
+
+/**
+ * Overhead probability is not visibility, and the gap between them matters.
+ *
+ * ## The problem
+ *
+ * OVATION answers one question: how likely is aurora to be *overhead* at this
+ * point. That is not the question a reader asks. Aurora happens 100 km up and
+ * more, so it clears the horizon from hundreds of kilometres away — the oval
+ * can be nowhere near you and still be plainly visible low in the north. A
+ * product that reads OVATION and reports "0% here" as though it meant "nothing
+ * to see" is wrong in the direction that costs people the aurora.
+ *
+ * ## Why NOAA's own answer cannot be used
+ *
+ * SWPC publishes exactly this as the aurora viewline, and it is not consumable.
+ * It exists only as pre-rendered rasters —
+ * `/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png`
+ * and its `.jpg` twin — and there is no coordinate form of it anywhere in the
+ * service: not in `/json/`, not in `/experimental/json/`, not in `/products/`.
+ * Checked directly rather than assumed. Using it would mean reading pixels out
+ * of a picture of a line and inferring latitudes from them, which is deriving
+ * data from a rendering of data, and would put a fabricated coordinate behind a
+ * confident sentence.
+ *
+ * ## What is used instead
+ *
+ * Spherical geometry, which answers the same question from data Tracker already
+ * has. Emission at height `h` above the surface sits on an observer's horizon
+ * at a ground distance of `R·arccos(R/(R+h))`, and at any closer distance it
+ * stands at a computable angle above that horizon. So the model finds the
+ * strongest OVATION cell within reach, and reports how high above the horizon
+ * it would appear and in which direction to face.
+ *
+ * The heights are NOAA's: "The aurora typically forms 80 to 500 km above
+ * Earth's surface." The two reference values below sit inside that range —
+ * 100 km for the bright lower border that carries most of what an eye sees, and
+ * 400 km for the tall red emission visible furthest away. Neither is a claim
+ * about *this* aurora's height, which nothing published states; they bound the
+ * question, and the interface says which bound it used.
+ *
+ * This is a Tracker derivation, not a NOAA product, and is labelled as one
+ * wherever it is shown.
+ */
+export const AURORA_EMISSION_HEIGHT_KM = {
+  /** The bright lower border of a typical display. */
+  low: 100,
+  /** Tall red emission, seen furthest but far fainter. */
+  high: 400,
+} as const;
+
+/** Ground distance at which emission of a given height sits exactly on the horizon. */
+export function auroraHorizonDistanceKm(emissionHeightKm: number): number {
+  return EARTH_RADIUS_KM * Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + emissionHeightKm));
+}
+
+/**
+ * How high above the horizon emission appears, from a given ground distance.
+ *
+ * Exact spherical geometry: the observer, the sub-aurora ground point and the
+ * emission itself form a triangle whose apex angle is what an eye measures.
+ * Returns 90° directly underneath it and 0° at the horizon distance; negative
+ * beyond, where the Earth's curve has put it out of sight.
+ */
+export function auroraApparentElevationDeg(
+  distanceKm: number,
+  emissionHeightKm: number,
+): number {
+  const theta = distanceKm / EARTH_RADIUS_KM;
+  const top = EARTH_RADIUS_KM + emissionHeightKm;
+  return (
+    Math.atan2(top * Math.cos(theta) - EARTH_RADIUS_KM, top * Math.sin(theta)) * (180 / Math.PI)
+  );
+}
+
+/**
+ * The five states a reader can actually be in.
+ *
+ * Deliberately not a probability. Two of these — unavailable and expired — are
+ * statements about the data rather than the sky, and collapsing them into a low
+ * number would present an absence of knowledge as a low chance.
+ */
+export type AuroraVisibilityKind =
+  /** OVATION puts meaningful probability at the reader's own location. */
+  | "overhead"
+  /** Not overhead, but within reach of the horizon and worth facing. */
+  | "horizon"
+  /** Activity exists or does not, but nothing is close enough to see. */
+  | "unlikely"
+  /** Nothing was received. */
+  | "unavailable"
+  /** Something was received and is past its own forecast time. */
+  | "expired";
+
+export interface AuroraVisibility {
+  kind: AuroraVisibilityKind;
+  /** The cell driving the answer, where one does. */
+  source: NearbyAurora | null;
+  /**
+   * How high it would stand above the horizon, at the low emission height.
+   * Null when nothing is in reach, or when the answer is about data rather
+   * than sky.
+   */
+  apparentElevationDeg: number | null;
+  /** Which way to face. Null when the answer is overhead or negative. */
+  lookDirection: string | null;
+  /** Which reference height the reach was judged at, stated because it matters. */
+  emissionHeightKm: number | null;
+  /** One sentence, matched to the kind, safe to show verbatim. */
+  statement: string;
+  /** Always true: this is Tracker's geometry, not a published viewline. */
+  derived: true;
+}
+
+/**
+ * Finds the strongest cell that could clear this observer's horizon.
+ *
+ * Searches to the furthest distance any auroral emission could be seen from —
+ * the horizon distance for the tall red height — rather than the 400 km
+ * `strongestNearby` uses, because that function answers "is there something
+ * better just up the road" and this one answers "could I see anything at all".
+ */
+function strongestWithinHorizon(
+  grid: AuroraGrid,
+  latitudeDeg: number,
+  longitudeDeg: number,
+  minimumPercent: number,
+): NearbyAurora | null {
+  const reachKm = auroraHorizonDistanceKm(AURORA_EMISSION_HEIGHT_KM.high);
+  const searchDeg = Math.ceil(reachKm / 111) + 1;
+  let best: NearbyAurora | null = null;
+
+  for (let dLat = -searchDeg; dLat <= searchDeg; dLat += 1) {
+    const lat = latitudeDeg + dLat;
+    if (lat < -90 || lat > 90) continue;
+    // Longitude steps cover more ground the closer to the equator, so the span
+    // widens with latitude rather than being a fixed multiple.
+    const lonSpan = Math.min(180, Math.ceil(searchDeg / Math.max(0.15, Math.cos(lat * Math.PI / 180))));
+    for (let dLon = -lonSpan; dLon <= lonSpan; dLon += 1) {
+      const lon = longitudeDeg + dLon;
+      const distanceKm = greatCircleKm(latitudeDeg, longitudeDeg, lat, lon);
+      if (distanceKm > reachKm) continue;
+      const probability = auroraProbabilityAt(grid, lat, lon);
+      if (probability < minimumPercent) continue;
+      if (!best || probability > best.probabilityPercent) {
+        best = {
+          latitudeDeg: lat,
+          longitudeDeg: lon,
+          probabilityPercent: probability,
+          distanceKm,
+          bearingDeg: bearingDeg(latitudeDeg, longitudeDeg, lat, lon),
+        };
+      }
+    }
+  }
+  return best;
+}
+
+/** The probability at or above which a cell is worth calling activity. */
+export const AURORA_MEANINGFUL_PERCENT = 10;
+
+/**
+ * How far above the horizon counts as visible.
+ *
+ * Not zero. The geometric horizon is where emission *stops* being blocked by
+ * the Earth, and something sitting on it is not something anybody sees: the
+ * sight line grazes hundreds of kilometres of low atmosphere, and the emission
+ * height that put it there is a range assumption rather than a measurement of
+ * this aurora. Reporting "about 0° above your north horizon — worth a look" is
+ * precision the model does not have, offered as advice.
+ *
+ * One degree is roughly two Moon-widths and is the point below which the answer
+ * stops being distinguishable from "no".
+ */
+export const AURORA_MINIMUM_ELEVATION_DEG = 1;
+
+export function auroraVisibility(
+  assessment: AuroraAssessment,
+  grid: AuroraGrid | null,
+  latitudeDeg: number,
+  longitudeDeg: number,
+): AuroraVisibility {
+  const base = { source: null, apparentElevationDeg: null, lookDirection: null, emissionHeightKm: null, derived: true as const };
+
+  if (assessment.freshness === "unavailable" || !grid) {
+    return {
+      ...base,
+      kind: "unavailable",
+      statement:
+        "No space-weather product reached this device, so nothing can be said about where the aurora is.",
+    };
+  }
+  if (assessment.freshness === "stale") {
+    return {
+      ...base,
+      kind: "expired",
+      statement:
+        "The last nowcast is past its forecast time, so it no longer says where the aurora is.",
+    };
+  }
+
+  const here = assessment.reportedProbabilityPercent ?? 0;
+  if (here >= AURORA_MEANINGFUL_PERCENT) {
+    return {
+      ...base,
+      kind: "overhead",
+      emissionHeightKm: AURORA_EMISSION_HEIGHT_KM.low,
+      apparentElevationDeg: 90,
+      statement: `NOAA puts the oval over your location at ${here}%, so aurora would be overhead rather than on the horizon. Look up, and away from any light.`,
+    };
+  }
+
+  const source = strongestWithinHorizon(grid, latitudeDeg, longitudeDeg, AURORA_MEANINGFUL_PERCENT);
+  if (!source) {
+    return {
+      ...base,
+      kind: "unlikely",
+      statement:
+        "Nothing in the current nowcast is close enough to clear your horizon, even allowing for how high aurora sits.",
+    };
+  }
+
+  const lowReach = auroraHorizonDistanceKm(AURORA_EMISSION_HEIGHT_KM.low);
+  const height =
+    source.distanceKm <= lowReach
+      ? AURORA_EMISSION_HEIGHT_KM.low
+      : AURORA_EMISSION_HEIGHT_KM.high;
+  const elevation = auroraApparentElevationDeg(source.distanceKm, height);
+  const direction = compassWord(source.bearingDeg);
+
+  if (elevation < AURORA_MINIMUM_ELEVATION_DEG) {
+    return {
+      ...base,
+      kind: "unlikely",
+      source,
+      emissionHeightKm: height,
+      statement:
+        elevation <= 0
+          ? `The nearest activity NOAA shows is about ${Math.round(source.distanceKm)} km ${direction}, which the curve of the Earth puts below your horizon.`
+          : `The nearest activity NOAA shows is about ${Math.round(source.distanceKm)} km ${direction} — far enough that it would sit on your ${direction} horizon rather than above it, and effectively out of sight.`,
+    };
+  }
+
+  return {
+    kind: "horizon",
+    source,
+    apparentElevationDeg: elevation,
+    lookDirection: direction,
+    emissionHeightKm: height,
+    derived: true,
+    statement:
+      `The oval is not over you, but NOAA shows ${source.probabilityPercent}% about ` +
+      `${Math.round(source.distanceKm)} km ${direction}. Aurora at ${height} km would stand about ` +
+      `${Math.round(elevation)}° above your ${direction} horizon — low, and only worth trying with a clear view that way.`,
+  };
+}

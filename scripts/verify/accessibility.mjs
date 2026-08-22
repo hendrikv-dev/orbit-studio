@@ -499,6 +499,63 @@ async function run() {
     });
     if (forced) await scan(page, "ranked row in its already-set state");
 
+    /* --- the expanded map, which is a control rather than a picture --------
+     *
+     * Scanned as its own state because it is the one part of Tracker a reader
+     * operates rather than reads: four controls, a focusable surface, and a
+     * textual summary that has to carry the map's answer for anybody who
+     * cannot see the drawing. None of that is exercised by scanning the page
+     * behind it.
+     */
+    await page.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
+    await page.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+    await page.waitForTimeout(600);
+    const eclipseCard = page.locator(".tk-upcoming-card").first();
+    if ((await eclipseCard.count()) > 0) {
+      await eclipseCard.click();
+      await page.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+      await page.waitForTimeout(2_500);
+    }
+    const mapOpener = page.locator(".tk-viz-open", { hasText: /open full map/i }).first();
+    if ((await mapOpener.count()) > 0) {
+      await mapOpener.click();
+      await page.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+      await page.waitForTimeout(1_200);
+
+      // Every control is a real button with a name, or a screen reader
+      // announces four unlabelled graphics.
+      for (const name of ["Zoom in", "Zoom out", "Recentre on me", "Reset the map"]) {
+        expect(
+          (await page.locator(`.tk-overlay .tk-map-control[aria-label="${name}"]`).count()) === 1,
+          `the expanded map needs a labelled ${name} control`,
+        );
+      }
+      // The map itself takes focus, so the keyboard panning is reachable.
+      expect(
+        (await page.locator('.tk-overlay .tk-geomap-frame[tabindex="0"]').count()) === 1,
+        "the interactive map should be focusable for keyboard panning",
+      );
+      // And the decision it exists for must not be visual only.
+      expect(
+        (await page.locator(".tk-overlay .tk-geomap-summary").count()) === 1,
+        "the expanded map needs a textual equivalent of its result",
+      );
+      await scan(page, "expanded geographic map");
+
+      // Escape must close it, and focus must not be stranded inside.
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(700);
+      expect(
+        (await page.locator(".tk-overlay").count()) === 0,
+        "Escape should close the expanded map",
+      );
+    }
+
+
+
     expect(
       (await page.title()).toLowerCase() !== "orbit studio",
       "the page title should name the recommendation, not just the product",

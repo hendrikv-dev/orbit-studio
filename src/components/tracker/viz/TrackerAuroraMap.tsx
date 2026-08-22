@@ -1,8 +1,12 @@
 import { useMemo } from "react";
 import {
+  NOAA_SWPC_SOURCE,
+  assessAurora,
   auroraProbabilityAt,
+  auroraVisibility,
   type AuroraAssessment,
   type AuroraGrid,
+  type AuroraVisibility,
 } from "../../../data/tracker/aurora";
 import { formatClockTime, type PlaceClock } from "../../../lib/localTime";
 import { TrackerGeoMap, type MapBounds, type MapProjection } from "./TrackerGeoMap";
@@ -43,6 +47,14 @@ interface Props {
    * defect this pass exists to remove, so the button is absent instead.
    */
   onOpenFullMap: (() => void) | null;
+  /** See the eclipse map: a temporary question, never the saved place. */
+  inspection?: {
+    point: { latitudeDeg: number; longitudeDeg: number } | null;
+    onSelect: (latitudeDeg: number, longitudeDeg: number) => void;
+  } | null;
+  interactive?: boolean;
+  /** The reader's own visibility, so the map and the page cannot disagree. */
+  visibility?: AuroraVisibility | null;
 }
 
 /**
@@ -76,7 +88,29 @@ export function TrackerAuroraMap({
   observer,
   clock,
   onOpenFullMap,
+  inspection = null,
+  interactive = false,
+  visibility = null,
 }: Props) {
+  /**
+   * The picked point, answered by the same model as the reader's own location.
+   *
+   * `assessAurora` is re-run for the point rather than reusing the observer's
+   * assessment, because the whole question is how the answer changes with
+   * where you stand — reusing it would draw a pin that says nothing new.
+   */
+  const inspectedVisibility = useMemo(() => {
+    if (!inspection?.point) return null;
+    const at = assessment.validity?.fromUtc ?? new Date().toISOString();
+    const local = assessAurora(
+      { grid, currentKp: assessment.kp, kpForecast: [], fetchedAtUtc: at, source: NOAA_SWPC_SOURCE, failures: [] },
+      inspection.point.latitudeDeg,
+      inspection.point.longitudeDeg,
+      at,
+      new Date(at),
+    );
+    return auroraVisibility(local, grid, inspection.point.latitudeDeg, inspection.point.longitudeDeg);
+  }, [assessment.kp, assessment.validity, grid, inspection?.point]);
   // One degree matches the source grid exactly, so nothing is interpolated on
   // the way in. The smoothing happens once, visually, in the map's own filter.
   const cells = useMemo(() => {
@@ -148,6 +182,35 @@ export function TrackerAuroraMap({
             : `Observed ${issued} · valid to about ${valid}`
         }
         action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
+        interactive={interactive}
+        selected={
+          inspection?.point
+            ? {
+                ...inspection.point,
+                label: `${inspection.point.latitudeDeg.toFixed(1)}°, ${inspection.point.longitudeDeg.toFixed(1)}°`,
+              }
+            : null
+        }
+        onSelectPoint={inspection?.onSelect}
+        summary={
+          <dl>
+            {visibility ? (
+              <div>
+                <dt>From {observer.label}</dt>
+                <dd>{visibility.statement}</dd>
+              </div>
+            ) : null}
+            {inspectedVisibility && inspection?.point ? (
+              <div>
+                <dt>
+                  From {inspection.point.latitudeDeg.toFixed(1)}°,{" "}
+                  {inspection.point.longitudeDeg.toFixed(1)}°
+                </dt>
+                <dd>{inspectedVisibility.statement}</dd>
+              </div>
+            ) : null}
+          </dl>
+        }
         ariaLabel={
           expired
             ? `Expired aurora nowcast centred on ${observer.label}, shown as history. ` +

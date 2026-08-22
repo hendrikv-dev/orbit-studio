@@ -45,6 +45,7 @@ import { categoryForOpportunityKind } from "../../data/tracker/eventCategories";
 import {
   assessAurora,
   auroraRankingStrength,
+  auroraVisibility,
   fetchAuroraGrid,
   fetchAuroraIndex,
   NOAA_SWPC_SOURCE,
@@ -260,12 +261,29 @@ function TrackerScreen() {
         ? "field-map"
         : null;
 
+  /**
+   * A place the reader is asking about on the expanded map.
+   *
+   * Never written to storage and never passed to `setPlace`: the saved location
+   * has exactly one writer, the place picker, and this is a question rather
+   * than a move. Cleared when the map closes.
+   */
+  const [inspected, setInspected] = useState<{
+    latitudeDeg: number;
+    longitudeDeg: number;
+  } | null>(null);
+  useEffect(() => {
+    if (location.drill !== "field") setInspected(null);
+  }, [location.drill]);
+
   // Read by the plan-identity effect, which must not re-run when the reader
   // picks a different event — only when the night itself changes.
   const selectedIdRef = useRef(selectedId);
   const drillRef = useRef(location.drill);
+  const viewRef = useRef(location.view);
   selectedIdRef.current = selectedId;
   drillRef.current = location.drill;
+  viewRef.current = location.view;
   const [now, setNow] = useState(() => new Date());
   const [planAnchor, setPlanAnchor] = useState(() => new Date());
 
@@ -307,13 +325,29 @@ function TrackerScreen() {
   );
 
   // The plan changes only when an authoritative input changes or the observing
-  // period ends. Selected UI state is derived and cannot survive that identity.
+  // period ends. Tonight's selection is derived from that plan and cannot
+  // survive its identity.
   //
-  // Replaces rather than pushes: the reader did not navigate here, the night
-  // rolled over underneath them, and a history entry they never chose is one
-  // they would have to press Back through.
+  // Three conditions, each of which was a bug without it:
+  //
+  //  - Not on the first run. The night is computed on mount, so an unguarded
+  //    effect fired immediately and wiped an event that had been deep-linked or
+  //    restored by a refresh — the reader typed a URL for an eclipse and landed
+  //    on the list.
+  //  - Only in Tonight. An Upcoming event is a date, not a member of tonight's
+  //    plan, and has no reason to be cleared when the night rolls over.
+  //  - Replacing rather than pushing, because the reader did not navigate: the
+  //    night moved under them, and an entry they never chose is one they would
+  //    have to press Back through.
+  const planSettled = useRef(false);
   useEffect(() => {
-    if (selectedIdRef.current !== null || drillRef.current !== null) {
+    const first = !planSettled.current;
+    planSettled.current = true;
+    if (
+      !first &&
+      viewRef.current === "tonight" &&
+      (selectedIdRef.current !== null || drillRef.current !== null)
+    ) {
       navigate({ eventId: null, drill: null }, { replace: true });
     }
     if (!night) return;
@@ -546,6 +580,14 @@ function TrackerScreen() {
                   false,
                 )
               : { label: "Visibility", value: "Not known", tone: "unknown" },
+            // Whether it could be seen from here, which is the reader's
+            // question and not the one OVATION answers.
+            auroraVisibility(
+              auroraAssessment,
+              aurora.data?.grid ?? null,
+              place.latitude,
+              place.longitude,
+            ),
           ),
           media: {
             kind: "drawn" as const,
@@ -698,6 +740,77 @@ function TrackerScreen() {
     [heroEvent, skyPath],
   );
 
+  /**
+   * Whether the reader could actually see it, which is not what OVATION asked.
+   *
+   * Kept beside the assessment rather than inside the map so the page and the
+   * drawing quote one answer. See `auroraVisibility` for why overhead
+   * probability alone is the wrong question.
+   */
+  const auroraLocalVisibility = useMemo(
+    () =>
+      auroraAssessment && place
+        ? auroraVisibility(
+            auroraAssessment,
+            aurora.data?.grid ?? null,
+            place.latitude,
+            place.longitude,
+          )
+        : null,
+    [aurora.data, auroraAssessment, place],
+  );
+
+  /**
+   * The exploratory twin of the aurora panel.
+   *
+   * Built separately rather than reusing the card's element, because the card
+   * shares a scroll surface with the page and must not capture drags, while
+   * this one has the screen to itself and should. Only aurora needs it here —
+   * every other Tonight visualization is a chart rather than a map.
+   */
+  const expandedVisualization = useMemo(() => {
+    if (heroEvent?.id !== "aurora" || !auroraAssessment || !aurora.data?.grid || !place) {
+      return null;
+    }
+    return (
+      <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
+        <TrackerAuroraMap
+          grid={aurora.data.grid}
+          assessment={auroraAssessment}
+          // Opened out: the oval is continental, and a panel-sized window on it
+          // cannot answer "how far north would I have to go".
+          bounds={{
+            south: Math.max(-90, place.latitude - 38),
+            north: Math.min(90, place.latitude + 38),
+            west: place.longitude - 62,
+            east: place.longitude + 62,
+          }}
+          observer={{
+            latitudeDeg: place.latitude,
+            longitudeDeg: place.longitude,
+            label: place.name,
+          }}
+          clock={clock}
+          onOpenFullMap={null}
+          interactive
+          inspection={{
+            point: inspected,
+            onSelect: (latitudeDeg, longitudeDeg) => setInspected({ latitudeDeg, longitudeDeg }),
+          }}
+          visibility={auroraLocalVisibility}
+        />
+      </Suspense>
+    );
+  }, [
+    aurora.data,
+    auroraAssessment,
+    auroraLocalVisibility,
+    clock,
+    heroEvent?.id,
+    inspected,
+    place,
+  ]);
+
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
     const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
@@ -730,6 +843,7 @@ function TrackerScreen() {
             }}
             clock={clock}
             onOpenFullMap={() => navigate({ drill: "field" })}
+            visibility={auroraLocalVisibility}
           />
           </Suspense>
         );
@@ -980,7 +1094,7 @@ function TrackerScreen() {
                   : "NOAA OVATION nowcast, valid for roughly the next half hour."
             }
           >
-            <div className="tk-overlay-map">{visualization}</div>
+            <div className="tk-overlay-map">{expandedVisualization ?? visualization}</div>
           </TrackerOverlay>
         </>
       ) : (

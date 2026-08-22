@@ -9,7 +9,7 @@ import {
   type SkyAdjustedOpportunity,
 } from "./opportunity";
 import { categoryForOpportunityKind, type EventCategoryId } from "./eventCategories";
-import type { AuroraAssessment } from "./aurora";
+import type { AuroraAssessment, AuroraVisibility } from "./aurora";
 import type { LocalSolarCircumstances, SolarEclipseEvent } from "./solarEclipse";
 import { formatClockTime, formatWindowPhrase, type PlaceClock } from "../../lib/localTime";
 
@@ -439,6 +439,14 @@ export function presentAuroraEvent(
   /** When the sky is actually dark, which is a precondition and not a forecast. */
   darkness: { startUtc: string; endUtc: string } | null,
   visibility: EventMetric,
+  /**
+   * Whether it could be *seen* from here, which OVATION does not answer.
+   *
+   * Optional so that callers without a grid — the Upcoming K-index page, which
+   * has a date and no field — keep the assessment's own wording rather than
+   * being forced to invent a geometry they have no data for.
+   */
+  visibilityModel: AuroraVisibility | null = null,
 ): EventPresentation {
   const pills: EventPill[] = [];
   if (assessment.freshness === "stale") {
@@ -522,14 +530,27 @@ export function presentAuroraEvent(
     categoryId: "auroras",
     title: "Aurora",
     pills: pills.slice(0, 2),
-    recommendation: assessment.statement,
+    // The visibility model answers the reader's question where it can; the
+    // assessment answers OVATION's. "The oval is not over you" is true and
+    // unhelpful next to "it would stand 8° above your northern horizon".
+    //
+    // Only where it has something to add, though. For expired and unavailable
+    // data the assessment already says the right thing — that no claim is
+    // being made — and the visibility model would only restate it in different
+    // words, replacing wording those cases are separately tested for.
+    recommendation:
+      visibilityModel && visibilityModel.kind !== "expired" && visibilityModel.kind !== "unavailable"
+        ? visibilityModel.statement
+        : assessment.statement,
     // Aurora is never "confident": the nowcast is half an hour of validity and
     // the three-day product says nothing about where the oval will be. A stale
     // or missing nowcast is not a weaker version of that — it is no claim.
     recommendationLevel:
-      usable && assessment.horizon === "nowcast" && assessment.outlook === "plausible-tonight"
+      usable && assessment.horizon === "nowcast" && visibilityModel?.kind === "overhead"
         ? "Good if you're already outside"
-        : "Conditions unknown — check before going",
+        : usable && visibilityModel?.kind === "horizon"
+          ? "Worth a look if you have a clear horizon"
+          : "Conditions unknown — check before going",
     support: darknessLine ? `${assessment.certainty} ${darknessLine}` : assessment.certainty,
     metrics: [window, middle, visibility],
     primaryAction: { label: "View forecast map", kind: "forecast-map" },

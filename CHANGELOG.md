@@ -6,6 +6,38 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker geographic maps v2
+- **The maps pan and zoom**, in a shared system rather than three separate
+  ones. Tracker's projection is equirectangular and therefore linear in
+  longitude and latitude, so a viewport is a rectangle in the map's own
+  coordinates applied as an SVG `viewBox` — every layer already drawn moves and
+  scales with it for free. No mapping library and no tile source: Leaflet or
+  MapLibre would each add hundreds of kilobytes to a bundle that exists so an
+  observer's page does not pay for data it never shows, in exchange for a
+  projection engine for a projection that is one multiply and one add.
+- **Maps answer for places that are not home.** Clicking or tapping the
+  expanded map asks "what would this look like from here" and gets a real
+  answer from the same routines the reader's own line uses — obscuration and
+  contact times for a solar eclipse, band and horizon crossing for a lunar one,
+  visibility for aurora. The pin is temporary by construction: it is not
+  navigation, it is not persisted, it clears when the map closes, and the saved
+  location has exactly one writer, which is the place picker.
+- **Overhead is no longer confused with visible.** OVATION reports the chance
+  of aurora being *overhead*; emission sits 100 km up and more, so it clears the
+  horizon from a thousand kilometres away, and reading "0% here" as "nothing to
+  see" is wrong in the direction that costs people the aurora. Tracker now
+  computes the horizon reach and the angle the display would stand at, and
+  distinguishes overhead, visible toward the horizon, activity that is out of
+  sight, unavailable, and expired.
+- **NOAA's own viewline could not be used, and the reason is recorded.** SWPC
+  publishes it only as rendered rasters under
+  `/experimental/images/aurora_dashboard/`; there is no coordinate form in
+  `/json/`, `/experimental/json/` or `/products/`. Checked directly. Consuming
+  it would mean reading latitudes out of a picture of a line.
+- **Map controls are real controls.** Four named buttons, a focusable map,
+  arrow-key panning, `+`/`-`/`0`, 44px targets on a phone, and a textual
+  summary carrying the map's answer for anybody who cannot see the drawing.
+
 ### Tracker navigation and map corrections
 - **Back no longer leaves Tracker.** Navigation lived in seven `useState` calls
   across three components and touched the browser's history not at all, so the

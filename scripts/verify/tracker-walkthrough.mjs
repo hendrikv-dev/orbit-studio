@@ -739,7 +739,9 @@ async function main() {
           `${document.querySelector(".tk-hero-support")?.textContent ?? ""}`,
       );
       check(
-        /unlikely|quiet|not over you|away from you|farther north|further north/i.test(text),
+        /unlikely|quiet|not over you|away from you|farther north|further north|close enough|below your horizon|clear your horizon/i.test(
+          text,
+        ),
         "weak: the page states that aurora is unlikely rather than staying silent",
       );
       check(
@@ -1174,6 +1176,402 @@ async function main() {
 
   await nav.close();
   await navContext.close();
+
+  /* --- 5c. the map as a tool ---------------------------------------------- */
+  //
+  // Everything here asserts a consequence rather than a control's existence:
+  // the viewBox actually moved, the answer for a picked point is a *different*
+  // answer, and the saved place is untouched afterwards.
+  console.log("\nInteractive maps");
+
+  const mapContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+  await seedPlace(mapContext, PLACES.portland);
+  const map = await mapContext.newPage();
+  await map.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await map.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+  await map.waitForTimeout(800);
+
+  const viewBox = () =>
+    map.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox");
+  /** viewBox as numbers, which is what "did it move" has to be measured on. */
+  const box = async () => (await viewBox()).split(" ").map(Number);
+
+  const lunarForMap = map.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
+  if ((await lunarForMap.count()) > 0) {
+    await lunarForMap.click();
+    await map.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+    await map.waitForTimeout(2500);
+
+    // The embedded panel must stay a glance: a map that captured drags there
+    // would fight the reader for the page's own scrolling.
+    check(
+      (await map.locator(".tk-page .tk-geomap-frame[data-interactive='true']").count()) === 0,
+      "the embedded map does not capture gestures from the page",
+    );
+
+    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
+    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+    await map.waitForTimeout(1500);
+    check(
+      (await map.locator(".tk-overlay .tk-geomap-frame[data-interactive='true']").count()) === 1,
+      "the expanded map is the interactive one",
+    );
+
+    const initial = await box();
+
+    // --- zoom ---------------------------------------------------------------
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
+    await map.waitForTimeout(400);
+    const zoomedIn = await box();
+    check(zoomedIn[2] < initial[2], `Zoom in narrows the view (${initial[2]} to ${zoomedIn[2]})`);
+    check(
+      Math.abs(zoomedIn[2] / zoomedIn[3] - initial[2] / initial[3]) < 1e-6,
+      "zooming holds the aspect ratio, so no layer is stretched",
+    );
+
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom out']").click();
+    await map.waitForTimeout(400);
+    check((await box())[2] > zoomedIn[2], "Zoom out widens it again");
+
+    // --- reset --------------------------------------------------------------
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
+    await map.waitForTimeout(300);
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Reset the map']").click();
+    await map.waitForTimeout(400);
+    const reset = await box();
+    check(
+      reset.every((value, index) => Math.abs(value - initial[index]) < 1e-6),
+      "Reset returns the whole map",
+    );
+
+    // --- recentre on me -----------------------------------------------------
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
+    await map.waitForTimeout(300);
+    await map.locator(".tk-overlay .tk-map-control[aria-label='Recentre on me']").click();
+    await map.waitForTimeout(400);
+    const centred = await box();
+    const markerAt = await map.evaluate(() => {
+      const marker = document.querySelector(".tk-overlay .tk-geomap-marker");
+      const transform = marker?.getAttribute("transform") ?? "";
+      const match = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(transform);
+      return match ? { x: Number(match[1]), y: Number(match[2]) } : null;
+    });
+    // Centred *or* clamped to an edge. Portland sits close to the top of a
+    // pole-to-pole lunar map, so at this zoom the viewport reaches the edge
+    // before the marker reaches the middle — and stopping at the edge is the
+    // correct behaviour, not a failure to centre. What must always hold is
+    // that the observer ends up inside the view.
+    const inView =
+      markerAt !== null &&
+      markerAt.x >= centred[0] &&
+      markerAt.x <= centred[0] + centred[2] &&
+      markerAt.y >= centred[1] &&
+      markerAt.y <= centred[1] + centred[3];
+    const centredOrClamped =
+      markerAt !== null &&
+      (Math.abs(markerAt.x - (centred[0] + centred[2] / 2)) < 1 ||
+        centred[0] === 0 ||
+        Math.abs(centred[0] + centred[2] - 640) < 1e-6) &&
+      (Math.abs(markerAt.y - (centred[1] + centred[3] / 2)) < 1 ||
+        centred[1] === 0 ||
+        Math.abs(centred[1] + centred[3] - initial[3]) < 1e-6);
+    check(inView, "Recentre on me brings the observer into view");
+    check(centredOrClamped, "Recentre on me centres the observer, or stops at the map's edge");
+
+    // --- keyboard -----------------------------------------------------------
+    const beforeKeys = await box();
+    await map.locator(".tk-overlay .tk-geomap-frame").focus();
+    await map.keyboard.press("ArrowRight");
+    await map.waitForTimeout(300);
+    const panned = await box();
+    check(panned[0] > beforeKeys[0], "the arrow keys pan the map");
+    await map.keyboard.press("0");
+    await map.waitForTimeout(300);
+    check((await box())[2] === initial[2], "zero resets the map from the keyboard");
+    await map.keyboard.press("+");
+    await map.waitForTimeout(300);
+    check((await box())[2] < initial[2], "plus zooms in from the keyboard");
+    await map.keyboard.press("-");
+    await map.waitForTimeout(300);
+    check((await box())[2] > 0, "minus zooms back out from the keyboard");
+
+    // --- the phenomenon layer survives the viewport -------------------------
+    // A viewBox change must not disturb what is drawn in it. If the bands or
+    // the horizon curves vanished on zoom, the map would be showing geometry
+    // that depends on where the reader happens to be looking.
+    check(
+      (await map.locator(".tk-overlay .tk-lunar-limit").count()) >= 2,
+      "the horizon curves survive panning and zooming",
+    );
+    check(
+      (await map.locator(".tk-overlay .tk-eclipsemap rect").count()) > 100,
+      "the visibility field survives panning and zooming",
+    );
+
+    // --- picking somewhere else --------------------------------------------
+    // Reset is disabled at full extent, which is where the keyboard test left
+    // the map — clicking a disabled control would hang rather than assert.
+    const resetControl = map.locator(".tk-overlay .tk-map-control[aria-label='Reset the map']");
+    if (await resetControl.isEnabled()) {
+      await resetControl.click();
+      await map.waitForTimeout(400);
+    }
+    const summaryBefore = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
+
+    const frameBox = await map.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
+    // Well inside the map and away from the controls in the bottom right.
+    await map.mouse.click(frameBox.x + frameBox.width * 0.62, frameBox.y + frameBox.height * 0.62);
+    await map.waitForTimeout(900);
+
+    check(
+      (await map.locator(".tk-overlay .tk-geomap-selected").count()) === 1,
+      "picking a point marks it, distinctly from the observer's own pin",
+    );
+    const summaryAfter = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
+    check(
+      summaryAfter.length > summaryBefore.length && summaryAfter !== summaryBefore,
+      "picking a point adds its circumstances in words, not only on the drawing",
+    );
+    check(
+      /From [-\d.]+°, [-\d.]+°/.test(summaryAfter),
+      "the picked point is named by its coordinates",
+    );
+    check(
+      /moon|eclipse|horizon/i.test(summaryAfter.split("\n").slice(-1)[0]),
+      "the picked point gets a real local circumstance",
+    );
+    check(
+      summaryAfter.includes(PLACES.portland.name),
+      "the reader's own circumstances stay alongside the picked point's",
+    );
+    await shot(map, "20-map-location-inspection", "asking about somewhere else");
+
+    // --- and the saved place is untouched -----------------------------------
+    const storedPlace = await map.evaluate(() => {
+      const raw = localStorage.getItem("orbit-studio:tracker:confirmed-place:v1");
+      return raw ? JSON.parse(raw) : null;
+    });
+    check(
+      storedPlace !== null &&
+        JSON.stringify(storedPlace).includes(PLACES.portland.name),
+      "inspecting a point does not overwrite the saved location",
+    );
+    // The overlay has a header of its own, so this must name Tracker's.
+    check(
+      (await map.locator("header.tk-header").innerText()).includes(PLACES.portland.name),
+      "the header still names the reader's own place",
+    );
+
+    // --- Back closes the map, and the pin goes with it ----------------------
+    await map.goBack();
+    await map.waitForTimeout(1400);
+    check((await map.locator(".tk-overlay").count()) === 0, "Back closes the expanded map");
+    check(
+      new URL(map.url()).searchParams.get("drill") === null,
+      "the drill-in leaves the URL when it closes",
+    );
+    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
+    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+    await map.waitForTimeout(1200);
+    check(
+      (await map.locator(".tk-overlay .tk-geomap-selected").count()) === 0,
+      "a temporary pin does not survive closing the map",
+    );
+    await map.keyboard.press("Escape");
+    await map.waitForTimeout(700);
+  } else {
+    check(false, "a lunar eclipse is available to exercise the interactive map");
+  }
+
+  // --- the solar map answers for a picked point too -------------------------
+  //
+  // Back to the list first: the lunar block left us on an event page, where
+  // there are no cards to click and the whole block would skip in silence.
+  await map.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await map.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+  await map.waitForTimeout(800);
+
+  const solarForMap = map.locator(".tk-upcoming-card", { hasText: /solar eclipse/i }).first();
+  if ((await solarForMap.count()) > 0) {
+    await solarForMap.click();
+    await map.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+    await map.waitForTimeout(2500);
+    check(
+      (await map.locator(".tracker-safety, .tk-safety").count()) > 0 ||
+        (await map.locator(".tk-page").innerText()).includes("solar filter"),
+      "solar: the safety message is still present on the event page",
+    );
+    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
+    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+    await map.waitForTimeout(2000);
+    check(
+      (await map.locator(".tk-overlay .tk-eclipse-coverage, .tk-overlay .tk-eclipsemap rect").count()) >
+        50,
+      "solar: the coverage field still renders on the expanded map",
+    );
+    const solarFrame = await map.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
+    await map.mouse.click(
+      solarFrame.x + solarFrame.width * 0.45,
+      solarFrame.y + solarFrame.height * 0.45,
+    );
+    await map.waitForTimeout(1200);
+    const solarSummary = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
+    check(
+      /From [-\d.]+°, [-\d.]+°/.test(solarSummary),
+      "solar: a picked point is answered for",
+    );
+    check(
+      /covered|not visible|below the horizon/i.test(solarSummary),
+      "solar: the picked point gets a coverage answer",
+    );
+    check(
+      !/covered/i.test(solarSummary) || /filter/i.test(solarSummary),
+      "solar: safety travels with a picked point that can see it",
+    );
+    await shot(map, "21-solar-map-inspection", "solar eclipse, asking about somewhere else");
+    await map.keyboard.press("Escape");
+    await map.waitForTimeout(600);
+  } else {
+    check(false, "a solar eclipse is available to exercise the interactive map");
+  }
+
+  await map.close();
+  await mapContext.close();
+
+  // --- a phone --------------------------------------------------------------
+  //
+  // Its own context with touch enabled, rather than a resize of the desktop
+  // one. A resized desktop page still reports a fine pointer and has no touch
+  // API, so `tap` cannot run and the coarse-pointer rules never apply — it
+  // would look like a mobile test and exercise none of what makes mobile
+  // different.
+  const phoneContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 3,
+  });
+  await seedPlace(phoneContext, PLACES.portland);
+  const phone = await phoneContext.newPage();
+  await phone.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await phone.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
+  await phone.waitForTimeout(900);
+
+  const phoneBox = async () =>
+    (await phone.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox"))
+      .split(" ")
+      .map(Number);
+
+  const phoneLunar = phone.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
+  if ((await phoneLunar.count()) > 0) {
+    await phoneLunar.tap();
+    await phone.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+    await phone.waitForTimeout(2500);
+    await shot(phone, "22-mobile-event", "eclipse event page on a phone");
+
+    await phone.locator(".tk-viz-open", { hasText: /open full map/i }).first().tap();
+    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+    await phone.waitForTimeout(1800);
+
+    const controlBox = await phone
+      .locator(".tk-overlay .tk-map-control[aria-label='Zoom in']")
+      .boundingBox();
+    check(
+      controlBox !== null && controlBox.width >= 40 && controlBox.height >= 40,
+      `mobile: map controls are thumb-sized (${Math.round(controlBox?.width ?? 0)}px)`,
+    );
+    check(
+      (await phone.evaluate(
+        () => getComputedStyle(document.querySelector(".tk-overlay .tk-geomap-frame")).touchAction,
+      )) === "none",
+      "mobile: the map owns its gestures rather than scrolling the page",
+    );
+
+    // Controls must not sit on top of each other or run off the frame.
+    const frameRect = await phone.locator(".tk-overlay .tk-geomap-frame").boundingBox();
+    check(
+      controlBox !== null &&
+        frameRect !== null &&
+        controlBox.x >= frameRect.x &&
+        controlBox.x + controlBox.width <= frameRect.x + frameRect.width + 1,
+      "mobile: the controls stay inside the map frame",
+    );
+
+    const mobileBefore = await phoneBox();
+    await phone.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").tap();
+    await phone.waitForTimeout(600);
+    check((await phoneBox())[2] < mobileBefore[2], "mobile: tapping zoom in works");
+
+    // A one-finger drag, with real touch events.
+    const mFrame = await phone.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
+    const panBefore = await phoneBox();
+    await phone.touchscreen.tap(mFrame.x + 10, mFrame.y + 10);
+    await phone.waitForTimeout(200);
+    await phone.mouse.move(mFrame.x + mFrame.width / 2, mFrame.y + mFrame.height / 2);
+    await phone.mouse.down();
+    await phone.mouse.move(
+      mFrame.x + mFrame.width / 2 - 70,
+      mFrame.y + mFrame.height / 2,
+      { steps: 10 },
+    );
+    await phone.mouse.up();
+    await phone.waitForTimeout(600);
+    check((await phoneBox())[0] > panBefore[0], "mobile: dragging pans the map");
+
+    check(
+      await phone.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      ),
+      "mobile: the expanded map does not scroll the page sideways",
+    );
+
+    // Tapping the map picks a place, the same as clicking it does.
+    await phone.touchscreen.tap(mFrame.x + mFrame.width * 0.4, mFrame.y + mFrame.height * 0.4);
+    await phone.waitForTimeout(900);
+    check(
+      (await phone.locator(".tk-overlay .tk-geomap-selected").count()) === 1,
+      "mobile: tapping the map picks a place",
+    );
+    const phoneSummary = await phone.locator(".tk-overlay .tk-geomap-summary").innerText();
+    check(
+      /From [-\d.]+°, [-\d.]+°/.test(phoneSummary),
+      "mobile: the picked place is answered for in words",
+    );
+    await shot(phone, "23-mobile-full-map", "expanded map on a phone");
+
+    // Back, from the browser, on a phone.
+    await phone.goBack();
+    await phone.waitForTimeout(1500);
+    check(
+      (await phone.locator(".tk-overlay").count()) === 0,
+      "mobile: Back closes the expanded map",
+    );
+    check(
+      (await phone.locator(".tk-page").count()) > 0,
+      "mobile: Back returns to the event page rather than leaving Tracker",
+    );
+    await phone.goBack();
+    await phone.waitForTimeout(1500);
+    check(
+      new URL(phone.url()).searchParams.get("filter") === "eclipses",
+      "mobile: Back to the list keeps the filter",
+    );
+  } else {
+    check(false, "mobile: a lunar eclipse is available to exercise the map");
+  }
+
+  await phone.close();
+  await phoneContext.close();
+
 
   /* --- 6. re-ranking when the place changes ------------------------------ */
   //

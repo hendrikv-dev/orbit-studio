@@ -1270,7 +1270,7 @@
         "retrievedAt": "2026-08-21"
       },
       "localSha256": {
-        "src/data/tracker/aurora.ts": "e96c0e8174f68144aa22a78b7d419865c1bbce0a359db1b2053fd0d849541b39"
+        "src/data/tracker/aurora.ts": "1d45c7df14d1386fe9ae28f870d0ad4c15e2f23c54c1170d9485b2ef707c68db"
       },
       "processing": [
         "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
@@ -1278,7 +1278,8 @@
         "Three horizons are kept apart rather than merged: the OVATION nowcast (valid roughly half an hour), the three-day planetary K-index forecast, and nothing at all beyond that. The interface refuses to speak past the third.",
         "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only.",
         "Freshness is read from the product’s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
-        "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn."
+        "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn.",
+        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ — there is no coordinate form in /json/, /experimental/json/ or /products/ — so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA."
       ],
       "rights": {
         "verification": "verified",
@@ -1296,7 +1297,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence."
+        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence. The derived horizon-visibility angle and look direction are Tracker's own geometry, not a NOAA product, and must not be presented as NOAA's viewline."
       }
     },
     {

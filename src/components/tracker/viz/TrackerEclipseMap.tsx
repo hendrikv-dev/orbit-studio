@@ -1,12 +1,15 @@
 import { useMemo } from "react";
-import type {
-  CentralPathPoint,
-  CoverageField,
-  LocalSolarCircumstances,
-  SolarEclipseEvent,
+import {
+  localSolarCircumstances,
+  type CentralPathPoint,
+  type CoverageField,
+  type LocalSolarCircumstances,
+  type SolarEclipseEvent,
 } from "../../../data/tracker/solarEclipse";
 import {
   capOutline,
+  lunarLocalVisibility,
+  type LunarEclipseTiming,
   type LunarGeographicVisibility,
   type LunarLocalVisibility,
 } from "../../../data/tracker/lunarEclipse";
@@ -65,6 +68,20 @@ interface SolarProps {
    * defect this pass exists to remove, so the button is absent instead.
    */
   onOpenFullMap: (() => void) | null;
+  /**
+   * Letting the reader ask about somewhere that is not home.
+   *
+   * The point is deliberately not a place: it never touches the saved
+   * location, it is not persisted, and it disappears with the map. "What would
+   * this look like from my parents' house" is a question worth answering
+   * without making somebody re-enter where they live afterwards.
+   */
+  inspection?: {
+    point: { latitudeDeg: number; longitudeDeg: number } | null;
+    onSelect: (latitudeDeg: number, longitudeDeg: number) => void;
+  } | null;
+  /** Whether this instance is the exploratory one. */
+  interactive?: boolean;
 }
 
 interface LunarProps {
@@ -86,6 +103,14 @@ interface LunarProps {
   onOpenFullMap: (() => void) | null;
   /** Moon altitude at maximum from the observer, which is the local answer. */
   observerAltitudeDeg: number;
+  /** See `SolarProps.inspection`. */
+  inspection?: {
+    point: { latitudeDeg: number; longitudeDeg: number } | null;
+    onSelect: (latitudeDeg: number, longitudeDeg: number) => void;
+  } | null;
+  interactive?: boolean;
+  /** The eclipse's contact times, so a picked point can be answered for. */
+  timing: LunarEclipseTiming;
 }
 
 export type TrackerEclipseMapProps = SolarProps | LunarProps;
@@ -112,7 +137,26 @@ function SolarEclipseMap({
   observer,
   clock,
   onOpenFullMap,
+  inspection = null,
+  interactive = false,
 }: SolarProps) {
+  /**
+   * The picked point's circumstances, from the same per-observer routine the
+   * reader's own line uses — contacts by bisection, maximum by golden section.
+   * Nothing here is interpolated off the drawn field.
+   */
+  const inspected = useMemo(
+    () =>
+      inspection?.point
+        ? localSolarCircumstances(
+            event,
+            inspection.point.latitudeDeg,
+            inspection.point.longitudeDeg,
+          )
+        : null,
+    [event, inspection?.point],
+  );
+
   const cells = useMemo(
     () => coverage.cells.filter((cell) => cell.obscuration >= 0.01 && cell.sunUp),
     [coverage.cells],
@@ -231,6 +275,53 @@ function SolarEclipseMap({
             : `${dateLabel} · not visible from here`
         }
         action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
+        interactive={interactive}
+        selected={
+          inspection?.point
+            ? {
+                ...inspection.point,
+                label: `${inspection.point.latitudeDeg.toFixed(1)}°, ${inspection.point.longitudeDeg.toFixed(1)}°`,
+              }
+            : null
+        }
+        onSelectPoint={inspection?.onSelect}
+        summary={
+          <dl>
+            <div>
+              <dt>From {observer.label}</dt>
+              <dd>
+                {local.obscurationFraction > 0
+                  ? `${Math.round(local.obscurationFraction * 100)}% of the Sun covered, maximum ${local.peakUtc ? formatClockTime(local.peakUtc, clock) : "unknown"}.`
+                  : "This eclipse is not visible from here."}
+              </dd>
+            </div>
+            {inspected && inspection?.point ? (
+              <div>
+                <dt>
+                  From {inspection.point.latitudeDeg.toFixed(1)}°,{" "}
+                  {inspection.point.longitudeDeg.toFixed(1)}°
+                </dt>
+                <dd>
+                  {inspected.obscurationFraction <= 0 || !inspected.visibleFromHere
+                    ? inspected.obscurationFraction > 0
+                      ? "The eclipse happens below the horizon there, so it cannot be seen from that point."
+                      : "The eclipse is not visible from there."
+                    : `${Math.round(inspected.obscurationFraction * 100)}% covered${
+                        inspected.kind === "total"
+                          ? ` — total${inspected.centralDurationSeconds ? ` for ${formatDuration(inspected.centralDurationSeconds)}` : ""}`
+                          : inspected.kind === "annular"
+                            ? ` — annular${inspected.centralDurationSeconds ? ` for ${formatDuration(inspected.centralDurationSeconds)}` : ""}`
+                            : ""
+                      }, maximum ${inspected.peakUtc ? formatClockTime(inspected.peakUtc, clock) : "unknown"}.${
+                        inspected.distanceToCentralLineKm !== null && inspected.kind === "partial"
+                          ? ` The centre line is about ${Math.round(inspected.distanceToCentralLineKm)} km away.`
+                          : ""
+                      } A certified solar filter is required there too.`}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        }
         ariaLabel={
           centralPath.length
             ? `Map of the ${event.kind} solar eclipse on ${dateLabel}, showing the centre line and the bands where the Sun is partly covered, with ${observer.label} marked.`
@@ -289,7 +380,18 @@ function LunarEclipseMap({
   clock,
   onOpenFullMap,
   observerAltitudeDeg,
+  inspection = null,
+  interactive = false,
+  timing,
 }: LunarProps) {
+  /**
+   * The picked point's own circumstances, computed the same way the reader's
+   * are — same contact times, same altitude function. A second model here would
+   * be a way for the map and the answer to disagree.
+   */
+  const inspected = inspection?.point
+    ? lunarLocalVisibility(timing, inspection.point.latitudeDeg, inspection.point.longitudeDeg)
+    : null;
   /**
    * Fill by band, outlined by the real horizon curves.
    *
@@ -404,6 +506,39 @@ function LunarEclipseMap({
         title="Where the eclipse can be seen"
         timing={`Maximum ${formatClockTime(maximumUtc, clock)} · ${title}`}
         action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
+        interactive={interactive}
+        selected={
+          inspection?.point
+            ? {
+                ...inspection.point,
+                label: `${inspection.point.latitudeDeg.toFixed(1)}°, ${inspection.point.longitudeDeg.toFixed(1)}°`,
+              }
+            : null
+        }
+        onSelectPoint={inspection?.onSelect}
+        summary={
+          <dl>
+            <div>
+              <dt>From {observer.label}</dt>
+              <dd>{bandSentence}</dd>
+            </div>
+            {inspected && inspection?.point ? (
+              <div>
+                <dt>
+                  From {inspection.point.latitudeDeg.toFixed(1)}°,{" "}
+                  {inspection.point.longitudeDeg.toFixed(1)}°
+                </dt>
+                <dd>
+                  {inspected.band === "all"
+                    ? `The whole eclipse is above the horizon there. The Moon stands ${Math.round(inspected.altitudeAtMaximumDeg)}° up at maximum.`
+                    : inspected.band === "none"
+                      ? "The Moon is below the horizon there throughout, so none of it is visible."
+                      : `${inspected.band === "moonrise" ? "The Moon rises" : "The Moon sets"} during the eclipse there, at ${inspected.horizonCrossingUtc ? formatClockTime(inspected.horizonCrossingUtc, clock) : "the horizon"} — about ${Math.round(inspected.visibleFraction * 100)}% of it is visible.`}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        }
         ariaLabel={
           `Map of where on Earth the Moon is above the horizon during this eclipse. ` +
           `Shaded regions distinguish seeing all of it from places where the Moon rises or sets part-way through. ` +

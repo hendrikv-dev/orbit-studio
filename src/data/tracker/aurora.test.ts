@@ -13,6 +13,10 @@ import {
   stormScaleFor,
   strongestNearby,
   type AuroraConditions,
+  AURORA_MINIMUM_ELEVATION_DEG,
+  auroraApparentElevationDeg,
+  auroraHorizonDistanceKm,
+  auroraVisibility,
 } from "./aurora";
 
 /**
@@ -380,5 +384,178 @@ describe("Tracker's aurora ranking", () => {
     const strongNowcast = auroraRankingStrength(at(60)).strength;
     expect(auroraRankingStrength(shortRange).strength).toBeLessThan(strongNowcast);
     expect(auroraRankingStrength(shortRange).basis).toMatch(/says nothing about where/i);
+  });
+});
+
+describe("overhead is not the same question as visible", () => {
+  /**
+   * The distinction this whole block exists for: OVATION reports the chance of
+   * aurora being *overhead*, and aurora sits 100 km up, so it clears the
+   * horizon from a thousand kilometres away. Reporting "0% here" as "nothing to
+   * see" is wrong in the direction that costs people the aurora.
+   */
+  describe("the geometry underneath it", () => {
+    it("puts emission on the horizon at the distance the Earth's curve allows", () => {
+      // R·arccos(R/(R+h)). At 100 km this is the familiar ~1100 km rule of
+      // thumb for how far away a bright aurora can be seen.
+      expect(auroraHorizonDistanceKm(100)).toBeCloseTo(1121, -1);
+      expect(auroraHorizonDistanceKm(400)).toBeCloseTo(2201, -1);
+      // Monotonic: higher emission is seen from further away.
+      expect(auroraHorizonDistanceKm(400)).toBeGreaterThan(auroraHorizonDistanceKm(100));
+    });
+
+    it("reads exactly zero degrees at its own horizon distance", () => {
+      // The two functions have to agree, or the map's edge and the reader's
+      // "look this high" disagree at the boundary.
+      for (const height of [80, 100, 250, 400, 500]) {
+        expect(auroraApparentElevationDeg(auroraHorizonDistanceKm(height), height)).toBeCloseTo(
+          0,
+          6,
+        );
+      }
+    });
+
+    it("stands overhead directly beneath, and below the horizon beyond reach", () => {
+      expect(auroraApparentElevationDeg(0, 100)).toBeCloseTo(90, 6);
+      expect(auroraApparentElevationDeg(2000, 100)).toBeLessThan(0);
+      expect(auroraApparentElevationDeg(500, 100)).toBeGreaterThan(0);
+      expect(auroraApparentElevationDeg(500, 100)).toBeLessThan(20);
+    });
+
+    it("falls away monotonically with distance", () => {
+      let previous = 91;
+      for (let distance = 0; distance <= 1100; distance += 100) {
+        const elevation = auroraApparentElevationDeg(distance, 100);
+        expect(elevation).toBeLessThan(previous);
+        previous = elevation;
+      }
+    });
+  });
+
+  describe("the five states a reader can be in", () => {
+    /** A band of activity at 65°N, and an observer south of it. */
+    const band: [number, number, number][] = [];
+    for (let lon = -140; lon <= -100; lon += 1) {
+      for (let lat = 60; lat <= 70; lat += 1) band.push([lon + 360, lat, 55]);
+    }
+
+    it("says overhead when NOAA puts the oval on the reader", () => {
+      const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+      const assessment = assessAurora(conditions, 65, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 65, -120);
+      expect(visibility.kind).toBe("overhead");
+      expect(visibility.apparentElevationDeg).toBe(90);
+      expect(visibility.statement).toMatch(/overhead/i);
+    });
+
+    it("says horizon when the oval is beyond the reader but within the Earth's curve", () => {
+      // About 55°N: some 550 km south of the band's edge, well inside the
+      // 1121 km an aurora at 100 km can be seen from.
+      const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+      const assessment = assessAurora(conditions, 55, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 55, -120);
+      expect(visibility.kind).toBe("horizon");
+      expect(visibility.source).not.toBeNull();
+      expect(visibility.lookDirection).toMatch(/north/i);
+      // A real angle, low but positive — this is the number the reader acts on.
+      expect(visibility.apparentElevationDeg).toBeGreaterThan(0);
+      expect(visibility.apparentElevationDeg).toBeLessThan(35);
+      expect(visibility.statement).toMatch(/above your .*horizon/i);
+    });
+
+    it("says unlikely when the activity is beyond the curve of the Earth", () => {
+      // 40°N is roughly 2200 km from the band, past the reach of even the
+      // tall red emission.
+      const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+      const assessment = assessAurora(conditions, 38, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 38, -120);
+      expect(visibility.kind).toBe("unlikely");
+      expect(visibility.apparentElevationDeg).toBeNull();
+    });
+
+    it("says unavailable when nothing was received, rather than reporting a low chance", () => {
+      // An absence of knowledge is not a low probability, and must not be
+      // rendered as one.
+      const assessment = assessAurora(null, 55, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, null, 55, -120);
+      expect(visibility.kind).toBe("unavailable");
+      expect(visibility.apparentElevationDeg).toBeNull();
+      expect(visibility.source).toBeNull();
+      expect(visibility.statement).not.toMatch(/\d+%/);
+    });
+
+    it("says expired when the grid is past its own forecast time", () => {
+      const conditions = conditionsWith(band, "2026-08-21T04:00:00Z", "2026-08-21T04:30:00Z");
+      const assessment = assessAurora(conditions, 55, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 55, -120);
+      expect(visibility.kind).toBe("expired");
+      expect(visibility.apparentElevationDeg).toBeNull();
+      expect(visibility.statement).not.toMatch(/\d+%/);
+    });
+
+    it("never presents its own geometry as something NOAA published", () => {
+      const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+      const assessment = assessAurora(conditions, 55, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 55, -120);
+      // The flag exists so the interface can attribute correctly, and the
+      // reason it is a literal `true` is that there is no case where this
+      // model is anything other than Tracker's own derivation.
+      expect(visibility.derived).toBe(true);
+      // NOAA's figure is quoted as NOAA's; the angle is not attributed to them.
+      expect(visibility.statement).toMatch(/NOAA shows \d+%/);
+    });
+
+    it("states which emission height the reach was judged at", () => {
+      const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+      const assessment = assessAurora(conditions, 55, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, 55, -120);
+      // Both reference heights sit inside NOAA's published 80-500 km range.
+      expect(visibility.emissionHeightKm).not.toBeNull();
+      expect(visibility.emissionHeightKm!).toBeGreaterThanOrEqual(80);
+      expect(visibility.emissionHeightKm!).toBeLessThanOrEqual(500);
+    });
+  });
+});
+
+describe("the horizon verdict has a floor", () => {
+  const band: [number, number, number][] = [];
+  for (let lon = -140; lon <= -100; lon += 1) {
+    for (let lat = 60; lat <= 70; lat += 1) band.push([lon + 360, lat, 55]);
+  }
+
+  it("does not call something sitting on the horizon worth a look", () => {
+    // Found live: at 2185 km the model reported "about 0° above your north
+    // horizon" and the page offered it as worth trying. Zero degrees is the
+    // geometric limit, not a view — the sight line grazes hundreds of km of
+    // atmosphere and the emission height that put it there is an assumed range.
+    const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+    // A latitude far enough south that the band is right on the limit.
+    for (let latitude = 39; latitude <= 45; latitude += 0.5) {
+      const assessment = assessAurora(conditions, latitude, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, latitude, -120);
+      if (visibility.kind === "horizon") {
+        expect(visibility.apparentElevationDeg).toBeGreaterThanOrEqual(
+          AURORA_MINIMUM_ELEVATION_DEG,
+        );
+        expect(visibility.statement).not.toMatch(/about 0° above/);
+      }
+    }
+  });
+
+  it("says so plainly when activity exists but sits on the horizon", () => {
+    const conditions = conditionsWith(band, "2026-08-21T07:59:00Z", "2026-08-21T08:55:00Z");
+    // Walk south until the verdict turns, and check the wording of the turn.
+    let found = false;
+    for (let latitude = 50; latitude >= 36; latitude -= 0.25) {
+      const assessment = assessAurora(conditions, latitude, -120, NOW.toISOString(), NOW);
+      const visibility = auroraVisibility(assessment, conditions.grid, latitude, -120);
+      if (visibility.kind === "unlikely" && visibility.source) {
+        expect(visibility.statement).toMatch(/horizon/);
+        expect(visibility.apparentElevationDeg).toBeNull();
+        found = true;
+        break;
+      }
+    }
+    expect(found).toBe(true);
   });
 });
