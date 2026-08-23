@@ -1085,9 +1085,13 @@ function TrackerScreen() {
             onClose={() => back({ drill: null })}
             title={`${heroEvent.presentation.primaryAction.label} — ${heroEvent.presentation.title}`}
             subtitle={
-              gaze
-                ? gaze.reason
-                : "Real altitude and bearing, from the same geometry the recommendation used."
+              // The subtitle has to describe the state below it. On a night
+              // with no radiant it promised "real altitude and bearing" above a
+              // panel that correctly contains neither.
+              skyPath && skyPath.kind !== "rate"
+                ? (gaze?.reason ??
+                  "Real altitude and bearing, from the same geometry the recommendation used.")
+                : "No radiant tonight, so no direction to face. What to do instead, and when."
             }
           >
             {/* A rate curve is not a place. On a night with no active shower the
@@ -1103,52 +1107,74 @@ function TrackerScreen() {
                   tone={heroEvent.entry?.opportunity.kind ?? "neutral"}
                   label={heroEvent.presentation.title}
                 />
-                <dl className="tk-overlay-facts">
-                  <div>
-                    <dt>Observing window</dt>
-                    <dd>
-                      {heroEvent.window
-                        ? formatClockRange(
-                            heroEvent.window.startUtc,
-                            heroEvent.window.endUtc,
-                            clock,
-                          )
-                        : formatClockTime(
-                            heroEvent.entry?.opportunity.guidance.whenUtc ??
-                              night.period.startUtc,
-                            clock,
-                          )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Horizon</dt>
-                    <dd>
-                      Sunset {formatClockTime(night.period.startUtc, clock)} · dawn{" "}
-                      {formatClockTime(night.period.endUtc, clock)}
-                    </dd>
-                  </div>
-                  {heroEvent.entry?.opportunity.guidance.elevation ? (
-                    <div>
-                      <dt>How high</dt>
-                      <dd>{heroEvent.entry.opportunity.guidance.elevation}</dd>
-                    </div>
-                  ) : null}
-                </dl>
               </>
             ) : (
-              <div className="tk-overlay-nowhere">
-                <p className="tk-viz-empty">
-                  There is nothing to point at tonight. No shower is running, so what
+              /* Composed, rather than two paragraphs adrift in a wide panel.
+              
+                 The sporadic state had no chart, so the modal rendered a
+                 half-empty two-column shape that read as content failing to
+                 load. What it actually has to say is a short set of practical
+                 instructions, and those are laid out as instructions — which
+                 also fills the space honestly instead of padding it. */
+              <div className="tk-howto">
+                <p className="tk-howto-lede">
+                  No shower is running tonight, so there is no radiant to face. What
                   you would be watching is the sporadic background — meteors that
                   belong to no stream and arrive from every direction.
                 </p>
-                <p className="tk-viz-empty">
-                  Face away from any light, take in as much sky as you can, and give it
-                  at least half an hour. Rates rise towards dawn as your side of Earth
-                  turns to face the direction it is travelling.
-                </p>
+                <ol className="tk-howto-steps">
+                  <li>
+                    <b>Face away from any light.</b> A wall or a hedge between you and
+                    the nearest street lamp does more than any equipment.
+                  </li>
+                  <li>
+                    <b>Take in as much sky as you can.</b> Lie back if you can. Looking
+                    at one spot is the one mistake that costs meteors.
+                  </li>
+                  <li>
+                    <b>Give it half an hour.</b> Your eyes need about twenty minutes to
+                    adapt, and the rate is an average over a long wait.
+                  </li>
+                  <li>
+                    <b>Go later if you can.</b> Rates rise towards dawn, as your side of
+                    Earth turns to face the direction it is travelling.
+                  </li>
+                </ol>
               </div>
             )}
+
+            {/* When to be outside, in both states.
+            
+                These were nested inside the charted branch, so the sporadic
+                panel had no facts at all — which is most of why it read as a
+                layout with its right-hand side missing. The window and the
+                horizon are as useful without a radiant as with one. */}
+            <dl className="tk-overlay-facts">
+              <div>
+                <dt>Observing window</dt>
+                <dd>
+                  {heroEvent.window
+                    ? formatClockRange(heroEvent.window.startUtc, heroEvent.window.endUtc, clock)
+                    : formatClockTime(
+                        heroEvent.entry?.opportunity.guidance.whenUtc ?? night.period.startUtc,
+                        clock,
+                      )}
+                </dd>
+              </div>
+              <div>
+                <dt>Horizon</dt>
+                <dd>
+                  Sunset {formatClockTime(night.period.startUtc, clock)} · dawn{" "}
+                  {formatClockTime(night.period.endUtc, clock)}
+                </dd>
+              </div>
+              {heroEvent.entry?.opportunity.guidance.elevation ? (
+                <div>
+                  <dt>How high</dt>
+                  <dd>{heroEvent.entry.opportunity.guidance.elevation}</dd>
+                </div>
+              ) : null}
+            </dl>
 
             {/* What it actually looks like, where verified footage exists.
                 It belongs behind this control rather than on the page: it is

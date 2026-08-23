@@ -101,15 +101,22 @@ export function EventHero({
             page", and both were competing for it because both are visually
             large. The category names the page; the event is a section of it.
             Nothing about the appearance changes. */}
-        <h2 className="tk-hero-name">{presentation.title}</h2>
-
-        <div className="tk-hero-pills">
-          {presentation.pills.map((pill) => (
-            <span key={pill.label} className={`tk-pill is-${pill.tone}`}>
-              {pill.tone === "live" ? <i className="tk-pill-dot" aria-hidden /> : null}
-              {pill.label}
-            </span>
-          ))}
+        {/* Name and state on one line.
+        
+            They were stacked, which spent a whole row on two or three short
+            words and pushed everything below it down by about thirty pixels —
+            paid on every page, to no benefit, since the pills are short by
+            construction. */}
+        <div className="tk-hero-head">
+          <h2 className="tk-hero-name">{presentation.title}</h2>
+          <div className="tk-hero-pills">
+            {presentation.pills.map((pill) => (
+              <span key={pill.label} className={`tk-pill is-${pill.tone}`}>
+                {pill.tone === "live" ? <i className="tk-pill-dot" aria-hidden /> : null}
+                {pill.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         <p className="tk-hero-recommendation">{presentation.recommendation}</p>
@@ -126,6 +133,18 @@ export function EventHero({
           ))}
         </dl>
 
+        {/* What your eyes will actually see.
+        
+            Briefly moved behind a disclosure to buy back seventy-five pixels
+            for the one-screen contract, and moved back: this is the correction
+            to an image that would otherwise mislead — "this is Hubble; to your
+            eyes Saturn is a steady yellow point" — and a correction that is
+            closed by default is a correction most readers never see. The
+            accessibility gate caught it, which is the right place for it to
+            have been caught.
+        
+            The pixels came from the list's thumbnails instead, which carry no
+            information the row's name does not. */}
         {expectation ? <p className="tracker-expect">{expectation}</p> : null}
 
         <div className="tk-hero-actions">

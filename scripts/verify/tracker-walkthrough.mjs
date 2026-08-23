@@ -362,6 +362,55 @@ async function main() {
     !/stare at the radiant/i.test(skyMapText),
     "the sky map never tells anyone to stare at the radiant",
   );
+
+  /* --- drill-in composition ------------------------------------------------
+   *
+   * The sporadic panel used to be two paragraphs in a wide modal with nothing
+   * beside them, which reads as content that failed to load. These assert the
+   * shape rather than the prose: the panel is composed, it carries the same
+   * facts the charted state does, and it does not leave most of its height
+   * empty. */
+  const composition = await portland.evaluate(() => {
+    const body = document.querySelector(".tk-overlay-body");
+    const panel = document.querySelector(".tk-overlay-panel");
+    if (!body || !panel) return null;
+    // The tail below the last child, discounting the body's own padding.
+    // Summing child heights and subtracting counted the padding as emptiness,
+    // which made a well-composed panel look like it had 64px of dead space.
+    const children = [...body.children];
+    const last = children[children.length - 1]?.getBoundingClientRect();
+    const style = getComputedStyle(body);
+    const box = body.getBoundingClientRect();
+    const tail = last
+      ? box.bottom - parseFloat(style.paddingBottom) - last.bottom
+      : 0;
+    return {
+      bodyHeight: Math.round(box.height),
+      panelHeight: Math.round(panel.getBoundingClientRect().height),
+      viewport: window.innerHeight,
+      hasFacts: Boolean(document.querySelector(".tk-overlay-facts")),
+      hasSteps: Boolean(document.querySelector(".tk-howto-steps")),
+      hasChart: Boolean(document.querySelector(".tk-chart-path")),
+      emptyTail: Math.round(Math.max(0, tail)),
+    };
+  });
+  check(
+    composition !== null && composition.hasFacts,
+    "the drill-in states when to be outside, charted or not",
+  );
+  check(
+    composition !== null && (composition.hasChart || composition.hasSteps),
+    "the drill-in has composed content rather than a bare paragraph",
+  );
+  check(
+    composition !== null && composition.emptyTail <= 48,
+    `the drill-in body is not mostly empty (${composition?.emptyTail}px unused)`,
+  );
+  check(
+    composition !== null && composition.panelHeight <= composition.viewport,
+    `the drill-in fits the viewport (${composition?.panelHeight} of ${composition?.viewport})`,
+  );
+  await shot(portland, "27-howto-composition", "the meteors drill-in, composed");
   await portland.keyboard.press("Escape");
   await portland.waitForTimeout(400);
   check(
@@ -1051,8 +1100,8 @@ async function main() {
 
   // The measured floor. Below it Tracker scrolls rather than clipping, which
   // is asserted separately at the end of this block.
-  const ONE_SCREEN_MIN_HEIGHT = 1000;
-  for (const viewportHeight of [1200, 1100, ONE_SCREEN_MIN_HEIGHT]) {
+  const ONE_SCREEN_MIN_HEIGHT = 720;
+  for (const viewportHeight of [1000, 900, 800, ONE_SCREEN_MIN_HEIGHT]) {
     const context = await browser.newContext({
       viewport: { width: 1440, height: viewportHeight },
     });
@@ -1114,7 +1163,7 @@ async function main() {
   // Below the floor the contract is released rather than enforced by hiding
   // things: the page scrolls, and nothing is clipped.
   {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 820 } });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 680 } });
     await seedPlace(context, PLACES.portland);
     const page = await context.newPage();
     await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });

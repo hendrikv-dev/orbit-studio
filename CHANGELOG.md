@@ -6,6 +6,27 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker one-screen layout and drill-in composition
+- **The one-screen contract holds at 720px**, not 1000. The previous pass
+  declared a floor instead of doing the design work; challenged on it, the hero
+  turned out to be ~420px of permanently visible content laid out at a spacing
+  that assumed room the page does not have. Identity and state now share a
+  line, the metric row is a data strip rather than a bordered card grid, the
+  recommendation and the expectation note are clamped at short heights, and
+  three progressively tighter tiers take the rest from spacing. Verified at 900,
+  800 and 720: no page scroll, nothing clipped, all six ranked rows on screen,
+  buttons still 32px.
+- **The expectation note stays visible.** It was briefly moved behind a
+  disclosure to buy 56px — and the accessibility gate caught that a correction
+  closed by default is a correction most readers never see. It is clamped
+  instead, and the clause that matters survives the clamp.
+- **The sporadic-meteor drill-in is composed.** It was two paragraphs in a wide
+  modal with nothing beside them, which reads as a layout whose right side
+  failed to load. It is now a lede and four practical steps in columns, the
+  observing facts moved out of the charted branch so both states carry them, and
+  the panel's subtitle stops promising altitude and bearing on a night that has
+  neither.
+
 ### Tracker credibility and information architecture
 - **Conjunctions are drawn from the conjunction.** Every pairing rendered one
   photograph of the Moon beside Venus — the wrong planet for "The Moon and

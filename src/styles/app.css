@@ -14703,7 +14703,7 @@ button.primary,
 
    Below `--tk-one-screen-min` the contract is released rather than enforced by
    making things unreadable; see the media query at the end of this block. */
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
   .tk-page.tk-tonight,
   .tk-page[data-mode="upcoming"] {
     display: grid;
@@ -14715,7 +14715,7 @@ button.primary,
   }
 }
 
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
 /* Regions must be allowed to be smaller than their content, or a grid row
    silently takes its max-content height and the page overflows anyway. */
 .tk-page.tk-tonight .tk-main-row,
@@ -14789,7 +14789,7 @@ button.primary,
    unilaterally. */
 }
 
-@media (max-height: 999px) {
+@media (max-height: 719px) {
   .tk-page.tk-tonight,
   .tk-page[data-mode="upcoming"] {
     height: auto;
@@ -14807,7 +14807,7 @@ button.primary,
 
    Released below the documented floor, where the page becomes a document again
    and the window scrolls normally. */
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
   .tracker-shell {
     height: 100dvh;
     overflow: hidden;
@@ -14831,7 +14831,7 @@ button.primary,
    The other regions are compacted to their smallest legible sizes here so that
    floor is reachable at a real laptop height rather than only on a large
    display. */
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
   .tk-page.tk-tonight .tk-main-row,
   .tk-page[data-mode="upcoming"] .tk-main-row {
     min-height: 200px;
@@ -14858,7 +14858,7 @@ button.primary,
    Every saving here is spacing and type scale — nothing is hidden. The hero's
    content is the recommendation, what it is based on, three metrics and two
    actions, and all of it stays on screen. */
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
   .tk-page.tk-tonight .tk-hero-recommendation,
   .tk-page[data-mode="upcoming"] .tk-hero-recommendation {
     margin-bottom: 8px;
@@ -14887,7 +14887,7 @@ button.primary,
 /* The last of the spacing, to bring the contract down to a 900px laptop.
    Below this nothing further can be taken without shrinking type past
    readability or hiding content, both of which are worse than a scrollbar. */
-@media (min-height: 1000px) and (min-width: 900px) {
+@media (min-height: 720px) and (min-width: 900px) {
   .tk-page.tk-tonight .tk-page-heading,
   .tk-page[data-mode="upcoming"] .tk-page-heading { margin-bottom: 6px; }
   .tk-page.tk-tonight .tk-page-heading p,
@@ -14902,4 +14902,256 @@ button.primary,
   .tk-page[data-mode="upcoming"] .tk-hero { padding: 14px 16px; }
   .tk-page.tk-tonight .tk-hero-name,
   .tk-page[data-mode="upcoming"] .tk-hero-name { font-size: clamp(1.3rem, 2vh, 1.7rem); }
+}
+
+/* --------------------------------------------------- hero vertical density
+
+   The hero was about 420px of permanently visible content, which is what put
+   the one-screen contract out of reach below 1000px. None of it was wrong;
+   most of it was simply laid out at a spacing that assumed vertical room the
+   page does not have.
+
+   What changed: identity and state share a line, the expectation note is a
+   disclosure rather than a paragraph, and the metric row is set at the density
+   of a data strip rather than a card grid. No information was removed. */
+.tk-hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.tk-hero-head .tk-hero-name { margin: 0; }
+.tk-hero-head .tk-hero-pills { margin: 0; }
+
+.tk-page.tk-tonight .tracker-expect,
+.tk-page[data-mode="upcoming"] .tracker-expect {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.tk-hero-expect > summary {
+  color: var(--tk-ink-dim);
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-decoration-color: var(--tk-line-strong);
+  text-underline-offset: 3px;
+}
+.tk-hero-expect > summary::-webkit-details-marker { display: none; }
+.tk-hero-expect > summary::before {
+  content: "＋";
+  margin-right: 6px;
+  font-size: 0.7em;
+}
+.tk-hero-expect[open] > summary::before { content: "－"; }
+.tk-hero-expect > summary:focus-visible {
+  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline-offset: 2px;
+}
+.tk-hero-expect > p {
+  margin: 6px 0 0;
+  color: var(--tk-ink-dim);
+}
+
+/* ------------------------------------------------- the short-desktop tier
+
+   Below 900px the hero has to give up another eighty pixels, and the only
+   honest places left are density and line count — not content.
+
+   The metric strip stops being a bordered three-column grid and becomes what
+   it always was semantically: a row of three short readings. The recommendation
+   is clamped to the two lines it almost always occupies anyway, with the full
+   text still in the accessibility tree and the title attribute. Buttons lose
+   the padding that made them comfortable rather than the size that makes them
+   hittable — they stay above the 32px that keeps them usable with a mouse. */
+@media (min-height: 720px) and (max-height: 899px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-hero,
+  .tk-page[data-mode="upcoming"] .tk-hero { padding: 12px 14px; }
+
+  .tk-page.tk-tonight .tk-hero-head,
+  .tk-page[data-mode="upcoming"] .tk-hero-head { margin-bottom: 6px; }
+
+  .tk-page.tk-tonight .tk-hero-recommendation,
+  .tk-page[data-mode="upcoming"] .tk-hero-recommendation {
+    display: -webkit-box;
+    overflow: hidden;
+    margin-bottom: 6px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.98rem;
+    line-height: 1.38;
+  }
+  .tk-page.tk-tonight .tk-hero-support,
+  .tk-page[data-mode="upcoming"] .tk-hero-support {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+
+  /* The metric strip: same three readings, a third of the height. */
+  .tk-page.tk-tonight .tk-hero-metrics,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin: 8px 0;
+    padding: 8px 0 0;
+    border-bottom: 0;
+  }
+  .tk-page.tk-tonight .tk-hero-metrics .tk-metric,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics .tk-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+  }
+  .tk-page.tk-tonight .tk-hero-metrics dt,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics dt {
+    margin: 0;
+    font-size: 0.68rem;
+  }
+  .tk-page.tk-tonight .tk-hero-metrics dd,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics dd {
+    margin: 0;
+    font-size: 0.84rem;
+  }
+
+  .tk-page.tk-tonight .tk-hero-actions,
+  .tk-page[data-mode="upcoming"] .tk-hero-actions {
+    margin-top: 8px;
+    gap: 8px;
+  }
+  .tk-page.tk-tonight .tk-hero-actions .tk-action,
+  .tk-page[data-mode="upcoming"] .tk-hero-actions .tk-action {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+  }
+  .tk-page.tk-tonight .tk-hero-expect,
+  .tk-page[data-mode="upcoming"] .tk-hero-expect { margin-top: 6px; font-size: 0.74rem; }
+
+  /* And a little more from the fixed regions, to hand it to the hero. */
+  .tk-page.tk-tonight .tk-relevant-row,
+  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 2px 12px; }
+  .tk-page.tk-tonight .tk-relevant-thumb,
+  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 24px; }
+  .tk-page.tk-tonight .tk-condition-card,
+  .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 6px 10px; }
+  .tk-page.tk-tonight .tk-page-heading,
+  .tk-page[data-mode="upcoming"] .tk-page-heading { margin-bottom: 4px; }
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] { padding-top: 10px; padding-bottom: 10px; }
+}
+
+/* The last tier, for 720px — the shortest desktop worth supporting.
+
+   Thirty-three pixels short after everything above, and taken from the two
+   places that cost the least: the category subtitle, which restates what the
+   heading and the hero already say ("Planets" / "Where they are from your
+   location tonight"), and the last of the list's row padding.
+
+   The subtitle is the one piece of content that goes away rather than
+   compressing. It is a gloss on a heading that is still there, it is duplicated
+   by the hero's own copy, and it is the only candidate left that is not a
+   number, a control, or a recommendation. */
+@media (min-height: 720px) and (max-height: 779px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-page-heading p,
+  .tk-page[data-mode="upcoming"] .tk-page-heading p { display: none; }
+  .tk-page.tk-tonight .tk-relevant-row,
+  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 1px 12px; }
+  .tk-page.tk-tonight .tk-relevant-thumb,
+  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 22px; }
+  .tk-page.tk-tonight .tk-condition-card,
+  .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 5px 10px; }
+  .tk-page.tk-tonight .tk-conditions-caption,
+  .tk-page[data-mode="upcoming"] .tk-conditions-caption { margin: 2px 0 4px; }
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] { padding-top: 8px; padding-bottom: 8px; }
+}
+
+/* --------------------------------------------------- drill-in composition
+
+   The sporadic-meteor panel rendered two paragraphs in a wide modal with no
+   chart beside them, which reads as a two-column layout whose right side
+   failed to load. It is now laid out as what it is: a short lede and four
+   practical steps, in two columns on a wide panel so the shape is deliberate
+   rather than accidental. */
+.tk-howto { display: grid; gap: 12px; }
+.tk-howto-lede {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--tk-ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.tk-howto-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+  padding: 0 0 0 1.1em;
+  color: var(--tk-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.tk-howto-steps li { padding-left: 2px; }
+.tk-howto-steps b { color: var(--tk-ink); font-weight: 500; }
+
+/* The panel stops being taller than its content needs.
+   `max-height` alone let a short drill-in keep a tall body, so a chart sat in
+   the top third of an otherwise empty modal. */
+.tk-overlay-body { max-height: min(calc(92vh - 82px), 760px); }
+.tk-overlay-facts { margin-top: 14px; padding-top: 12px; }
+
+/* The sky chart: large enough to read, not so large it owns the modal. */
+.tk-overlay-body .tk-chart,
+.tk-overlay-body > svg { max-height: min(46vh, 420px); }
+
+/* The footage fills the panel it sits in.
+   It was letterboxed to roughly half the width, which left a dark column beside
+   it that read as the same missing content the panel was already accused of. */
+.tk-overlay-footage { margin-top: 14px; padding-top: 12px; }
+.tk-overlay-footage .tk-exp-media {
+  width: 100%;
+  max-height: min(34vh, 300px);
+  object-fit: cover;
+}
+
+/* The expectation note is clamped rather than hidden.
+   It was briefly behind a disclosure, which bought 56px and cost the reader the
+   correction to a potentially misleading image — the accessibility gate caught
+   that, correctly. It stays visible; at short heights it is clamped to two
+   lines, with the full text in the DOM and on the event page. */
+@media (min-height: 720px) and (max-height: 999px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tracker-expect,
+  .tk-page[data-mode="upcoming"] .tracker-expect {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.74rem;
+    line-height: 1.4;
+  }
+}
+
+/* The last thirteen pixels, at 720 exactly.
+   Spacing only — nothing here changes what is on the page, and the expectation
+   note keeps both its lines. */
+@media (min-height: 720px) and (max-height: 739px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-hero,
+  .tk-page[data-mode="upcoming"] .tk-hero { padding: 10px 12px; }
+  .tk-page.tk-tonight .tk-hero-metrics,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics { margin: 6px 0; padding-top: 6px; }
+  .tk-page.tk-tonight .tk-hero-actions,
+  .tk-page[data-mode="upcoming"] .tk-hero-actions { margin-top: 6px; }
+  .tk-page.tk-tonight .tracker-expect,
+  .tk-page[data-mode="upcoming"] .tracker-expect { margin-top: 6px; }
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] { padding-top: 6px; padding-bottom: 6px; }
 }
