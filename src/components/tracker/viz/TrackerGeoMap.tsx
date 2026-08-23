@@ -456,6 +456,13 @@ export function TrackerGeoMap({
             <filter id="tk-geomap-smooth" x="-12%" y="-12%" width="124%" height="124%">
               <feGaussianBlur stdDeviation="8" />
             </filter>
+            {/* A gentler one, for fields sampled finely enough not to need the
+                other. OVATION is a one-degree grid; blurring it as hard as a
+                two-degree eclipse field dissolved the probability bands into a
+                single wash, so the legend listed five and the map showed one. */}
+            <filter id="tk-geomap-soften" x="-8%" y="-8%" width="116%" height="116%">
+              <feGaussianBlur stdDeviation="2.4" />
+            </filter>
             <clipPath id="tk-geomap-clip">
               <rect x="0" y="0" width={projection.width} height={projection.height} />
             </clipPath>

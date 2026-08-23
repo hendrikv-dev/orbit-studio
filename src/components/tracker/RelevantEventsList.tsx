@@ -44,13 +44,29 @@ export interface RelevantEventRow {
   waning?: boolean;
   /** True for the event currently held by the hero. */
   active: boolean;
+  /**
+   * Canonical position in tonight's ranking, or null where the list is not a
+   * ranking at all.
+   *
+   * Was the row's index. That made rank a property of the rendering, so any
+   * reordering renumbered it — and the page did reorder, hoisting the open
+   * event's category, which meant opening an event made it rank 1. A list that
+   * is ordered by date rather than by merit passes null and shows no number,
+   * because numbering a chronological list invents a ranking that was never
+   * computed.
+   */
+  rank: number | null;
 }
 
 export function RelevantEventsList({
   rows,
   onSelect,
   heading = "Relevant near you",
-  caption = "Sorted by time, visibility, and your location.",
+  // What the ranking actually does. The previous line — "Sorted by time,
+  // visibility, and your location" — described a sort that does not exist:
+  // time is not an input at all, and sky conditions can only move an item by a
+  // quarter of its score. See `rankOpportunities`.
+  caption = "Ranked by what is worth seeing tonight: how well it can be observed from here, how striking it is, and how much the sky is likely to cooperate.",
 }: {
   rows: RelevantEventRow[];
   onSelect: (id: string) => void;
@@ -66,7 +82,7 @@ export function RelevantEventsList({
         <p>{caption}</p>
       </div>
       <ol className="tk-relevant-list">
-        {rows.map((row, index) => (
+        {rows.map((row) => (
           <li key={row.presentation.id}>
             <button
               type="button"
@@ -74,7 +90,9 @@ export function RelevantEventsList({
               aria-current={row.active ? "true" : undefined}
               onClick={() => onSelect(row.presentation.id)}
             >
-              <span className="tk-relevant-rank">{index + 1}</span>
+              {row.rank === null ? null : (
+                <span className="tk-relevant-rank">{row.rank}</span>
+              )}
               <span className="tk-relevant-thumb">
                 {row.imagery ? (
                   <TrackerScene

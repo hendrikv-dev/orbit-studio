@@ -6,6 +6,54 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker ranking integrity and conditional conditions
+- **Rank no longer moves when the reader navigates.** Two bugs compounded:
+  rank was rendered from the row's index, and the ranked list was reordered to
+  hoist whatever shared the open event's category. Together they meant opening
+  Saturn made Saturn rank 1 and opening Meteors made Meteors rank 1 — the one
+  number the product exists to produce was a function of which page you were
+  looking at. Rank is now assigned once, in `rankTonight`, which has no
+  parameter for the selection; the list keeps canonical order and highlights
+  the open row in place. A selection outside the visible window is appended
+  with its true rank rather than promoted.
+- **The list no longer misdescribes itself.** It claimed to be "sorted by time,
+  visibility, and your location". Time is not an input at all, and sky
+  conditions can move an item by at most a quarter of its score. The caption now
+  says what the model does.
+- **Upcoming shows no rank**, because it is ordered by date. Numbering a
+  chronological list invented a ranking nobody computed.
+- **The conditions row is conditional.** Cloud, moonlight and temperature are
+  always present; smoke, haze, precipitation, fog and dew appear only when they
+  are material, and the remaining cards widen to fill the row. The fourth slot
+  used to be smoke, which on most nights in most places spent the night saying
+  "Not reported" so that it could be useful on the few nights it was not.
+- **Wildfire smoke is no longer conflated with haze.** Aerosol optical depth
+  measures dust, sea salt, pollution and smoke together and cannot tell them
+  apart; only the smoke model may say smoke. Surface PM2.5 remains the fallback
+  where no aerosol model covers, still labelled as a ground-level health measure.
+- **A morning nowcast is not tonight's oval.** Opened in the morning the page
+  assessed tonight from the three-day K-index — correctly — while the panel
+  beside it drew the current OVATION field under the heading "Aurora nowcast",
+  and the verdict ended "Valid for about the next half hour" on a statement that
+  was not the nowcast's. The panel now titles itself "Current auroral oval",
+  says it is not tonight's, and the validity sentence belongs to whichever
+  product spoke.
+- **The aurora field is legible again.** The ramp ran 0.42–0.78 alpha across
+  hues of similar luminance and was blurred as hard as a two-degree eclipse
+  field, so a five-band legend described a drawing that showed roughly one. The
+  ramp separates in hue and opacity, the blur is scaled to OVATION's one-degree
+  grid, cells below 3% are not drawn, and the legend is generated from the ramp
+  rather than hand-copied.
+- **The expanded map fits its modal.** The drawing kept its natural aspect at
+  full width, which on a laptop pushed the controls, legend and summary below
+  the fold of an apparently fixed panel.
+- **No sky map is offered for sporadic meteors.** The page said "the sky is the
+  limit tonight, not the target" two lines above a button reading "View sky
+  map". The label now follows the geometry: "Where to look" when a radiant
+  exists, "How to watch" when it does not.
+- **"Restored" is gone from the location control.** It described where the value
+  came from inside the application, which is not something an observer needs.
+
 ### Tracker geographic maps v2
 - **The maps pan and zoom**, in a shared system rather than three separate
   ones. Tracker's projection is equirectangular and therefore linear in

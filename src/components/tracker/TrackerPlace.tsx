@@ -128,7 +128,13 @@ export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
         <MapPin size={15} aria-hidden />
         <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
         {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}
-        {place?.restored ? <span className="tracker-place-context">Restored</span> : null}
+        {/* "Restored" used to sit here. It described where the value came from
+            inside the application — a local record rather than a fresh pick —
+            which is a fact about storage and not about the observer's night.
+            Whether the place is right is answered by its name being right; how
+            it got into the field is not the reader's problem. The record is
+            still flagged internally, and the privacy panel still explains that
+            a confirmed place is kept in this browser. */}
         <ChevronDown size={15} aria-hidden className="tracker-place-chevron" />
       </Button>
       {/* Popover measures the space available and sets its own max-height, so

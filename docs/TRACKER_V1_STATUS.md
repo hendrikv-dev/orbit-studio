@@ -81,6 +81,71 @@ inline to NOAA's figure and fed into cross-phenomenon ranking, while the
 documentation claimed NOAA's probability was never rescaled into a Tracker
 judgement. It was. The transformation is now named, anchored and tested.
 
+## Rank was a function of navigation, and that is the whole product
+
+The most serious defect found so far, because it falsified the claim the
+product is built on rather than merely rendering it badly.
+
+Two bugs, each survivable alone. `RelevantEventsList` rendered the rank badge
+from the row's index. Separately, both `TrackerApp` and `UpcomingEventPage`
+reordered the list to hoist everything sharing the open event's category. Put
+together: opening Saturn made Saturn rank 1 and Meteors 4; opening Meteors made
+Meteors 1 and Saturn 2. Nothing about the sky had changed.
+
+The fix separates four things that had been collapsed into one array: the
+canonical ranked result, the current selection, the rendering order, and the
+visual highlight. `rankTonight` in `tonightRanking.ts` assigns rank once and
+takes no selection parameter — a future call site cannot reintroduce the defect
+because there is nowhere to pass it. The list renders that number, keeps
+canonical order, and highlights the open row in place. A selection that falls
+outside the visible window is appended with its real rank rather than promoted.
+
+Ties break on id rather than on sort stability, so equal-strength events cannot
+swap ranks between renders either.
+
+## What the ranking actually is
+
+The list described itself as "sorted by time, visibility, and your location".
+Time is not an input. The real model, from `opportunity.ts`:
+
+```
+merit    = 0.5·spectacle + 0.25·recognisability + 0.25·ease
+base     = observability · merit · (0.6 + 0.4·confidence)
+strength = (base + min(0.08, rarity·0.08)) · equipment   [eyes 1, binoculars 0.85, telescope 0.7]
+ordering = strength · (0.75 + 0.25·skyAccess)
+```
+
+with two gates: below 0.15 observability an item is not ranked at all, and below
+0.35 strength it may appear but never lead. A naked-eye item at 0.45 or above
+cannot be displaced from the hero by anything needing equipment.
+
+The consequence worth stating plainly, because a screenshot made it look like a
+bug: **weather moves rank by at most a quarter.** That is deliberate — a rare
+event must stay discoverable behind cloud rather than dropping out of the list —
+and it means a planet marked "Poor" can outrank a Moon marked "Fair", because
+the label is sky access at that item's best moment and the ordering is mostly
+intrinsic merit. The caption now describes that model instead of a sort that
+never existed.
+
+## The conditions row earns its slots
+
+It was four fixed cards, the fourth being smoke. Smoke is negligible on most
+nights almost everywhere, so a quarter of the row spent every night reporting
+its own absence in order to be useful on the few nights it was not.
+
+Three are constant because they always bear on the decision: cloud decides
+whether there is a sky, the Moon decides what can be seen in it, temperature
+decides how long anybody lasts outside. Everything else — smoke, haze,
+precipitation, fog, dew — appears when it is material and is absent otherwise,
+capped at two so the row stays scannable.
+
+The honesty point underneath: aerosol optical depth measures all aerosol
+together and cannot identify smoke. Only the smoke model may produce a card
+saying "Wildfire smoke"; thick aerosol with no smoke behind it is "Haze".
+Surface PM2.5 remains the fallback where no aerosol model covers, labelled as
+what it is — a ground-level health measure that says nothing about transparency
+overhead.
+
 ## Why the maps are not a mapping library
 
 Asked and answered explicitly, because "add Leaflet" is the obvious move and it

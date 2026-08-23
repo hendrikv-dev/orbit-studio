@@ -160,7 +160,25 @@ function assertUniversalGeometry(state, label) {
   check(state.geometry.heading, `${label}: has the category heading`);
   check(state.geometry.hero, `${label}: has the hero`);
   check(state.geometry.visualization, `${label}: has a visualization in the fixed slot`);
-  check(state.geometry.conditions === 4, `${label}: has exactly four condition cards`);
+  // Was "exactly four". The row is now three constants — cloud, moonlight,
+  // temperature — plus up to two conditions that are actually happening, so a
+  // clear night shows three wider cards rather than a fourth reading "Not
+  // reported". What must hold is that the constants are always there and the
+  // row never grows past what stays scannable.
+  check(
+    state.geometry.conditions >= 3 && state.geometry.conditions <= 5,
+    `${label}: has three to five condition cards (${state.geometry.conditions})`,
+  );
+  check(
+    ["Cloud cover", "Moonlight", "Temperature"].every((wanted) =>
+      state.conditions.some((card) => card.label === wanted),
+    ),
+    `${label}: always answers cloud, moonlight and temperature`,
+  );
+  check(
+    !state.conditions.some((card) => /^No smoke$|^Not reported$/.test(card.value ?? "")),
+    `${label}: no condition card is present only to report its own absence`,
+  );
   check(state.metrics.length === 3, `${label}: has exactly three metrics`);
   check(
     state.pills.length >= 1 && state.pills.length <= 2,
@@ -302,14 +320,39 @@ async function main() {
   check(barCount > 8, `the activity graph plots the real sample series (${barCount} bars)`);
   check(litCount > 0 && litCount < barCount, "the best stretch is lit and the rest is not");
 
-  await portland.getByRole("button", { name: "View sky map" }).click();
+  /**
+   * The CTA has to match what the night actually offers.
+   *
+   * A shower has a radiant and therefore a direction to face. The sporadic
+   * background has neither — and the page says so, in "the sky is the limit
+   * tonight, not the target" — so a control reading "View sky map" was
+   * promising a target two lines under the sentence explaining there is none.
+   * The label now follows the geometry, and this checks the pairing rather than
+   * assuming either state.
+   */
+  const meteorCta = await portland.locator(".tk-hero-actions .tk-action.is-primary").innerText();
+  const showerRunning = await portland.evaluate(
+    () => !/no shower is running/i.test(document.querySelector(".tk-viz-slot")?.textContent ?? ""),
+  );
+  check(
+    showerRunning ? /where to look/i.test(meteorCta) : /how to watch/i.test(meteorCta),
+    `meteors: the CTA matches the night (${showerRunning ? "shower running" : "sporadic"}: "${meteorCta}")`,
+  );
+  check(
+    !/view sky map/i.test(meteorCta) || showerRunning,
+    "meteors: no sky map is offered when there is no radiant to point at",
+  );
+
+  await portland.locator(".tk-hero-actions .tk-action.is-primary").click();
   await portland.waitForSelector(".tk-overlay", { timeout: 5000 });
   await portland.waitForTimeout(800);
   await shot(portland, "05-meteors-sky-map", "hero CTA drill-in");
   const skyMapText = await portland.locator(".tk-overlay-panel").innerText();
   check(
-    /where to look/i.test(skyMapText),
-    "the sky map answers where to look rather than only when",
+    showerRunning
+      ? /where to look/i.test(skyMapText)
+      : /nothing to point at|as much sky as you can/i.test(skyMapText),
+    "the drill-in tells the reader something true about how to watch",
   );
   check(
     !/stare at the radiant/i.test(skyMapText),
@@ -487,10 +530,18 @@ async function main() {
     const solarState = await readPageState(portland);
     assertUniversalGeometry(solarState, "solar eclipse");
     check(solarState.heading === "Eclipses", "the eclipse page uses the eclipse heading");
+    // Two, not three. Cloud and temperature still say the forecast does not
+    // reach; the smoke slot is gone entirely, because a card whose only content
+    // is "there is no reading" is the empty slot this pass removed. Moonlight
+    // still answers, because it is geometry.
     check(
       solarState.conditions.filter((card) => /Forecast closer to date/i.test(card.value ?? ""))
-        .length === 3,
-      "three condition cards refuse to forecast beyond the horizon",
+        .length === 2,
+      "the weather cards refuse to forecast beyond the horizon",
+    );
+    check(
+      !solarState.conditions.some((card) => /smoke|haze/i.test(card.label ?? "")),
+      "no smoke or haze card is invented for a date beyond any forecast",
     );
     check(
       /Moon|%/i.test(
@@ -862,6 +913,67 @@ async function main() {
     await context.close();
   }
 
+  // --- a morning nowcast is not tonight's oval ------------------------------
+  //
+  // The defect: opened in the morning, the page assessed tonight from the
+  // three-day K-index and said "quiet tonight" — correctly — while the panel
+  // beside it drew the 8:41 AM OVATION field under the heading "Aurora
+  // nowcast". Two products fourteen hours apart, presented as one picture of
+  // one night. The clock is pinned to the morning so this is testable at all.
+  {
+    const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+    await seedPlace(context, auroraPlace);
+    await context.route("**/ovation_aurora_latest.json", serveGrid(auroraGridAt(38, 5, 30)));
+    const page = await context.newPage();
+    // Mid-morning local at the test location: hours before any darkness.
+    const morning = new Date(auroraInstant.getTime() + 9 * 60 * 60_000);
+    await page.clock.setFixedTime(morning);
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await page.waitForTimeout(4000);
+
+    const opened = await clickRow(page, /Aurora/i);
+    if (opened) {
+      const panel = await page.locator(".tk-viz-slot").innerText();
+      const recommendation = await page
+        .locator(".tk-hero-recommendation")
+        .innerText()
+        .catch(() => "");
+
+      // Either the page is speaking from the nowcast because the nowcast still
+      // applies, or it is speaking about tonight — in which case the map must
+      // say what it is. What must never happen is a nowcast-titled map beside a
+      // verdict about a night it cannot describe.
+      const mapClaimsNowcast = /aurora nowcast/i.test(panel);
+      const mapDisclaims =
+        /current conditions, not tonight|not tonight's oval|current auroral oval/i.test(panel);
+      check(
+        mapClaimsNowcast || mapDisclaims,
+        "morning: the aurora panel states which moment its field describes",
+      );
+      check(
+        !mapClaimsNowcast || !/tonight/i.test(recommendation) || mapDisclaims,
+        "morning: a nowcast map is not presented as tonight's oval",
+      );
+      if (mapDisclaims) {
+        check(
+          /three-day|K-index|Kp/i.test(panel + recommendation),
+          "morning: tonight's outlook is attributed to the longer-horizon product",
+        );
+        check(
+          !/valid for about the next half hour/i.test(panel),
+          "morning: the nowcast's validity is not attached to a three-day statement",
+        );
+      }
+      await shot(page, "25-aurora-morning", "morning: current oval vs tonight");
+    } else {
+      console.log("  · no aurora row in the morning state; horizon separation not exercised");
+      findings.push({ label: "morning aurora horizon separation", pass: null });
+    }
+    await page.close();
+    await context.close();
+  }
+
   // --- no forecastable future event ---------------------------------------
   //
   // Aurora in Upcoming is usually empty, and correctly so: nothing can name a
@@ -911,6 +1023,123 @@ async function main() {
     await page.close();
     await context.close();
   }
+
+  /* --- 5a. rank does not move when the reader navigates ------------------- */
+  //
+  // The reported defect: on the Saturn page Saturn was rank 1 and Meteors 4; on
+  // the Meteors page Meteors was 1 and Saturn 2. Rank was the row's index at
+  // render time, and the list was reordered to hoist the open event's category,
+  // so opening a thing promoted it. For a product whose whole claim is "this is
+  // what is most worth looking at", that is the claim being false.
+  console.log("\nRanking invariance");
+
+  const rankContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+  await seedPlace(rankContext, PLACES.portland);
+  const rankPage = await rankContext.newPage();
+  await rankPage.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await rankPage.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await rankPage.waitForTimeout(3500);
+
+  /** Every ranked row as {rank, name}, exactly as a reader would read it. */
+  const readRanking = () =>
+    rankPage.evaluate(() =>
+      [...document.querySelectorAll(".tk-relevant-row")].map((row) => ({
+        rank: row.querySelector(".tk-relevant-rank")?.textContent?.trim() ?? "",
+        name: row.querySelector(".tk-relevant-name")?.textContent?.trim() ?? "",
+      })),
+    );
+
+  const baseline = await readRanking();
+  check(baseline.length > 0, `a ranked list is present (${baseline.length} rows)`);
+  console.log(
+    `  · baseline: ${baseline.map((row) => `${row.rank}. ${row.name}`).join(", ")}`,
+  );
+
+  // Ranks must be 1..n with no repeats, or the number means nothing.
+  check(
+    baseline.every((row, index) => row.rank === String(index + 1)),
+    "the ranked list is numbered one upwards with no gaps",
+  );
+
+  /** Comparable regardless of which rows a page happens to show. */
+  const rankOf = (rows) => new Map(rows.map((row) => [row.name, row.rank]));
+  const baselineRanks = rankOf(baseline);
+
+  const disagreements = [];
+  const compare = (rows, where) => {
+    for (const row of rows) {
+      const expected = baselineRanks.get(row.name);
+      if (expected !== undefined && expected !== row.rank) {
+        disagreements.push(`${row.name} was ${expected}, is ${row.rank} on ${where}`);
+      }
+    }
+  };
+
+  // Visit each event in the list by name, recording the ranking from its page.
+  const visited = [];
+  for (const target of baseline.slice(0, 5)) {
+    const opened = await clickRow(rankPage, new RegExp(target.name.slice(0, 14).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+    if (!opened) continue;
+    await rankPage.waitForTimeout(1800);
+    const rows = await readRanking();
+    compare(rows, target.name);
+    visited.push(target.name);
+
+    // And the open event must not have been promoted to the top.
+    const top = rows[0];
+    check(
+      top.name === baseline[0].name,
+      `${target.name}: the list still leads with ${baseline[0].name}`,
+    );
+    const self = rows.find((row) => row.name === target.name);
+    check(
+      self !== undefined && self.rank === baselineRanks.get(target.name),
+      `${target.name}: keeps rank ${baselineRanks.get(target.name)} on its own page`,
+    );
+  }
+  console.log(`  · visited ${visited.length} event pages: ${visited.join(", ")}`);
+
+  // A drill-in must not disturb it either.
+  if ((await rankPage.locator(".tk-action.is-primary").count()) > 0) {
+    await rankPage.locator(".tk-action.is-primary").first().click();
+    await rankPage.waitForTimeout(1500);
+    await rankPage.keyboard.press("Escape");
+    await rankPage.waitForTimeout(1200);
+    compare(await readRanking(), "closing a drill-in");
+  }
+
+  // Nor may Back and Forward.
+  await rankPage.goBack();
+  await rankPage.waitForTimeout(1500);
+  compare(await readRanking(), "Back");
+  await rankPage.goForward();
+  await rankPage.waitForTimeout(1500);
+  compare(await readRanking(), "Forward");
+
+  // And returning to where we started must reproduce the baseline exactly.
+  await rankPage.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await rankPage.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await rankPage.waitForTimeout(3500);
+  const returned = await readRanking();
+  compare(returned, "returning to Tonight");
+
+  check(
+    disagreements.length === 0,
+    disagreements.length === 0
+      ? `rank is identical across every page, drill-in and history move (${visited.length + 4} observations)`
+      : `rank changed with navigation — ${disagreements.join("; ")}`,
+  );
+
+  // The list must also describe itself truthfully.
+  const caption = await rankPage.locator(".tk-relevant-head p").innerText();
+  check(
+    !/sorted by time/i.test(caption),
+    "the list does not claim to be sorted by time, which it never was",
+  );
+  await shot(rankPage, "24-ranking", "the ranked list, from Tonight");
+
+  await rankPage.close();
+  await rankContext.close();
 
   /* --- 5b. map controls, and the history behind them ---------------------- */
   //
@@ -1218,6 +1447,59 @@ async function main() {
     check(
       (await map.locator(".tk-overlay .tk-geomap-frame[data-interactive='true']").count()) === 1,
       "the expanded map is the interactive one",
+    );
+
+    /**
+     * The expanded map has to fit the modal it opens in.
+     *
+     * Reported from a production screenshot: the controls were crowded against
+     * the bottom-right boundary and partly clipped. The cause was the drawing
+     * keeping its natural aspect at full width, which on a laptop made it
+     * taller than the scrolling body — so the controls, the legend and the
+     * summary all sat below the fold of what looks like a fixed panel.
+     */
+    const layout = await map.evaluate(() => {
+      const rect = (selector) => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const box = element.getBoundingClientRect();
+        return { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
+      };
+      const body = document.querySelector(".tk-overlay-body");
+      return {
+        viewportHeight: window.innerHeight,
+        controls: rect(".tk-overlay .tk-geomap-controls"),
+        frame: rect(".tk-overlay .tk-geomap-frame"),
+        legend: rect(".tk-overlay .tk-geomap-legend"),
+        summary: rect(".tk-overlay .tk-geomap-summary"),
+        panel: rect(".tk-overlay-panel"),
+      };
+    });
+
+    check(
+      layout.controls !== null &&
+        layout.controls.bottom <= layout.viewportHeight &&
+        layout.controls.top >= 0,
+      "the map controls are fully on screen without scrolling",
+    );
+    check(
+      layout.controls !== null &&
+        layout.frame !== null &&
+        layout.controls.bottom <= layout.frame.bottom + 1 &&
+        layout.controls.right <= layout.frame.right + 1 &&
+        layout.frame.right - layout.controls.right >= 8 &&
+        layout.frame.bottom - layout.controls.bottom >= 8,
+      "the controls sit clear of the frame's edge rather than flush against it",
+    );
+    check(
+      layout.legend !== null && layout.legend.bottom <= layout.viewportHeight,
+      "the legend is visible without scrolling",
+    );
+    check(
+      layout.frame !== null &&
+        layout.panel !== null &&
+        layout.frame.bottom <= layout.panel.bottom + 1,
+      "the map does not extend past the modal that contains it",
     );
 
     const initial = await box();
@@ -1608,9 +1890,19 @@ async function main() {
     JSON.stringify(fairbanksRows) !== JSON.stringify(portlandRows),
     "the ranked list is re-ranked for the new place rather than carried over",
   );
+  // Was: the header labels a restored place "Restored". That described where
+  // the value came from inside the application rather than anything about the
+  // observer's night, and the brief for this pass called it out as
+  // implementation language on display. The check now asserts its absence, and
+  // that the header still answers the question that matters — where Tracker
+  // thinks you are.
   check(
-    (await changing.getByText("Restored", { exact: true }).count()) > 0,
-    "a restored place is labelled as restored",
+    (await changing.getByText("Restored", { exact: true }).count()) === 0,
+    "no storage state is shown in the location control",
+  );
+  check(
+    (await changing.locator("header.tk-header").innerText()).includes(PLACES.portland.name),
+    "the location control still names where Tracker thinks you are",
   );
   await shot(changing, "12-location-changed", "same page, re-ranked for a different place");
   await changing.close();

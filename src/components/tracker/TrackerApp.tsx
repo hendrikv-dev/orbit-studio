@@ -59,6 +59,7 @@ import { TrackerHeader, type TrackerView } from "./TrackerHeader";
 import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
+import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
 import { TrackerOverlay } from "./TrackerOverlay";
 import { useTrackerHistory } from "./useTrackerHistory";
 import { TrackerSkyChart } from "./TrackerSkyChart";
@@ -237,6 +238,17 @@ interface TonightEvent {
   safety: string | null;
   /** Ordering value in the same 0–1 space the ranking uses. */
   strength: number;
+  /**
+   * Canonical position in tonight's ranking, 1-based.
+   *
+   * Assigned once, where the sort happens, and carried from there. It used to
+   * be the row's index at render time, which meant the list could not be
+   * reordered for any reason without silently renumbering the ranking — and it
+   * was reordered, to hoist the open event's category to the top. Opening
+   * Meteors made Meteors rank 1. Rank is a property of the night, not of what
+   * the reader is looking at.
+   */
+  rank: number;
   entry: SkyAdjustedOpportunity | null;
   window: BestWindow | null;
   passed: boolean;
@@ -475,7 +487,7 @@ function TrackerScreen() {
       evidenceStatus: environment.status,
     };
 
-    const events: TonightEvent[] = withSky.ranked.map((entry) => {
+    const events: Omit<TonightEvent, "rank">[] = withSky.ranked.map((entry) => {
       const window = withSky.windows.get(entry.opportunity.id) ?? null;
       const passed = withSky.passed.has(entry.opportunity.id);
       const imagery = heroImageryFor(entry.opportunity.id, entry.opportunity.kind);
@@ -616,7 +628,10 @@ function TrackerScreen() {
       }
     }
 
-    return events.sort((left, right) => right.strength - left.strength);
+    // The canonical ranking, decided in one place and carried from there.
+    // `rankTonight` has no parameter for the selection, so no future caller can
+    // accidentally make rank depend on what the reader opened.
+    return rankTonight(events);
   }, [
     auroraAssessment,
     clock,
@@ -662,14 +677,20 @@ function TrackerScreen() {
    */
   const rows = useMemo<RelevantEventRow[]>(() => {
     if (!heroEvent) return [];
-    const category = heroEvent.presentation.categoryId;
-    const matching = tonightEvents.filter(
-      (event) => event.presentation.categoryId === category,
-    );
-    const others = tonightEvents.filter(
-      (event) => event.presentation.categoryId !== category,
-    );
-    return [...matching, ...others].slice(0, 6).map((event) => ({
+    /**
+     * The canonical order, unmodified.
+     *
+     * This used to hoist everything sharing the open event's category to the
+     * front, which — with rank rendered from the row index — meant opening an
+     * event promoted it to rank 1. Two bugs that only became visible together:
+     * either alone would have been survivable, and the pair falsified the one
+     * number the product exists to provide.
+     *
+     * The selected row is highlighted in place instead. Where it falls outside
+     * the visible window it is appended rather than promoted, so it is reachable
+     * and still carries the rank it actually holds.
+     */
+    return visibleRanked(tonightEvents, heroEvent.id, 6).map((event) => ({
       presentation: event.presentation,
       imagery: event.media.kind === "imagery" ? event.media.imagery : null,
       thumb: event.media.kind === "drawn" ? event.media.node : undefined,
@@ -677,6 +698,7 @@ function TrackerScreen() {
         event.media.kind === "imagery" ? event.media.illuminatedFraction : undefined,
       waning: event.media.kind === "imagery" ? event.media.waning : undefined,
       active: event.id === heroEvent.id,
+      rank: event.rank,
     }));
   }, [heroEvent, tonightEvents]);
 
@@ -992,7 +1014,7 @@ function TrackerScreen() {
           <TrackerOverlay
             open={overlay === "sky-map"}
             onClose={() => back({ drill: null })}
-            title={`Where to look — ${heroEvent.presentation.title}`}
+            title={`${heroEvent.presentation.primaryAction.label} — ${heroEvent.presentation.title}`}
             subtitle={
               gaze
                 ? gaze.reason

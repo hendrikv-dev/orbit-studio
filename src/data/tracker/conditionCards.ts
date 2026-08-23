@@ -39,8 +39,40 @@ import { formatTemperature } from "../../lib/localTime";
  * dropping them would break the geometry the row exists to hold.
  */
 
-export type ConditionCardId = "cloud" | "smoke" | "moonlight" | "temperature";
+export type ConditionCardId =
+  /** Always shown: these three bear on every night. */
+  | "cloud"
+  | "moonlight"
+  | "temperature"
+  /**
+   * Shown only when they would change what somebody does.
+   *
+   * A row of fixed slots has to fill them, and a slot that must be filled
+   * eventually says "No smoke" on a night with no smoke — which spends a
+   * quarter of the row telling the reader nothing, every night, so that it can
+   * tell them something on the rare night it matters. These appear when they
+   * are material and are absent otherwise.
+   */
+  | "smoke"
+  | "haze"
+  | "precipitation"
+  | "fog"
+  | "dew";
 export type ConditionTone = "good" | "fair" | "poor" | "unknown";
+
+/**
+ * Where the reading came from and how long it is good for.
+ *
+ * Carried per card because the row mixes horizons: moonlight is an
+ * astronomical computation good for a century, cloud is a point forecast good
+ * for days, and aerosol is a model run good for hours. Presenting them as one
+ * undifferentiated row of "conditions" is what lets a reader take the weakest
+ * of them as seriously as the strongest.
+ */
+export interface ConditionProvenance {
+  kind: "computed" | "forecast" | "model";
+  detail: string;
+}
 
 export interface ConditionCard {
   id: ConditionCardId;
@@ -50,6 +82,8 @@ export interface ConditionCard {
   /** What it means for observing, in two or three words. Null where unknown. */
   interpretation: string | null;
   tone: ConditionTone;
+  /** What kind of claim this is, available on inspection. */
+  provenance?: ConditionProvenance;
 }
 
 /**
@@ -71,6 +105,22 @@ export const FORECAST_HORIZON_DAYS = 7;
  * because beyond that a "forecast" for a time already past is a contradiction:
  * whatever the sky did, it has done it.
  */
+/**
+ * Where each conditional card starts earning its place.
+ *
+ * Set so that a card appears when it would change a decision, not when a
+ * sensor twitches. The haze figure is in magnitudes of extinction because that
+ * is the unit the decision is actually made in: 0.15 mag is about the point
+ * where a practised eye notices the difference on faint objects.
+ */
+const SMOKE_MATERIAL_MG_M2 = 20;
+const HAZE_MATERIAL_MAGNITUDES = 0.15;
+const FOG_VISIBILITY_M = 2_000;
+const DEW_HUMIDITY_PERCENT = 92;
+const PM25_MATERIAL_UG_M3 = 35;
+/** Three constants plus at most this many, so the row stays scannable. */
+const MAX_CONDITIONAL_CARDS = 2;
+
 export const FORECAST_PAST_TOLERANCE_HOURS = 3;
 
 /**
@@ -201,51 +251,138 @@ const AEROSOL_LABEL: Record<AerosolReading, { value: string; tone: ConditionTone
  * "clean" and "unmeasured" are different claims and only one of them is safe
  * to make on no evidence.
  */
-function smokeCard(snapshot: ConditionSnapshot | null): ConditionCard {
-  if (!snapshot) return unknownCard("smoke", "Haze & smoke", "Not reported");
+/**
+ * Smoke and haze, kept apart because the models keep them apart.
+ *
+ * Aerosol optical depth measures *all* aerosol — dust, sea salt, industrial
+ * pollution, smoke — and cannot say which. The smoke column comes from a model
+ * that is specifically about smoke. Labelling a hazy summer evening "Smoky"
+ * because the optical depth was high is the sort of small confident wrongness
+ * that costs a product its credibility with exactly the readers who would
+ * notice, so a card only says smoke when the smoke model says smoke.
+ *
+ * Returns null when there is nothing worth a slot. That is the point: on most
+ * nights in most places the honest answer is silence, and silence should not
+ * occupy a quarter of the row.
+ */
+function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  if (!snapshot) return null;
 
-  const opticalDepth = snapshot.aerosolOpticalDepth;
-  if (opticalDepth !== null && opticalDepth !== undefined) {
-    const reading = AEROSOL_LABEL[readAerosol(opticalDepth)];
-    const magnitudes = aerosolExtinctionMagnitudes(opticalDepth);
+  const column = snapshot.smokeColumnMgM2;
+  // Smoke first, where a smoke model actually covers this place and reports
+  // enough of it to matter.
+  if (column !== null && column !== undefined && column >= SMOKE_MATERIAL_MG_M2) {
+    const heavy = column >= 100;
+    const magnitudes =
+      snapshot.aerosolOpticalDepth !== null && snapshot.aerosolOpticalDepth !== undefined
+        ? aerosolExtinctionMagnitudes(snapshot.aerosolOpticalDepth)
+        : null;
     return {
       id: "smoke",
-      label: "Haze & smoke",
-      value: reading.value,
-      // Quoted as what it costs rather than as an index. "0.34" tells nobody
-      // anything; "dims the sky by 0.4 mag" is the same number in the unit the
-      // decision is made in.
+      label: "Wildfire smoke",
+      value: heavy ? "Heavy" : "Moderate",
       interpretation:
-        magnitudes < 0.12
-          ? "Transparent"
-          : `Dims the sky by ${magnitudes.toFixed(1)} mag`,
-      tone: reading.tone,
+        magnitudes !== null
+          ? `Dims the sky by ${magnitudes.toFixed(1)} mag`
+          : heavy
+            ? "Faint objects lost"
+            : "Dims faint detail",
+      tone: heavy ? "poor" : "fair",
+      provenance: {
+        kind: "model",
+        detail:
+          "Smoke column from the weather provider's smoke model, with the dimming computed from aerosol optical depth at 550 nm.",
+      },
     };
   }
 
-  const column = snapshot.smokeColumnMgM2;
-  const surface = snapshot.surfacePm25;
-  if (column === null && surface === null) {
-    return unknownCard("smoke", "Haze & smoke", "Not reported", "No model covers here");
+  // Otherwise haze, and only when it is thick enough to change the night.
+  const opticalDepth = snapshot.aerosolOpticalDepth;
+  if (opticalDepth === null || opticalDepth === undefined) {
+    // No aerosol model covers everywhere. Surface particulate is the fallback
+    // and is a *health* measure, not a sky one — it says what the air at ground
+    // level is like to stand in and nothing about transparency overhead. It is
+    // labelled that way, and only appears when it is bad enough to matter.
+    const surface = snapshot.surfacePm25;
+    if (surface === null || surface === undefined || surface < PM25_MATERIAL_UG_M3) return null;
+    const heavy = surface >= 55;
+    return {
+      id: "smoke",
+      label: "Air quality",
+      value: heavy ? "Heavy at ground" : "Moderate at ground",
+      interpretation: heavy ? "Poor air to stand in" : "Noticeable at ground",
+      tone: heavy ? "poor" : "fair",
+      provenance: {
+        kind: "model",
+        detail:
+          "Surface PM2.5 from Copernicus via Open-Meteo. A ground-level health measure; it does not describe how transparent the sky is.",
+      },
+    };
   }
-  if (column !== null) {
-    if (column >= 100) {
-      return { id: "smoke", label: "Haze & smoke", value: "Heavy", interpretation: "Faint objects lost", tone: "poor" };
-    }
-    if (column >= 20) {
-      return { id: "smoke", label: "Haze & smoke", value: "Moderate", interpretation: "Dims faint detail", tone: "fair" };
-    }
-    return { id: "smoke", label: "Haze & smoke", value: "Low", interpretation: "Good", tone: "good" };
-  }
-  const pm = surface as number;
+  const magnitudes = aerosolExtinctionMagnitudes(opticalDepth);
+  if (magnitudes < HAZE_MATERIAL_MAGNITUDES) return null;
+
+  const reading = readAerosol(opticalDepth);
   return {
-    id: "smoke",
-    label: "Haze & smoke",
-    // Surface particulate is a health measure, and the label says so rather
-    // than letting it stand in for sky transparency.
-    value: pm >= 55 ? "Heavy at ground" : pm >= 25 ? "Moderate at ground" : "Low at ground",
-    interpretation: pm >= 55 ? "Poor air to stand in" : pm >= 25 ? "Noticeable at ground" : "Good",
-    tone: pm >= 55 ? "poor" : pm >= 25 ? "fair" : "good",
+    id: "haze",
+    label: "Haze",
+    // Never "smoky": this figure cannot tell smoke from dust or pollution.
+    value: reading === "heavy" || reading === "smoky" ? "Thick" : "Noticeable",
+    interpretation: `Dims the sky by ${magnitudes.toFixed(1)} mag`,
+    tone: reading === "heavy" || reading === "smoky" ? "poor" : "fair",
+    provenance: {
+      kind: "model",
+      detail:
+        "Aerosol optical depth at 550 nm from Copernicus via Open-Meteo. Measures all aerosol together and cannot identify smoke.",
+    },
+  };
+}
+
+/** Rain or snow, which settles the question before anything else does. */
+function precipitationCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  if (!snapshot || snapshot.precipitating !== true) return null;
+  return {
+    id: "precipitation",
+    label: "Precipitation",
+    value: "Falling",
+    interpretation: "Not an observing night",
+    tone: "poor",
+    provenance: { kind: "forecast", detail: "Point forecast from the weather provider." },
+  };
+}
+
+/** Fog, which cloud cover does not describe: it can be clear overhead. */
+function fogCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  if (!snapshot) return null;
+  const visibility = snapshot.visibilityM;
+  if (visibility === null || visibility === undefined || visibility >= FOG_VISIBILITY_M) return null;
+  return {
+    id: "fog",
+    label: "Fog",
+    value: visibility < 400 ? "Thick" : "Patchy",
+    interpretation: `Visibility ${(visibility / 1000).toFixed(1)} km`,
+    tone: visibility < 400 ? "poor" : "fair",
+    provenance: { kind: "forecast", detail: "Horizontal visibility from the weather provider." },
+  };
+}
+
+/**
+ * Dew, which is about equipment rather than sky.
+ *
+ * Shown high because it is actionable — a dew shield or a hair dryer is the
+ * whole fix — and because nothing else in the row hints at it.
+ */
+function dewCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  if (!snapshot) return null;
+  const humidity = snapshot.relativeHumidityPercent;
+  if (humidity === null || humidity === undefined || humidity < DEW_HUMIDITY_PERCENT) return null;
+  return {
+    id: "dew",
+    label: "Dew",
+    value: `${Math.round(humidity)}% humidity`,
+    interpretation: "Optics will fog without a shield",
+    tone: "fair",
+    provenance: { kind: "forecast", detail: "Relative humidity from the weather provider." },
   };
 }
 
@@ -291,47 +428,56 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
   const { atUtc, latitudeDeg, longitudeDeg, snapshots, evidenceStatus, now, pending } = input;
   const moonlight = moonlightCard(atUtc, latitudeDeg, longitudeDeg);
 
-  if (isPastEvent(atUtc, now)) {
-    // Tracker keeps no weather history, so it has nothing to say about a sky
-    // that has already happened. The Moon still answers, because the Moon's
-    // position on a past date is as computable as on a future one.
-    return [
-      unknownCard("cloud", "Cloud cover", ALREADY_PAST),
-      unknownCard("smoke", "Haze & smoke", ALREADY_PAST),
-      moonlight,
-      unknownCard("temperature", "Temperature", ALREADY_PAST),
-    ];
-  }
+  /**
+   * The three that are always here.
+   *
+   * Cloud decides whether there is a sky, the Moon decides what can be seen in
+   * it, and temperature decides how long anybody lasts outside. None of those
+   * is ever irrelevant, so none is ever omitted — including when the answer is
+   * that nothing is known, which is itself worth a slot.
+   */
+  const constants = (state: string): ConditionCard[] => [
+    unknownCard("cloud", "Cloud cover", state),
+    moonlight,
+    unknownCard("temperature", "Temperature", state),
+  ];
 
-  if (!withinForecastHorizon(atUtc, now)) {
-    return [
-      unknownCard("cloud", "Cloud cover", BEYOND_HORIZON),
-      unknownCard("smoke", "Haze & smoke", BEYOND_HORIZON),
-      moonlight,
-      unknownCard("temperature", "Temperature", BEYOND_HORIZON),
-    ];
-  }
-
-  if (pending) {
-    return [
-      unknownCard("cloud", "Cloud cover", "Checking…"),
-      unknownCard("smoke", "Haze & smoke", "Checking…"),
-      moonlight,
-      unknownCard("temperature", "Temperature", "Checking…"),
-    ];
-  }
-
+  // Tracker keeps no weather history, so it has nothing to say about a sky that
+  // has already happened. The Moon still answers, because the Moon's position
+  // on a past date is as computable as on a future one.
+  if (isPastEvent(atUtc, now)) return constants(ALREADY_PAST);
+  if (!withinForecastHorizon(atUtc, now)) return constants(BEYOND_HORIZON);
+  if (pending) return constants("Checking…");
   if (evidenceStatus === "not-supported" || evidenceStatus === "request-failed") {
-    const message =
-      evidenceStatus === "not-supported" ? "No provider covers here" : "Forecast unavailable";
-    return [
-      unknownCard("cloud", "Cloud cover", message),
-      unknownCard("smoke", "Haze & smoke", message),
-      moonlight,
-      unknownCard("temperature", "Temperature", message),
-    ];
+    return constants(
+      evidenceStatus === "not-supported" ? "No provider covers here" : "Forecast unavailable",
+    );
   }
 
   const snapshot = nearestSnapshot(snapshots, atUtc);
-  return [cloudCard(snapshot), smokeCard(snapshot), moonlight, temperatureCard(snapshot)];
+
+  /**
+   * The conditional cards, in the order they would change a decision.
+   *
+   * Precipitation first because it ends the question; then whatever is dimming
+   * the sky; then fog, which cloud cover does not describe; then dew, which is
+   * about the equipment rather than the sky. Each returns null when it has
+   * nothing to say, and a night with nothing to add simply gets three wider
+   * cards.
+   */
+  const conditional = [
+    precipitationCard(snapshot),
+    obstructionCard(snapshot),
+    fogCard(snapshot),
+    dewCard(snapshot),
+  ].filter((card): card is ConditionCard => card !== null);
+
+  return [
+    cloudCard(snapshot),
+    moonlight,
+    temperatureCard(snapshot),
+    // Capped so the row stays scannable. On the rare night that trips four of
+    // them, the two that matter most are the two that are shown.
+    ...conditional.slice(0, MAX_CONDITIONAL_CARDS),
+  ];
 }

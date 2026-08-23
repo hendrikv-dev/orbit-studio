@@ -1,24 +1,39 @@
-import { Cloud, Moon, Thermometer, Wind } from "lucide-react";
+import { Cloud, CloudDrizzle, CloudFog, Droplets, Flame, Moon, Thermometer, Wind } from "lucide-react";
 import type { ConditionCard, ConditionCardId } from "../../data/tracker/conditionCards";
 
 /**
- * Four cards, in the same four places, for every event.
+ * The conditions that bear on tonight, and only those.
  *
- * The row is a constant. It does not gain a card when more is known or lose one
- * when less is, because its job is comparison — between events, and between
- * nights — and a row that changes width cannot be compared with itself.
+ * Three are always here — cloud, moonlight, temperature — because they always
+ * matter. The rest appear when they would change what somebody does and are
+ * absent otherwise.
  *
- * Absence is rendered as absence: "Forecast closer to date" for a date beyond
- * any useful forecast, "Not reported" where no provider supplies the layer.
- * Those are different sentences because they are different situations, and
- * neither is a number.
+ * This used to be a fixed row of four, on the reasoning that a constant row is
+ * comparable between events and between nights. That was true and it cost more
+ * than it bought: the fourth slot was smoke, smoke is negligible on most nights
+ * almost everywhere, and so a quarter of the row spent every night saying "Not
+ * reported" in order to be useful on the few nights it was. Comparability is
+ * preserved where it is actually load-bearing — the three constants never move
+ * — and the row now gets wider cards on an ordinary night instead of an empty
+ * one.
+ *
+ * Absence is still rendered as absence where a card *is* shown: "Forecast
+ * closer to date" beyond any useful horizon, "Not reported" where no provider
+ * supplies the layer. Those are different sentences because they are different
+ * situations, and neither is a number.
  */
 
 const ICONS: Record<ConditionCardId, typeof Cloud> = {
   cloud: Cloud,
-  smoke: Wind,
   moonlight: Moon,
   temperature: Thermometer,
+  // Smoke gets its own mark rather than sharing haze's: they are different
+  // claims from different models, and the row should not imply otherwise.
+  smoke: Flame,
+  haze: Wind,
+  precipitation: CloudDrizzle,
+  fog: CloudFog,
+  dew: Droplets,
 };
 
 export function ConditionsRow({

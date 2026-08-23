@@ -13969,8 +13969,10 @@ button.primary,
 }
 .tk-geomap-controls {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  /* Clear of the frame's own rounded corner, so the stack is never clipped
+     against it and never sits flush to the boundary. */
+  right: 14px;
+  bottom: 14px;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -14113,7 +14115,12 @@ button.primary,
 }
 .tk-conditions-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Was a hard four. The row is now three to five cards depending on what is
+     actually happening, so the columns follow the content and the cards widen
+     to fill the row rather than leaving a gap where a card used to be told to
+     say "Not reported". */
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -14209,6 +14216,9 @@ button.primary,
 .tk-relevant-row:hover { background: rgba(126, 166, 207, 0.06); }
 .tk-relevant-row[aria-current="true"] { background: var(--tk-violet-soft); }
 
+.tk-relevant-row:not(:has(.tk-relevant-rank)) {
+  grid-template-columns: 56px minmax(0, 1fr) auto auto 16px;
+}
 .tk-relevant-rank {
   display: grid;
   place-items: center;
@@ -14303,6 +14313,25 @@ button.primary,
 .tk-overlay-body .tk-viz-panel > svg,
 .tk-overlay-body .tk-geomap-frame > svg { width: 100%; height: auto; }
 .tk-overlay-map .tk-viz-panel { border: 0; padding: 0; background: transparent; }
+/* The drawing is bounded so the whole tool fits the modal.
+   Without this the map kept its natural aspect at full width, which on a
+   laptop made it taller than the scrolling body — so the zoom controls, the
+   legend and the selected-location summary all sat below the fold of what
+   looks like a fixed panel. `preserveAspectRatio` letterboxes it inside the
+   bound, and the click-to-place maths already accounts for the letterbox. */
+.tk-overlay-map .tk-geomap-frame {
+  max-height: min(54vh, 500px);
+}
+.tk-overlay-map .tk-geomap-frame > svg {
+  width: 100%;
+  height: 100%;
+  max-height: min(54vh, 500px);
+}
+/* The map is the tall thing in the overlay; everything under it must stay
+   reachable without scrolling past the controls. */
+.tk-overlay-map .tk-geomap {
+  gap: 8px;
+}
 /* The control that opened this overlay has nothing left to open. */
 .tk-overlay-map .tk-viz-open { display: none; }
 .tk-overlay-footage {
@@ -14461,7 +14490,10 @@ button.primary,
   .tk-hero-media::before {
     background: linear-gradient(0deg, var(--tk-panel) 0%, rgba(14, 21, 35, 0.28) 45%, transparent 80%);
   }
-  .tk-conditions-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tk-conditions-row {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {

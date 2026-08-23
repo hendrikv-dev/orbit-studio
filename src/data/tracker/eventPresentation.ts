@@ -176,7 +176,16 @@ export function presentTonightEvent(
     metrics,
     primaryAction:
       categoryId === "meteors"
-        ? { label: "View sky map", kind: "sky-map" }
+        ? // A shower has a radiant and therefore a direction; the sporadic
+          // background has neither. Offering "View sky map" on a night with no
+          // shower promises a target that does not exist — and the page itself
+          // says so two lines above, in "the sky is the limit tonight, not the
+          // target". The drill-in is still worth opening, because how to watch
+          // sporadics is real advice, so the label says that instead of
+          // promising a map.
+          opportunity.geometry?.kind === "radiant"
+          ? { label: "Where to look", kind: "sky-map" }
+          : { label: "How to watch", kind: "sky-map" }
         : categoryId === "eclipses"
           ? { label: "View visibility map", kind: "coverage-map" }
           : { label: "View sky map", kind: "sky-map" },

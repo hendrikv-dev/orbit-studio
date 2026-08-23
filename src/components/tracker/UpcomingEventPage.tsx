@@ -189,7 +189,15 @@ export function UpcomingEventPage({
   // sampling a coverage grid costs the better part of a second, and a list of
   // ten events containing one eclipse would pay it for a drawing no row shows.
   const rows = useMemo<RelevantEventRow[]>(() => {
-    const category = built.presentation.categoryId;
+    /**
+     * Chronological, and left that way.
+     *
+     * This used to hoist everything sharing the open event's category to the
+     * front. Combined with a rank badge rendered from the row index, that made
+     * the number change with which page was open. Upcoming is ordered by date
+     * rather than by merit, so it now carries no rank at all — a number here
+     * would be inventing a ranking nobody computed.
+     */
     const presented = events.map((entry) => ({
       entry,
       built: buildPresentation(
@@ -203,9 +211,7 @@ export function UpcomingEventPage({
         false,
       ),
     }));
-    const matching = presented.filter((row) => row.built.presentation.categoryId === category);
-    const others = presented.filter((row) => row.built.presentation.categoryId !== category);
-    return [...matching, ...others].slice(0, 6).map((row) => ({
+    return presented.slice(0, 6).map((row) => ({
       presentation: row.built.presentation,
       imagery: row.built.media.kind === "imagery" ? row.built.media.imagery : null,
       thumb: row.built.media.kind === "drawn" ? row.built.media.node : undefined,
@@ -213,6 +219,7 @@ export function UpcomingEventPage({
         row.built.media.kind === "imagery" ? row.built.media.illuminatedFraction : undefined,
       waning: row.built.media.kind === "imagery" ? row.built.media.waning : undefined,
       active: row.entry.id === event.id,
+      rank: null,
     }));
   }, [
     auroraConditions,

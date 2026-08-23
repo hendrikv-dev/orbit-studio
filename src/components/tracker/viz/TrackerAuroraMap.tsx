@@ -66,14 +66,28 @@ interface Props {
  * quiet rather than looking like a legend with nothing in it.
  */
 const RAMP: { stop: number; color: string }[] = [
-  { stop: 5, color: "rgba(72, 96, 150, 0.42)" },
-  { stop: 15, color: "rgba(64, 150, 168, 0.55)" },
-  { stop: 30, color: "rgba(79, 216, 176, 0.62)" },
-  { stop: 50, color: "rgba(196, 226, 122, 0.7)" },
-  { stop: 75, color: "rgba(240, 169, 92, 0.78)" },
+  // Widened against the previous set, which ran from 0.42 to 0.78 alpha over
+  // hues that were already close in luminance. The result read as one soft blue
+  // wash: the legend listed five bands and the drawing showed roughly one, so
+  // the legend was describing something the reader could not actually see.
+  //
+  // Each step now moves in both hue and opacity, and the bottom band is faint
+  // enough to read as "barely anything" rather than as a field.
+  { stop: 5, color: "rgba(60, 82, 140, 0.30)" },
+  { stop: 15, color: "rgba(52, 152, 176, 0.52)" },
+  { stop: 30, color: "rgba(72, 214, 168, 0.68)" },
+  { stop: 50, color: "rgba(214, 226, 104, 0.82)" },
+  { stop: 75, color: "rgba(252, 158, 64, 0.92)" },
 ];
 
+/**
+ * Below this the grid is reporting noise, and drawing it fills the map with a
+ * wash that makes a quiet night look like a forecast.
+ */
+const FLOOR_PERCENT = 3;
+
 function colorFor(probability: number): string | null {
+  if (probability < FLOOR_PERCENT) return null;
   let color: string | null = null;
   for (const entry of RAMP) {
     if (probability >= entry.stop) color = entry.color;
@@ -140,7 +154,7 @@ export function TrackerAuroraMap({
     const cellWidth = Math.abs(projection.x(1) - projection.x(0));
     const cellHeight = Math.abs(projection.y(1) - projection.y(0));
     return (
-      <g filter="url(#tk-geomap-smooth)" opacity={expired ? 0.22 : 1}>
+      <g filter="url(#tk-geomap-soften)" opacity={expired ? 0.22 : 1}>
         {cells.map((cell) => {
           const color = colorFor(cell.probability);
           if (!color) return null;
@@ -163,23 +177,49 @@ export function TrackerAuroraMap({
   const valid = formatClockTime(grid.forecastUtc, clock);
   const age = assessment.gridAgeMinutes;
 
+  /**
+   * Whether this field is about the moment being assessed, or merely about now.
+   *
+   * The defect this closes: opened in the morning, the page assessed tonight
+   * from the three-day K-index and said "quiet tonight" — correctly — while
+   * this panel drew the 8:41 AM OVATION field beside it under the heading
+   * "Aurora nowcast". Two products, half a day apart, presented as one picture
+   * of one night. The nowcast is a half-hour product; it cannot describe a sky
+   * fourteen hours away, and nothing on the panel said so.
+   *
+   * There is no spatial forecast for tonight to draw instead — OVATION is the
+   * only oval product and it only ever describes approximately now — so the
+   * honest move is to keep showing it and label what it is.
+   */
+  const aboutNow = assessment.horizon === "nowcast";
+
   return (
     <div className={`tk-viz-panel tk-auroramap${expired ? " is-expired" : ""}`}>
       <TrackerGeoMap
         bounds={bounds}
         marker={observer}
         legend={[
-          { swatch: "rgba(72, 96, 150, 0.6)", label: "5%" },
-          { swatch: "rgba(64, 150, 168, 0.7)", label: "15%" },
-          { swatch: "rgba(79, 216, 176, 0.75)", label: "30%" },
-          { swatch: "rgba(196, 226, 122, 0.8)", label: "50%" },
-          { swatch: "rgba(240, 169, 92, 0.85)", label: "75%+" },
+          // Taken from the ramp itself rather than hand-copied, which is how
+          // the two drifted apart: the legend showed swatches at opacities the
+          // field never used.
+          ...RAMP.map((entry, index) => ({
+            swatch: entry.color,
+            label: index === RAMP.length - 1 ? `${entry.stop}%+` : `${entry.stop}%`,
+          })),
         ]}
-        title={expired ? "Aurora nowcast — expired" : "Aurora nowcast"}
+        title={
+          expired
+            ? "Current auroral oval — expired"
+            : aboutNow
+              ? "Aurora nowcast"
+              : "Current auroral oval"
+        }
         timing={
           expired
             ? `Last observed ${issued} · expired ${valid}`
-            : `Observed ${issued} · valid to about ${valid}`
+            : aboutNow
+              ? `Observed ${issued} · valid to about ${valid}`
+              : `Observed ${issued} · current conditions, not tonight's oval`
         }
         action={onOpenFullMap ? { label: "Open full map", onSelect: onOpenFullMap } : undefined}
         interactive={interactive}
@@ -194,7 +234,17 @@ export function TrackerAuroraMap({
         onSelectPoint={inspection?.onSelect}
         summary={
           <dl>
-            {visibility ? (
+            {!aboutNow && !expired ? (
+              <div>
+                <dt>What this map is</dt>
+                <dd>
+                  The auroral oval as it is right now. There is no spatial forecast
+                  for later tonight — OVATION runs about half an hour ahead — so
+                  tonight&rsquo;s outlook comes from the three-day K-index instead.
+                </dd>
+              </div>
+            ) : null}
+            {visibility && aboutNow ? (
               <div>
                 <dt>From {observer.label}</dt>
                 <dd>{visibility.statement}</dd>
@@ -238,14 +288,24 @@ export function TrackerAuroraMap({
             : assessment.outlook === "north-of-you"
               ? "The oval is away from you"
               : assessment.outlook === "quiet"
-                ? "Quiet tonight"
+                ? aboutNow
+                  ? "Quiet right now"
+                  : "Quiet tonight"
                 : "Not enough data"}
         </p>
         <p className="tk-viz-verdict-detail">
           {assessment.statement}{" "}
+          {/* The validity sentence has to belong to the product the statement
+              came from. It used to be unconditional, so a three-day K-index
+              verdict — "Kp 1.7 forecast: ordinary activity" — was followed by
+              "Valid for about the next half hour", which is the nowcast's
+              horizon attached to a statement that is not the nowcast's. Two
+              products blurred into one claim, in a single sentence. */}
           {age !== null && age > 120
             ? "This nowcast is out of date — reload before acting on it."
-            : "Valid for about the next half hour."}
+            : aboutNow
+              ? "Valid for about the next half hour."
+              : "That is the three-day outlook; it says how disturbed the field will be, not where the oval will sit."}
         </p>
       </div>
     </div>

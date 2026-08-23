@@ -564,7 +564,13 @@ function LunarEclipseMap({
               ? `The Moon is ${Math.round(observerAltitudeDeg)}° up from here at maximum`
               : "The Moon is below your horizon at maximum"}
         </p>
-        <p className="tk-viz-verdict-detail">{bandSentence}</p>
+        <p className="tk-viz-verdict-detail">
+          {local.band === "all"
+            ? "A lunar eclipse is the same event everywhere the Moon is up, so nowhere sees more of it than you will."
+            : local.band === "none"
+              ? "The Moon is on the far side of the Earth throughout."
+              : "The shaded regions show who sees all of it and who catches only part."}
+        </p>
       </div>
     </div>
   );
