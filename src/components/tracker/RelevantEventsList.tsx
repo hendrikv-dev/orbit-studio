@@ -61,12 +61,16 @@ export interface RelevantEventRow {
 export function RelevantEventsList({
   rows,
   onSelect,
-  heading = "Relevant near you",
+  // "Relevant near you" led with proximity, which is the least interesting
+  // thing the list does — everything in it is near you by construction. The
+  // heading now says what the list is for, and the place becomes the context it
+  // is true of rather than the headline.
+  heading = "Best tonight",
   // What the ranking actually does. The previous line — "Sorted by time,
   // visibility, and your location" — described a sort that does not exist:
   // time is not an input at all, and sky conditions can only move an item by a
   // quarter of its score. See `rankOpportunities`.
-  caption = "Ranked by what is worth seeing tonight: how well it can be observed from here, how striking it is, and how much the sky is likely to cooperate.",
+  caption = "Ranked by overall observing opportunity.",
 }: {
   rows: RelevantEventRow[];
   onSelect: (id: string) => void;

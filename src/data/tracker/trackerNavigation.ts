@@ -41,7 +41,16 @@ export interface TrackerLocation {
    * location only ever has one of them.
    */
   eventId: string | null;
-  mode: "list" | "calendar";
+  /**
+   * How Upcoming is presented.
+   *
+   * Three modes, because the control offered two and one of them was mislabelled:
+   * what the tab called "List" was a card grid, which is a gallery. A real list
+   * is a different tool — it trades pictures for density so more of the month
+   * can be scanned at once — and calling the gallery one meant Tracker had no
+   * way to offer it.
+   */
+  mode: "gallery" | "list" | "calendar";
   category: PhenomenonCategoryId;
   /** The calendar's month. Null in list mode, where the range follows now. */
   year: number | null;
@@ -61,14 +70,14 @@ export const TRACKER_APP_PARAM = "app";
 export const TRACKER_APP_VALUE = "tracker";
 
 const VIEWS = new Set(["tonight", "upcoming"]);
-const MODES = new Set(["list", "calendar"]);
+const MODES = new Set(["gallery", "list", "calendar"]);
 const DRILLS = new Set(["sky", "field"]);
 
 export function defaultTrackerLocation(): TrackerLocation {
   return {
     view: "tonight",
     eventId: null,
-    mode: "list",
+    mode: "gallery",
     category: "all",
     year: null,
     month: null,
@@ -133,7 +142,7 @@ export function trackerLocationToSearch(location: TrackerLocation): string {
 
   if (location.view !== "tonight") params.set("view", location.view);
   if (location.view === "upcoming") {
-    if (location.mode !== "list") params.set("mode", location.mode);
+    if (location.mode !== "gallery") params.set("mode", location.mode);
     if (location.category !== "all") params.set("filter", location.category);
     if (location.mode === "calendar" && location.year !== null && location.month !== null) {
       params.set("month", `${location.year}-${String(location.month).padStart(2, "0")}`);

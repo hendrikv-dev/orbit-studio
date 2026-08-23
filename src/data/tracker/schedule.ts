@@ -296,7 +296,23 @@ export type NotableKind =
   | "eclipse"
   | "shower-peak"
   | "conjunction"
+  /** Full Moon: a phase that is genuinely something to look at. */
   | "moon-phase"
+  /**
+   * First and Last Quarter. Useful to lunar observers and routine otherwise —
+   * they happen every month and are not what a diary of notable events is for,
+   * so they rank below anything that is actually uncommon.
+   */
+  | "quarter-phase"
+  /**
+   * New Moon, which is not an event at all.
+   *
+   * Nothing is visible; the value is the absence of moonlight. Listing it
+   * beside eclipses and conjunctions as though it were a thing to go and see
+   * makes the feed part lunar calendar and buries what is actually notable, so
+   * it is classed as a condition that makes other observing better.
+   */
+  | "dark-sky"
   | "opposition";
 
 export interface NotableEvent {
@@ -343,10 +359,21 @@ function classify(
   }
 
   if (opportunity.kind === "moon" && MILESTONE_PHASES.some((phase) => title.includes(phase))) {
+    const phase = MILESTONE_PHASES.find((entry) => title.includes(entry))!;
+    if (phase === "New Moon") {
+      return {
+        kind: "dark-sky",
+        key: "moon:New Moon",
+        reason: "No moonlight all night — the darkest skies of the month for anything faint.",
+      };
+    }
     return {
-      kind: "moon-phase",
-      key: `moon:${MILESTONE_PHASES.find((phase) => title.includes(phase))}`,
-      reason: "The phase worth timing an evening around.",
+      kind: phase === "Full Moon" ? "moon-phase" : "quarter-phase",
+      key: `moon:${phase}`,
+      reason:
+        phase === "Full Moon"
+          ? "The phase worth timing an evening around."
+          : "Half lit, so craters along the day–night line stand out — the best phase for binoculars.",
     };
   }
 
@@ -402,6 +429,10 @@ export function notableEvents(plans: NightPlan[], limit = 6): NotableEvent[] {
     conjunction: 3,
     "moon-phase": 2,
     opposition: 1,
+    // Below everything that actually happens. Both recur every month, and a
+    // feed advertised as "worth planning for" should not lead with them.
+    "quarter-phase": 0,
+    "dark-sky": 0,
   };
   return [...best.values()]
     .sort((left, right) =>

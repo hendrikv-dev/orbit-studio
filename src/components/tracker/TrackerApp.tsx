@@ -60,6 +60,7 @@ import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
 import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
+import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
 import { useTrackerHistory } from "./useTrackerHistory";
 import { TrackerSkyChart } from "./TrackerSkyChart";
@@ -252,6 +253,21 @@ interface TonightEvent {
   entry: SkyAdjustedOpportunity | null;
   window: BestWindow | null;
   passed: boolean;
+}
+
+/**
+ * The shortest form of a place name that still identifies it.
+ *
+ * Saved locations come from a geocoder and can be long — "97201, Downtown,
+ * Portland, Multnomah, Oregon, United States". The subtitle wants the bit a
+ * person would say out loud.
+ */
+function shortPlaceName(place: SelectedPlace): string {
+  const name = place.name.trim();
+  // A device fix has no name worth quoting; the context line carries accuracy.
+  if (/^where you are$/i.test(name)) return "your location";
+  // Geocoders often return "A, B, C"; the first part is the specific one.
+  return name.split(",")[0].trim() || name;
 }
 
 function TrackerScreen() {
@@ -491,19 +507,50 @@ function TrackerScreen() {
       const window = withSky.windows.get(entry.opportunity.id) ?? null;
       const passed = withSky.passed.has(entry.opportunity.id);
       const imagery = heroImageryFor(entry.opportunity.id, entry.opportunity.kind);
+      const science = entry.opportunity.science;
+      /**
+       * A conjunction is drawn from its own geometry rather than illustrated.
+       *
+       * The stock photograph this replaces showed the Moon beside Venus for
+       * every pairing — the wrong planet for "The Moon and Saturn", and the
+       * wrong lunar phase for every date but one.
+       */
+      const media =
+        science?.kind === "conjunction"
+          ? {
+              kind: "drawn" as const,
+              node: (
+                <TrackerConjunctionScene
+                  positions={science.positions}
+                  separationDeg={science.separationDeg}
+                  moon={science.moon}
+                  direction={entry.opportunity.guidance.direction ?? "the horizon"}
+                />
+              ),
+              claim: "Computed for this event",
+              credit:
+                "Drawn from this pairing's own positions at the recommended moment. Discs are enlarged to be legible; the separation between them is to scale.",
+            }
+          : {
+              kind: "imagery" as const,
+              imagery,
+              illuminatedFraction:
+                entry.opportunity.sceneHints?.illuminatedFraction ??
+                night.meteors.best?.moonIlluminatedFraction ??
+                0.5,
+              waning: entry.opportunity.sceneHints?.waning ?? false,
+            };
       return {
         id: entry.opportunity.id,
         presentation: presentTonightEvent(entry, window, passed, context),
-        media: {
-          kind: "imagery" as const,
-          imagery,
-          illuminatedFraction:
-            entry.opportunity.sceneHints?.illuminatedFraction ??
-            night.meteors.best?.moonIlluminatedFraction ??
-            0.5,
-          waning: entry.opportunity.sceneHints?.waning ?? false,
-        },
-        expectation: imagery.eyeExpectation,
+        media,
+        // The photograph's caption does not describe a diagram. Left as it
+        // was, a computed conjunction carried the night-sky image's note about
+        // long exposures and observatory sites.
+        expectation:
+          media.kind === "drawn" && science?.kind === "conjunction"
+            ? "Two points of light close together, and nothing like this size. The drawing enlarges both so they can be told apart; what your eyes see is the Moon at this phase with a steady point beside it, separated by about the width shown."
+            : imagery.eyeExpectation,
         safety: entry.opportunity.guidance.safety,
         // Passed events sink rather than disappear: "the Moon is already down"
         // is worth being able to see, and it is not a recommendation.
@@ -704,6 +751,8 @@ function TrackerScreen() {
 
   const conditions = useMemo(() => {
     if (!place || !heroEvent) return [];
+    const opportunity = heroEvent.entry?.opportunity ?? null;
+    const category = heroEvent.presentation.categoryId;
     return conditionCards({
       atUtc: heroEvent.presentation.atUtc,
       latitudeDeg: place.latitude,
@@ -712,6 +761,21 @@ function TrackerScreen() {
       evidenceStatus: environment.status,
       now,
       pending: conditionsPending,
+      subject: {
+        categoryId: category === "auroras" ? "auroras" : category,
+        // The Moon is the subject on its own page, in a lunar eclipse, and in
+        // any pairing it is half of.
+        moonIsTheTarget:
+          category === "moon" ||
+          opportunity?.kind === "lunar-eclipse" ||
+          (opportunity?.science?.kind === "conjunction" &&
+            opportunity.science.bodies.some((body) => body === "the Moon")),
+        // Aurora and meteors are wide-field and faint; the same `transparency`
+        // demand the ranking already uses says which is which, so this cannot
+        // drift away from how the event is actually scored.
+        moonlightSensitivity:
+          heroEvent.id === "aurora" || opportunity?.transparency === "high" ? "high" : "low",
+      },
     });
   }, [conditionsPending, environment.status, heroEvent, now, place, snapshots]);
 
@@ -1008,6 +1072,11 @@ function TrackerScreen() {
             onReminder={() => remind(heroEvent.presentation)}
             safety={heroEvent.safety}
             expectation={heroEvent.expectation}
+            // The place is context for the ranking, not its title. Kept short:
+            // a saved location can be a full postal description, and repeating
+            // it at length under a heading two lines from the header's copy of
+            // it reads as a stutter.
+            listCaption={`From ${shortPlaceName(place)} · ranked by overall observing opportunity`}
             planIdentity={night.identity.key}
           />
 

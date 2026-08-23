@@ -413,6 +413,40 @@ function temperatureCard(snapshot: ConditionSnapshot | null): ConditionCard {
 
 /* ------------------------------------------------------------------- row */
 
+/**
+ * What the row is about, so it can decide what is worth showing.
+ *
+ * The row used to know only a time and a place, which is why it showed
+ * "Moonlight · Full Moon · 100% · Some glare" beside a *lunar eclipse* — the
+ * Moon treated as interference with an event whose entire subject is the Moon.
+ * A condition earns its slot by bearing on the decision for *this* event, and
+ * that cannot be judged without knowing what the event is.
+ */
+export interface ConditionSubject {
+  categoryId:
+    | "meteors"
+    | "moon"
+    | "planets"
+    | "pairings"
+    | "eclipses"
+    | "deep-sky"
+    | "auroras";
+  /**
+   * True when the Moon is what the reader is looking at, rather than something
+   * competing with it: the Moon itself, a lunar eclipse, or a pairing with the
+   * Moon in it.
+   */
+  moonIsTheTarget: boolean;
+  /**
+   * How much the Moon's light actually costs this event.
+   *
+   * "high" for faint, wide-field targets — meteors, aurora, dark-sky observing
+   * — where a bright Moon is the difference between seeing it and not. "low"
+   * for bright point targets like planets, which a full Moon barely troubles.
+   */
+  moonlightSensitivity: "high" | "low";
+}
+
 export interface ConditionRowInput {
   atUtc: string;
   latitudeDeg: number;
@@ -422,11 +456,35 @@ export interface ConditionRowInput {
   now: Date;
   /** True while the forecast request is in flight, which is not the same as failed. */
   pending: boolean;
+  /**
+   * What is being observed. Optional so existing callers keep working, but
+   * without it the row falls back to showing moonlight, which is the old
+   * behaviour and is wrong for Moon-target events.
+   */
+  subject?: ConditionSubject;
 }
 
 export function conditionCards(input: ConditionRowInput): ConditionCard[] {
-  const { atUtc, latitudeDeg, longitudeDeg, snapshots, evidenceStatus, now, pending } = input;
-  const moonlight = moonlightCard(atUtc, latitudeDeg, longitudeDeg);
+  const { atUtc, latitudeDeg, longitudeDeg, snapshots, evidenceStatus, now, pending, subject } =
+    input;
+
+  /**
+   * Moonlight, where the Moon is a nuisance rather than the point.
+   *
+   * Three cases, and only the first produces a card:
+   *
+   *  - The Moon interferes. Meteors, aurora and faint objects lose contrast to
+   *    it, so how much of it there is and whether it is up are decisions.
+   *  - The Moon *is* the target. A lunar eclipse, the Moon's own page, a Moon
+   *    pairing. Reporting its brightness as interference is nonsense: it read
+   *    "Full Moon · 100% · Some glare" on an eclipse page, which is the event
+   *    described as its own obstacle.
+   *  - The Moon barely matters. A bright planet is not troubled by moonlight in
+   *    any way the reader can act on, so the slot goes to something that is.
+   */
+  const wantsMoonlight =
+    subject === undefined || (!subject.moonIsTheTarget && subject.moonlightSensitivity === "high");
+  const moonlight = wantsMoonlight ? moonlightCard(atUtc, latitudeDeg, longitudeDeg) : null;
 
   /**
    * The three that are always here.
@@ -436,11 +494,12 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
    * is ever irrelevant, so none is ever omitted — including when the answer is
    * that nothing is known, which is itself worth a slot.
    */
-  const constants = (state: string): ConditionCard[] => [
-    unknownCard("cloud", "Cloud cover", state),
-    moonlight,
-    unknownCard("temperature", "Temperature", state),
-  ];
+  const constants = (state: string): ConditionCard[] =>
+    [
+      unknownCard("cloud", "Cloud cover", state),
+      moonlight,
+      unknownCard("temperature", "Temperature", state),
+    ].filter((card): card is ConditionCard => card !== null);
 
   // Tracker keeps no weather history, so it has nothing to say about a sky that
   // has already happened. The Moon still answers, because the Moon's position
@@ -474,7 +533,7 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
 
   return [
     cloudCard(snapshot),
-    moonlight,
+    ...(moonlight ? [moonlight] : []),
     temperatureCard(snapshot),
     // Capped so the row stays scannable. On the rare night that trips four of
     // them, the two that matter most are the two that are shown.

@@ -157,7 +157,13 @@ export function TrackerHighlights({ events, place, clock, category, onSelect, on
                   <span className="tk-upcoming-card-name">{event.title}</span>
                   <span className="tk-upcoming-card-why">{event.reason}</span>
                   <span className="tk-upcoming-card-foot">
-                    {formatClockTime(event.atUtc, clock)}
+                    {/* Never a bare clock time. 9:12 PM could be maximum
+                        eclipse, an exact phase, moonrise or the start of a good
+                        window, and those are different instructions. */}
+                    <span className="tk-upcoming-card-when">
+                      <b>{event.timing.label}</b>{" "}
+                      {event.timing.text ?? formatClockTime(event.timing.atUtc, clock)}
+                    </span>
                     <ChevronRight size={15} aria-hidden />
                   </span>
                 </span>

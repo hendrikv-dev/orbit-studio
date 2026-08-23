@@ -1,5 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { conditionCards } from "../../data/tracker/conditionCards";
+import {
+  conditionCards,
+  type ConditionSubject,
+} from "../../data/tracker/conditionCards";
 import {
   bestViewingWindow,
   type ConditionSnapshot,
@@ -30,6 +33,7 @@ import { downloadCalendarFile } from "../../lib/trackerCalendar";
 import { formatClockRange, formatClockTime, type PlaceClock } from "../../lib/localTime";
 import { PhenomenonPage } from "./PhenomenonPage";
 import { TrackerOverlay } from "./TrackerOverlay";
+import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerAuroraArt } from "./viz/TrackerAuroraArt";
 import { TrackerEclipseArt } from "./viz/TrackerEclipseArt";
@@ -181,6 +185,7 @@ export function UpcomingEventPage({
         evidenceStatus,
         now,
         pending: false,
+        subject: built.conditionSubject,
       }),
     [built.presentation.atUtc, evidenceStatus, now, place, snapshots],
   );
@@ -318,6 +323,8 @@ interface BuiltEvent {
   skyPath: SkyPath | null;
   /** What the expanded map is, said in the overlay's own subtitle. */
   mapSubtitle: string;
+  /** What the event is, so the conditions row can decide what bears on it. */
+  conditionSubject: ConditionSubject;
 }
 
 /**
@@ -425,6 +432,10 @@ function buildPresentation(
       ) : null,
       mapSubtitle:
         "Where the Moon's shadow falls, computed from the ephemeris. The centre line is the shadow axis; shading is the fraction of the Sun covered.",
+      // The Moon is the occulting body, not a competing light. Reporting its
+      // phase as glare on a solar eclipse page would be doubly wrong: it is
+      // new by definition, and the event is in daylight.
+      conditionSubject: { categoryId: "eclipses", moonIsTheTarget: true, moonlightSensitivity: "low" },
       safety: SOLAR_SAFETY,
       expectation:
         event.local.kind === "total"
@@ -473,6 +484,7 @@ function buildPresentation(
       ),
       mapSubtitle:
         "NOAA planetary K-index forecast. There is no field to map this far ahead — the nowcast that locates the oval is issued about half an hour before it applies.",
+      conditionSubject: { categoryId: "auroras", moonIsTheTarget: false, moonlightSensitivity: "high" },
       safety: null,
       expectation:
         "Kp describes how disturbed Earth's magnetic field will be, not what you will see. Check the nowcast on the night.",
@@ -598,6 +610,16 @@ function buildPresentation(
   }
 
   return {
+    conditionSubject: {
+      categoryId:
+        presentation.categoryId === "auroras" ? "auroras" : presentation.categoryId,
+      moonIsTheTarget:
+        opportunity.kind === "lunar-eclipse" ||
+        opportunity.kind === "moon" ||
+        (opportunity.science?.kind === "conjunction" &&
+          opportunity.science.bodies.some((body) => body === "the Moon")),
+      moonlightSensitivity: opportunity.transparency === "high" ? "high" : "low",
+    },
     mapSubtitle:
       opportunity.kind === "lunar-eclipse"
         ? "Where the Moon is above the horizon while the eclipse runs, from its real contact times. The dashed curves are the horizon at first and last contact."
@@ -624,15 +646,36 @@ function buildPresentation(
       support: notable.reason,
       row: { ...presentation.row, window: dateLabel(event.dateKey) },
     },
-    media: {
-      kind: "imagery",
-      imagery,
-      illuminatedFraction: opportunity.sceneHints?.illuminatedFraction ?? 0.5,
-      waning: opportunity.sceneHints?.waning ?? false,
-    },
+    media:
+      opportunity.science?.kind === "conjunction"
+        ? {
+            // Drawn from this pairing rather than illustrated with another
+            // one. See `TrackerConjunctionScene`.
+            kind: "drawn",
+            node: (
+              <TrackerConjunctionScene
+                positions={opportunity.science.positions}
+                separationDeg={opportunity.science.separationDeg}
+                moon={opportunity.science.moon}
+                direction={opportunity.guidance.direction ?? "the horizon"}
+              />
+            ),
+            claim: "Computed for this event",
+            credit:
+              "Drawn from this pairing's own positions at the recommended moment. Discs are enlarged to be legible; the separation between them is to scale.",
+          }
+        : {
+            kind: "imagery",
+            imagery,
+            illuminatedFraction: opportunity.sceneHints?.illuminatedFraction ?? 0.5,
+            waning: opportunity.sceneHints?.waning ?? false,
+          },
     visualization,
     safety: opportunity.guidance.safety,
-    expectation: imagery.eyeExpectation,
+    expectation:
+      opportunity.science?.kind === "conjunction"
+        ? "Two points of light close together, and nothing like this size. The drawing enlarges both so they can be told apart; what your eyes see is the Moon at this phase with a steady point beside it, separated by about the width shown."
+        : imagery.eyeExpectation,
     skyPath: skyPath && skyPath.kind !== "rate" ? skyPath : null,
   };
 }

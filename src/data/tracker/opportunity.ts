@@ -166,6 +166,20 @@ export interface Opportunity {
         kind: "conjunction";
         bodies: readonly [string, string];
         separationDeg: AngularSeparationDegrees;
+        /**
+         * Where each body actually stands at the moment being recommended.
+         *
+         * Carried so a visual can be *drawn from the event* rather than
+         * illustrated with a photograph of a different one. Every conjunction
+         * used to show the same picture of the Moon and Venus — wrong planet,
+         * wrong phase, wrong separation — under a "Representative example"
+         * badge, which is not a licence to contradict the thing being depicted.
+         */
+        positions: readonly [ConjunctionPosition, ConjunctionPosition];
+        /** The instant the positions describe. */
+        atUtc: string;
+        /** The Moon's real phase then, where the Moon is one of the pair. */
+        moon: { illuminatedFraction: number; waning: boolean } | null;
       };
   /**
    * How good the phenomenon itself is across the night, each value relative to
@@ -214,6 +228,13 @@ export interface Opportunity {
     appearance: string;
     technique: string | null;
   };
+}
+
+/** One body's position at the recommended instant, in the observer's sky. */
+export interface ConjunctionPosition {
+  body: string;
+  altitudeDeg: number;
+  azimuthDeg: number;
 }
 
 /** Below this an opportunity is not observable enough to be ranked at all. */

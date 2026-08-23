@@ -18,6 +18,7 @@ import type { TrackerPlanningRequest } from "../../data/tracker/planningProtocol
 import type { PlaceClock } from "../../lib/localTime";
 import type { SelectedPlace } from "./TrackerPlace";
 import { TrackerHighlights } from "./TrackerHighlights";
+import { TrackerUpcomingList } from "./TrackerUpcomingList";
 import { TrackerMonth } from "./TrackerMonth";
 import { TrackerPlanningStatus } from "./TrackerPlanningStatus";
 import { UpcomingEventPage } from "./UpcomingEventPage";
@@ -82,7 +83,7 @@ export function TrackerUpcoming({
   const mode = location.mode;
   const category = location.category;
   const selectedId = location.eventId;
-  const setMode = (next: "list" | "calendar") => onNavigate({ mode: next });
+  const setMode = (next: "gallery" | "list" | "calendar") => onNavigate({ mode: next });
   const setCategory = (next: PhenomenonCategoryId) => onNavigate({ category: next });
   const setSelectedId = (id: string | null) => onNavigate({ eventId: id });
 
@@ -144,7 +145,9 @@ export function TrackerUpcoming({
             now,
             from: planAnchor,
             // A month view can legitimately hold more than the list features.
-            notableLimit: mode === "calendar" ? 20 : 12,
+            // The gallery is bounded by how many cards fit; a list is bounded
+            // by how much is worth planning for, which is more.
+            notableLimit: mode === "calendar" ? 20 : mode === "list" ? 24 : 12,
           })
         : [],
     [
@@ -193,7 +196,7 @@ export function TrackerUpcoming({
         <div>
           <h1 className="tk-upcoming-title">Upcoming</h1>
           <p className="tk-upcoming-lede">
-            {mode === "list"
+            {mode !== "calendar"
               ? `Worth planning for from ${place.name}, soonest first.`
               : `Marked dates are the ones worth knowing about from ${place.name}.`}
           </p>
@@ -215,7 +218,7 @@ export function TrackerUpcoming({
             </select>
           </label>
           <div className="tk-mode" role="tablist" aria-label="How to browse">
-            {(["list", "calendar"] as const).map((entry) => (
+            {(["gallery", "list", "calendar"] as const).map((entry) => (
               <button
                 key={entry}
                 type="button"
@@ -226,7 +229,7 @@ export function TrackerUpcoming({
                 className="tk-mode-item"
                 onClick={() => setMode(entry)}
               >
-                {entry === "list" ? "List" : "Calendar"}
+                {entry === "gallery" ? "Gallery" : entry === "list" ? "List" : "Calendar"}
               </button>
             ))}
           </div>
@@ -239,7 +242,7 @@ export function TrackerUpcoming({
         aria-labelledby={`tracker-${mode}-tab`}
         className="tk-upcoming-panel"
       >
-        {mode === "list" ? (
+        {mode !== "calendar" ? (
           planning.status === "loading" ? (
             <div className="tk-highlights" data-planning-state="loading">
               <TrackerPlanningStatus
@@ -258,6 +261,13 @@ export function TrackerUpcoming({
                 onRetry={() => setRetryNonce((value) => value + 1)}
               />
             </div>
+          ) : mode === "list" && visible.length > 0 ? (
+            <TrackerUpcomingList
+              events={visible}
+              place={place}
+              clock={clock}
+              onSelect={setSelectedId}
+            />
           ) : (
             <TrackerHighlights
               events={visible}

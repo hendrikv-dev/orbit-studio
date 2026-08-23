@@ -44,12 +44,59 @@ import { notableEvents } from "./schedule";
  * are held to the same one.
  */
 
+/**
+ * What a displayed time actually means.
+ *
+ * An unlabelled clock time on a card is ambiguous in a way that matters: 9:12 PM
+ * could be maximum eclipse, the exact phase instant, moonrise, or the start of
+ * a good window, and those lead to different decisions about when to walk
+ * outside. Every event states which of them it is.
+ */
+export type UpcomingTimeKind =
+  | "maximum"
+  | "phase"
+  | "closest"
+  | "peak"
+  | "best-window"
+  | "dark-window"
+  | "forecast-for";
+
+export interface UpcomingTiming {
+  kind: UpcomingTimeKind;
+  /** The short label shown beside the time. */
+  label: string;
+  atUtc: string;
+  /**
+   * Shown instead of a clock time, where naming an instant would mislead.
+   *
+   * A dark-sky window is the whole night, not a moment: printing "Dark sky
+   * 1:07 AM" invites somebody to go out at one o'clock for something that is
+   * equally true at ten.
+   */
+  text?: string;
+}
+
+/** The words each meaning uses, in one place so no two surfaces disagree. */
+export const UPCOMING_TIME_LABEL: Record<UpcomingTimeKind, string> = {
+  maximum: "Maximum",
+  // Not "Full phase": the same label served First and Last Quarter, which are
+  // by definition not full.
+  phase: "Exact phase",
+  closest: "Closest",
+  peak: "Peak",
+  "best-window": "Best view",
+  "dark-window": "Dark sky",
+  "forecast-for": "Forecast for",
+};
+
 export type UpcomingEvent =
   | {
       kind: "notable";
       id: string;
       dateKey: string;
       atUtc: string;
+      /** What `atUtc` means for this event. */
+      timing: UpcomingTiming;
       category: EventCategoryId;
       title: string;
       label: string;
@@ -69,6 +116,7 @@ export type UpcomingEvent =
       id: string;
       dateKey: string;
       atUtc: string;
+      timing: UpcomingTiming;
       category: "eclipses";
       title: string;
       label: string;
@@ -82,6 +130,7 @@ export type UpcomingEvent =
       id: string;
       dateKey: string;
       atUtc: string;
+      timing: UpcomingTiming;
       category: "auroras";
       title: string;
       label: string;
@@ -95,6 +144,10 @@ const KIND_LABEL: Record<NotableEvent["kind"], string> = {
   "shower-peak": "Meteor peak",
   conjunction: "Conjunction",
   "moon-phase": "Moon phase",
+  "quarter-phase": "Moon phase",
+  // Not an event label. The card says what the night is good for rather than
+  // naming an object nobody can see.
+  "dark-sky": "Dark-sky window",
   opposition: "Opposition",
 };
 
@@ -147,6 +200,12 @@ export function solarEclipsesFor(
       id: event.id,
       dateKey: dateKeyFor(new Date(local.peakUtc ?? event.peakUtc), timeZone),
       atUtc: local.peakUtc ?? event.peakUtc,
+      // An eclipse has a maximum, and that is the moment worth naming.
+      timing: {
+        kind: "maximum" as const,
+        label: UPCOMING_TIME_LABEL.maximum,
+        atUtc: local.peakUtc ?? event.peakUtc,
+      },
       // Last contact, where the geometry established one.
       endUtc: local.partialEndUtc ?? local.peakUtc ?? event.peakUtc,
       category: "eclipses",
@@ -206,6 +265,13 @@ export function auroraRiskFor(
       id: `aurora-${dateKey}`,
       dateKey,
       atUtc: entry.atUtc,
+      // A K-index point is a forecast *for* a date, not an instant anything
+      // happens at, so it must not be labelled peak or maximum.
+      timing: {
+        kind: "forecast-for" as const,
+        label: UPCOMING_TIME_LABEL["forecast-for"],
+        atUtc: entry.atUtc,
+      },
       // A K-index value describes a three-hour bin, and that bin is the whole
       // of what the forecast claims.
       endUtc: new Date(Date.parse(entry.atUtc) + 3 * 3_600_000).toISOString(),
@@ -221,6 +287,38 @@ export function auroraRiskFor(
 }
 
 /** Notable events from the plan layer, in this module's shared shape. */
+/**
+ * The primary timing concept for each kind of event.
+ *
+ * Chosen by what the reader would set an alarm for. A shower has a peak; a
+ * conjunction has a closest approach; a lunar eclipse has a maximum; a phase
+ * has an exact instant. Where the underlying value is a recommended viewing
+ * moment rather than an instant of the phenomenon, it says "Best view" rather
+ * than implying an astronomical event happens then.
+ */
+function timingFor(notable: NotableEvent): UpcomingTiming {
+  const opportunity = notable.entry.opportunity;
+  const atUtc = opportunity.guidance.whenUtc;
+  const kind: UpcomingTimeKind =
+    notable.kind === "dark-sky"
+      ? "dark-window"
+      : opportunity.kind === "lunar-eclipse"
+        ? "maximum"
+        : opportunity.kind === "meteors"
+          ? "peak"
+          : opportunity.science?.kind === "conjunction"
+            ? "closest"
+            : opportunity.kind === "moon"
+              ? "phase"
+              : "best-window";
+  return {
+    kind,
+    label: UPCOMING_TIME_LABEL[kind],
+    atUtc,
+    text: kind === "dark-window" ? "No moon all night" : undefined,
+  };
+}
+
 export function notableUpcomingEvents(plans: NightPlan[], limit = 12): UpcomingEvent[] {
   return notableEvents(plans, limit).map((notable) => {
     const { guidance } = notable.entry.opportunity;
@@ -229,6 +327,7 @@ export function notableUpcomingEvents(plans: NightPlan[], limit = 12): UpcomingE
       id: `${notable.plan.dateKey}:${notable.entry.opportunity.id}`,
       dateKey: notable.plan.dateKey,
       atUtc: guidance.whenUtc,
+      timing: timingFor(notable),
       endUtc: new Date(
         Date.parse(guidance.whenUtc) + guidance.durationMinutes * 60_000,
       ).toISOString(),

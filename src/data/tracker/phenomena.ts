@@ -346,7 +346,10 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
     title: phaseName === "First Quarter" || phaseName === "Last Quarter" || phaseName === "Full Moon"
       ? `The ${phaseName}`
       : phaseName === "New Moon"
-        ? "New Moon"
+        // Named for what it offers. "New Moon" alone reads as a thing to look
+        // at, and the one certainty about a New Moon is that there is nothing
+        // to look at.
+        ? "New Moon — darkest skies"
         : `The Moon, a ${phaseName.toLowerCase()}`,
     summary: isNewMoon
       ? "The Moon is near the Sun and absent from the night sky, leaving the darkest lunar conditions of the month."
@@ -634,14 +637,32 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
         tonight: `Closest useful view at ${formatTime(best.at.toISOString())}, ${best.separation.toFixed(1)}° apart and ${Math.round(best.altitude)}° up.`,
         missingInputs: [],
         limitations: [],
-        science: {
-          kind: "conjunction",
-          bodies: [first.name, second.name],
-          separationDeg: angularSeparation(
-            { altitudeDeg: horizontal(observer, first.body, best.at).altitude, azimuthDeg: horizontal(observer, first.body, best.at).azimuth },
-            { altitudeDeg: horizontal(observer, second.body, best.at).altitude, azimuthDeg: horizontal(observer, second.body, best.at).azimuth },
-          ),
-        },
+        science: (() => {
+          // Both positions, once, at the instant being recommended. Computed
+          // here rather than re-derived downstream so the separation quoted in
+          // words and the geometry a visual draws come from one evaluation.
+          const firstAt = horizontal(observer, first.body, best.at);
+          const secondAt = horizontal(observer, second.body, best.at);
+          const moonInvolved =
+            first.name === "the Moon" || second.name === "the Moon";
+          const phase = moonInvolved ? lunarPhaseAt(best.at) : null;
+          return {
+            kind: "conjunction" as const,
+            bodies: [first.name, second.name] as readonly [string, string],
+            separationDeg: angularSeparation(
+              { altitudeDeg: firstAt.altitude, azimuthDeg: firstAt.azimuth },
+              { altitudeDeg: secondAt.altitude, azimuthDeg: secondAt.azimuth },
+            ),
+            positions: [
+              { body: first.name, altitudeDeg: firstAt.altitude, azimuthDeg: firstAt.azimuth },
+              { body: second.name, altitudeDeg: secondAt.altitude, azimuthDeg: secondAt.azimuth },
+            ] as const,
+            atUtc: best.at.toISOString(),
+            moon: phase
+              ? { illuminatedFraction: phase.illuminatedFraction, waning: phase.waning }
+              : null,
+          };
+        })(),
         profile: conjunctionProfile,
         geometry: targetGeometry(conjunctionProfile),
         transparency: "low",

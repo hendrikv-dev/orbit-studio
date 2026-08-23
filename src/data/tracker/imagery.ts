@@ -206,7 +206,17 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
     };
   }
 
-  if (kind === "conjunction") return MOON_AND_VENUS;
+  /**
+   * Conjunctions get no photograph.
+   *
+   * This returned one picture of the Moon beside Venus for every pairing. For
+   * "The Moon and Saturn" that is the wrong planet; for any date but the one it
+   * was taken on it is the wrong lunar phase; and the separation was whatever
+   * that evening happened to offer. The event page now draws the pairing from
+   * its own ephemeris (`TrackerConjunctionScene`), and anything still asking
+   * for imagery here gets a plain night sky, which claims no geometry at all.
+   */
+  if (kind === "conjunction") return NIGHT_SKY;
 
   if (kind === "planet") {
     if (id.includes("saturn")) {
@@ -264,7 +274,9 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
           "Hubble at Mars's closest in a decade. To your eyes Mars is an orange point of light. Even a good telescope shows a small disc with a few smudges — the polar cap is the one feature most people can pick out.",
       };
     }
-    if (id.includes("venus")) return MOON_AND_VENUS;
+    // Venus alone. The Moon-and-Venus frame implies a pairing that is not the
+    // event, so the generic sky is used until a Venus-only image is cleared.
+    if (id.includes("venus")) return NIGHT_SKY;
   }
 
   return NIGHT_SKY;

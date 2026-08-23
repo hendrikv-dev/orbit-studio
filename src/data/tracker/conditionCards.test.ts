@@ -392,3 +392,75 @@ describe("moonlight", () => {
     }
   });
 });
+
+describe("conditions that bear on this event, not every event", () => {
+  const base = {
+    ...PORTLAND,
+    atUtc: "2026-08-22T06:00:00Z",
+    snapshots: [snapshot()],
+    evidenceStatus: "available" as const,
+    now: NOW,
+    pending: false,
+  };
+
+  const idsFor = (subject: Parameters<typeof conditionCards>[0]["subject"]) =>
+    conditionCards({ ...base, subject }).map((card) => card.id);
+
+  it("omits moonlight when the Moon is the thing being watched", () => {
+    // The defect: a lunar eclipse page carried "Moonlight · Full Moon · 100% ·
+    // Some glare" — the event described as its own obstacle. The Moon's
+    // brightness during a lunar eclipse is the subject, not interference.
+    expect(
+      idsFor({ categoryId: "eclipses", moonIsTheTarget: true, moonlightSensitivity: "low" }),
+    ).not.toContain("moonlight");
+  });
+
+  it("omits moonlight for a pairing the Moon is half of", () => {
+    // "Moonlight washes out faint objects" is not guidance when the Moon is one
+    // of the two things you are looking at.
+    expect(
+      idsFor({ categoryId: "pairings", moonIsTheTarget: true, moonlightSensitivity: "low" }),
+    ).not.toContain("moonlight");
+  });
+
+  it("shows moonlight for meteors, where it decides whether you see anything", () => {
+    expect(
+      idsFor({ categoryId: "meteors", moonIsTheTarget: false, moonlightSensitivity: "high" }),
+    ).toContain("moonlight");
+  });
+
+  it("shows moonlight for aurora, which is faint and wide-field", () => {
+    expect(
+      idsFor({ categoryId: "auroras", moonIsTheTarget: false, moonlightSensitivity: "high" }),
+    ).toContain("moonlight");
+  });
+
+  it("omits moonlight for a bright planet, which it barely troubles", () => {
+    // Saturn is not meaningfully affected by moonlight in any way the reader
+    // can act on, so the slot goes to something that is.
+    expect(
+      idsFor({ categoryId: "planets", moonIsTheTarget: false, moonlightSensitivity: "low" }),
+    ).not.toContain("moonlight");
+  });
+
+  it("still always answers cloud and temperature", () => {
+    for (const subject of [
+      { categoryId: "eclipses" as const, moonIsTheTarget: true, moonlightSensitivity: "low" as const },
+      { categoryId: "meteors" as const, moonIsTheTarget: false, moonlightSensitivity: "high" as const },
+      { categoryId: "planets" as const, moonIsTheTarget: false, moonlightSensitivity: "low" as const },
+    ]) {
+      const ids = idsFor(subject);
+      expect(ids).toContain("cloud");
+      expect(ids).toContain("temperature");
+      // And never an empty slot.
+      expect(ids.length).toBeGreaterThanOrEqual(2);
+      expect(ids.length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("falls back to showing moonlight when the caller says nothing", () => {
+    // Existing callers that have not been taught about subjects keep the old
+    // behaviour rather than silently losing a card.
+    expect(conditionCards(base).map((card) => card.id)).toContain("moonlight");
+  });
+});

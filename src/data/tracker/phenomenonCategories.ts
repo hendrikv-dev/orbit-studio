@@ -108,6 +108,8 @@ const CATEGORY_FOR_KIND: Record<NotableKind, Exclude<PhenomenonCategoryId, "all"
   "shower-peak": "meteors",
   conjunction: "pairings",
   "moon-phase": "moon",
+  "quarter-phase": "moon",
+  "dark-sky": "moon",
   opposition: "planets",
 };
 

@@ -165,15 +165,19 @@ function assertUniversalGeometry(state, label) {
   // clear night shows three wider cards rather than a fourth reading "Not
   // reported". What must hold is that the constants are always there and the
   // row never grows past what stays scannable.
+  // Two to five. Cloud and temperature always bear on the decision; moonlight
+  // only does when the Moon is interference rather than the subject, so a
+  // planet page legitimately shows two. The old "exactly four" contract is what
+  // forced a permanent smoke slot reading "Not reported".
   check(
-    state.geometry.conditions >= 3 && state.geometry.conditions <= 5,
-    `${label}: has three to five condition cards (${state.geometry.conditions})`,
+    state.geometry.conditions >= 2 && state.geometry.conditions <= 5,
+    `${label}: has two to five condition cards (${state.geometry.conditions})`,
   );
   check(
-    ["Cloud cover", "Moonlight", "Temperature"].every((wanted) =>
+    ["Cloud cover", "Temperature"].every((wanted) =>
       state.conditions.some((card) => card.label === wanted),
     ),
-    `${label}: always answers cloud, moonlight and temperature`,
+    `${label}: always answers cloud and temperature`,
   );
   check(
     !state.conditions.some((card) => /^No smoke$|^Not reported$/.test(card.value ?? "")),
@@ -416,8 +420,11 @@ async function main() {
     "the filter offers no category Tracker has no source for",
   );
 
+  // Gallery, not List: the mode control now offers three, and what used to be
+  // called List was this card grid. The parity check is about the underlying
+  // event set, which all three modes share, so it reads the cards.
   const listByCategory = new Map();
-  await portland.getByRole("tab", { name: "List" }).click();
+  await portland.getByRole("tab", { name: "Gallery" }).click();
   await portland.waitForSelector(
     '.tk-highlights[data-planning-state="ready"]',
     {
@@ -515,7 +522,7 @@ async function main() {
     `Upcoming excludes events that have finished (${pastDates.join(", ") || "none"})`,
   );
 
-  await portland.getByRole("tab", { name: "List" }).click();
+  await portland.getByRole("tab", { name: "Gallery" }).click();
   await portland.waitForSelector('.tk-highlights[data-planning-state="ready"]', {
     timeout: 90_000,
   });
@@ -543,11 +550,21 @@ async function main() {
       !solarState.conditions.some((card) => /smoke|haze/i.test(card.label ?? "")),
       "no smoke or haze card is invented for a date beyond any forecast",
     );
+    // Was: moonlight is still answered on a solar eclipse page, because the
+    // Moon's position is geometry rather than forecast. True, and beside the
+    // point — during a solar eclipse the Moon is the occulting body in a
+    // daylit sky, not a light source competing with the target. Reporting its
+    // phase as glare there is the same category error as "Full Moon · 100% ·
+    // Some glare" on a lunar eclipse. The card is now omitted, and what must
+    // still hold is that the geometry-derived cards are the ones that survive
+    // beyond the forecast horizon.
     check(
-      /Moon|%/i.test(
-        solarState.conditions.find((card) => card.label === "Moonlight")?.value ?? "",
-      ),
-      "moonlight is still answered, because it is geometry",
+      !solarState.conditions.some((card) => card.label === "Moonlight"),
+      "no moonlight card on a solar eclipse, where the Moon is the occulter",
+    );
+    check(
+      solarState.conditions.length >= 2,
+      `solar eclipse: the row still answers what it can (${solarState.conditions.length} cards)`,
     );
     check(
       (await portland.locator(".tracker-safety").count()) > 0,
@@ -1024,6 +1041,106 @@ async function main() {
     await context.close();
   }
 
+  /* --- 4b. the one-screen rule -------------------------------------------- */
+  //
+  // Tracker's page-height contract: identity, recommendation, visualization,
+  // conditions and the whole ranked list in one viewport, no page scroll. An
+  // earlier pass abandoned it and the page settled at a constant 1195px — 475
+  // of overflow at 720, so the bottom of the ranking was always below the fold.
+  console.log("\nOne screen");
+
+  // The measured floor. Below it Tracker scrolls rather than clipping, which
+  // is asserted separately at the end of this block.
+  const ONE_SCREEN_MIN_HEIGHT = 1000;
+  for (const viewportHeight of [1200, 1100, ONE_SCREEN_MIN_HEIGHT]) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: viewportHeight },
+    });
+    await seedPlace(context, PLACES.portland);
+    const page = await context.newPage();
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await page.waitForTimeout(4000);
+
+    const fit = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll(".tk-relevant-row")];
+      const last = rows[rows.length - 1]?.getBoundingClientRect() ?? null;
+      const heroRow = document.querySelector(".tk-main-row")?.getBoundingClientRect();
+      const region = (selector) => Boolean(document.querySelector(selector));
+      return {
+        overflow: document.documentElement.scrollHeight - window.innerHeight,
+        rows: rows.length,
+        lastRowBottom: last ? Math.round(last.bottom) : null,
+        viewport: window.innerHeight,
+        heroHeight: heroRow ? Math.round(heroRow.height) : 0,
+        heroClipped: (() => {
+          const hero = document.querySelector(".tk-hero");
+          return hero ? hero.scrollHeight - hero.clientHeight : 0;
+        })(),
+        hasHeading: region(".tk-page-heading h1"),
+        hasHero: region(".tk-hero .tk-hero-name"),
+        hasViz: region(".tk-viz-slot"),
+        hasConditions: region(".tk-condition-card"),
+        hasList: region(".tk-relevant-head"),
+      };
+    });
+
+    check(fit.overflow <= 1, `${viewportHeight}px: the page does not scroll (${fit.overflow}px over)`);
+    check(
+      fit.lastRowBottom !== null && fit.lastRowBottom <= fit.viewport + 1,
+      `${viewportHeight}px: the last ranked row is on screen (${fit.lastRowBottom} of ${fit.viewport})`,
+    );
+    check(
+      fit.hasHeading && fit.hasHero && fit.hasViz && fit.hasConditions && fit.hasList,
+      `${viewportHeight}px: every region is present, not dropped to make room`,
+    );
+    // Fitting by collapsing the hero to nothing is not fitting.
+    check(
+      fit.heroHeight >= 190,
+      `${viewportHeight}px: the hero keeps a usable height (${fit.heroHeight}px)`,
+    );
+    // Nothing may be hidden to achieve the fit.
+    check(
+      fit.heroClipped === 0,
+      `${viewportHeight}px: the hero shows all of its content (${fit.heroClipped}px clipped)`,
+    );
+    if (viewportHeight === ONE_SCREEN_MIN_HEIGHT) {
+      await shot(page, "26-one-screen", "Tonight at the documented minimum height");
+    }
+    await page.close();
+    await context.close();
+  }
+
+  // Below the floor the contract is released rather than enforced by hiding
+  // things: the page scrolls, and nothing is clipped.
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 820 } });
+    await seedPlace(context, PLACES.portland);
+    const page = await context.newPage();
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await page.waitForTimeout(4000);
+    const released = await page.evaluate(() => {
+      const hero = document.querySelector(".tk-hero");
+      return {
+        scrolls: document.documentElement.scrollHeight > window.innerHeight,
+        heroClipped: hero ? hero.scrollHeight - hero.clientHeight : 0,
+        rows: document.querySelectorAll(".tk-relevant-row").length,
+      };
+    });
+    check(
+      released.heroClipped === 0,
+      `below the floor: nothing is clipped (${released.heroClipped}px)`,
+    );
+    check(
+      released.scrolls,
+      "below the floor: the page scrolls rather than hiding the rest of the ranking",
+    );
+    check(released.rows > 0, "below the floor: the ranked list is still rendered");
+    await page.close();
+    await context.close();
+  }
+
   /* --- 5a. rank does not move when the reader navigates ------------------- */
   //
   // The reported defect: on the Saturn page Saturn was rank 1 and Meteors 4; on
@@ -1350,7 +1467,7 @@ async function main() {
   // --- Sequence B: two events deep, two steps back -------------------------
   await nav.selectOption(".tk-phenomenon-filter select", "all");
   await nav.waitForTimeout(700);
-  await nav.getByRole("tab", { name: "List" }).click();
+  await nav.getByRole("tab", { name: "Gallery" }).click();
   await nav.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
   await nav.waitForTimeout(900);
 

@@ -6,6 +6,39 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker credibility and information architecture
+- **Conjunctions are drawn from the conjunction.** Every pairing rendered one
+  photograph of the Moon beside Venus — the wrong planet for "The Moon and
+  Saturn", the wrong lunar phase for any date but the one it was taken on, and
+  whatever separation that evening happened to offer. A "Representative
+  example" badge is a disclosure, not a licence to contradict the event printed
+  beside it. `TrackerConjunctionScene` now draws both bodies from their real
+  altitudes and azimuths at the recommended instant, with the Moon at its actual
+  illumination and the separation annotated and to scale. The discs are
+  enlarged to be legible and the drawing says so.
+- **The one-screen rule is restored**, down to a measured floor of 1000px:
+  identity, recommendation, visualization, conditions and every ranked row in
+  one viewport with nothing clipped. Below that the page scrolls rather than
+  hiding content, which is a documented limit rather than a silent overflow.
+- **`Relevant near you` is now `Best tonight`**, with the place as the subtitle
+  it qualifies rather than the headline.
+- **Condition cards are event-relevant.** Moonlight is interference for meteors
+  and aurora, and is omitted where the Moon is the subject — a lunar eclipse
+  page carried "Moonlight · Full Moon · 100% · Some glare", which is the event
+  described as its own obstacle. It is also omitted for bright planets, which it
+  does not meaningfully trouble. Cloud and temperature stay.
+- **Upcoming has three modes: Gallery, List, Calendar.** What the control called
+  List was a card grid; a real list now trades the pictures for density and
+  carries twice as many events.
+- **Every Upcoming time says what it means.** "9:12 PM" could be maximum
+  eclipse, an exact phase, or the start of a window. Each event now carries a
+  typed timing — Maximum, Peak, Closest, Exact phase, Best view, Dark sky — and
+  no bare clock time is shown. "Full phase" no longer labels a quarter.
+- **New Moon is a dark-sky window, not an event.** Nothing is visible; the value
+  is the absence of moonlight. It is titled "New Moon — darkest skies", labelled
+  "Dark-sky window", shows "No moon all night" instead of an instant, and ranks
+  below anything that actually happens — as do the quarter phases.
+
 ### Tracker ranking integrity and conditional conditions
 - **Rank no longer moves when the reader navigates.** Two bugs compounded:
   rank was rendered from the row's index, and the ranked list was reordered to

@@ -14532,3 +14532,374 @@ button.primary,
   .tk-relevant-thumb { grid-row: 1 / -1; align-self: start; }
   .tk-hero-body { padding: 18px; }
 }
+
+/* The computed conjunction scene.
+   Drawn rather than photographed, and styled to look drawn: a photographic
+   treatment would imply an apparent scale the diagram deliberately does not
+   keep. */
+.tk-conj { display: block; width: 100%; height: 100%; }
+.tk-conj-horizon {
+  stroke: rgba(150, 180, 214, 0.4);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+.tk-conj-compass {
+  fill: rgba(178, 199, 226, 0.75);
+  font-family: var(--tk-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.tk-conj-separation {
+  stroke: rgba(160, 186, 255, 0.42);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.tk-conj-separation-label {
+  fill: rgba(196, 214, 255, 0.9);
+  font-family: var(--tk-mono, monospace);
+  font-size: 12px;
+}
+.tk-conj-glow { fill: rgba(226, 236, 255, 0.16); }
+.tk-conj-body { fill: #eaf1ff; }
+.tk-conj-moon-dark { fill: rgba(120, 132, 158, 0.24); }
+.tk-conj-moon-lit { fill: #e8e2d2; }
+.tk-conj-name {
+  fill: rgba(226, 236, 255, 0.92);
+  font-family: var(--tk-sans, sans-serif);
+  font-size: 13px;
+  paint-order: stroke;
+  stroke: rgba(7, 12, 26, 0.85);
+  stroke-width: 3px;
+}
+.tk-conj-note {
+  fill: rgba(150, 170, 200, 0.6);
+  font-family: var(--tk-mono, monospace);
+  font-size: 10px;
+}
+
+/* The labelled time on an Upcoming card. The label is the quiet half — what
+   the reader scans for is the time — but it must always be present. */
+.tk-upcoming-card-when { display: inline-flex; gap: 6px; align-items: baseline; }
+.tk-upcoming-card-when b {
+  color: var(--tk-ink-faint, var(--tk-ink-dim));
+  font-weight: 500;
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+}
+
+/* Upcoming as a real list: density instead of pictures.
+   Sized so a month of events can be scanned without scrolling, which is the
+   only reason to have a list mode beside a gallery. */
+.tk-uplist { overflow: auto; min-height: 0; }
+.tk-uplist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.tk-uplist-caption {
+  padding: 0 0 10px;
+  color: var(--tk-ink-dim);
+  font-size: 0.8rem;
+  text-align: left;
+}
+.tk-uplist-table thead th {
+  padding: 0 12px 6px;
+  border-bottom: 1px solid var(--tk-line);
+  color: var(--tk-ink-faint, var(--tk-ink-dim));
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.tk-uplist-table tbody tr {
+  border-bottom: 1px solid var(--tk-line);
+}
+.tk-uplist-table tbody tr:hover { background: rgba(120, 140, 190, 0.07); }
+.tk-uplist-table td,
+.tk-uplist-table tbody th { padding: 9px 12px; vertical-align: middle; }
+.tk-uplist-date {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--tk-ink-dim);
+  font-family: var(--tk-mono, monospace);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.tk-uplist-day { color: var(--tk-ink); font-size: 1rem; }
+.tk-uplist-month { text-transform: uppercase; font-size: 0.72rem; }
+.tk-uplist-name button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tk-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-uplist-name button:hover { text-decoration: underline; }
+.tk-uplist-name button:focus-visible {
+  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline-offset: 2px;
+}
+.tk-uplist-why {
+  display: block;
+  max-width: 52ch;
+  overflow: hidden;
+  color: var(--tk-ink-dim);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-uplist-kind span {
+  padding: 2px 8px;
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.tk-uplist-when { font-family: var(--tk-mono, monospace); white-space: nowrap; }
+.tk-uplist-when-label {
+  color: var(--tk-ink-faint, var(--tk-ink-dim));
+  font-size: 0.72rem;
+}
+.tk-uplist-quality.is-good { color: var(--tk-good, #7fd8a6); }
+.tk-uplist-quality.is-fair { color: var(--tk-fair, #e6c887); }
+.tk-uplist-quality.is-unknown { color: var(--tk-ink-dim); }
+.tk-uplist-go { color: var(--tk-ink-dim); text-align: right; }
+.tk-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (max-width: 860px) {
+  /* The two explanatory columns go first on a narrow screen; date, event and
+     time are what the list is for. */
+  .tk-uplist-kind,
+  .tk-uplist-quality { display: none; }
+  .tk-uplist-why { max-width: 30ch; }
+}
+
+/* ------------------------------------------------------ the one-screen rule
+
+   Tracker's page-height contract: identity, recommendation, visualization,
+   conditions and the whole ranked list in one viewport, no page scroll.
+
+   An earlier pass abandoned this ("this is a document again") and the page
+   settled at a constant 1195px tall regardless of the window — 475px of
+   overflow at 720px, so the bottom of the ranked list was always below the
+   fold. The contract is restored here by making the layout height-driven:
+   the shell already gives the page `1fr` of the viewport, so the page takes
+   exactly that and distributes it internally instead of growing.
+
+   What flexes is the hero row, because it is the only region whose content is
+   genuinely elastic — a photograph and a chart both crop or scale gracefully,
+   where a condition card or a list row does not. Everything else is compacted
+   to a fixed, legible size.
+
+   Below `--tk-one-screen-min` the contract is released rather than enforced by
+   making things unreadable; see the media query at the end of this block. */
+@media (min-height: 1000px) and (min-width: 900px) {
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: clamp(12px, 1.4vw, 18px);
+  }
+}
+
+@media (min-height: 1000px) and (min-width: 900px) {
+/* Regions must be allowed to be smaller than their content, or a grid row
+   silently takes its max-content height and the page overflows anyway. */
+.tk-page.tk-tonight .tk-main-row,
+.tk-page[data-mode="upcoming"] .tk-main-row {
+  min-height: 0;
+  margin-bottom: 12px;
+}
+.tk-page.tk-tonight .tk-hero,
+.tk-page.tk-tonight .tk-viz-slot,
+.tk-page[data-mode="upcoming"] .tk-hero,
+.tk-page[data-mode="upcoming"] .tk-viz-slot {
+  min-height: 0;
+  overflow: hidden;
+}
+.tk-page.tk-tonight .tk-hero-media img,
+.tk-page[data-mode="upcoming"] .tk-hero-media img {
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The list keeps every row visible: it is the ranking, and a ranking with its
+   tail cut off is the thing this rule exists to prevent. */
+.tk-page.tk-tonight .tk-relevant,
+.tk-page[data-mode="upcoming"] .tk-relevant {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.tk-page.tk-tonight .tk-relevant-list,
+.tk-page[data-mode="upcoming"] .tk-relevant-list {
+  min-height: 0;
+}
+
+/* Compaction, in the places that cost nothing legible. */
+.tk-page.tk-tonight .tk-page-heading,
+.tk-page[data-mode="upcoming"] .tk-page-heading { margin-bottom: 10px; }
+.tk-page.tk-tonight .tk-page-heading h1,
+.tk-page[data-mode="upcoming"] .tk-page-heading h1 {
+  margin-bottom: 2px;
+  font-size: clamp(1.5rem, 2.4vh, 2rem);
+}
+.tk-page.tk-tonight .tk-relevant-head,
+.tk-page[data-mode="upcoming"] .tk-relevant-head { margin-bottom: 6px; }
+.tk-page.tk-tonight .tk-relevant-row,
+.tk-page[data-mode="upcoming"] .tk-relevant-row {
+  padding: 6px 12px;
+}
+.tk-page.tk-tonight .tk-relevant-thumb,
+.tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 34px; }
+.tk-page.tk-tonight .tk-condition-card,
+.tk-page[data-mode="upcoming"] .tk-condition-card { padding: 10px 12px; }
+.tk-page.tk-tonight .tk-conditions-caption,
+.tk-page[data-mode="upcoming"] .tk-conditions-caption {
+  margin: 6px 0 10px;
+  font-size: 0.68rem;
+}
+
+/* The documented floor: 1000px.
+
+   Measured rather than chosen. The hero's own content — name, recommendation,
+   the note on what the image is versus what an eye sees, three metrics and two
+   actions — comes to about 420px, and the fixed regions above and below it
+   take the rest. At 950 the hero clips by 19px and at 900 by 69px, and a
+   clipped hero is strictly worse than a scrollbar: the reader has no way to
+   reach what was cut.
+
+   So below 1000 the page is a document again and the window scrolls. Getting
+   the contract down to a 900px laptop would mean putting the expectation note
+   behind a disclosure control, which is a content decision rather than a
+   layout one and is recorded as a known limitation instead of taken
+   unilaterally. */
+}
+
+@media (max-height: 999px) {
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* The shell owns the viewport, so the page row is a definite height.
+
+   `min-height: 100dvh` alone is not enough: a `1fr` row inside a container
+   whose height is indefinite still resolves to max-content, so the page's
+   `height: 100%` had nothing to resolve against and the hero kept its natural
+   423px at every window size. Giving the shell a definite height is what makes
+   the page's internal distribution possible at all.
+
+   Released below the documented floor, where the page becomes a document again
+   and the window scrolls normally. */
+@media (min-height: 1000px) and (min-width: 900px) {
+  .tracker-shell {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  /* Views that are legitimately longer than a screen scroll inside the shell
+     rather than scrolling the document, so the header stays put. */
+  .tk-view.tk-upcoming,
+  .tk-entry {
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+/* A floor under the elastic region.
+
+   Without it the hero simply absorbed every pixel the other regions did not
+   want, and at 660px it was 26px tall — the page technically fitted and told
+   the reader nothing. The hero has to hold a recommendation, three metrics and
+   two actions, and below about 200px it cannot.
+
+   The other regions are compacted to their smallest legible sizes here so that
+   floor is reachable at a real laptop height rather than only on a large
+   display. */
+@media (min-height: 1000px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-main-row,
+  .tk-page[data-mode="upcoming"] .tk-main-row {
+    min-height: 200px;
+  }
+  .tk-page.tk-tonight .tk-relevant-row,
+  .tk-page[data-mode="upcoming"] .tk-relevant-row {
+    padding: 4px 12px;
+  }
+  .tk-page.tk-tonight .tk-relevant-thumb,
+  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 30px; }
+  .tk-page.tk-tonight .tk-condition-card,
+  .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 8px 12px; }
+  .tk-page.tk-tonight .tk-conditions-caption,
+  .tk-page[data-mode="upcoming"] .tk-conditions-caption { margin: 4px 0 8px; }
+  .tk-page.tk-tonight,
+  .tk-page[data-mode="upcoming"] {
+    padding-top: clamp(12px, 1.4vw, 20px);
+  }
+}
+
+/* Compaction inside the hero, so the contract is reachable at a real laptop
+   height rather than only on a large display.
+
+   Every saving here is spacing and type scale — nothing is hidden. The hero's
+   content is the recommendation, what it is based on, three metrics and two
+   actions, and all of it stays on screen. */
+@media (min-height: 1000px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-hero-recommendation,
+  .tk-page[data-mode="upcoming"] .tk-hero-recommendation {
+    margin-bottom: 8px;
+    font-size: clamp(1rem, 1.5vh, 1.15rem);
+    line-height: 1.42;
+  }
+  .tk-page.tk-tonight .tracker-expect,
+  .tk-page[data-mode="upcoming"] .tracker-expect {
+    margin: 8px 0 0;
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+  .tk-page.tk-tonight .tk-hero-metrics,
+  .tk-page[data-mode="upcoming"] .tk-hero-metrics {
+    margin: 10px 0;
+    padding: 10px 0;
+  }
+  .tk-page.tk-tonight .tk-hero-actions,
+  .tk-page[data-mode="upcoming"] .tk-hero-actions { margin-top: 10px; }
+  .tk-page.tk-tonight .tk-relevant-row,
+  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 3px 12px; }
+  .tk-page.tk-tonight .tk-relevant-thumb,
+  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 28px; }
+}
+
+/* The last of the spacing, to bring the contract down to a 900px laptop.
+   Below this nothing further can be taken without shrinking type past
+   readability or hiding content, both of which are worse than a scrollbar. */
+@media (min-height: 1000px) and (min-width: 900px) {
+  .tk-page.tk-tonight .tk-page-heading,
+  .tk-page[data-mode="upcoming"] .tk-page-heading { margin-bottom: 6px; }
+  .tk-page.tk-tonight .tk-page-heading p,
+  .tk-page[data-mode="upcoming"] .tk-page-heading p { font-size: 0.78rem; }
+  .tk-page.tk-tonight .tk-conditions-caption,
+  .tk-page[data-mode="upcoming"] .tk-conditions-caption { margin: 3px 0 6px; }
+  .tk-page.tk-tonight .tk-condition-card,
+  .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 7px 12px; }
+  .tk-page.tk-tonight .tk-main-row,
+  .tk-page[data-mode="upcoming"] .tk-main-row { margin-bottom: 8px; }
+  .tk-page.tk-tonight .tk-hero,
+  .tk-page[data-mode="upcoming"] .tk-hero { padding: 14px 16px; }
+  .tk-page.tk-tonight .tk-hero-name,
+  .tk-page[data-mode="upcoming"] .tk-hero-name { font-size: clamp(1.3rem, 2vh, 1.7rem); }
+}

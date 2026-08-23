@@ -1146,14 +1146,15 @@
       },
       "localSha256": {
         "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
-        "src/data/tracker/imagery.ts": "65f97d9e930bdab1200209b127100d3689caf998dbd67542df041c24dbbdba61"
+        "src/data/tracker/imagery.ts": "8f96e0e691e74f65a8e83f99f7e84a712c32dc98974ef357d325a10840f02eed"
       },
       "processing": [
         "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
         "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
         "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
         "Every image carries an ImageryClass from src/data/tracker/imagery.ts — telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic — rendered together with an observation expectation wherever the picture and the eye differ.",
-        "Phase 2 additionally requires and renders an explicit media claim (representative, event-specific, or live), origin (historical capture, current model, or live feed), capture date where applicable, and expected visual mode. None of the current Tracker assets claims to be live."
+        "Phase 2 additionally requires and renders an explicit media claim (representative, event-specific, or live), origin (historical capture, current model, or live feed), capture date where applicable, and expected visual mode. None of the current Tracker assets claims to be live.",
+        "Conjunctions no longer receive a photograph. One frame of the Moon beside Venus was served for every pairing, which is the wrong planet for any pairing that is not Moon-and-Venus and the wrong lunar phase for any date but the one it was taken on. Those events are now drawn from their own ephemeris by TrackerConjunctionScene — real altitudes, azimuths, separation and Moon phase at the recommended instant — and the imagery layer returns a generic night sky to anything that still asks. The Moon-and-Venus frame still ships and is still attributed; it is simply no longer used to depict events it does not depict."
       ],
       "rights": {
         "verification": "verified",
