@@ -125,6 +125,15 @@ function windowText(window: BestWindow | null, whenUtc: string, clock: PlaceCloc
 export interface TonightContext {
   clock: PlaceClock;
   now: Date;
+  /**
+   * What to call the night being described: "tonight", "on 8 Apr 2024".
+   *
+   * The presentation layer used to hard-code "tonight", which was true while
+   * the interface could only show tonight and became a small lie the moment it
+   * could show any date. Passed in rather than derived here, so the pill, the
+   * row and the heading all say the same words.
+   */
+  nightLabel?: string;
   meteors: MeteorNight;
   evidenceStatus: EnvironmentalEvidenceStatus;
 }
@@ -166,7 +175,14 @@ export function presentTonightEvent(
   ) {
     pills.push({ label: "Active now", tone: "live" });
   } else {
-    pills.push({ label: "Tonight", tone: "state" });
+    pills.push({
+      label: context.nightLabel
+        ? context.nightLabel === "tonight"
+          ? "Tonight"
+          : context.nightLabel.replace(/^on /, "")
+        : "Tonight",
+      tone: "state",
+    });
   }
 
   const metrics = metricsFor(entry, window, passed, context);
@@ -421,7 +437,9 @@ function rowStateFor(
   if (opportunity.kind === "moon") return opportunity.summary.split(".")[0];
   return entry.band === "exceptional" || entry.band === "very good"
     ? "Well placed"
-    : "Visible tonight";
+    : context.nightLabel && context.nightLabel !== "tonight"
+      ? `Visible ${context.nightLabel}`
+      : "Visible tonight";
 }
 
 /* ---------------------------------------------------------------- aurora */

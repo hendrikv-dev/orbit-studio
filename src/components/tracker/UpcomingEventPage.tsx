@@ -15,6 +15,7 @@ import {
   visibilityMetric,
   type EventPresentation,
 } from "../../data/tracker/eventPresentation";
+import { eclipseDestinations } from "../../data/tracker/eclipseDestinations";
 import { heroImageryFor } from "../../data/tracker/imagery";
 import {
   lunarGeographicVisibility,
@@ -427,6 +428,17 @@ function buildPresentation(
           onOpenFullMap={onOpenFullMap}
           interactive={full}
           inspection={inspection}
+          /**
+           * Where to go, computed only for the expanded map.
+           *
+           * It costs a path trace and a ring search, which is fine for a
+           * deliberate "where should I go" and wasteful for the panel beside
+           * the hero — and the panel is too small to carry three candidates
+           * legibly anyway.
+           */
+          destinations={
+            full ? eclipseDestinations(event.event, place.latitude, place.longitude) : null
+          }
         />
         </Suspense>
       ) : null,

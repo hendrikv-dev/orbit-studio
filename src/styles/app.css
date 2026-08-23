@@ -15220,3 +15220,123 @@ button.primary,
     overflow: hidden;
   }
 }
+
+/* ------------------------------------------------------------- the date
+
+   Which night is on screen. Sits beside the place because the two are the
+   inputs every Tracker answer depends on, and a reader changing one usually
+   wants to see the other. */
+.tk-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--tk-line);
+  border-radius: 999px;
+  background: rgba(12, 18, 30, 0.6);
+}
+.tk-date-step {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--tk-ink-dim);
+  cursor: pointer;
+}
+.tk-date-step:hover:not(:disabled) { background: rgba(126, 156, 190, 0.16); color: var(--tk-ink); }
+.tk-date-step:disabled { opacity: 0.35; cursor: default; }
+.tk-date-step:focus-visible,
+.tk-date-today:focus-visible,
+.tk-date-field:focus-within {
+  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline-offset: 1px;
+  border-radius: 999px;
+}
+/* The visible label and the native picker occupy the same space: the label is
+   what a reader reads, the input is what their platform opens as a calendar —
+   with the month and year navigation they already know, so reaching 1999 is not
+   three hundred clicks on a month arrow. */
+.tk-date-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.tk-date-label {
+  color: var(--tk-ink);
+  font-family: var(--tk-mono, monospace);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.tk-date-field input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: transparent;
+  font: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+.tk-date-today {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tk-violet-soft);
+  color: var(--tk-violet-lift);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+.tk-date-today:hover { background: rgba(99, 102, 232, 0.26); }
+@media (max-width: 860px) {
+  /* The arrows go before the field does: tapping a date opens the platform
+     picker, which does everything the arrows do. */
+  .tk-date-step { display: none; }
+}
+
+/* The header has three things to fit now, not two.
+   The identity column holds the logo, the place and the date, and with a long
+   saved place name the date was overlapping the view switch. The place is the
+   part that can give: it is the longest and the most compressible, and its
+   context line is already secondary. */
+.tk-header-identity { flex: 1 1 auto; overflow: hidden; }
+.tk-header-identity .tracker-place-current { min-width: 0; }
+.tk-header-identity .tracker-place-context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-date { flex: 0 0 auto; }
+@media (max-width: 1180px) {
+  /* Below this the place's context line goes entirely: the name identifies the
+     place, and the date needs the room more than the postcode does. */
+  .tk-header-identity .tracker-place-context { display: none; }
+}
+
+/* Candidate places to watch an eclipse from.
+   Marked on the map because the question is spatial: how far, and in which
+   direction, from where the reader already is. */
+.tk-dest-halo { fill: rgba(140, 255, 200, 0.18); }
+.tk-dest-dot {
+  fill: #8cffc8;
+  stroke: rgba(6, 12, 20, 0.85);
+  stroke-width: 1.1;
+}
+.tk-dest-label {
+  fill: #b6ffdd;
+  font-family: var(--tk-mono, monospace);
+  font-size: 9.5px;
+  paint-order: stroke;
+  stroke: rgba(6, 10, 20, 0.9);
+  stroke-width: 3px;
+}
+/* The distance disclaimer travels with every distance shown. */
+.tk-dest-note { color: var(--tk-ink-faint, var(--tk-ink-dim)); }

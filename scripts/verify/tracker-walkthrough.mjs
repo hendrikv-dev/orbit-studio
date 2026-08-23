@@ -1247,6 +1247,92 @@ async function main() {
     await context.close();
   }
 
+  /* --- 4c. any date, and where to go ------------------------------------- */
+  //
+  // Tracker could always compute any night — `planNight` takes a Date and never
+  // cared which one. What was locked to tonight was the interface. These check
+  // that the same page renders another date, that the date and the place stay
+  // independent, and that "where should I go" is answered rather than refused.
+  console.log("\nDate and destination");
+
+  const dateContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await seedPlace(dateContext, PLACES.portland);
+  const dated = await dateContext.newPage();
+
+  // A date in the past, reconstructed by the ordinary interface.
+  await dated.goto(`${TRACKER}&date=2024-04-08`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await dated.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await dated.waitForTimeout(4500);
+
+  const historical = await dated.evaluate(() => ({
+    heading: document.querySelector(".tk-relevant-head h2")?.textContent ?? "",
+    body: document.body.innerText,
+    rows: document.querySelectorAll(".tk-relevant-row").length,
+    place: document.querySelector("header.tk-header")?.textContent ?? "",
+    conditions: [...document.querySelectorAll(".tk-condition-value")].map((n) => n.textContent),
+  }));
+
+  check(/Apr 8, 2024|8 Apr 2024/.test(historical.heading), `the heading names the date (${historical.heading})`);
+  check(
+    !/historical|past mode|future mode|archive/i.test(historical.body),
+    "no language about modes, archives or the software's state",
+  );
+  check(historical.rows > 0, `a historical night still produces a ranking (${historical.rows} rows)`);
+  check(
+    historical.place.includes(PLACES.portland.name),
+    "changing the date preserves the place",
+  );
+  check(
+    historical.conditions.some((value) => /not recorded/i.test(value ?? "")),
+    "no weather is invented for a night in the past",
+  );
+  await shot(dated, "28-historical-date", "the same page, 8 April 2024");
+
+  // Back returns to the night the reader came from.
+  await dated.goBack();
+  await dated.waitForTimeout(2500);
+  check(
+    new URL(dated.url()).searchParams.get("date") === null,
+    "Back from a chosen date returns to today",
+  );
+
+  // And the date control is present and operable.
+  await dated.goto(`${TRACKER}&date=2024-04-08`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await dated.waitForSelector(".tk-date", { timeout: 30_000 });
+  await dated.waitForTimeout(3500);
+  check(
+    (await dated.locator('.tk-date input[type="date"]').inputValue()) === "2024-04-08",
+    "the date control shows the night on screen",
+  );
+  await dated.locator(".tk-date-step").first().click();
+  await dated.waitForTimeout(2500);
+  check(
+    new URL(dated.url()).searchParams.get("date") === "2024-04-07",
+    "the previous-night arrow moves one day",
+  );
+  const todayButton = dated.locator(".tk-date-today");
+  if ((await todayButton.count()) > 0) {
+    await todayButton.click();
+    await dated.waitForTimeout(2500);
+    check(
+      new URL(dated.url()).searchParams.get("date") === null,
+      "Today returns to the reader's own tonight",
+    );
+    check(
+      /Best tonight/.test(await dated.locator(".tk-relevant-head h2").innerText()),
+      "and the heading says tonight again",
+    );
+  }
+
+  await dated.close();
+  await dateContext.close();
+
   /* --- 5a. rank does not move when the reader navigates ------------------- */
   //
   // The reported defect: on the Saturn page Saturn was rank 1 and Meteors 4; on

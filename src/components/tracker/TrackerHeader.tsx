@@ -1,6 +1,7 @@
 import { Bell, CircleHelp, Settings } from "lucide-react";
 import { Button, Dialog, DialogTrigger, Popover } from "react-aria-components";
 import type { WeatherSourceInfo } from "../../data/tracker/conditions";
+import { TrackerDate } from "./TrackerDate";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 
 /**
@@ -32,6 +33,13 @@ interface Props {
   freshnessMinutes: number | null;
   /** Which providers are actually behind the numbers on screen. */
   sources: WeatherSourceInfo[];
+  /**
+   * Which night is on screen, and how to change it.
+   *
+   * Beside the place, because date and place are the two things every answer
+   * depends on and a reader changing one usually wants to see the other.
+   */
+  date?: { value: string; today: string; onSelect: (date: string) => void };
 }
 
 const VIEWS: { id: TrackerView; label: string }[] = [
@@ -55,6 +63,7 @@ export function TrackerHeader({
   onSelectView,
   freshnessMinutes,
   sources,
+  date,
 }: Props) {
   const freshness = freshnessLabel(freshnessMinutes);
 
@@ -80,6 +89,12 @@ export function TrackerHeader({
           <>
             <span className="tk-header-divider" aria-hidden />
             <TrackerPlace place={place} onSelect={onSelectPlace} />
+            {date ? (
+              <>
+                <span className="tk-header-divider" aria-hidden />
+                <TrackerDate date={date.value} today={date.today} onSelect={date.onSelect} />
+              </>
+            ) : null}
           </>
         ) : null}
       </div>

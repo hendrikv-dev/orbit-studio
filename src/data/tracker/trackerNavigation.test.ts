@@ -30,6 +30,7 @@ describe("tracker locations in the URL", () => {
   it("round-trips every field it encodes", () => {
     const location: TrackerLocation = {
       view: "upcoming",
+      date: "2026-03-03",
       eventId: "lunar-eclipse-2026-03-03",
       mode: "calendar",
       category: "eclipses",
@@ -38,6 +39,41 @@ describe("tracker locations in the URL", () => {
       drill: "field",
     };
     expect(parseTrackerLocation(trackerLocationToSearch(location))).toEqual(location);
+  });
+
+  it("keeps the resting URL free of today's date", () => {
+    // A link shared without a date should open on the reader's own tonight
+    // rather than pinning the day it was copied.
+    expect(trackerLocationToSearch(defaultTrackerLocation())).toBe("?app=tracker");
+    expect(parseTrackerLocation("?app=tracker").date).toBeNull();
+  });
+
+  it("carries a chosen date, and refuses one outside the supported range", () => {
+    const search = trackerLocationToSearch({
+      ...defaultTrackerLocation(),
+      date: "2024-08-12",
+    });
+    expect(new URLSearchParams(search).get("date")).toBe("2024-08-12");
+    expect(parseTrackerLocation("?date=2024-08-12").date).toBe("2024-08-12");
+    // Outside the ephemeris's accuracy window, and not a real date at all.
+    expect(parseTrackerLocation("?date=1543-06-01").date).toBeNull();
+    expect(parseTrackerLocation("?date=2026-02-31").date).toBeNull();
+    expect(parseTrackerLocation("?date=yesterday").date).toBeNull();
+  });
+
+  it("treats a change of date as a step Back should undo", () => {
+    const base = defaultTrackerLocation();
+    expect(isNavigationStep(base, { ...base, date: "2024-08-12" })).toBe(true);
+  });
+
+  it("keeps date and place independent", () => {
+    // Nothing in the location couples them: changing one leaves the other
+    // exactly as it was, which is what "what was visible from Seattle on 12
+    // August 2024" needs.
+    const withDate = { ...defaultTrackerLocation(), date: "2024-08-12" };
+    const alsoFiltered = { ...withDate, category: "eclipses" as const };
+    expect(alsoFiltered.date).toBe("2024-08-12");
+    expect(parseTrackerLocation(trackerLocationToSearch(alsoFiltered)).date).toBe("2024-08-12");
   });
 
   it("round-trips a Tonight drill-in", () => {

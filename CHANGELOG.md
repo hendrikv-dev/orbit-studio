@@ -6,6 +6,34 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker: any date, and where to go to see an eclipse
+- **Tracker shows any night, through the same page.** `planNight` always took a
+  `Date` and never cared which one — only the interface was locked to tonight.
+  A date now lives in the location alongside the place, both independent, so
+  "what was visible from Seattle on 12 August 2024" is two ordinary changes and
+  not a mode. There is no Past, Future or Archive: the heading reads "Best
+  tonight" today and "Best on Apr 8, 2024" otherwise, and the calendar says the
+  rest.
+- **Today is anchored at now, a chosen date at local noon.** Not a detail: the
+  observation period attaches an instant to the night it falls in, so noon on
+  the 12th finds the 12th's evening, while a reader looking at 1 AM is standing
+  under a night that began yesterday and must not be shown tomorrow's.
+- **The supported range is 1700–2200**, which is Astronomy Engine's own
+  documented accuracy window. Outside it Tracker declines rather than quoting
+  numbers it will not stand behind.
+- **"Where should I go to see the next eclipse?" is answered.** Two searches,
+  deliberately different: `findNextVisibleEclipse` takes a location and skips
+  what cannot be seen from it; `findNextEclipse` takes none, because an eclipse
+  that misses the reader is the subject of the question rather than a reason to
+  discard it. From an origin, Tracker offers at most three candidates — nearest
+  visibility, nearest totality or annularity, best view within reach — each with
+  its own local circumstances, drawn on the eclipse map and stated in words.
+  Distances are straight lines and say so.
+- **Validated against eclipses people remember.** Greatest eclipse for 12 August
+  2026 lands at 65.2°N 25.2°W, off Iceland; London sees 91% and is sent 973 km
+  south-west to the Spanish track; Portland's last visible eclipse was 8 April
+  2024 at 22%. Five origins, inside and outside the footprint.
+
 ### Tracker semantics and copy
 - **Best tonight is a recommendation list, not an inventory.** Aurora, Meteors
   and the Moon appeared every night from every location because Tracker supports

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { EclipseDestinations } from "../../../data/tracker/eclipseDestinations";
 import {
   localSolarCircumstances,
   type CentralPathPoint,
@@ -45,6 +46,13 @@ const SOLAR_BANDS: { floor: number; color: string; label: string }[] = [
   { floor: 0.01, color: "rgba(60, 76, 140, 0.36)", label: "Under 20%" },
 ];
 
+/** What each candidate is, in the reader's terms rather than the code's. */
+const DESTINATION_LABEL: Record<string, string> = {
+  "closest-visibility": "Nearest place it is visible",
+  "closest-central": "Nearest totality or annularity",
+  "best-nearby": "Best view within reach",
+};
+
 function bandColor(fraction: number): string | null {
   for (const band of SOLAR_BANDS) {
     if (fraction >= band.floor) return band.color;
@@ -82,6 +90,15 @@ interface SolarProps {
   } | null;
   /** Whether this instance is the exploratory one. */
   interactive?: boolean;
+  /**
+   * Where to go, when the reader asks.
+   *
+   * "It isn't visible from your location" is a refusal rather than an answer to
+   * "where should I go to see the next eclipse", so the map carries the
+   * candidates and their local circumstances rather than sending the reader
+   * somewhere else to find them.
+   */
+  destinations?: EclipseDestinations | null;
 }
 
 interface LunarProps {
@@ -139,6 +156,7 @@ function SolarEclipseMap({
   onOpenFullMap,
   inspection = null,
   interactive = false,
+  destinations = null,
 }: SolarProps) {
   /**
    * The picked point's circumstances, from the same per-observer routine the
@@ -233,6 +251,28 @@ function SolarEclipseMap({
             <path d={pathData} className="tk-eclipse-track" />
           </>
         ) : null}
+
+        {/* Where to go, drawn where it is.
+        
+            A candidate is a place, so it belongs on the map beside the reader's
+            own marker rather than only in a list underneath it — the whole
+            point of the question is the spatial relationship between where you
+            are and where the eclipse is. */}
+        {destinations?.candidates.map((candidate) => (
+          <g
+            key={`${candidate.kind}:${candidate.latitudeDeg.toFixed(2)}`}
+            className="tk-dest-marker"
+            transform={`translate(${projection.x(candidate.longitudeDeg)} ${projection.y(
+              candidate.latitudeDeg,
+            )})`}
+          >
+            <circle r={7} className="tk-dest-halo" />
+            <circle r={3} className="tk-dest-dot" />
+            <text x={10} y={4} className="tk-dest-label">
+              {DESTINATION_LABEL[candidate.kind] ?? candidate.kind}
+            </text>
+          </g>
+        ))}
       </>
     );
   };
@@ -295,6 +335,21 @@ function SolarEclipseMap({
                   : "This eclipse is not visible from here."}
               </dd>
             </div>
+            {/* Where to go, in words as well as on the drawing. This is the
+                answer to "where should I go", and a reader who cannot see the
+                map has to be able to reach it. */}
+            {destinations?.candidates.map((candidate) => (
+              <div key={`${candidate.kind}:${candidate.latitudeDeg.toFixed(2)}`}>
+                <dt>{DESTINATION_LABEL[candidate.kind]}</dt>
+                <dd>
+                  {candidate.summary}{" "}
+                  <span className="tk-dest-note">
+                    {Math.round(candidate.distanceKm)} km in a straight line — not a
+                    driving distance.
+                  </span>
+                </dd>
+              </div>
+            ))}
             {inspected && inspection?.point ? (
               <div>
                 <dt>

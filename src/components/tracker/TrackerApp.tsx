@@ -66,6 +66,11 @@ import {
   moonEligibility,
   type EligibilityVerdict,
 } from "../../data/tracker/bestTonightEligibility";
+import {
+  describeDate,
+  instantForDate,
+  todayIn,
+} from "../../data/tracker/skyContext";
 import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
@@ -328,7 +333,14 @@ function TrackerScreen() {
   drillRef.current = location.drill;
   viewRef.current = location.view;
   const [now, setNow] = useState(() => new Date());
-  const [planAnchor, setPlanAnchor] = useState(() => new Date());
+  /**
+   * The instant "today" rolls over on, kept separate from the chosen date.
+   *
+   * Only used when no date is selected. It exists so a page left open across
+   * midnight moves to the new night on its own; a page showing a chosen date
+   * must not move at all.
+   */
+  const [todayAnchor, setTodayAnchor] = useState(() => new Date());
 
   useEffect(() => {
     signalAppReady();
@@ -358,6 +370,32 @@ function TrackerScreen() {
   const weather = useConditions(place);
   const aerosol = useAerosol(place);
   const aurora = useAurora(Boolean(place));
+
+  /** Today in the observer's own zone, which is what "no date chosen" means. */
+  const today = useMemo(() => todayIn(clock.timeZone, todayAnchor), [clock.timeZone, todayAnchor]);
+
+  /** The date on screen: the reader's choice, or today. */
+  const selectedDate = location.date ?? today;
+  const isToday = selectedDate === today;
+
+  /**
+   * The instant handed to the astronomy.
+   *
+   * For a chosen date, local noon: the observation period anchors to the night
+   * an instant falls in, so midnight on the 12th would land inside the 11th's
+   * evening and quietly answer for the wrong night.
+   *
+   * For today, `now` — which is not the same thing. A reader looking at this at
+   * 1 AM is inside a night that began yesterday evening, and that night is the
+   * one they are standing under. Anchoring today at noon would skip it and show
+   * them the *next* evening, twenty hours away: the aurora nowcast would fall
+   * outside its half-hour horizon, and the page would drop to the three-day
+   * K-index for a night the reader is currently outside in.
+   */
+  const planAnchor = useMemo(
+    () => (isToday ? todayAnchor : instantForDate(selectedDate, clock.timeZone)),
+    [clock.timeZone, isToday, selectedDate, todayAnchor],
+  );
 
   const night = useMemo(
     () =>
@@ -398,7 +436,7 @@ function TrackerScreen() {
       Math.max(1_000, Date.parse(night.period.endUtc) - Date.now() + 1_000),
       2_147_000_000,
     );
-    const timer = globalThis.setTimeout(() => setPlanAnchor(new Date()), delay);
+    const timer = globalThis.setTimeout(() => setTodayAnchor(new Date()), delay);
     return () => globalThis.clearTimeout(timer);
   }, [night?.identity.key]);
 
@@ -536,6 +574,8 @@ function TrackerScreen() {
       now,
       meteors: night.meteors,
       evidenceStatus: environment.status,
+      // What to call this night, so every sentence agrees with the heading.
+      nightLabel: describeDate(selectedDate, today).heading,
     };
 
     const events: Omit<TonightEvent, "rank">[] = withSky.ranked.map((entry) => {
@@ -1006,6 +1046,8 @@ function TrackerScreen() {
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
     const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
+    // "Saturn tonight" is wrong on a night that is not tonight.
+    const nightWord = describeDate(selectedDate, today).heading;
     const quality = heroEvent.presentation.metrics[2];
     const verdict = {
       // These describe the whole opportunity, which is what the third metric
@@ -1014,12 +1056,12 @@ function TrackerScreen() {
       // wrong or what to do about it.
       headline:
         quality.tone === "good"
-          ? "Worth going out for tonight"
+          ? `Worth going out for ${nightWord}`
           : quality.tone === "fair"
             ? "Worth a look if you are out anyway"
             : quality.tone === "poor"
-              ? "Not much to see tonight"
-              : "Not enough information tonight",
+              ? `Not much to see ${nightWord}`
+              : `Not enough information for ${nightWord === "tonight" ? "tonight" : nightWord.replace(/^on /, "")}`,
       detail: heroEvent.presentation.support ?? "",
       tone: quality.tone === "plain" ? ("unknown" as const) : quality.tone,
     };
@@ -1080,7 +1122,7 @@ function TrackerScreen() {
           windowEndUtc={heroEvent.window?.endUtc ?? null}
           gaze={gaze}
           verdict={{ ...verdict, detail: streams }}
-          title="Meteor activity tonight"
+          title={`Meteor activity ${nightWord}`}
           timing={timing}
         />
       );
@@ -1093,7 +1135,7 @@ function TrackerScreen() {
           period={night.period}
           clock={clock}
           gaze={gaze}
-          title={`${heroEvent.presentation.title} tonight`}
+          title={`${heroEvent.presentation.title} ${nightWord}`}
           timing={timing}
           verdict={verdict}
         />
@@ -1139,6 +1181,15 @@ function TrackerScreen() {
         onSelectPlace={setPlace}
         view={view}
         onSelectView={(next) => navigate({ view: next, eventId: null, drill: null })}
+        date={{
+          value: selectedDate,
+          today,
+          // Today is stored as null so a shared link opens on the reader's own
+          // tonight rather than the day it was copied. Changing the date clears
+          // the selected event: it belonged to a different night.
+          onSelect: (next) =>
+            navigate({ date: next === today ? null : next, eventId: null, drill: null }),
+        }}
         freshnessMinutes={freshnessMinutes}
         sources={sources}
       />
@@ -1186,6 +1237,11 @@ function TrackerScreen() {
             // a saved location can be a full postal description, and repeating
             // it at length under a heading two lines from the header's copy of
             // it reads as a stutter.
+            // "Best tonight" on today, "Best on 12 Aug" on any other date. The
+            // calendar already says when the reader is looking, so the heading
+            // names the night rather than the software's state — no "Historical
+            // results", no "Past mode".
+            listHeading={`Best ${describeDate(selectedDate, today).heading}`}
             listCaption={`From ${shortPlaceName(place)} · ranked by overall observing opportunity`}
             planIdentity={night.identity.key}
           />

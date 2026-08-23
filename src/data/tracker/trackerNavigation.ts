@@ -1,4 +1,5 @@
 import type { PhenomenonCategoryId } from "./phenomenonCategories";
+import { isSupportedDate } from "./skyContext";
 
 /**
  * Where the reader is inside Tracker, as one value.
@@ -33,6 +34,18 @@ import type { PhenomenonCategoryId } from "./phenomenonCategories";
  */
 export interface TrackerLocation {
   view: "tonight" | "upcoming";
+  /**
+   * The night being shown, as the observer's calendar date.
+   *
+   * Null means today, and today is not stored: the resting URL stays
+   * `?app=tracker` rather than pinning a date that will be wrong tomorrow, and
+   * a link shared without a date opens on the reader's own tonight.
+   *
+   * Independent of `place` by construction — they are separate fields, so
+   * changing one cannot reset the other. That is what makes "what was visible
+   * from Seattle on 12 August 2024" two ordinary changes rather than a mode.
+   */
+  date: string | null;
   /**
    * The event being shown.
    *
@@ -76,6 +89,7 @@ const DRILLS = new Set(["sky", "field"]);
 export function defaultTrackerLocation(): TrackerLocation {
   return {
     view: "tonight",
+    date: null,
     eventId: null,
     mode: "gallery",
     category: "all",
@@ -98,6 +112,9 @@ export function parseTrackerLocation(search: string): TrackerLocation {
 
   const view = params.get("view");
   if (view && VIEWS.has(view)) location.view = view as TrackerLocation["view"];
+
+  const date = params.get("date");
+  if (date && isSupportedDate(date)) location.date = date;
 
   const mode = params.get("mode");
   if (mode && MODES.has(mode)) location.mode = mode as TrackerLocation["mode"];
@@ -141,6 +158,7 @@ export function trackerLocationToSearch(location: TrackerLocation): string {
   params.set(TRACKER_APP_PARAM, TRACKER_APP_VALUE);
 
   if (location.view !== "tonight") params.set("view", location.view);
+  if (location.date) params.set("date", location.date);
   if (location.view === "upcoming") {
     if (location.mode !== "gallery") params.set("mode", location.mode);
     if (location.category !== "all") params.set("filter", location.category);
@@ -165,13 +183,20 @@ export function trackerLocationToSearch(location: TrackerLocation): string {
  */
 export function isNavigationStep(from: TrackerLocation, to: TrackerLocation): boolean {
   return (
-    from.view !== to.view || from.eventId !== to.eventId || from.drill !== to.drill
+    from.view !== to.view ||
+    from.eventId !== to.eventId ||
+    from.drill !== to.drill ||
+    // Moving to another date is navigation in the sense that matters: Back
+    // should return the reader to the night they came from, the same way it
+    // returns them to the event they came from.
+    from.date !== to.date
   );
 }
 
 export function sameTrackerLocation(a: TrackerLocation, b: TrackerLocation): boolean {
   return (
     a.view === b.view &&
+    a.date === b.date &&
     a.eventId === b.eventId &&
     a.mode === b.mode &&
     a.category === b.category &&
