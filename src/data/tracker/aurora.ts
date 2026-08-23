@@ -525,7 +525,7 @@ export function assessAurora(
       outlook: "unknown",
       horizon,
       statement: "No space-weather product has been read yet.",
-      certainty: "Aurora cannot be computed from geometry; it needs a live feed.",
+      certainty: "Aurora depends on the solar wind, so it has to be measured rather than calculated.",
     };
   }
 
@@ -547,7 +547,7 @@ export function assessAurora(
         outlook: "unknown",
         horizon,
         statement: "The three-day forecast does not reach this night.",
-        certainty: "Only the planetary K-index reaches beyond the next hour, and it stops here.",
+        certainty: "Only the three-day K-index looks further ahead than the next hour, and it does not reach this night.",
       };
     }
     const storm = stormScaleFor(point.kp);
@@ -560,7 +560,7 @@ export function assessAurora(
         ? `Kp ${point.kp.toFixed(1)} forecast — ${storm.label} conditions.`
         : `Kp ${point.kp.toFixed(1)} forecast: ordinary activity.`,
       certainty:
-        "A three-day K-index forecast describes how disturbed the field will be, not where the oval will sit. Nothing finer is knowable this far out.",
+        "The three-day forecast says how disturbed the magnetic field will be, not where the aurora will be. Nothing more precise is available this far ahead.",
     };
   }
 
@@ -572,7 +572,7 @@ export function assessAurora(
       horizon,
       kp: conditions.currentKp,
       statement: "The aurora nowcast is unavailable.",
-      certainty: "Without the nowcast grid there is nothing to say about where the oval is.",
+      certainty: "Without the nowcast there is no way to say where the aurora is.",
     };
   }
 
@@ -595,7 +595,7 @@ export function assessAurora(
       gridAgeMinutes: ageMinutes,
       validity,
       statement: "Current auroral conditions are unavailable.",
-      certainty: `The last nowcast reached this device ${describeAge(ageMinutes)} and has expired. Aurora restructures itself over tens of minutes, so it cannot say what the sky is doing now.`,
+      certainty: `The last nowcast arrived ${describeAge(ageMinutes)} and has expired. Aurora changes over tens of minutes, so it no longer describes the sky.`,
     };
   }
 
@@ -617,12 +617,12 @@ export function assessAurora(
       reported >= 10
         ? `NOAA puts the chance of visible aurora at ${reported}% over your location.`
         : nearby
-          ? `The oval is not over you — NOAA gives ${nearby.probabilityPercent}% about ${Math.round(nearby.distanceKm)} km ${compassWord(nearby.bearingDeg)}. Strong aurora can still show low on the horizon from outside it.`
-          : "The oval is well away from you and the field is quiet.",
+          ? `The aurora is ${Math.round(nearby.distanceKm)} km ${compassWord(nearby.bearingDeg)} of you, where NOAA gives it ${nearby.probabilityPercent}%. A strong display can still show low on the horizon from outside it.`
+          : "The aurora is well away from here and activity is low.",
     certainty:
       freshness === "aging"
-        ? `This nowcast expired ${describeAge(Math.round((now.getTime() - Date.parse(grid.forecastUtc)) / 60_000))} — treat it as the last known picture rather than the current one.`
-        : "A nowcast, valid for about half an hour from its observation. Aurora cannot be forecast reliably further ahead than that.",
+        ? `This nowcast expired ${describeAge(Math.round((now.getTime() - Date.parse(grid.forecastUtc)) / 60_000))}. Treat it as the last picture available, not the current one.`
+        : "A nowcast, good for about half an hour after it was observed. Aurora cannot be forecast reliably further ahead.",
   };
 }
 
@@ -927,7 +927,7 @@ export function auroraVisibility(
       ...base,
       kind: "unavailable",
       statement:
-        "No space-weather product reached this device, so nothing can be said about where the aurora is.",
+        "No space-weather data reached this device, so Tracker cannot say where the aurora is.",
     };
   }
   if (assessment.freshness === "stale") {
@@ -935,7 +935,7 @@ export function auroraVisibility(
       ...base,
       kind: "expired",
       statement:
-        "The last nowcast is past its forecast time, so it no longer says where the aurora is.",
+        "The last nowcast has expired, so it no longer says where the aurora is.",
     };
   }
 
@@ -946,7 +946,7 @@ export function auroraVisibility(
       kind: "overhead",
       emissionHeightKm: AURORA_EMISSION_HEIGHT_KM.low,
       apparentElevationDeg: 90,
-      statement: `NOAA puts the oval over your location at ${here}%, so aurora would be overhead rather than on the horizon. Look up, and away from any light.`,
+      statement: `NOAA puts the chance of aurora overhead here at ${here}%. Look up rather than towards the horizon, and get away from any lights.`,
     };
   }
 
@@ -956,7 +956,7 @@ export function auroraVisibility(
       ...base,
       kind: "unlikely",
       statement:
-        "Nothing in the current nowcast is close enough to clear your horizon, even allowing for how high aurora sits.",
+        "The aurora is too far north to see from here right now.",
     };
   }
 
@@ -976,8 +976,8 @@ export function auroraVisibility(
       emissionHeightKm: height,
       statement:
         elevation <= 0
-          ? `The nearest activity NOAA shows is about ${Math.round(source.distanceKm)} km ${direction}, which the curve of the Earth puts below your horizon.`
-          : `The nearest activity NOAA shows is about ${Math.round(source.distanceKm)} km ${direction} — far enough that it would sit on your ${direction} horizon rather than above it, and effectively out of sight.`,
+          ? `The nearest aurora is about ${Math.round(source.distanceKm)} km ${direction}, which is over the horizon from here.`
+          : `The nearest aurora is about ${Math.round(source.distanceKm)} km ${direction} — right on your ${direction} horizon, so you are very unlikely to see it.`,
     };
   }
 

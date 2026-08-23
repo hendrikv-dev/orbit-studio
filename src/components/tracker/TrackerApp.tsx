@@ -59,6 +59,13 @@ import { TrackerHeader, type TrackerView } from "./TrackerHeader";
 import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
+import {
+  auroraEligibility,
+  generalEligibility,
+  meteorEligibility,
+  moonEligibility,
+  type EligibilityVerdict,
+} from "../../data/tracker/bestTonightEligibility";
 import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
@@ -239,6 +246,14 @@ interface TonightEvent {
   safety: string | null;
   /** Ordering value in the same 0–1 space the ranking uses. */
   strength: number;
+  /**
+   * Whether this belongs in Best tonight at all, and why.
+   *
+   * Kept on the event rather than filtered away immediately, because an
+   * ineligible phenomenon is still reachable by direct lookup and needs to be
+   * able to say why it is not being recommended.
+   */
+  eligibility: EligibilityVerdict;
   /**
    * Canonical position in tonight's ranking, 1-based.
    *
@@ -494,6 +509,26 @@ function TrackerScreen() {
     return assessAurora(aurora.data ?? null, place.latitude, place.longitude, at, now);
   }, [aurora.data, darkWindow, now, place]);
 
+  /**
+   * Whether the reader could actually see it, which is not what OVATION asked.
+   *
+   * Kept beside the assessment rather than inside the map so the page and the
+   * drawing quote one answer. See `auroraVisibility` for why overhead
+   * probability alone is the wrong question.
+   */
+  const auroraLocalVisibility = useMemo(
+    () =>
+      auroraAssessment && place
+        ? auroraVisibility(
+            auroraAssessment,
+            aurora.data?.grid ?? null,
+            place.latitude,
+            place.longitude,
+          )
+        : null,
+    [aurora.data, auroraAssessment, place],
+  );
+
   const tonightEvents = useMemo<TonightEvent[]>(() => {
     if (!night || !withSky || !place) return [];
     const context = {
@@ -555,6 +590,25 @@ function TrackerScreen() {
         // Passed events sink rather than disappear: "the Moon is already down"
         // is worth being able to see, and it is not a recommendation.
         strength: passed ? -1 : entry.strength,
+        /**
+         * Eligibility, decided on the phenomenon and never on the weather.
+         *
+         * `entry.strength` keeps its phenomenon-only meaning — the weather is
+         * applied to ordering, not to it — so a clear sky cannot promote
+         * something into this list and cloud cannot drop it out.
+         */
+        eligibility: passed
+          ? { eligible: false, reason: "Already set for tonight." }
+          : entry.opportunity.kind === "meteors"
+            ? // The rate this observer would actually see at the best moment,
+              // not the shower's headline ZHR under ideal skies.
+              // The *shower's* contribution, not the total: the sporadic
+              // background is exactly what this gate is trying to exclude, so
+              // counting it towards the threshold would defeat the gate.
+              meteorEligibility(entry.opportunity, night.meteors.best?.showerPerHour ?? null)
+            : entry.opportunity.kind === "moon"
+              ? moonEligibility(entry.opportunity)
+              : generalEligibility(entry.strength),
         entry,
         window,
         passed,
@@ -620,14 +674,31 @@ function TrackerScreen() {
                     brief: true,
                     movedByWeather: false,
                     viewability: {
-                      band:
-                        access > 0.7
+                      /**
+                       * The band is limited by the aurora, not only by the sky.
+                       *
+                       * This was `access` alone, so a clear night over a quiet
+                       * field produced "Excellent" — and that word appeared in
+                       * the Best tonight column beside a page explaining that
+                       * the oval was too far north to see. The reader is told
+                       * the opportunity is excellent and, two lines down, that
+                       * there is nothing to look at.
+                       *
+                       * Every other event takes `min(sky, phenomenon)` in
+                       * `viewability`; aurora bypassed it by building this
+                       * object by hand. It now applies the same rule, with the
+                       * aurora's own ranking strength as the phenomenon term.
+                       */
+                      band: (() => {
+                        const limiting = Math.min(access, ranking.strength / 0.6);
+                        return limiting >= 0.7
                           ? "excellent"
-                          : access > 0.45
+                          : limiting >= 0.45
                             ? "good"
-                            : access > 0.2
+                            : limiting >= 0.2
                               ? "possible"
-                              : "unlikely",
+                              : "unlikely";
+                      })(),
                       access,
                       reading: { condition: "clear", label: "", phrase: "", smokeDominant: false },
                       freshness: "current",
@@ -638,7 +709,7 @@ function TrackerScreen() {
                   environment.status,
                   false,
                 )
-              : { label: "Visibility", value: "Not known", tone: "unknown" },
+              : { label: "Worth it", value: "Not known", tone: "unknown" },
             // Whether it could be seen from here, which is the reader's
             // question and not the one OVATION answers.
             auroraVisibility(
@@ -668,6 +739,16 @@ function TrackerScreen() {
           // every live recommendation and above events that have already set,
           // which is where "unlikely tonight" belongs.
           strength: !worthListing ? -0.5 : expired ? 0.05 : ranking.strength,
+          /**
+           * Aurora earns its slot from the aurora, not from the sky.
+           *
+           * It used to be listed unconditionally so that a reader at high
+           * latitude would always find it. That was the right instinct applied
+           * in the wrong place: being findable is a job for direct lookup, and
+           * a permanent row in a recommendation list says "this is one of
+           * tonight's options" about a night with no aurora.
+           */
+          eligibility: auroraEligibility(auroraLocalVisibility, Boolean(darkWindow)),
           entry: null,
           window: null,
           passed: false,
@@ -675,9 +756,14 @@ function TrackerScreen() {
       }
     }
 
-    // The canonical ranking, decided in one place and carried from there.
-    // `rankTonight` has no parameter for the selection, so no future caller can
-    // accidentally make rank depend on what the reader opened.
+    /**
+     * Everything observable, ranked, whether recommended or not.
+     *
+     * Ineligible events keep a rank here so they remain openable by direct
+     * lookup — excluding something from a recommendation list must not delete
+     * it from the product. What Best tonight shows is the eligible subset,
+     * taken below.
+     */
     return rankTonight(events);
   }, [
     auroraAssessment,
@@ -690,6 +776,28 @@ function TrackerScreen() {
     snapshots,
     withSky,
   ]);
+
+  /**
+   * The ranked list, favouring the category currently on the hero.
+   *
+   * "Favouring" is a stable partition rather than a re-score: events of the
+   * active category keep their own order and come first, then everything else
+   * keeps its own order. The ranking is never rewritten to flatter the page you
+   * happen to be on — a meteor page with nothing observable still shows Saturn
+   * above a shower that has finished.
+   */
+  /**
+   * Best tonight: the eligible subset, re-ranked among themselves.
+   *
+   * Two stages, deliberately separate. Eligibility asks whether there is a real
+   * reason to go outside for this tonight; ranking asks how the real reasons
+   * compare. Collapsing them is what produced a six-row list with aurora sixth
+   * on a night with no aurora — an ordering of things nobody should order.
+   */
+  const bestTonight = useMemo(
+    () => rankTonight(tonightEvents.filter((event) => event.eligibility.eligible)),
+    [tonightEvents],
+  );
 
   const heroEvent = useMemo(() => {
     if (tonightEvents.length === 0) return null;
@@ -707,21 +815,13 @@ function TrackerScreen() {
         : null;
       // Aurora can lead only by out-scoring the astronomical hero, never by
       // default, because a nowcast is the least certain thing on the page.
-      const leader = tonightEvents[0];
+      const leader = bestTonight[0];
       if (matched && (!leader || leader.strength <= matched.strength)) return matched;
     }
-    return tonightEvents[0];
-  }, [selectedId, tonightEvents, withSky]);
+    return bestTonight[0] ?? tonightEvents[0];
+  }, [bestTonight, selectedId, tonightEvents, withSky]);
 
-  /**
-   * The ranked list, favouring the category currently on the hero.
-   *
-   * "Favouring" is a stable partition rather than a re-score: events of the
-   * active category keep their own order and come first, then everything else
-   * keeps its own order. The ranking is never rewritten to flatter the page you
-   * happen to be on — a meteor page with nothing observable still shows Saturn
-   * above a shower that has finished.
-   */
+
   const rows = useMemo<RelevantEventRow[]>(() => {
     if (!heroEvent) return [];
     /**
@@ -737,7 +837,15 @@ function TrackerScreen() {
      * the visible window it is appended rather than promoted, so it is reachable
      * and still carries the rank it actually holds.
      */
-    return visibleRanked(tonightEvents, heroEvent.id, 6).map((event) => ({
+    /**
+     * Only the eligible, and never padded.
+     *
+     * A night with one worthwhile opportunity shows one row. The selected event
+     * is appended only when it is itself eligible; opening something Tracker
+     * does not recommend shows it in the hero with the reason, and does not
+     * insert it into a list of recommendations.
+     */
+    return visibleRanked(bestTonight, heroEvent.id, 6).map((event) => ({
       presentation: event.presentation,
       imagery: event.media.kind === "imagery" ? event.media.imagery : null,
       thumb: event.media.kind === "drawn" ? event.media.node : undefined,
@@ -747,7 +855,7 @@ function TrackerScreen() {
       active: event.id === heroEvent.id,
       rank: event.rank,
     }));
-  }, [heroEvent, tonightEvents]);
+  }, [bestTonight, heroEvent]);
 
   const conditions = useMemo(() => {
     if (!place || !heroEvent) return [];
@@ -826,25 +934,6 @@ function TrackerScreen() {
     [heroEvent, skyPath],
   );
 
-  /**
-   * Whether the reader could actually see it, which is not what OVATION asked.
-   *
-   * Kept beside the assessment rather than inside the map so the page and the
-   * drawing quote one answer. See `auroraVisibility` for why overhead
-   * probability alone is the wrong question.
-   */
-  const auroraLocalVisibility = useMemo(
-    () =>
-      auroraAssessment && place
-        ? auroraVisibility(
-            auroraAssessment,
-            aurora.data?.grid ?? null,
-            place.latitude,
-            place.longitude,
-          )
-        : null,
-    [aurora.data, auroraAssessment, place],
-  );
 
   /**
    * The exploratory twin of the aurora panel.
@@ -897,19 +986,40 @@ function TrackerScreen() {
     place,
   ]);
 
+  /**
+   * The clip that shows what this actually looks like, where one exists.
+   *
+   * Hoisted out of the overlay's JSX so the sporadic-meteor state can put it
+   * beside the practical steps: the clip is pinned at 604px by its aspect
+   * ratio, and on its own in a thousand-pixel panel it left a dark column that
+   * read as content failing to load.
+   */
+  const footageNode = useMemo(() => {
+    const experience = heroEvent?.entry ? experienceFor(heroEvent.entry.opportunity.kind) : null;
+    return experience ? (
+      <div className="tk-overlay-footage">
+        <TrackerExperience media={experience} />
+      </div>
+    ) : null;
+  }, [heroEvent]);
+
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
     const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
     const quality = heroEvent.presentation.metrics[2];
     const verdict = {
+      // These describe the whole opportunity, which is what the third metric
+      // now measures — sky and phenomenon together. "The sky is the limit
+      // tonight, not the target" was a clever line that told nobody what was
+      // wrong or what to do about it.
       headline:
         quality.tone === "good"
-          ? "Conditions are good tonight"
+          ? "Worth going out for tonight"
           : quality.tone === "fair"
-            ? "Conditions are mixed tonight"
+            ? "Worth a look if you are out anyway"
             : quality.tone === "poor"
-              ? "The sky is the limit tonight, not the target"
-              : "Conditions are not known",
+              ? "Not much to see tonight"
+              : "Not enough information tonight",
       detail: heroEvent.presentation.support ?? "",
       tone: quality.tone === "plain" ? ("unknown" as const) : quality.tone,
     };
@@ -1080,6 +1190,11 @@ function TrackerScreen() {
             planIdentity={night.identity.key}
           />
 
+          {/* What it actually looks like, where verified footage exists.
+              It belongs behind this control rather than on the page: it is
+              context for a decision somebody has already made, and a looping
+              video in the main row would compete with tonight's forecast for
+              the same attention. */}
           <TrackerOverlay
             open={overlay === "sky-map"}
             onClose={() => back({ drill: null })}
@@ -1118,28 +1233,35 @@ function TrackerScreen() {
                  also fills the space honestly instead of padding it. */
               <div className="tk-howto">
                 <p className="tk-howto-lede">
-                  No shower is running tonight, so there is no radiant to face. What
-                  you would be watching is the sporadic background — meteors that
-                  belong to no stream and arrive from every direction.
+                  No shower is active tonight. What you would be watching is the
+                  background rate: sporadic meteors that belong to no shower and can
+                  appear anywhere in the sky.
                 </p>
+                {/* The clip and the steps share a row. The clip is fixed at
+                    604px by its aspect ratio, so alone in a wide panel it left
+                    a dark column beside it; the steps fill that column with
+                    something the reader wants anyway. */}
+                <div className="tk-howto-row">
+                  {footageNode}
                 <ol className="tk-howto-steps">
                   <li>
-                    <b>Face away from any light.</b> A wall or a hedge between you and
-                    the nearest street lamp does more than any equipment.
+                    <b>Get away from lights.</b> Putting a wall or a hedge between you
+                    and the nearest street lamp helps more than any equipment.
                   </li>
                   <li>
-                    <b>Take in as much sky as you can.</b> Lie back if you can. Looking
-                    at one spot is the one mistake that costs meteors.
+                    <b>Take in as much sky as you can.</b> Lie back if you are able to.
+                    Watching one spot means missing most of what appears.
                   </li>
                   <li>
                     <b>Give it half an hour.</b> Your eyes need about twenty minutes to
                     adapt, and the rate is an average over a long wait.
                   </li>
                   <li>
-                    <b>Go later if you can.</b> Rates rise towards dawn, as your side of
-                    Earth turns to face the direction it is travelling.
+                    <b>Go later if you can.</b> You see more towards dawn, when your side
+                    of Earth is facing the direction it is moving.
                   </li>
                 </ol>
+                </div>
               </div>
             )}
 
@@ -1176,28 +1298,14 @@ function TrackerScreen() {
               ) : null}
             </dl>
 
-            {/* What it actually looks like, where verified footage exists.
-                It belongs behind this control rather than on the page: it is
-                context for the decision somebody has already made, and putting
-                a looping video in the main row would make historical footage
-                compete with tonight's forecast for the same attention. */}
-            {(() => {
-              const experience = heroEvent.entry
-                ? experienceFor(heroEvent.entry.opportunity.kind)
-                : null;
-              return experience ? (
-                <div className="tk-overlay-footage">
-                  <TrackerExperience media={experience} />
-                </div>
-              ) : null;
-            })()}
+            {skyPath && skyPath.kind !== "rate" ? footageNode : null}
           </TrackerOverlay>
 
           <TrackerOverlay
             open={overlay === "field-map"}
             onClose={() => back({ drill: null })}
             title={
-              heroEvent.id === "aurora" ? "Aurora forecast map" : "Visibility map"
+              heroEvent.id === "aurora" ? "Current auroral oval" : "Visibility map"
             }
             subtitle={
               heroEvent.id !== "aurora"
@@ -1207,8 +1315,8 @@ function TrackerScreen() {
                   ? // The drill-in inherits the same field the card shows, so it
                     // inherits the same obligation not to describe an expired
                     // nowcast as one that is valid for the next half hour.
-                    "NOAA OVATION nowcast, expired. Shown as what was last published, not as now."
-                  : "NOAA OVATION nowcast, valid for roughly the next half hour."
+                    "NOAA OVATION nowcast, expired. What was last published, not what is happening now."
+                  : "NOAA OVATION nowcast: where the oval is now, valid for about half an hour."
             }
           >
             <div className="tk-overlay-map">{expandedVisualization ?? visualization}</div>

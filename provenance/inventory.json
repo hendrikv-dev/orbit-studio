@@ -1271,7 +1271,7 @@
         "retrievedAt": "2026-08-21"
       },
       "localSha256": {
-        "src/data/tracker/aurora.ts": "1d45c7df14d1386fe9ae28f870d0ad4c15e2f23c54c1170d9485b2ef707c68db"
+        "src/data/tracker/aurora.ts": "d73c51da47e0224ff80745dd348002f168489c03de4e05eb3f53a49427fd0b2a"
       },
       "processing": [
         "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
@@ -1280,7 +1280,8 @@
         "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only.",
         "Freshness is read from the product’s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
         "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn.",
-        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ — there is no coordinate form in /json/, /experimental/json/ or /products/ — so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA."
+        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ — there is no coordinate form in /json/, /experimental/json/ or /products/ — so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA.",
+        "Copy pass: the sentences Tracker builds from this data were rewritten for plainness without changing what they claim. Nowcast-versus-forecast wording, the expiry language, the attribution of NOAA's probability and the disclaimer that the derived horizon angle is Tracker's own are all preserved verbatim in meaning."
       ],
       "rights": {
         "verification": "verified",

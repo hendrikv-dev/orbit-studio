@@ -179,9 +179,18 @@ function assertUniversalGeometry(state, label) {
     ),
     `${label}: always answers cloud and temperature`,
   );
+  // Scoped to the conditional cards. Cloud and temperature are always shown
+  // because they always bear on the decision, and "Not reported" is the honest
+  // answer when the provider has nothing for that instant — the defect this
+  // guards against is a *conditional* slot that exists only to say it has
+  // nothing to say, which is what the permanent smoke card did every night.
   check(
-    !state.conditions.some((card) => /^No smoke$|^Not reported$/.test(card.value ?? "")),
-    `${label}: no condition card is present only to report its own absence`,
+    !state.conditions.some(
+      (card) =>
+        /smoke|haze|precipitation|fog|dew/i.test(card.label ?? "") &&
+        /^No smoke$|^Not reported$|^None$/.test(card.value ?? ""),
+    ),
+    `${label}: no conditional card is present only to report its own absence`,
   );
   check(state.metrics.length === 3, `${label}: has exactly three metrics`);
   check(
@@ -251,6 +260,31 @@ async function clickRow(page, pattern) {
   return true;
 }
 
+/**
+ * Open a phenomenon by name, whether or not Best tonight recommends it.
+ *
+ * Best tonight is a recommendation list rather than an inventory, so aurora,
+ * meteors and an ordinary Moon are usually absent from it. They are still part
+ * of the product and still have pages — reachable by their id — and this is how
+ * the walk reaches them without depending on a row that should not be there.
+ */
+async function openTonightEvent(page, id) {
+  const url = new URL(page.url());
+  url.searchParams.set("app", "tracker");
+  url.searchParams.set("event", id);
+  url.searchParams.delete("view");
+  await page.goto(url.toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForSelector(".tk-tonight", { timeout: 30_000 }).catch(() => {});
+  await page.waitForTimeout(3500);
+  return (await page.locator(".tk-hero-name").count()) > 0;
+}
+
+/** Whether Best tonight currently recommends something matching `pattern`. */
+async function bestTonightHas(page, pattern) {
+  const names = await page.locator(".tk-relevant-name").allInnerTexts();
+  return names.some((name) => pattern.test(name));
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   const browser = await chromium.launch();
@@ -300,7 +334,13 @@ async function main() {
   captured.default = defaultState;
 
   console.log("\nMeteor showers");
-  check(await clickRow(portland, /Meteor/i), "the ranked list can select the meteor event");
+  // Sporadic meteors are not a recommendation, so they are reached by lookup
+  // rather than from the list — and their absence from the list is the point.
+  check(
+    !(await bestTonightHas(portland, /^Meteors$/)),
+    "ordinary sporadic meteors are not recommended in Best tonight",
+  );
+  check(await openTonightEvent(portland, "meteors"), "meteors are still reachable directly");
   const meteorState = await readPageState(portland);
   assertUniversalGeometry(meteorState, "meteors");
   check(meteorState.heading === "Meteor showers", "the heading names the phenomenon category");
@@ -328,8 +368,8 @@ async function main() {
    * The CTA has to match what the night actually offers.
    *
    * A shower has a radiant and therefore a direction to face. The sporadic
-   * background has neither — and the page says so, in "the sky is the limit
-   * tonight, not the target" — so a control reading "View sky map" was
+   * background has neither, and the page says so — so a control reading
+   * "View sky map" was
    * promising a target two lines under the sentence explaining there is none.
    * The label now follows the geometry, and this checks the pairing rather than
    * assuming either state.
@@ -789,7 +829,7 @@ async function main() {
   // --- fresh -------------------------------------------------------------
   {
     const { context, page } = await auroraContext(serveGrid(auroraGridAt(38, 5, 30)));
-    const opened = await clickRow(page, /Aurora/i);
+    const opened = await openTonightEvent(page, "aurora");
     check(opened, "fresh: aurora is offered in the ranked list");
     if (!opened) {
       // Nothing below can be asserted without the page, and waiting on
@@ -827,10 +867,17 @@ async function main() {
       await shot(page, "10-aurora-tonight", "fresh nowcast");
       captured.aurora = state;
 
-      await page.getByRole("button", { name: "View forecast map" }).click();
+      // The control is "View current oval" now: it opens the OVATION field,
+      // which describes now rather than tonight, and calling it a forecast map
+      // contradicted the panel it opens.
+      await page.getByRole("button", { name: "View current oval" }).click();
       await page.waitForSelector(".tk-overlay", { timeout: 5000 });
       await page.waitForTimeout(800);
-      await shot(page, "11-aurora-forecast-map", "full forecast map drill-in");
+      check(
+        !/forecast map/i.test(await page.locator(".tk-overlay-panel").innerText()),
+        "the current oval is not presented as a forecast map",
+      );
+      await shot(page, "11-aurora-current-oval", "the current oval, expanded");
       await page.keyboard.press("Escape");
       await page.close();
       await context.close();
@@ -845,8 +892,14 @@ async function main() {
   // Tracker being unable to say rather than as Tracker saying so.
   {
     const { context, page } = await auroraContext(serveGrid(auroraGridAt(2, 5, 30)));
-    const opened = await clickRow(page, /Aurora/i);
-    check(opened, "weak: aurora is still offered when the field is quiet");
+    const opened = await openTonightEvent(page, "aurora");
+    // Reachable, but not recommended: a quiet field is not an opportunity, and
+    // a row in a recommendation list would say it was one.
+    check(opened, "weak: aurora still has a page when the field is quiet");
+    check(
+      !(await bestTonightHas(page, /Aurora/i)),
+      "weak: a quiet aurora is not recommended in Best tonight",
+    );
     if (opened) {
       const state = await readPageState(page);
       assertUniversalGeometry(state, "aurora (quiet)");
@@ -856,7 +909,7 @@ async function main() {
           `${document.querySelector(".tk-hero-support")?.textContent ?? ""}`,
       );
       check(
-        /unlikely|quiet|not over you|away from you|farther north|further north|close enough|below your horizon|clear your horizon/i.test(
+        /unlikely|quiet|not over you|away from you|too far north|farther north|further north|close enough|over the horizon|below your horizon|clear your horizon/i.test(
           text,
         ),
         "weak: the page states that aurora is unlikely rather than staying silent",
@@ -893,8 +946,12 @@ async function main() {
       `stale: an expired nowcast does not lead the ranking (top is ${nameOf(arrivalRows[0])})`,
     );
 
-    const listed = await clickRow(page, /Aurora/i);
-    check(listed, "stale: aurora is still listed, so the silence is explained");
+    const listed = await openTonightEvent(page, "aurora");
+    check(listed, "stale: aurora still has a page, so the silence is explained");
+    check(
+      !(await bestTonightHas(page, /Aurora/i)),
+      "stale: expired data is not recommended in Best tonight",
+    );
     if (listed) {
       const state = await readPageState(page);
       assertUniversalGeometry(state, "aurora");
@@ -954,7 +1011,7 @@ async function main() {
     const { context, page } = await auroraContext((route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "down" }),
     );
-    const opened = await clickRow(page, /Aurora/i);
+    const opened = await openTonightEvent(page, "aurora");
     check(opened, "unavailable: aurora is still reachable when the nowcast cannot be read");
     if (opened) {
       const state = await readPageState(page);
@@ -998,7 +1055,7 @@ async function main() {
     await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
     await page.waitForTimeout(4000);
 
-    const opened = await clickRow(page, /Aurora/i);
+    const opened = await openTonightEvent(page, "aurora");
     if (opened) {
       const panel = await page.locator(".tk-viz-slot").innerText();
       const recommendation = await page

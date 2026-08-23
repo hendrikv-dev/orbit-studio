@@ -88,7 +88,14 @@ const BAND_LABEL: Record<ViewabilityBand, { value: string; tone: MetricTone }> =
 };
 
 /**
- * The visibility metric, from the band the ranking already computed.
+ * How good the opportunity actually is, from the band the ranking computed.
+ *
+ * Labelled "Worth it" rather than "Visibility". The band is
+ * `min(sky access, phenomenon strength)` — it has always described the whole
+ * opportunity rather than the weather — but under the old label a reader saw
+ * "Visibility: Excellent" and read it as a statement about the sky. On aurora
+ * that produced a direct contradiction: a clear night over a quiet field said
+ * Excellent beside a page explaining the oval was too far north to see.
  *
  * Read off `viewability` rather than derived again here. Two places deciding
  * independently what "good" means is how a card came to say *excellent* beside
@@ -99,12 +106,12 @@ export function visibilityMetric(
   evidenceStatus: EnvironmentalEvidenceStatus,
   passed: boolean,
 ): EventMetric {
-  if (passed) return { label: "Visibility", value: "Already set", tone: "unknown" };
+  if (passed) return { label: "Worth it", value: "Already set", tone: "unknown" };
   if (!window || evidenceStatus === "not-supported" || evidenceStatus === "request-failed") {
-    return { label: "Visibility", value: "Not known", tone: "unknown" };
+    return { label: "Worth it", value: "Not known", tone: "unknown" };
   }
   const band = BAND_LABEL[window.viewability.band];
-  return { label: "Visibility", value: band.value, tone: band.tone };
+  return { label: "Worth it", value: band.value, tone: band.tone };
 }
 
 function windowText(window: BestWindow | null, whenUtc: string, clock: PlaceClock): string {
@@ -562,7 +569,10 @@ export function presentAuroraEvent(
           : "Conditions unknown — check before going",
     support: darknessLine ? `${assessment.certainty} ${darknessLine}` : assessment.certainty,
     metrics: [window, middle, visibility],
-    primaryAction: { label: "View forecast map", kind: "forecast-map" },
+    // "View forecast map" contradicted the panel it opens, which states that
+    // the OVATION field describes now rather than tonight. The control names
+    // what it shows.
+    primaryAction: { label: "View current oval", kind: "forecast-map" },
     secondaryAction: { label: "Set reminder", kind: "reminder" },
     atUtc,
     row: {
@@ -577,7 +587,7 @@ export function presentAuroraEvent(
                 ? "Quiet"
                 : "Not known",
       window: window.value,
-      quality: usable ? visibility : { label: "Visibility", value: "Not known", tone: "unknown" },
+      quality: usable ? visibility : { label: "Worth it", value: "Not known", tone: "unknown" },
     },
     reminder: {
       title: "Aurora watch — Orbit Studio Tracker",

@@ -285,12 +285,23 @@ function meteorOpportunity(
       whenUtc: night.best.atUtc,
       durationMinutes: 60,
       direction,
-      elevation:
-        "About two-thirds of the way up — and not straight at the radiant. Meteors near it are heading towards you, so they show as dots rather than streaks.",
+      /**
+       * Radiant guidance only where there is a radiant.
+       *
+       * This string was unconditional, so a night with no active shower — where
+       * the panel correctly says "no radiant tonight, so no direction to face"
+       * — also told the reader not to look straight at the radiant and what
+       * meteors near it would look like. Two sentences in one panel, one of
+       * them about something that does not exist.
+       */
+      elevation: headline
+        ? "About two-thirds of the way up, and not straight at the radiant. Meteors close to it are coming towards you, so they look like dots instead of streaks."
+        : "Anywhere. Sporadic meteors come from all over the sky, so take in as much of it as you can rather than watching one spot.",
       howLong: "An hour at least. Rates are averages, and meteors arrive in clumps and gaps.",
       equipment: "eyes",
-      technique:
-        "Give your eyes 20 minutes to adapt and keep them off your phone. Lie back or use a reclining chair — neck ache ends more meteor watches than cloud does.",
+      technique: headline
+        ? "Give your eyes 20 minutes to adapt and stay off your phone. Lie back or use a reclining chair — you will last much longer than standing and craning your neck."
+        : "Give your eyes 20 minutes to adapt and stay off your phone. Lie back so you can see a wide stretch of sky at once.",
       safety: null,
     },
     phenomenon,
@@ -398,7 +409,7 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
       : `${phaseName}, ${Math.round(fraction * 100)}% lit, best after dusk at ${formatTime(placement!.atUtc)} about ${Math.round(placement!.altitudeDeg)}° above the ${compassPoint(placement!.azimuthDeg)} horizon.`,
     missingInputs: [],
     limitations: fraction > 0.6
-      ? ["A Moon this bright washes out everything faint tonight, including meteors."]
+      ? ["A Moon this bright drowns out faint objects tonight, meteors included."]
       : isNewMoon
         ? ["New Moon is a dark-sky condition, not a visible lunar target."]
         : [],

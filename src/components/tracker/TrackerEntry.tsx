@@ -34,7 +34,7 @@ import { TrackerSkyPanel, EXAMPLE_ARC } from "./TrackerSkyPanel";
 const PREVIEW = [
   { name: "Meteor shower", note: "rate, radiant and the darkest hours", tone: "meteor" },
   { name: "Saturn", note: "naked eye, and the rings through a telescope", tone: "planet" },
-  { name: "The Moon", note: "tonight's phase, and what it washes out", tone: "moon" },
+  { name: "The Moon", note: "tonight's phase, and how much light it adds", tone: "moon" },
 ];
 
 export function TrackerEntry({ onSelect }: { onSelect: (place: SelectedPlace) => void }) {

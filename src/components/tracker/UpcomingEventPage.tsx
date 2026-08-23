@@ -440,7 +440,7 @@ function buildPresentation(
       expectation:
         event.local.kind === "total"
           ? "Totality is a different phenomenon from a deep partial eclipse, not a stronger one: the corona is only visible when the last of the disc goes."
-          : "A partial eclipse does not look like dusk. Without a filter you will notice almost nothing, which is exactly why the filter matters.",
+          : "A partial eclipse does not look like dusk. Without a filter you would barely notice it was happening, and looking without one is what causes the damage.",
       skyPath: null,
     };
   }
@@ -457,7 +457,7 @@ function buildPresentation(
     // not computed that night's observing period. Passing null is what keeps the
     // support line from claiming a darkness interval it has not established.
     const presentation = presentAuroraEvent(assessment, event.atUtc, clock, null, {
-      label: "Visibility",
+      label: "Worth it",
       value: "Not known",
       tone: "unknown",
     });

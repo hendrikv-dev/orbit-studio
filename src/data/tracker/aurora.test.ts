@@ -191,7 +191,11 @@ describe("what Tracker will say about aurora", () => {
     expect(assessment.horizon).toBe("short-range");
     expect(assessment.probabilityPercent).toBeNull();
     expect(assessment.kp).toBeCloseTo(6);
-    expect(assessment.certainty).toMatch(/not where the oval will sit/i);
+    // The semantic contract rather than the sentence: a K-index statement must
+    // disclaim spatial knowledge. The wording changed in the copy pass; what it
+    // has to say did not.
+    expect(assessment.certainty).toMatch(/not where the aurora will be|not where the oval/i);
+    expect(assessment.certainty).toMatch(/three-day|K-index/i);
   });
 
   it("refuses entirely beyond the forecast horizon", () => {

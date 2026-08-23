@@ -265,7 +265,7 @@ export function TrackerAuroraMap({
           expired
             ? `Expired aurora nowcast centred on ${observer.label}, shown as history. ` +
               assessment.statement
-            : `Aurora forecast map centred on ${observer.label}. ${assessment.statement}`
+            : `Map of the current auroral oval centred on ${observer.label}. ${assessment.statement}`
         }
       >
         {field}

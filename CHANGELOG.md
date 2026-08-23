@@ -6,6 +6,39 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker semantics and copy
+- **Best tonight is a recommendation list, not an inventory.** Aurora, Meteors
+  and the Moon appeared every night from every location because Tracker supports
+  those categories — and anything in a ranked list gets a position and a quality
+  label, which is how "Aurora · Excellent" came to sit above a page explaining
+  the oval was too far north to see. An eligibility stage now runs before
+  ranking: aurora needs a display that would actually stand clear of the
+  horizon, meteors need a shower producing materially more than the sporadic
+  background, an ordinary lunar phase never qualifies, and everything else must
+  clear the marginal/fair boundary. The list is as long as the night deserves —
+  two rows from Portland tonight.
+- **Excluded is not deleted.** Aurora, Meteors and the Moon keep their pages and
+  are reachable directly; each says plainly why it is not being recommended.
+- **`Visibility` is now `Worth it`.** The band was always
+  `min(sky access, phenomenon)` — the whole opportunity, not the weather — but
+  the old label invited the opposite reading. Aurora bypassed the rule entirely
+  and computed its band from sky access alone, so a clear night over a quiet
+  field scored Excellent; it now takes the same minimum as everything else.
+- **The current auroral oval stops calling itself a forecast.** `View forecast
+  map` is `View current oval`, and the panel and its accessible name match.
+- **Sporadic meteors no longer mention a radiant.** The elevation guidance was
+  unconditional, so a night with no shower advised the reader not to look
+  straight at a radiant that does not exist.
+- **The meteors drill-in is composed.** The clip is pinned at 604px by its
+  aspect ratio and sat alone in a thousand-pixel panel; the practical steps now
+  share its row.
+- **Copy audit.** 280 user-facing sentences read; the composed constructions
+  went — "nothing … even allowing for how high aurora sits", "the sky is the
+  limit tonight, not the target", "the one mistake that costs meteors", "ends
+  more meteor watches than cloud does" — without losing any of the
+  nowcast-versus-forecast, derived-versus-sourced or representative-imagery
+  distinctions.
+
 ### Tracker one-screen layout and drill-in composition
 - **The one-screen contract holds at 720px**, not 1000. The previous pass
   declared a floor instead of doing the design work; challenged on it, the hero
