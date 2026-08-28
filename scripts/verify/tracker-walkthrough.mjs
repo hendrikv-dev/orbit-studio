@@ -167,31 +167,48 @@ function assertUniversalGeometry(state, label) {
   check(state.geometry.hero, `${label}: has the hero`);
   check(state.geometry.visualization, `${label}: has a visualization in the fixed slot`);
   /**
-   * Exactly four, in a fixed order, on every page.
+   * The standing three, in a fixed order, on every page.
    *
-   * This assertion has been round the loop: a fixed four, then a dynamic two-to-
-   * five, and now fixed again. The argument that settled it is that the row is
-   * the one piece of geometry a returning reader learns — a reader who knows the
-   * second card is smoke can check smoke without reading, and a reader whose
-   * second card is sometimes smoke and sometimes moonlight cannot.
+   * This assertion has been round the loop three times: a fixed four, a dynamic
+   * two-to-five, a fixed four again, and now this. What kept breaking is that
+   * holding a slot open forces something into it, and what got forced in was
+   * "Smoke / haze · Not reported" on every page in every region no aerosol
+   * model reaches — a quarter of the most valuable row on the page spent
+   * reporting that nobody had looked.
    *
-   * The order is asserted as well as the count, because a row of four that
-   * permutes between phenomena has the same problem as a row that resizes.
+   * The invariant that survives is the one that is actually load-bearing.
+   * Cloud, moonlight and temperature are always answerable and never
+   * irrelevant, so they are the geometry a returning reader learns, and their
+   * relative order never changes. What sits between and after them is whatever
+   * is true: an atmospheric card where something measures the sky, a health
+   * warning where the air carries published advice.
+   *
+   * Bounds rather than an exact count, because three, four and five are all
+   * correct answers to different nights — and an upper bound is still asserted,
+   * because a row that grows without limit is the dashboard this is not.
    */
+  const standing = state.conditions
+    .map((card) => card.label)
+    .filter((label) => ["Cloud cover", "Moonlight", "Temperature"].includes(label));
   check(
-    state.geometry.conditions === 4,
-    `${label}: has exactly four condition cards (${state.geometry.conditions})`,
+    JSON.stringify(standing) === JSON.stringify(["Cloud cover", "Moonlight", "Temperature"]),
+    `${label}: the standing three are present, in order (${state.conditions
+      .map((card) => card.label)
+      .join(", ")})`,
   );
   check(
-    JSON.stringify(state.conditions.map((card) => card.label)) ===
-      JSON.stringify(["Cloud cover", "Smoke / haze", "Moonlight", "Temperature"]),
-    `${label}: condition cards are the universal four in order`,
+    state.geometry.conditions >= 3 && state.geometry.conditions <= 5,
+    `${label}: the row is three to five cards (${state.geometry.conditions})`,
   );
+  /**
+   * The routine-AQI rule, checked on every page rather than only where it was
+   * introduced. An index worth showing carries a category name with it; a bare
+   * "AQI 23 · Good" is the dashboard reading this pass exists to remove.
+   */
+  const air = state.conditions.find((card) => /air quality/i.test(card.label ?? ""));
   check(
-    ["Cloud cover", "Temperature"].every((wanted) =>
-      state.conditions.some((card) => card.label === wanted),
-    ),
-    `${label}: always answers cloud and temperature`,
+    air === undefined || /unhealthy|hazardous/i.test(air.value ?? ""),
+    `${label}: air quality appears only when it carries advice${air ? ` (${air.value})` : ""}`,
   );
   /**
    * A permanent slot must still distinguish its kinds of empty.
@@ -742,26 +759,30 @@ async function main() {
     assertUniversalGeometry(solarState, "solar eclipse");
     check(solarState.heading === "Eclipses", "the eclipse page uses the eclipse heading");
     /**
-     * Three of the four say the forecast does not exist yet; the fourth is
+     * Both forecastable cards say the forecast does not exist yet; the third is
      * geometry and answers anyway.
      *
      * This is the state of knowledge for an eclipse years out, and showing it
-     * is the point of a fixed row: a reader can see at a glance that cloud,
-     * smoke and temperature are simply not knowable for that morning, and that
-     * the Moon's position is. A row that dropped the three unknowable cards
-     * would leave a lone moonlight card looking like the whole answer.
+     * is the point: a reader can see at a glance that cloud and temperature are
+     * simply not knowable for that morning, and that the Moon's position is.
      */
     check(
       solarState.conditions.filter((card) => /Forecast closer to date/i.test(card.value ?? ""))
-        .length === 3,
+        .length === 2,
       `the weather cards refuse to forecast beyond the horizon (${solarState.conditions
         .map((card) => `${card.label}=${card.value}`)
         .join(", ")})`,
     );
+    /**
+     * And no atmospheric card at all, rather than one reporting its own
+     * emptiness. There is no aerosol forecast three years out to be uncertain
+     * about, and a slot saying so on every page is the clutter this removes.
+     */
     check(
-      solarState.conditions.find((card) => /smoke/i.test(card.label ?? ""))?.value ===
-        "Forecast closer to date",
-      "no smoke reading is invented for a date beyond any forecast",
+      solarState.conditions.every(
+        (card) => !/smoke|transparency|air quality/i.test(card.label ?? ""),
+      ),
+      "no atmospheric card is invented for a date beyond any forecast",
     );
     /**
      * Moonlight keeps its slot and stops calling the Moon an obstacle.
@@ -1626,6 +1647,118 @@ async function main() {
   await honest.close();
   await honestContext.close();
 
+  /* --- 4f. the sky's clarity, and the air's safety ------------------------ */
+  //
+  // Two different questions measured by two different instruments, in one row.
+  // They disagree in both directions — a thin smoke layer aloft ruins a night
+  // under air that is fine to breathe, and a still winter inversion is
+  // unhealthy under a transparent sky — so the interface has to be able to say
+  // either without implying the other.
+  //
+  // The feed is served rather than read, because the four states the brief
+  // names are properties of the air on a particular afternoon and none of them
+  // is reachable on demand from the live model.
+  {
+    console.log("\nAtmosphere");
+
+    /**
+     * Hours built from the pinned clock, not from wall-clock now.
+     *
+     * `withAerosol` matches an aerosol sample to a weather snapshot within
+     * forty-five minutes and keeps the nulls when nothing lines up. The page's
+     * clock is pinned to `WALK_AT`, so a fixture starting at the real current
+     * hour is hours away from every snapshot and is silently discarded — which
+     * looks exactly like "the product does not report air quality" and would
+     * have made three of the four states below pass for the wrong reason.
+     */
+    const airQuality = (hours) => (route) => {
+      const times = [];
+      const pm25 = [];
+      const depths = [];
+      const from = new Date(WALK_AT);
+      from.setUTCHours(from.getUTCHours() - 12, 0, 0, 0);
+      for (let index = 0; index < 72; index += 1) {
+        const at = new Date(from.getTime() + index * 3_600_000);
+        times.push(at.toISOString().slice(0, 19));
+        pm25.push(hours.pm25);
+        depths.push(hours.aerosolOpticalDepth);
+      }
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          hourly: { time: times, pm2_5: pm25, aerosol_optical_depth: depths },
+        }),
+      });
+    };
+
+    const cardsUnder = async (label, air) => {
+      const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
+      await seedPlace(context, PLACES.portland);
+      await context.route("**/air-quality**", airQuality(air));
+      const page = await context.newPage();
+      await page.clock.setFixedTime(WALK_AT);
+      await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
+      await page.waitForTimeout(4500);
+      const cards = await page.evaluate(() =>
+        [...document.querySelectorAll(".tk-condition-card")].map((card) => card.innerText),
+      );
+      await page.close();
+      await context.close();
+      console.log(`  · ${label}: ${cards.length} cards`);
+      return cards.join(" \u2016 ");
+    };
+
+    // 1. Normal air, nothing in the sky worth reporting.
+    const normal = await cardsUnder("normal air", { pm25: 5, aerosolOpticalDepth: 0.04 });
+    check(
+      !/AQI/i.test(normal),
+      "normal air quality is not reported at all",
+    );
+    check(
+      !/unavailable|not reported/i.test(normal),
+      "normal air does not produce an absence notice either",
+    );
+
+    // 2. Unhealthy air under a clean sky. The health warning must appear and
+    //    must not be phrased as an observing problem.
+    const unhealthy = await cardsUnder("unhealthy air", { pm25: 90, aerosolOpticalDepth: 0.04 });
+    check(/AQI \d+/.test(unhealthy), "unhealthy air raises a health warning with its index");
+    check(
+      /unhealthy/i.test(unhealthy) && /limit prolonged time outdoors|avoid/i.test(unhealthy),
+      "the warning carries the category's own outdoor guidance",
+    );
+    check(
+      /Transparency\s*\n?\s*Clear/i.test(unhealthy),
+      "a clean sky is still reported as clear while the air is unhealthy",
+    );
+
+    // 3. Smoke thick enough to matter for observing, under air that does not
+    //    warrant a health warning.
+    const smoky = await cardsUnder("smoke aloft", { pm25: 6, aerosolOpticalDepth: 0.9 });
+    check(
+      /mag/i.test(smoky) && /(Poor|Reduced)/.test(smoky),
+      "smoke that degrades the sky is reported in magnitudes of dimming",
+    );
+    check(!/AQI/i.test(smoky), "degraded transparency does not invent a health warning");
+
+    // 4. Neither layer measured. Silence, not a slot saying nobody looked.
+    const missing = await cardsUnder("no atmospheric data", {
+      pm25: null,
+      aerosolOpticalDepth: null,
+    });
+    check(!/AQI/i.test(missing), "missing data raises no health claim");
+    check(
+      !/transparency|smoke/i.test(missing),
+      "missing data leaves no card behind to report its own absence",
+    );
+    check(
+      /Cloud cover/.test(missing) && /Moonlight/.test(missing) && /Temperature/.test(missing),
+      "the standing three are still there when the atmospheric layers are not",
+    );
+  }
+
   /* --- 4e. the night ending is not the night disappointing ---------------- */
   //
   // Every opportunity having *passed* and none of them being worth going out
@@ -1931,9 +2064,21 @@ async function main() {
       );
       check(urlState().drill === "field", "Open full map is a history state");
 
-      // Expanded means more of the world, not the same card scaled up.
-      const cardCells = await nav.locator(".tk-page .tk-eclipsemap rect").count();
-      const fullCells = await nav.locator(".tk-overlay .tk-eclipsemap rect").count();
+      /**
+       * Expanded means more of the world, not the same card scaled up.
+       *
+       * Read off the field's declared sampling rather than off how many nodes
+       * it drew. Counting rectangles measured the renderer — it broke when the
+       * field stopped being one rectangle per cell, on a map that was sampling
+       * exactly as finely as before.
+       */
+      const cellsIn = async (scope) =>
+        Number(
+          (await nav.locator(`${scope} [data-field-cells]`).first().getAttribute("data-field-cells")) ??
+            0,
+        );
+      const cardCells = await cellsIn(".tk-page .tk-eclipsemap");
+      const fullCells = await cellsIn(".tk-overlay .tk-eclipsemap");
       check(
         fullCells > cardCells,
         `the expanded map samples more than the card (${fullCells} vs ${cardCells})`,
@@ -2400,7 +2545,12 @@ async function main() {
       "the horizon curves survive panning and zooming",
     );
     check(
-      (await map.locator(".tk-overlay .tk-eclipsemap rect").count()) > 100,
+      Number(
+        (await map
+          .locator(".tk-overlay .tk-eclipsemap [data-field-cells]")
+          .first()
+          .getAttribute("data-field-cells")) ?? 0,
+      ) > 100,
       "the visibility field survives panning and zooming",
     );
 
@@ -2504,8 +2654,12 @@ async function main() {
     await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
     await map.waitForTimeout(2000);
     check(
-      (await map.locator(".tk-overlay .tk-eclipse-coverage, .tk-overlay .tk-eclipsemap rect").count()) >
-        50,
+      Number(
+        (await map
+          .locator(".tk-overlay .tk-eclipsemap [data-field-cells]")
+          .first()
+          .getAttribute("data-field-cells")) ?? 0,
+      ) > 50,
       "solar: the coverage field still renders on the expanded map",
     );
     const solarFrame = await map.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
@@ -2563,21 +2717,66 @@ async function main() {
     await shot(phone, "22-mobile-event", "eclipse event page on a phone");
 
     /**
-     * A generous tap deadline, because what is slow here is the answer.
+     * The open, measured rather than merely awaited.
      *
-     * Opening the expanded lunar map samples the horizon over most of a
-     * hemisphere and blocks the main thread for a second or two — measured at
-     * about 2.1s on a 375-wide viewport. Playwright holds a tap until the page
-     * can process it, so the default 30s is a budget shared with whatever else
-     * the machine is doing, and the check starts reporting on the machine
-     * rather than on the control. The control's behaviour is the subject; the
-     * timeout is widened rather than the assertion weakened.
+     * This tap used to be the check: press it, wait for a map, pass. A map that
+     * arrives after three seconds of a frozen interface satisfies that exactly
+     * as well as one that arrives in fifty milliseconds, which is how a
+     * two-second block survived a full verification pass.
+     *
+     * What is recorded instead is what a reader actually experiences — how long
+     * the main thread was unavailable, and how much document the browser was
+     * asked to build. Neither moves with machine load the way wall-clock time
+     * does, so both are safe to assert on. `scripts/verify/tracker-map-profile.mjs`
+     * is the same measurement as a standalone profiler.
      */
+    await phone.evaluate(() => {
+      window.__tkTasks = [];
+      window.__tkObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) window.__tkTasks.push(Math.round(entry.duration));
+      });
+      window.__tkObserver.observe({ entryTypes: ["longtask"] });
+    });
     await phone
       .locator(".tk-viz-open", { hasText: /open full map/i })
       .first()
       .tap({ timeout: 90_000 });
     await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
+    await phone.waitForTimeout(1200);
+
+    const openCost = await phone.evaluate(() => {
+      window.__tkObserver.disconnect();
+      const map = document.querySelector(".tk-overlay .tk-geomap");
+      return {
+        longest: window.__tkTasks.length ? Math.max(...window.__tkTasks) : 0,
+        blocked: window.__tkTasks.reduce((a, b) => a + b, 0),
+        svgNodes: map ? map.querySelectorAll("svg *").length : 0,
+      };
+    });
+
+    /**
+     * The two numbers, and why these thresholds.
+     *
+     * 16 330 SVG nodes was the field drawn one rectangle per sampled cell. The
+     * same field as merged runs is about fifty, so 500 is far above the fixed
+     * design and far below any return of per-cell drawing — it catches the
+     * regression without pinning the exact node count of a map that may
+     * legitimately gain a marker.
+     *
+     * 600 ms for a single task is likewise nowhere near the 105 ms this
+     * measures today, and well under the 300 ms the per-cell version spent on a
+     * headless machine that is faster than a phone. A tighter bound would start
+     * failing on a loaded CI box for reasons that have nothing to do with the
+     * code.
+     */
+    check(
+      openCost.svgNodes > 0 && openCost.svgNodes < 500,
+      `mobile: the expanded field is drawn as merged runs (${openCost.svgNodes} svg nodes)`,
+    );
+    check(
+      openCost.longest < 600,
+      `mobile: opening the map has no multi-second block (longest task ${openCost.longest} ms, ${openCost.blocked} ms total)`,
+    );
     await phone.waitForTimeout(1800);
 
     const controlBox = await phone
@@ -2645,6 +2844,43 @@ async function main() {
       "mobile: the picked place is answered for in words",
     );
     await shot(phone, "23-mobile-full-map", "expanded map on a phone");
+
+    /**
+     * Closing and reopening must not rebuild the hemisphere.
+     *
+     * It did, because the memo behind it was keyed on whether the overlay was
+     * open — and the second open measured worse than the first, since the
+     * browser was tearing the old field down while the new one was computed.
+     * Nothing about the geometry depends on the overlay's state, so a reopen
+     * should be a cache read and should cost essentially nothing.
+     */
+    await phone.locator(".tk-overlay .tk-icon-button").first().tap();
+    await phone.waitForSelector(".tk-overlay", { state: "detached", timeout: 20_000 });
+    await phone.waitForTimeout(500);
+    await phone.evaluate(() => {
+      window.__tkTasks = [];
+      window.__tkObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) window.__tkTasks.push(Math.round(entry.duration));
+      });
+      window.__tkObserver.observe({ entryTypes: ["longtask"] });
+    });
+    await phone
+      .locator(".tk-viz-open", { hasText: /open full map/i })
+      .first()
+      .tap({ timeout: 90_000 });
+    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
+    await phone.waitForTimeout(1200);
+    const reopenCost = await phone.evaluate(() => {
+      window.__tkObserver.disconnect();
+      return {
+        longest: window.__tkTasks.length ? Math.max(...window.__tkTasks) : 0,
+        blocked: window.__tkTasks.reduce((a, b) => a + b, 0),
+      };
+    });
+    check(
+      reopenCost.longest < 250,
+      `mobile: reopening the same map reuses its geometry (longest task ${reopenCost.longest} ms)`,
+    );
 
     // Back, from the browser, on a phone.
     await phone.goBack();

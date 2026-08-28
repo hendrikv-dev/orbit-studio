@@ -5,7 +5,12 @@ import {
   type ConditionSnapshot,
   type EnvironmentalEvidenceStatus,
 } from "./conditions";
-import { aerosolExtinctionMagnitudes, readAerosol, type AerosolReading } from "./airQuality";
+import {
+  aerosolExtinctionMagnitudes,
+  airQualityIndex,
+  readAerosol,
+  type AerosolReading,
+} from "./airQuality";
 import { lunarPhaseAt } from "./lunarPhase";
 import { formatTemperature } from "../../lib/localTime";
 
@@ -54,6 +59,7 @@ export type ConditionCardId =
    * are material and are absent otherwise.
    */
   | "smoke"
+  | "air-quality"
   | "haze"
   | "precipitation"
   | "fog"
@@ -273,34 +279,52 @@ const AEROSOL_LABEL: Record<AerosolReading, { value: string; tone: ConditionTone
  * to make on no evidence.
  */
 /**
- * Smoke and haze, kept apart because the models keep them apart.
+ * Sky transparency, and nothing about health.
  *
- * Aerosol optical depth measures *all* aerosol — dust, sea salt, industrial
- * pollution, smoke — and cannot say which. The smoke column comes from a model
- * that is specifically about smoke. Labelling a hazy summer evening "Smoky"
- * because the optical depth was high is the sort of small confident wrongness
- * that costs a product its credibility with exactly the readers who would
- * notice, so a card only says smoke when the smoke model says smoke.
+ * ## The split this enforces
  *
- * Returns null when there is nothing worth a slot. That is the point: on most
- * nights in most places the honest answer is silence, and silence should not
- * occupy a quarter of the row.
+ * This card used to answer two questions in one slot. Where an aerosol model
+ * covered the location it reported optical depth, which is genuinely about the
+ * sky; where one did not it fell back to surface PM2.5, which is a measure of
+ * the air at head height and says nothing whatever about transparency
+ * overhead. One label, two meanings, and the reader had no way to tell which
+ * one they were being given.
+ *
+ * So this is now only the observing question — how much light the atmosphere is
+ * taking away, in the magnitudes an observer already thinks in. The health
+ * question has its own card, appears on its own terms, and is never merged into
+ * this one. They can legitimately disagree: a thin smoke layer aloft ruins a
+ * night under air that is fine to breathe.
+ *
+ * Returns null where nothing measures the sky here. That is not the same as
+ * "clear", and rather than print "Not reported" on every page in a region no
+ * aerosol model reaches, the slot simply is not there — the brief's instruction
+ * that a missing data source should not become interface clutter.
+ *
+ * Smoke and haze stay distinguishable within the card. Optical depth measures
+ * all aerosol together — dust, sea salt, industrial pollution, smoke — and
+ * cannot say which; the smoke column comes from a model that is specifically
+ * about smoke. Calling a hazy summer evening "smoky" on optical depth alone is
+ * the sort of small confident wrongness that costs a product its credibility
+ * with exactly the readers who would notice.
  */
-function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard {
-  if (!snapshot) return unknownCard("smoke", "Smoke / haze", "Not reported");
+function transparencyCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  if (!snapshot) return null;
 
   const column = snapshot.smokeColumnMgM2;
+  const opticalDepth = snapshot.aerosolOpticalDepth;
+  const magnitudes =
+    opticalDepth !== null && opticalDepth !== undefined
+      ? aerosolExtinctionMagnitudes(opticalDepth)
+      : null;
+
   // Smoke first, where a smoke model actually covers this place and reports
-  // enough of it to matter.
+  // enough of it to matter. Only this branch may use the word.
   if (column !== null && column !== undefined && column >= SMOKE_MATERIAL_MG_M2) {
     const heavy = column >= 100;
-    const magnitudes =
-      snapshot.aerosolOpticalDepth !== null && snapshot.aerosolOpticalDepth !== undefined
-        ? aerosolExtinctionMagnitudes(snapshot.aerosolOpticalDepth)
-        : null;
     return {
       id: "smoke",
-      label: "Smoke / haze",
+      label: "Smoke",
       value: heavy ? "Heavy" : "Moderate",
       interpretation:
         magnitudes !== null
@@ -317,84 +341,70 @@ function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard {
     };
   }
 
-  // Otherwise haze, and only when it is thick enough to change the night.
-  const opticalDepth = snapshot.aerosolOpticalDepth;
-  if (opticalDepth === null || opticalDepth === undefined) {
-    // No aerosol model covers everywhere. Surface particulate is the fallback
-    // and is a *health* measure, not a sky one — it says what the air at ground
-    // level is like to stand in and nothing about transparency overhead. It is
-    // labelled that way, and only appears when it is bad enough to matter.
-    const surface = snapshot.surfacePm25;
-    if (surface === null || surface === undefined) {
-      // No aerosol model and no surface reading. "Nobody measured this" is a
-      // different claim from "the air is clean" and the card must not make the
-      // second one on the evidence for the first.
-      return unknownCard(
-        "smoke",
-        "Smoke / haze",
-        "Not reported",
-        "No model covers this location",
-      );
-    }
-    if (surface < PM25_MATERIAL_UG_M3) {
-      return {
-        id: "smoke",
-        label: "Smoke / haze",
-        value: "Clear at ground",
-        interpretation: "Nothing measured overhead",
-        tone: "good",
-        provenance: {
-          kind: "model",
-          detail:
-            "Surface PM2.5 from Copernicus via Open-Meteo. A ground-level health measure; no aerosol model covers the sky above this location.",
-        },
-      };
-    }
-    const heavy = surface >= 55;
-    return {
-      id: "smoke",
-      label: "Smoke / haze",
-      value: heavy ? "Heavy at ground" : "Moderate at ground",
-      interpretation: heavy ? "Poor air to stand in" : "Noticeable at ground",
-      tone: heavy ? "poor" : "fair",
-      provenance: {
-        kind: "model",
-        detail:
-          "Surface PM2.5 from Copernicus via Open-Meteo. A ground-level health measure; it does not describe how transparent the sky is.",
-      },
-    };
-  }
-  const magnitudes = aerosolExtinctionMagnitudes(opticalDepth);
+  // Nothing measures the sky above this location. Silence, not a slot saying so.
+  if (magnitudes === null) return null;
+
+  const provenance = {
+    kind: "model" as const,
+    detail:
+      "Aerosol optical depth at 550 nm from Copernicus via Open-Meteo. Measures all aerosol together and cannot identify smoke.",
+  };
+
   if (magnitudes < HAZE_MATERIAL_MAGNITUDES) {
     // Measured, and there is nothing there. Worth its slot: on a night after a
     // fire this is the card a reader checks first, and it can only reassure
-    // them if it is in the same place on the nights it has nothing to report.
+    // them by being in the same place on the nights it has nothing to report.
     return {
       id: "smoke",
-      label: "Smoke / haze",
+      label: "Transparency",
       value: "Clear",
-      interpretation: `Less than ${HAZE_MATERIAL_MAGNITUDES.toFixed(2)} mag of dimming`,
+      interpretation: `Under ${HAZE_MATERIAL_MAGNITUDES.toFixed(2)} mag of dimming`,
       tone: "good",
-      provenance: {
-        kind: "model",
-        detail:
-          "Aerosol optical depth at 550 nm from Copernicus via Open-Meteo. Measures all aerosol together and cannot identify smoke.",
-      },
+      provenance,
     };
   }
 
-  const reading = readAerosol(opticalDepth);
+  const reading = readAerosol(opticalDepth!);
+  const thick = reading === "heavy" || reading === "smoky";
   return {
     id: "smoke",
-    label: "Smoke / haze",
+    label: "Transparency",
     // Never "smoky": this figure cannot tell smoke from dust or pollution.
-    value: reading === "heavy" || reading === "smoky" ? "Thick" : "Noticeable",
+    value: thick ? "Poor" : "Reduced",
     interpretation: `Dims the sky by ${magnitudes.toFixed(1)} mag`,
-    tone: reading === "heavy" || reading === "smoky" ? "poor" : "fair",
+    tone: thick ? "poor" : "fair",
+    provenance,
+  };
+}
+
+/**
+ * The air as a health matter, on the nights it is one.
+ *
+ * Present only at or above the first published category that asks anybody to
+ * change what they do outdoors. Below that there is no card, because "AQI 23 ·
+ * Good" tells a reader nothing they can act on and turns an observing page into
+ * an air-quality dashboard.
+ *
+ * The guidance is the category's own, not Tracker's. Where the air is bad
+ * enough that the published statement is about avoiding time outdoors, that is
+ * a statement about the activity this whole product exists to encourage, and it
+ * is shown at the same weight as anything else that would stop the night.
+ */
+function airQualityAlertCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
+  const pm25 = snapshot?.surfacePm25;
+  if (pm25 === null || pm25 === undefined) return null;
+  const index = airQualityIndex(pm25);
+  if (!index.advisory) return null;
+  return {
+    id: "air-quality",
+    label: "Air quality",
+    value: `AQI ${index.aqi} · ${index.label}`,
+    interpretation: index.guidance,
+    tone: index.category === "sensitive" ? "fair" : "poor",
     provenance: {
       kind: "model",
       detail:
-        "Aerosol optical depth at 550 nm from Copernicus via Open-Meteo. Measures all aerosol together and cannot identify smoke.",
+        "US AQI computed from the hourly surface PM2.5 forecast (Copernicus via Open-Meteo) against the EPA's 24-hour breakpoints. The official index uses a NowCast average, so a brief plume reads higher here than the published figure for the area. A health measure: it does not describe how transparent the sky is.",
     },
   };
 }
@@ -555,27 +565,30 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
   );
 
   /**
-   * The four slots, whatever the data does.
+   * Three fixed, then whatever is true.
    *
-   * ## Why the row is fixed again
+   * ## Where this landed, after going round twice
    *
-   * It was briefly dynamic: cloud, moonlight and temperature always, with smoke
-   * and haze appearing only when they were material. The reasoning was that a
-   * slot reading "No smoke" every night spends a quarter of the row saying
-   * nothing — which is true, and is outweighed by what it cost. The row is the
-   * one part of the page whose geometry a returning reader learns, and a row
-   * that changes shape between an eclipse page and a meteor page makes them
-   * re-read it every time. A reader who has learned that the second card is
-   * smoke can check smoke at a glance; a reader whose second card is sometimes
-   * smoke and sometimes moonlight cannot.
+   * It was a fixed four, then dynamic, then fixed at four again on the argument
+   * that a row whose shape changes has to be re-read every time. That argument
+   * is right about the cards a reader *learns* and wrong about the fourth slot,
+   * because holding a slot open forced something into it — and what got forced
+   * in was "Smoke / haze · Not reported", every night, in every region no
+   * aerosol model reaches.
    *
-   * So the four are always present, and an empty one says which kind of empty
-   * it is — "no model covers this location" is a different statement from
-   * "measured, and there is none", and the card is required to tell them apart.
+   * So the invariant is narrower and actually holds: cloud, then atmosphere,
+   * then moonlight, then temperature, in that order, always. Cloud, moonlight
+   * and temperature are always answerable — two are forecasts and one is
+   * geometry, and none is ever irrelevant — so the row a reader learns is
+   * stable at its ends. The atmospheric slot appears when something measures
+   * the sky here and is absent when nothing does, and a health alert appends
+   * only when the air is bad enough to carry advice.
+   *
+   * The row is three, four or five cards. It never has a gap in it, because the
+   * grid distributes what is there rather than reserving space for what is not.
    */
   const constants = (state: string): ConditionCard[] => [
     unknownCard("cloud", "Cloud cover", state),
-    unknownCard("smoke", "Smoke / haze", state),
     moonlight ?? moonlightCard(atUtc, latitudeDeg, longitudeDeg),
     unknownCard("temperature", "Temperature", state),
   ];
@@ -598,20 +611,25 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
    * Rain, fog and dew have nowhere of their own to go, so they go where they
    * belong.
    *
-   * Each is a fact about one of the four subjects rather than a fifth subject:
-   * rain and fog are the sky being shut, which is what the cloud card is about,
-   * and dew is what the night's air does to a lens, which is temperature's
-   * department. Folding them in keeps the geometry fixed without dropping
-   * anything a reader would act on — and rain in particular is the single most
-   * decisive thing on the page, so it takes over the cloud card's headline
-   * rather than sitting fifth in a row nobody reaches.
+   * Each is a fact about one of the standing subjects rather than a subject of
+   * its own: rain and fog are the sky being shut, which is what the cloud card
+   * is about, and dew is what the night's air does to a lens, which is
+   * temperature's department. Folding them in keeps the row short without
+   * dropping anything a reader would act on — and rain in particular is the
+   * single most decisive thing on the page, so it takes over the cloud card's
+   * headline rather than sitting fifth in a row nobody reaches.
+   *
+   * The health alert goes last. It is the only card here that is not about
+   * observing, and putting it at the end keeps the four a reader scans for the
+   * sky together, while still giving it the row rather than a footnote.
    */
   return [
     cloudCard(snapshot),
-    obstructionCard(snapshot),
+    transparencyCard(snapshot),
     moonlight ?? moonlightCard(atUtc, latitudeDeg, longitudeDeg),
     withDew(temperatureCard(snapshot), snapshot),
-  ];
+    airQualityAlertCard(snapshot),
+  ].filter((card): card is ConditionCard => card !== null);
 }
 
 /**

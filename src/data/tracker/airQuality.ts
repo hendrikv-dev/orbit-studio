@@ -84,6 +84,161 @@ export function readAerosol(opticalDepth: number): AerosolReading {
   return "heavy";
 }
 
+/* --------------------------------------------------- health, not observing */
+
+/**
+ * The air as a health question, which is a different question from the sky.
+ *
+ * ## Why this is separate from everything above
+ *
+ * Optical depth answers "how much light is the atmosphere taking away", which
+ * is what an observer wants. PM2.5 answers "what is it like to stand in this
+ * for an hour", which is what a *person* wants, and the two genuinely disagree:
+ * a thin high smoke layer wrecks a night's transparency while the air at head
+ * height is fine, and a still winter inversion can be unhealthy under a
+ * perfectly transparent sky.
+ *
+ * Tracker asks people to go outside and stay there. That makes the health
+ * reading its business — but only when there is something to say. An index that
+ * reports "23, Good" every night is a dashboard, and the brief is right that
+ * telling somebody normal air is normal has no value.
+ */
+export type AirQualityCategory =
+  | "good"
+  | "moderate"
+  | "sensitive"
+  | "unhealthy"
+  | "very-unhealthy"
+  | "hazardous";
+
+export interface AirQualityIndex {
+  /** US AQI, rounded, as the scale is defined. */
+  aqi: number;
+  category: AirQualityCategory;
+  /** The category's published name. */
+  label: string;
+  /**
+   * Whether this category carries outdoor-exposure guidance at all.
+   *
+   * The gate for showing anything. Below it the honest interface says nothing.
+   */
+  advisory: boolean;
+  /**
+   * The EPA's own cautionary statement for this category, paraphrased for
+   * length and not for meaning. Null where the category has none.
+   *
+   * Deliberately quoted rather than composed: Tracker is not qualified to
+   * invent health advice, and the published categories already carry theirs.
+   */
+  guidance: string | null;
+}
+
+/**
+ * Where the index starts carrying advice.
+ *
+ * 101 is "Unhealthy for Sensitive Groups", the first category whose published
+ * statement asks anybody to change what they do outdoors. Moderate (51–100)
+ * mentions only unusually sensitive people and would fire on ordinary summer
+ * afternoons in most cities, which is how a health warning becomes wallpaper.
+ */
+export const AQI_ADVISORY_FLOOR = 101;
+
+/**
+ * The US EPA PM2.5 breakpoints, in the 2024 revision.
+ *
+ * Concentration in µg/m³ to index, piecewise linear between each pair.
+ */
+const PM25_BREAKPOINTS: {
+  concentration: readonly [number, number];
+  index: readonly [number, number];
+  category: AirQualityCategory;
+  label: string;
+  guidance: string | null;
+}[] = [
+  {
+    concentration: [0, 9],
+    index: [0, 50],
+    category: "good",
+    label: "Good",
+    guidance: null,
+  },
+  {
+    concentration: [9.1, 35.4],
+    index: [51, 100],
+    category: "moderate",
+    label: "Moderate",
+    guidance:
+      "Unusually sensitive people may want to limit how long they spend outdoors.",
+  },
+  {
+    concentration: [35.5, 55.4],
+    index: [101, 150],
+    category: "sensitive",
+    label: "Unhealthy for sensitive groups",
+    guidance:
+      "People with heart or lung conditions, older adults and children should limit prolonged time outdoors.",
+  },
+  {
+    concentration: [55.5, 125.4],
+    index: [151, 200],
+    category: "unhealthy",
+    label: "Unhealthy",
+    guidance:
+      "Everyone should limit prolonged time outdoors; sensitive groups should avoid it.",
+  },
+  {
+    concentration: [125.5, 225.4],
+    index: [201, 300],
+    category: "very-unhealthy",
+    label: "Very unhealthy",
+    guidance: "Everyone should avoid prolonged time outdoors.",
+  },
+  {
+    concentration: [225.5, 325.4],
+    index: [301, 500],
+    category: "hazardous",
+    label: "Hazardous",
+    guidance: "Everyone should stay indoors.",
+  },
+];
+
+/**
+ * The index for a PM2.5 concentration.
+ *
+ * ## The honest caveat
+ *
+ * The breakpoints above are defined against a *24-hour* average, and what is
+ * available here is an hourly value. The official index applies a NowCast
+ * weighting over the preceding hours instead, which damps brief spikes. So a
+ * short plume reads higher here than the published figure would, and the card
+ * says where its number came from rather than presenting it as the official
+ * reading for the area.
+ *
+ * Erring high on a health measure is the right direction to err, but it is
+ * still an error and is labelled as one.
+ */
+export function airQualityIndex(pm25: number): AirQualityIndex {
+  const concentration = Math.max(0, pm25);
+  const band =
+    PM25_BREAKPOINTS.find(
+      (entry) =>
+        concentration >= entry.concentration[0] && concentration <= entry.concentration[1],
+    ) ?? PM25_BREAKPOINTS[PM25_BREAKPOINTS.length - 1];
+  const [cLow, cHigh] = band.concentration;
+  const [iLow, iHigh] = band.index;
+  const aqi =
+    cHigh === cLow
+      ? iHigh
+      : Math.round(iLow + ((iHigh - iLow) * (concentration - cLow)) / (cHigh - cLow));
+  return {
+    aqi: Math.min(500, Math.max(0, aqi)),
+    category: band.category,
+    label: band.label,
+    advisory: aqi >= AQI_ADVISORY_FLOOR,
+    guidance: band.guidance,
+  };
+}
+
 interface AirQualityBody {
   hourly?: {
     time?: string[];

@@ -1096,18 +1096,84 @@ function TrackerScreen() {
   );
 
   /**
-   * The same eclipse at hemisphere scale, built only while the drill-in is open.
+   * The same eclipse at hemisphere scale, built once and kept.
    *
    * Separate from the card's node rather than shared, exactly as the aurora map
    * is. Sharing one node made the card behind the overlay silently become the
    * interactive, finely sampled version of itself — a panel that shares a scroll
    * surface with the page must not capture drags, and the expanded one has the
    * screen to itself and should.
+   *
+   * Keying this on `overlay` meant the whole hemisphere was re-derived every
+   * time the drill-in opened — and closing and reopening the same map measured
+   * 15 427 ms in the production build at phone width, worse than the first open
+   * because the browser was also tearing down and rebuilding the field.
+   *
+   * Nothing about the geometry depends on whether the overlay is open: the
+   * eclipse's contact times and the reader's coordinates are the only inputs.
+   * So the cache is keyed on those, `overlay` only decides whether the node is
+   * rendered, and reopening is a lookup. A single entry is enough — the reader
+   * has one event open at a time, and holding the previous event's hemisphere
+   * would be megabytes to save a computation they may never ask for again.
    */
-  const lunarEclipseExpanded = useMemo(
-    () => (overlay === "field-map" ? lunarEclipseGeometry(heroEvent, place, "full") : null),
-    [heroEvent, overlay, place],
-  );
+  const expandedEclipseCache = useRef<{
+    key: string;
+    value: ReturnType<typeof lunarEclipseGeometry>;
+  } | null>(null);
+
+  /**
+   * The cache key: the eclipse and the place, which are its only inputs.
+   *
+   * Null whenever there is no hemisphere to build, which is how both the warm-up
+   * below and the read at open time agree on when there is nothing to do.
+   */
+  const expandedEclipseKey = useMemo(() => {
+    const science = heroEvent?.entry?.opportunity.science;
+    if (!place || science?.kind !== "lunar-eclipse") return null;
+    return `${science.timing.maximumUtc}|${place.latitude}|${place.longitude}`;
+  }, [heroEvent, place]);
+
+  const buildExpandedEclipse = useCallback(() => {
+    if (!expandedEclipseKey) return null;
+    if (expandedEclipseCache.current?.key !== expandedEclipseKey) {
+      expandedEclipseCache.current = {
+        key: expandedEclipseKey,
+        value: lunarEclipseGeometry(heroEvent, place, "full"),
+      };
+    }
+    return expandedEclipseCache.current.value;
+  }, [expandedEclipseKey, heroEvent, place]);
+
+  /**
+   * ## The warm-up that was tried here, and taken out again
+   *
+   * The obvious next move after the drawing was fixed was to build the
+   * hemisphere before it was asked for: the reader is already looking at a card
+   * labelled "Open full map", and idle time is free. It worked — the longest
+   * task on open fell from 202 ms to 105 ms.
+   *
+   * It also broke Escape. The accessibility gate reported that focus no longer
+   * returned to the location picker's trigger when its popover was dismissed,
+   * and the cause was this: React Aria restores focus asynchronously after the
+   * popover unmounts, and a forty-millisecond synchronous block landing in that
+   * window pushes the restore past the moment it is expected. That is not a
+   * test artifact — a reader pressing Escape while the warm-up ran would feel
+   * the same delay, on the control this product's whole entry flow depends on.
+   *
+   * Chunking the geometry would fix it and means restructuring the astronomy;
+   * a worker would fix it and means serialising thirty thousand cells back
+   * across the boundary. Neither is worth a hundred milliseconds on an
+   * interaction that is already well under the threshold where anyone notices.
+   * So the work stays on the open, where it is one task nobody is waiting
+   * through, and the picker keeps its keyboard behaviour.
+   */
+  const lunarEclipseExpanded = useMemo(() => {
+    if (overlay !== "field-map") return null;
+    // A cache hit in the ordinary case; the warm-up above has usually run.
+    return buildExpandedEclipse();
+    // `expandedEclipseKey` is a dependency in substance — `buildExpandedEclipse`
+    // closes over it — and is listed so the memo re-reads when the event changes.
+  }, [buildExpandedEclipse, expandedEclipseKey, overlay]);
 
   const expandedVisualization = useMemo(() => {
     if (heroEvent?.id !== "aurora" || !auroraAssessment || !aurora.data?.grid || !place) {

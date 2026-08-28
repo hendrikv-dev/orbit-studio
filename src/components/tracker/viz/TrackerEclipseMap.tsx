@@ -14,6 +14,7 @@ import {
   type LunarGeographicVisibility,
   type LunarLocalVisibility,
 } from "../../../data/tracker/lunarEclipse";
+import { fieldRuns, runsPath } from "../../../data/tracker/mapField";
 import { formatClockTime, type PlaceClock } from "../../../lib/localTime";
 import { TrackerGeoMap, type MapBounds, type MapProjection } from "./TrackerGeoMap";
 
@@ -46,12 +47,41 @@ const SOLAR_BANDS: { floor: number; color: string; label: string }[] = [
   { floor: 0.01, color: "rgba(60, 76, 140, 0.36)", label: "Under 20%" },
 ];
 
+/**
+ * The lunar bands and their fills, as an ordered list.
+ *
+ * A list rather than the record it replaces, because the runs are drawn one
+ * band at a time and the drawing order decides what sits on top: "all of it
+ * visible" last, so the region that sees the whole eclipse reads as the
+ * strongest statement on the map. `none` simply has no entry — it is the
+ * absence of a band rather than a band that happens to be transparent.
+ */
+const LUNAR_BAND_FILL: readonly (readonly [string, string])[] = [
+  ["moonrise", "rgba(126, 138, 196, 0.46)"],
+  ["moonset", "rgba(158, 122, 176, 0.46)"],
+  ["all", "rgba(196, 152, 120, 0.62)"],
+];
+
 /** What each candidate is, in the reader's terms rather than the code's. */
 const DESTINATION_LABEL: Record<string, string> = {
   "closest-visibility": "Nearest place it is visible",
   "closest-central": "Nearest totality or annularity",
   "best-nearby": "Best view within reach",
 };
+
+/**
+ * Which band a coverage value falls in, by label rather than by colour.
+ *
+ * The runs are grouped by band identity and only then given a colour, because
+ * two cells in the same band must merge into one rectangle and a colour string
+ * is a fragile thing to group on.
+ */
+function coverageBand(fraction: number): string | null {
+  for (const band of SOLAR_BANDS) {
+    if (fraction >= band.floor) return band.label;
+  }
+  return null;
+}
 
 function bandColor(fraction: number): string | null {
   for (const band of SOLAR_BANDS) {
@@ -175,14 +205,23 @@ function SolarEclipseMap({
     [event, inspection?.point],
   );
 
-  const cells = useMemo(
-    () => coverage.cells.filter((cell) => cell.obscuration >= 0.01 && cell.sunUp),
-    [coverage.cells],
+  /**
+   * The coverage grid as horizontal runs, one entry per stretch of equal band.
+   *
+   * Replaces a filter-then-draw-every-cell pass. The filter is now expressed as
+   * `bandOf` returning null, which matters: filtering first would have removed
+   * cells from the middle of rows and left the run encoder unable to tell a
+   * genuine gap in the sampling from a cell that was simply not drawn.
+   */
+  const runs = useMemo(
+    () =>
+      fieldRuns(coverage.cells, coverage.stepDeg, (cell) =>
+        cell.sunUp && cell.obscuration >= 0.01 ? coverageBand(cell.obscuration) : null,
+      ),
+    [coverage.cells, coverage.stepDeg],
   );
 
   const field = (projection: MapProjection) => {
-    const cellWidth = Math.abs(projection.x(coverage.stepDeg) - projection.x(0));
-    const cellHeight = Math.abs(projection.y(coverage.stepDeg) - projection.y(0));
     // Only the stretch of track that crosses this map. Drawing the whole path
     // would send a line off both edges of every regional view, which reads as a
     // rendering fault rather than as a shadow leaving the frame.
@@ -228,20 +267,21 @@ function SolarEclipseMap({
 
     return (
       <>
-        <g filter="url(#tk-geomap-smooth)">
-          {cells.map((cell) => {
-            const color = bandColor(cell.obscuration);
-            if (!color) return null;
-            return (
-              <rect
-                key={`${cell.latitudeDeg}:${cell.longitudeDeg}`}
-                x={projection.x(cell.longitudeDeg) - cellWidth / 2}
-                y={projection.y(cell.latitudeDeg) - cellHeight / 2}
-                width={cellWidth + 1}
-                height={cellHeight + 1}
-                fill={color}
-              />
-            );
+        {/* The sampling is stated on the element rather than inferred from how
+            many nodes it happens to produce. The verification used to count
+            rectangles to check that the expanded map sampled more of the world
+            than the card did — a proxy that broke the moment the drawing
+            stopped being one rectangle per cell, and that was always measuring
+            the renderer instead of the field. */}
+        <g
+          filter="url(#tk-geomap-smooth)"
+          data-field-cells={coverage.cells.length}
+          data-field-step={coverage.stepDeg}
+          data-field-runs={runs.length}
+        >
+          {SOLAR_BANDS.map((band) => {
+            const d = runsPath(runs, band.label, coverage.stepDeg, projection);
+            return d ? <path key={band.label} d={d} fill={band.color} /> : null;
           })}
         </g>
         {bandData ? <path d={bandData} className="tk-eclipse-band" /> : null}
@@ -447,6 +487,23 @@ function LunarEclipseMap({
   const inspected = inspection?.point
     ? lunarLocalVisibility(timing, inspection.point.latitudeDeg, inspection.point.longitudeDeg)
     : null;
+
+  /**
+   * The visibility grid as horizontal runs.
+   *
+   * Memoised on the field itself so that panning — which changes the SVG's
+   * viewBox and therefore re-renders this component — does not re-derive it.
+   * The render-prop shape means the field callback runs on every one of those
+   * frames, and rebuilding sixteen thousand cells inside a drag is most of why
+   * the expanded map felt the way it did.
+   */
+  const runs = useMemo(
+    () =>
+      fieldRuns(visibility.cells, visibility.stepDeg, (cell) =>
+        cell.band === "none" ? null : cell.band,
+      ),
+    [visibility.cells, visibility.stepDeg],
+  );
   /**
    * Fill by band, outlined by the real horizon curves.
    *
@@ -458,14 +515,6 @@ function LunarEclipseMap({
    * stepping in five-degree blocks.
    */
   const field = (projection: MapProjection) => {
-    const cellWidth = Math.abs(projection.x(visibility.stepDeg) - projection.x(0));
-    const cellHeight = Math.abs(projection.y(visibility.stepDeg) - projection.y(0));
-    const fills: Record<string, string | null> = {
-      all: "rgba(196, 152, 120, 0.62)",
-      moonrise: "rgba(126, 138, 196, 0.46)",
-      moonset: "rgba(158, 122, 176, 0.46)",
-      none: null,
-    };
 
     // A cap's edge crosses the antimeridian for most eclipses, so the outline is
     // broken into runs rather than drawn as one polyline that would otherwise
@@ -490,20 +539,17 @@ function LunarEclipseMap({
 
     return (
       <g>
-        <g filter="url(#tk-geomap-smooth)">
-          {visibility.cells.map((cell) => {
-            const fill = fills[cell.band];
-            if (!fill) return null;
-            return (
-              <rect
-                key={`${cell.latitudeDeg}:${cell.longitudeDeg}`}
-                x={projection.x(cell.longitudeDeg) - cellWidth / 2}
-                y={projection.y(cell.latitudeDeg) - cellHeight / 2}
-                width={cellWidth + 1}
-                height={cellHeight + 1}
-                fill={fill}
-              />
-            );
+        {/* See the note on the solar field: the sampling is declared, not
+            counted off the rendered nodes. */}
+        <g
+          filter="url(#tk-geomap-smooth)"
+          data-field-cells={visibility.cells.length}
+          data-field-step={visibility.stepDeg}
+          data-field-runs={runs.length}
+        >
+          {LUNAR_BAND_FILL.map(([band, fill]) => {
+            const d = runsPath(runs, band, visibility.stepDeg, projection);
+            return d ? <path key={band} d={d} fill={fill} /> : null;
           })}
         </g>
         {/* The horizon at first and last contact: the two curves that decide

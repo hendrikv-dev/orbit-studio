@@ -1,21 +1,32 @@
-import { Cloud, CloudDrizzle, CloudFog, Droplets, Flame, Moon, Thermometer, Wind } from "lucide-react";
+import {
+  Cloud,
+  CloudDrizzle,
+  CloudFog,
+  Droplets,
+  Flame,
+  Moon,
+  Thermometer,
+  TriangleAlert,
+  Wind,
+} from "lucide-react";
 import type { ConditionCard, ConditionCardId } from "../../data/tracker/conditionCards";
 
 /**
  * The conditions that bear on tonight, and only those.
  *
- * Three are always here — cloud, moonlight, temperature — because they always
- * matter. The rest appear when they would change what somebody does and are
- * absent otherwise.
+ * Three are always here — cloud, moonlight, temperature — because all three are
+ * always answerable and none is ever irrelevant. Between and after them the row
+ * carries what is actually true: the atmospheric slot when something measures
+ * the sky above this location, and an air-quality warning when the air is bad
+ * enough to carry published advice.
  *
- * This used to be a fixed row of four, on the reasoning that a constant row is
- * comparable between events and between nights. That was true and it cost more
- * than it bought: the fourth slot was smoke, smoke is negligible on most nights
- * almost everywhere, and so a quarter of the row spent every night saying "Not
- * reported" in order to be useful on the few nights it was. Comparability is
- * preserved where it is actually load-bearing — the three constants never move
- * — and the row now gets wider cards on an ordinary night instead of an empty
- * one.
+ * This has been a fixed four twice, on the reasoning that a constant row is
+ * comparable between events and between nights. That reasoning is right about
+ * the cards a reader learns and wrong about a slot held open on principle,
+ * because something has to go in it — and what went in it was "Smoke / haze ·
+ * Not reported", every night, everywhere no aerosol model reaches.
+ * Comparability is preserved where it is load-bearing: the standing three never
+ * move, and the row widens its cards rather than leaving a gap.
  *
  * Absence is still rendered as absence where a card *is* shown: "Forecast
  * closer to date" beyond any useful horizon, "Not reported" where no provider
@@ -30,6 +41,9 @@ const ICONS: Record<ConditionCardId, typeof Cloud> = {
   // Smoke gets its own mark rather than sharing haze's: they are different
   // claims from different models, and the row should not imply otherwise.
   smoke: Flame,
+  // The one card in the row that is about the reader rather than the sky, so
+  // it is the one card that is marked as a warning rather than as weather.
+  "air-quality": TriangleAlert,
   haze: Wind,
   precipitation: CloudDrizzle,
   fog: CloudFog,
