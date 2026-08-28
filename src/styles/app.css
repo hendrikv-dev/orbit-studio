@@ -11296,10 +11296,19 @@ button.primary,
   white-space: nowrap;
 }
 
+/* Positioning is the Popover's job, not this panel's.
+   
+   These rules used to open the panel themselves — `position: absolute; right: 0;
+   top: calc(100% + 8px)` — from the hand-built picker that predates React Aria.
+   They survived the rewrite and broke it: taking the panel out of flow inside
+   the popover left the popover measuring zero height, so the panel collapsed to
+   a 22px strip and its contents spilled across the page under the header. That
+   is the "stray exposed field beneath the header" this pass is fixing, and it
+   was one dead rule rather than an interaction problem.
+   
+   What stays is the appearance. Where the panel goes is decided by the popover,
+   which measures the viewport and cannot put its own results below the fold. */
 .tracker-place-panel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
   width: min(92vw, 380px);
   border: 1px solid rgba(120, 150, 175, 0.24);
   border-radius: 14px;
@@ -11670,14 +11679,11 @@ button.primary,
 
 /* The welcome screen carries the picker inline, so it opens downward into the
    page rather than up out of the bar. */
-/* Opens upward. The welcome trigger sits low in the hero with an empty page
-   beneath it, so a downward panel put its own results below the fold with
-   nothing able to scroll to them. */
+/* Only the height. The "opens upward" offsets that used to live here belonged
+   to the hand-built panel and are the Popover's decision now — it measures the
+   space available on both sides and flips itself, which is why the hardcoded
+   direction could be dropped. */
 .tracker-welcome-place .tracker-place-panel {
-  left: 0;
-  right: auto;
-  top: auto;
-  bottom: calc(100% + 10px);
   max-height: min(58vh, 520px);
 }
 .tracker-welcome-place .tracker-place-current {
@@ -11737,7 +11743,11 @@ button.primary,
 
 /* Inherits the popover's computed height rather than declaring its own. A
    fixed max-height here let the panel overflow the popover that had already
-   measured the space for it. */
+   measured the space for it.
+   
+   `100%` is safe only because the panel is in normal flow: against an
+   out-of-flow child the popover measures zero and this clamps the panel to
+   nothing, which is exactly what the stale `position: absolute` above caused. */
 .tracker-place-popover .tracker-place-panel {
   max-height: 100%;
   overflow-y: auto;
@@ -14710,7 +14720,19 @@ button.primary,
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    /* `auto`, not `hidden`.
+    
+       `hidden` enforced the contract by amputating whatever did not fit, and
+       what did not fit was the bottom of the hero — at 1024×800 the conditions
+       row wraps to two lines, the `1fr` main row is squeezed to 178px, and the
+       hero's own actions were cut off below the card. A page that hides its
+       primary control to avoid a scrollbar has chosen the wrong thing to
+       protect.
+    
+       With `auto` the fit is still the target and is still verified at every
+       height the contract names; where the content genuinely cannot fit, the
+       reader gets a scrollbar instead of a missing button. */
+    overflow: auto;
     padding-bottom: clamp(12px, 1.4vw, 18px);
   }
 }
@@ -14723,12 +14745,69 @@ button.primary,
   min-height: 0;
   margin-bottom: 12px;
 }
-.tk-page.tk-tonight .tk-hero,
+/* The hero body pays for the third metric row and the support line out of its
+   own padding rather than out of the actions, which were being clipped: the
+   primary control on the page is the last thing that may go. */
+.tk-page.tk-tonight .tk-hero-body,
+.tk-page[data-mode="upcoming"] .tk-hero-body {
+  padding: 16px 20px 14px 22px;
+}
+/* Sixteen pixels of rule-and-gap above the metrics, which is generous for a
+   separator between two blocks that are already visually distinct. */
+.tk-page.tk-tonight .tk-hero-metrics,
+.tk-page[data-mode="upcoming"] .tk-hero-metrics {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+/* The visualization crops gracefully — a chart or a map is the same thing at
+   any size. The hero does not: its last child is the row of controls, and a
+   hero clipped from the bottom loses them first. So the hero is allowed to be
+   as short as its own content and no shorter, and the row grows to hold it.
+
+*/
 .tk-page.tk-tonight .tk-viz-slot,
-.tk-page[data-mode="upcoming"] .tk-hero,
 .tk-page[data-mode="upcoming"] .tk-viz-slot {
   min-height: 0;
   overflow: hidden;
+}
+.tk-page.tk-tonight .tk-hero,
+.tk-page[data-mode="upcoming"] .tk-hero {
+  min-height: min-content;
+  overflow: hidden;
+}
+
+/* The one page whose hero genuinely cannot be made to fit.
+   
+   Solar viewing safety is mandatory and unsuppressable, so the solar eclipse
+   hero carries a block no other page has — about sixty pixels of it. The hero
+   declares `min-height: min-content` so its controls can never be clipped, and
+   a grid item's own min-height beats its track, so at 1280×800 the hero stood
+   475px tall inside a 402px row and painted straight over the four condition
+   cards beneath it.
+   
+   Two things were tried and both were worse. Giving the track a `min-content`
+   floor let the *map* size it instead — a grid track's min-content is the
+   largest of its items' — which took the row to 686px inside a 647px page and
+   pushed the ranked list off the bottom at 920×720. Adding `contain: size` to
+   the visualization to stop that collapsed the evidence panel to an empty 15px
+   strip.
+   
+   So the relaxation is scoped to the pages that need it, by the thing that
+   makes them need it. A page carrying a safety block stops claiming to be
+   exactly one viewport tall and grows to hold its hero; the shell scrolls. That
+   is the trade this block has already made once — a scrollbar is better than a
+   hidden control — and every page without a safety block keeps the contract
+   unchanged, which is all of Tonight. */
+.tk-page.tk-tonight:has(.tracker-safety),
+.tk-page[data-mode="upcoming"]:has(.tracker-safety) {
+  height: auto;
+  min-height: 100%;
+}
+.tk-page.tk-tonight:has(.tracker-safety) .tk-main-row,
+.tk-page[data-mode="upcoming"]:has(.tracker-safety) .tk-main-row {
+  /* The row is no longer a `1fr` share of a fixed page, so it needs a height
+     of its own or the visualization has nothing to stretch against. */
+  min-height: min-content;
 }
 .tk-page.tk-tonight .tk-hero-media img,
 .tk-page[data-mode="upcoming"] .tk-hero-media img {
@@ -14982,13 +15061,22 @@ button.primary,
     font-size: 0.98rem;
     line-height: 1.38;
   }
+  /* One line, which is what `EventPresentation.support` is documented to be.
+  
+     It was two, and that was affordable while most heroes had no support line
+     at all. The significance model gives nearly every event one — "Saturn is 37
+     days from opposition and already larger and brighter than usual" — so the
+     two-line allowance became a permanent 34px on a hero that is clipped to the
+     row it sits in, and it clipped the actions instead. The facts survive; they
+     are one line rather than two, and the second line was almost always the
+     tail of a sentence whose first half already carried it. */
   .tk-page.tk-tonight .tk-hero-support,
   .tk-page[data-mode="upcoming"] .tk-hero-support {
     display: -webkit-box;
     overflow: hidden;
     margin: 0;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     font-size: 0.76rem;
     line-height: 1.4;
   }
@@ -15059,10 +15147,18 @@ button.primary,
    The subtitle is the one piece of content that goes away rather than
    compressing. It is a gloss on a heading that is still there, it is duplicated
    by the hero's own copy, and it is the only candidate left that is not a
-   number, a control, or a recommendation. */
+   number, a control, or a recommendation.
+
+   Except on the one page where it is not a gloss. When nothing is eligible the
+   page is a heading and a paragraph and nothing else, and that paragraph is the
+   entire explanation — why the list is empty, and where the rest of the sky
+   went. Hiding it left "A quiet night" alone on an otherwise blank screen,
+   which reads as a failure rather than as an answer. There is also no height
+   pressure to relieve there: the page has no hero, no conditions and no list to
+   fit. */
 @media (min-height: 720px) and (max-height: 779px) and (min-width: 900px) {
-  .tk-page.tk-tonight .tk-page-heading p,
-  .tk-page[data-mode="upcoming"] .tk-page-heading p { display: none; }
+  .tk-page.tk-tonight:not(.tk-quiet) .tk-page-heading p,
+  .tk-page[data-mode="upcoming"]:not(.tk-quiet) .tk-page-heading p { display: none; }
   .tk-page.tk-tonight .tk-relevant-row,
   .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 1px 12px; }
   .tk-page.tk-tonight .tk-relevant-thumb,
@@ -15178,7 +15274,7 @@ button.primary,
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
   }
 }
 

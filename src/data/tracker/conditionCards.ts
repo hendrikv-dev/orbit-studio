@@ -181,7 +181,7 @@ export function moonlightCard(
   const time = MakeTime(at);
   const equator = Equator(Body.Moon, time, observer, true, true);
   const altitudeDeg = Horizon(time, observer, equator.ra, equator.dec, "normal").altitude;
-  const percent = Math.round(Number(phase.illuminatedFraction) * 100);
+  const percent = illuminatedPercent(Number(phase.illuminatedFraction), phase.name);
 
   if (altitudeDeg <= 0) {
     return {
@@ -203,6 +203,27 @@ export function moonlightCard(
     interpretation: load > 0.45 ? "Washes out faint objects" : load > 0.18 ? "Some glare" : "Little effect",
     tone: load > 0.45 ? "poor" : load > 0.18 ? "fair" : "good",
   };
+}
+
+/**
+ * The lit fraction as a percentage, without contradicting the phase beside it.
+ *
+ * The phase name comes from the cycle angle with a tolerance either side of the
+ * principal phases; the percentage comes from the illumination. Just outside
+ * that tolerance the Moon is 99.6% lit and named "Waning Gibbous", and rounding
+ * gave the card "Waning Gibbous · 100%" — a full Moon that is not the Full
+ * Moon, in four words.
+ *
+ * The name is the one to keep: it is what a reader will check against the sky
+ * and against every other calendar. So the percentage rounds towards the phase
+ * rather than away from it, and 100 and 0 are reserved for the phases that mean
+ * them.
+ */
+function illuminatedPercent(fraction: number, phaseName: string): number {
+  const rounded = Math.round(fraction * 100);
+  if (rounded >= 100 && phaseName !== "Full Moon") return 99;
+  if (rounded <= 0 && phaseName !== "New Moon") return 1;
+  return rounded;
 }
 
 /* ----------------------------------------------------------------- cloud */
@@ -265,8 +286,8 @@ const AEROSOL_LABEL: Record<AerosolReading, { value: string; tone: ConditionTone
  * nights in most places the honest answer is silence, and silence should not
  * occupy a quarter of the row.
  */
-function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
-  if (!snapshot) return null;
+function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard {
+  if (!snapshot) return unknownCard("smoke", "Smoke / haze", "Not reported");
 
   const column = snapshot.smokeColumnMgM2;
   // Smoke first, where a smoke model actually covers this place and reports
@@ -279,7 +300,7 @@ function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard | nu
         : null;
     return {
       id: "smoke",
-      label: "Wildfire smoke",
+      label: "Smoke / haze",
       value: heavy ? "Heavy" : "Moderate",
       interpretation:
         magnitudes !== null
@@ -304,11 +325,35 @@ function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard | nu
     // level is like to stand in and nothing about transparency overhead. It is
     // labelled that way, and only appears when it is bad enough to matter.
     const surface = snapshot.surfacePm25;
-    if (surface === null || surface === undefined || surface < PM25_MATERIAL_UG_M3) return null;
+    if (surface === null || surface === undefined) {
+      // No aerosol model and no surface reading. "Nobody measured this" is a
+      // different claim from "the air is clean" and the card must not make the
+      // second one on the evidence for the first.
+      return unknownCard(
+        "smoke",
+        "Smoke / haze",
+        "Not reported",
+        "No model covers this location",
+      );
+    }
+    if (surface < PM25_MATERIAL_UG_M3) {
+      return {
+        id: "smoke",
+        label: "Smoke / haze",
+        value: "Clear at ground",
+        interpretation: "Nothing measured overhead",
+        tone: "good",
+        provenance: {
+          kind: "model",
+          detail:
+            "Surface PM2.5 from Copernicus via Open-Meteo. A ground-level health measure; no aerosol model covers the sky above this location.",
+        },
+      };
+    }
     const heavy = surface >= 55;
     return {
       id: "smoke",
-      label: "Air quality",
+      label: "Smoke / haze",
       value: heavy ? "Heavy at ground" : "Moderate at ground",
       interpretation: heavy ? "Poor air to stand in" : "Noticeable at ground",
       tone: heavy ? "poor" : "fair",
@@ -320,12 +365,28 @@ function obstructionCard(snapshot: ConditionSnapshot | null): ConditionCard | nu
     };
   }
   const magnitudes = aerosolExtinctionMagnitudes(opticalDepth);
-  if (magnitudes < HAZE_MATERIAL_MAGNITUDES) return null;
+  if (magnitudes < HAZE_MATERIAL_MAGNITUDES) {
+    // Measured, and there is nothing there. Worth its slot: on a night after a
+    // fire this is the card a reader checks first, and it can only reassure
+    // them if it is in the same place on the nights it has nothing to report.
+    return {
+      id: "smoke",
+      label: "Smoke / haze",
+      value: "Clear",
+      interpretation: `Less than ${HAZE_MATERIAL_MAGNITUDES.toFixed(2)} mag of dimming`,
+      tone: "good",
+      provenance: {
+        kind: "model",
+        detail:
+          "Aerosol optical depth at 550 nm from Copernicus via Open-Meteo. Measures all aerosol together and cannot identify smoke.",
+      },
+    };
+  }
 
   const reading = readAerosol(opticalDepth);
   return {
-    id: "haze",
-    label: "Haze",
+    id: "smoke",
+    label: "Smoke / haze",
     // Never "smoky": this figure cannot tell smoke from dust or pollution.
     value: reading === "heavy" || reading === "smoky" ? "Thick" : "Noticeable",
     interpretation: `Dims the sky by ${magnitudes.toFixed(1)} mag`,
@@ -469,37 +530,55 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
     input;
 
   /**
-   * Moonlight, where the Moon is a nuisance rather than the point.
+   * Moonlight, which is always in the row and does not always mean the same
+   * thing.
    *
-   * Three cases, and only the first produces a card:
+   * Three cases, and the card says which one it is in rather than disappearing:
    *
    *  - The Moon interferes. Meteors, aurora and faint objects lose contrast to
-   *    it, so how much of it there is and whether it is up are decisions.
+   *    it, so how much there is and whether it is up are decisions.
    *  - The Moon *is* the target. A lunar eclipse, the Moon's own page, a Moon
-   *    pairing. Reporting its brightness as interference is nonsense: it read
-   *    "Full Moon · 100% · Some glare" on an eclipse page, which is the event
-   *    described as its own obstacle.
+   *    pairing. Reporting its brightness as interference read "Full Moon · 100%
+   *    · Some glare" on an eclipse page — the event described as its own
+   *    obstacle — so the interpretation says it is the subject instead.
    *  - The Moon barely matters. A bright planet is not troubled by moonlight in
-   *    any way the reader can act on, so the slot goes to something that is.
+   *    any way the reader can act on, and the card says so rather than implying
+   *    a problem that is not there.
+   *
+   * It used to be dropped in the second and third cases. That is what made the
+   * row change shape between phenomena, and the phase is a fact worth a slot on
+   * any night: the reader planning tomorrow is looking at exactly this number.
    */
-  const wantsMoonlight =
-    subject === undefined || (!subject.moonIsTheTarget && subject.moonlightSensitivity === "high");
-  const moonlight = wantsMoonlight ? moonlightCard(atUtc, latitudeDeg, longitudeDeg) : null;
+  const moonlight = subjectMoonlight(
+    moonlightCard(atUtc, latitudeDeg, longitudeDeg),
+    subject,
+  );
 
   /**
-   * The three that are always here.
+   * The four slots, whatever the data does.
    *
-   * Cloud decides whether there is a sky, the Moon decides what can be seen in
-   * it, and temperature decides how long anybody lasts outside. None of those
-   * is ever irrelevant, so none is ever omitted — including when the answer is
-   * that nothing is known, which is itself worth a slot.
+   * ## Why the row is fixed again
+   *
+   * It was briefly dynamic: cloud, moonlight and temperature always, with smoke
+   * and haze appearing only when they were material. The reasoning was that a
+   * slot reading "No smoke" every night spends a quarter of the row saying
+   * nothing — which is true, and is outweighed by what it cost. The row is the
+   * one part of the page whose geometry a returning reader learns, and a row
+   * that changes shape between an eclipse page and a meteor page makes them
+   * re-read it every time. A reader who has learned that the second card is
+   * smoke can check smoke at a glance; a reader whose second card is sometimes
+   * smoke and sometimes moonlight cannot.
+   *
+   * So the four are always present, and an empty one says which kind of empty
+   * it is — "no model covers this location" is a different statement from
+   * "measured, and there is none", and the card is required to tell them apart.
    */
-  const constants = (state: string): ConditionCard[] =>
-    [
-      unknownCard("cloud", "Cloud cover", state),
-      moonlight,
-      unknownCard("temperature", "Temperature", state),
-    ].filter((card): card is ConditionCard => card !== null);
+  const constants = (state: string): ConditionCard[] => [
+    unknownCard("cloud", "Cloud cover", state),
+    unknownCard("smoke", "Smoke / haze", state),
+    moonlight ?? moonlightCard(atUtc, latitudeDeg, longitudeDeg),
+    unknownCard("temperature", "Temperature", state),
+  ];
 
   // Tracker keeps no weather history, so it has nothing to say about a sky that
   // has already happened. The Moon still answers, because the Moon's position
@@ -516,27 +595,63 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
   const snapshot = nearestSnapshot(snapshots, atUtc);
 
   /**
-   * The conditional cards, in the order they would change a decision.
+   * Rain, fog and dew have nowhere of their own to go, so they go where they
+   * belong.
    *
-   * Precipitation first because it ends the question; then whatever is dimming
-   * the sky; then fog, which cloud cover does not describe; then dew, which is
-   * about the equipment rather than the sky. Each returns null when it has
-   * nothing to say, and a night with nothing to add simply gets three wider
-   * cards.
+   * Each is a fact about one of the four subjects rather than a fifth subject:
+   * rain and fog are the sky being shut, which is what the cloud card is about,
+   * and dew is what the night's air does to a lens, which is temperature's
+   * department. Folding them in keeps the geometry fixed without dropping
+   * anything a reader would act on — and rain in particular is the single most
+   * decisive thing on the page, so it takes over the cloud card's headline
+   * rather than sitting fifth in a row nobody reaches.
    */
-  const conditional = [
-    precipitationCard(snapshot),
-    obstructionCard(snapshot),
-    fogCard(snapshot),
-    dewCard(snapshot),
-  ].filter((card): card is ConditionCard => card !== null);
-
   return [
     cloudCard(snapshot),
-    ...(moonlight ? [moonlight] : []),
-    temperatureCard(snapshot),
-    // Capped so the row stays scannable. On the rare night that trips four of
-    // them, the two that matter most are the two that are shown.
-    ...conditional.slice(0, MAX_CONDITIONAL_CARDS),
+    obstructionCard(snapshot),
+    moonlight ?? moonlightCard(atUtc, latitudeDeg, longitudeDeg),
+    withDew(temperatureCard(snapshot), snapshot),
   ];
+}
+
+/**
+ * Dew, on the temperature card.
+ *
+ * Only where the humidity is high enough to matter, and only as a change to the
+ * interpretation line — the temperature itself is still the number, because
+ * that is what the reader came to the card for.
+ */
+function subjectMoonlight(
+  card: ConditionCard,
+  subject: ConditionRowInput["subject"],
+): ConditionCard {
+  if (subject === undefined) return card;
+  if (subject.moonIsTheTarget) {
+    return {
+      ...card,
+      interpretation: "The Moon is what you are looking at",
+      tone: "good",
+    };
+  }
+  if (subject.moonlightSensitivity !== "high") {
+    return {
+      ...card,
+      // A bright planet or the Moon itself is not lost to moonlight, and
+      // "washes out faint objects" beside Saturn would be a warning about a
+      // problem the reader does not have.
+      interpretation: card.tone === "good" ? card.interpretation : "No effect on this target",
+      tone: "good",
+    };
+  }
+  return card;
+}
+
+function withDew(card: ConditionCard, snapshot: ConditionSnapshot | null): ConditionCard {
+  const humidity = snapshot?.relativeHumidityPercent;
+  if (humidity === null || humidity === undefined || humidity < DEW_HUMIDITY_PERCENT) return card;
+  return {
+    ...card,
+    interpretation: `${card.interpretation ? `${card.interpretation} · ` : ""}Dew at ${Math.round(humidity)}% humidity`,
+    tone: card.tone === "good" ? "fair" : card.tone,
+  };
 }

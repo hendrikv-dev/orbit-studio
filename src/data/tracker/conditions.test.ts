@@ -479,4 +479,32 @@ describe("telling 'already set' apart from 'rained off'", () => {
   it("is false for a night browsed after the fact", () => {
     expect(hasPassedTonight(setting, new Date("2026-09-01T00:00:00Z"))).toBe(false);
   });
+
+  /**
+   * A short event inside the current night is the case the period parameter
+   * exists for. A lunar eclipse's profile covers the eclipse rather than the
+   * whole night, so once it ends `now` is past the last sample — which used to
+   * read as "browsing a past date" and left the eclipse leading Best tonight
+   * for hours after it finished.
+   */
+  const brief: OpportunitySample[] = [
+    { atUtc: "2026-08-16T19:00:00Z", relative: 0.4 },
+    { atUtc: "2026-08-16T19:30:00Z", relative: 1 },
+    { atUtc: "2026-08-16T20:00:00Z", relative: 0.4 },
+  ];
+  const tonight = { startUtc: "2026-08-16T17:00:00Z", endUtc: "2026-08-17T05:00:00Z" };
+
+  it("is true for a brief event that has finished inside tonight", () => {
+    expect(hasPassedTonight(brief, new Date("2026-08-16T23:00:00Z"), tonight)).toBe(true);
+  });
+
+  it("is still false for the same event on a night being browsed later", () => {
+    // Outside the period entirely: the whole night is historical, and marking
+    // every row "already set" would be noise rather than information.
+    expect(hasPassedTonight(brief, new Date("2026-09-01T00:00:00Z"), tonight)).toBe(false);
+  });
+
+  it("is false before a brief event begins", () => {
+    expect(hasPassedTonight(brief, new Date("2026-08-16T18:00:00Z"), tonight)).toBe(false);
+  });
 });

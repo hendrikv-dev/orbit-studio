@@ -75,7 +75,10 @@ export function TrackerUpcomingList({ events, place, clock, onSelect }: Props) {
             <th scope="col">Event</th>
             <th scope="col">Kind</th>
             <th scope="col">When</th>
-            <th scope="col">Worth it</th>
+            {/* Named for what the column measures. "Worth it" invited the
+                reading that this was the event's overall standing, which is
+                what the rank number says; this is how good the view will be. */}
+            <th scope="col">Visibility</th>
             <th scope="col">
               <span className="tk-visually-hidden">Open</span>
             </th>

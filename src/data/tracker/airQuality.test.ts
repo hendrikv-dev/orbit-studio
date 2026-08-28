@@ -102,10 +102,21 @@ describe("folding aerosol into the forecast", () => {
 
 describe("what the card says", () => {
   /**
-   * These previously asserted a permanent smoke card that reported its own
-   * absence on a clean night. The row is now conditional: the aerosol card
-   * appears when the air would change the night and is omitted otherwise, so
-   * "what does it say when there is nothing to say" became "it is not there".
+   * ## Two rewrites of this block, and why it is back where it started
+   *
+   * Originally these asserted a permanent smoke card. They were then rewritten
+   * to assert the opposite — that the card is omitted when there is nothing to
+   * report — because a slot reading "No smoke" every night spends a quarter of
+   * the row saying nothing.
+   *
+   * The row is fixed at four again, on the ground that a row whose shape
+   * changes with the phenomenon has to be re-read every time. So the assertions
+   * are back to a permanent card, and they are deliberately *stronger* than the
+   * originals rather than a revert: it is not enough that a card exists, it has
+   * to distinguish the three states that were previously collapsed into
+   * absence — measured and clean, unmeasured overhead but clean at ground, and
+   * not covered by any model at all. Absence could not tell those apart, and
+   * they are three different things to know before driving somewhere dark.
    */
   const cardFor = (overrides: Partial<ConditionSnapshot>) =>
     conditionCards({
@@ -115,7 +126,7 @@ describe("what the card says", () => {
       evidenceStatus: "available",
       now: NOW,
       pending: false,
-    }).find((card) => card.id === "smoke" || card.id === "haze");
+    }).find((card) => card.id === "smoke");
 
   it("quotes the cost in magnitudes rather than an index", () => {
     const card = cardFor({ aerosolOpticalDepth: 0.45 });
@@ -124,19 +135,32 @@ describe("what the card says", () => {
   });
 
   it("does not call thick aerosol smoke, because it cannot tell", () => {
-    // Optical depth measures dust, sea salt, pollution and smoke together.
+    // Optical depth measures dust, sea salt, pollution and smoke together. The
+    // slot is shared with the smoke model, so the *value* carries the
+    // distinction the label no longer can.
     const card = cardFor({ aerosolOpticalDepth: 0.45 });
-    expect(card?.id).toBe("haze");
-    expect(card?.label).toBe("Haze");
-    expect(`${card?.label} ${card?.value}`).not.toMatch(/smok/i);
+    expect(card?.value).toBe("Thick");
+    expect(`${card?.value} ${card?.interpretation}`).not.toMatch(/smok/i);
+    expect(card?.provenance?.detail).toMatch(/cannot identify smoke/i);
   });
 
-  it("omits the card entirely when the sky is transparent", () => {
-    expect(cardFor({ aerosolOpticalDepth: 0.05 })).toBeUndefined();
+  it("says the sky was measured and is clean, rather than going quiet", () => {
+    // Stronger than the omission it replaces: "measured, nothing there" is a
+    // claim a reader can act on, and an absent card is not.
+    const card = cardFor({ aerosolOpticalDepth: 0.05 });
+    expect(card?.value).toBe("Clear");
+    expect(card?.tone).toBe("good");
+    expect(card?.provenance?.kind).toBe("model");
   });
 
-  it("omits the card when no model reports anything", () => {
-    expect(cardFor({})).toBeUndefined();
+  it("distinguishes an unmeasured sky from a clean one", () => {
+    // The state absence could never express. No aerosol model and no surface
+    // reading is not the same as a transparent sky, and the card must not let
+    // a reader take one for the other.
+    const card = cardFor({});
+    expect(card?.value).toBe("Not reported");
+    expect(card?.tone).toBe("unknown");
+    expect(card?.interpretation).toMatch(/no model covers this location/i);
   });
 
   it("labels a surface particulate reading as a ground measurement", () => {
@@ -149,8 +173,14 @@ describe("what the card says", () => {
     expect(card?.provenance?.detail).toMatch(/does not describe how transparent/i);
   });
 
-  it("omits a surface reading that is merely ordinary", () => {
-    expect(cardFor({ surfacePm25: 8 })).toBeUndefined();
+  it("never promotes a ground reading into a claim about the sky", () => {
+    // PM2.5 at eight is fine air to stand in and says nothing whatever about
+    // transparency overhead. The card is allowed to report the first and is
+    // required not to imply the second.
+    const card = cardFor({ surfacePm25: 8 });
+    expect(card?.value).toBe("Clear at ground");
+    expect(card?.interpretation).toMatch(/nothing measured overhead/i);
+    expect(card?.provenance?.detail).toMatch(/no aerosol model covers the sky/i);
   });
 });
 

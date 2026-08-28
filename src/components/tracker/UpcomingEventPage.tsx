@@ -9,6 +9,7 @@ import {
   type EnvironmentalEvidenceStatus,
 } from "../../data/tracker/conditions";
 import {
+  VISIBILITY_LABEL,
   presentAuroraEvent,
   presentSolarEclipseEvent,
   presentTonightEvent,
@@ -121,6 +122,21 @@ export function UpcomingEventPage({
   }, [drill]);
   // A different event is a different question; the old pin does not belong to it.
   useEffect(() => setInspected(null), [event.id]);
+
+  /**
+   * The tab is named after what is on it.
+   *
+   * Tonight's title effect is the only one there was, so opening a solar
+   * eclipse from the calendar left a tab still called "Saturn tonight" — the
+   * wrong event, on the wrong date, in the place a reader looks to find this
+   * page again in a row of tabs or in their history.
+   */
+  useEffect(() => {
+    document.title = `${event.title} — Orbit Studio Tracker`;
+    return () => {
+      document.title = "Orbit Studio Tracker";
+    };
+  }, [event.title]);
 
   const inspection = useMemo(
     () => ({
@@ -469,7 +485,7 @@ function buildPresentation(
     // not computed that night's observing period. Passing null is what keeps the
     // support line from claiming a darkness interval it has not established.
     const presentation = presentAuroraEvent(assessment, event.atUtc, clock, null, {
-      label: "Worth it",
+      label: VISIBILITY_LABEL,
       value: "Not known",
       tone: "unknown",
     });
@@ -529,7 +545,7 @@ function buildPresentation(
   });
   const imagery = heroImageryFor(opportunity.id, opportunity.kind);
   const skyPath = skyPathFor(opportunity, window);
-  const gaze = gazeRegionFor(opportunity, skyPath);
+  const gaze = gazeRegionFor(opportunity, skyPath, window?.peakUtc ?? opportunity.guidance.whenUtc);
   const timing = `${formatClockTime(notable.plan.period.startUtc, clock)} to ${formatClockTime(notable.plan.period.endUtc, clock)}`;
   const verdict = {
     headline: notable.reason,

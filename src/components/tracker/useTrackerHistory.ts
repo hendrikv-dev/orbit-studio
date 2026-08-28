@@ -55,6 +55,17 @@ export function useTrackerHistory(): TrackerHistory {
   );
 
   /**
+   * The current location, readable without going through React state.
+   *
+   * `navigate` needs to know where it is starting from *and* write to the
+   * history stack, and those two must happen exactly once per call. Keeping the
+   * location in a ref alongside the state is what makes that possible — see the
+   * comment on `navigate` for why doing it inside the state updater was wrong.
+   */
+  const current = useRef(location);
+  current.current = location;
+
+  /**
    * How many entries of our own are behind the current one.
    *
    * Needed because `history.length` counts the whole tab, including whatever
@@ -84,6 +95,7 @@ export function useTrackerHistory(): TrackerHistory {
       // a hand-edited address still resolves to something coherent.
       const next = state ?? parseTrackerLocation(window.location.search);
       depth.current = Math.max(0, depth.current - 1);
+      current.current = next;
       setLocation(next);
     }
     window.addEventListener("popstate", onPopState);
@@ -92,20 +104,42 @@ export function useTrackerHistory(): TrackerHistory {
 
   const navigate = useCallback(
     (next: Partial<TrackerLocation>, options?: { replace?: boolean }) => {
-      setLocation((current) => {
-        const merged: TrackerLocation = { ...current, ...next };
-        if (sameTrackerLocation(current, merged)) return current;
+      /**
+       * ## Why the history write is out here rather than in the updater
+       *
+       * It used to live inside `setLocation(current => …)`, which reads as the
+       * natural place for it: the updater already has the previous location, so
+       * merging and pushing in one step avoids a stale closure.
+       *
+       * It is also a side effect inside a function React is explicitly allowed
+       * to call more than once. StrictMode does exactly that in development to
+       * surface impure updaters, so every navigation pushed **two** history
+       * entries — confirmed in the browser: one click on "View visibility map"
+       * took `history.length` from 7 to 9. The reader's first Back press then
+       * appeared to do nothing, because it was consuming a duplicate of the
+       * entry they were already on, and the second took them somewhere they had
+       * not expected. Under concurrent rendering the same hazard exists in
+       * production; StrictMode only made it reproducible.
+       *
+       * So the merge reads the ref, the history write happens once, and
+       * `setLocation` is handed a plain value with nothing to re-run.
+       */
+      const from = current.current;
+      const merged: TrackerLocation = { ...from, ...next };
+      if (sameTrackerLocation(from, merged)) return;
 
-        const push = options?.replace ? false : isNavigationStep(current, merged);
-        const search = trackerLocationToSearch(merged);
-        if (push) {
-          window.history.pushState({ tracker: merged }, "", search);
-          depth.current += 1;
-        } else {
-          window.history.replaceState({ tracker: merged }, "", search);
-        }
-        return merged;
-      });
+      const push = options?.replace ? false : isNavigationStep(from, merged);
+      const search = trackerLocationToSearch(merged);
+      if (push) {
+        window.history.pushState({ tracker: merged }, "", search);
+        depth.current += 1;
+      } else {
+        window.history.replaceState({ tracker: merged }, "", search);
+      }
+      // Kept in step immediately: two `navigate` calls in one event handler
+      // would otherwise both merge from the same stale `from`.
+      current.current = merged;
+      setLocation(merged);
     },
     [],
   );

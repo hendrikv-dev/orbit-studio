@@ -45,6 +45,31 @@ import AxeBuilder from "@axe-core/playwright";
  * The geocoder result deliberately has no `name` — it is a plain street
  * address, the case that used to be discarded and report "Nothing found".
  */
+/**
+ * The instant every page in this run is rendered at.
+ *
+ * ## Why the clock is pinned
+ *
+ * The fixture location is a campsite near Joshua Tree, and Tracker correctly
+ * shows nothing to recommend once that location's night has ended — so the
+ * recommendation page has no hero, and every scan that waits for one times out.
+ * Run this gate at 22:00 and it passes; run it at 05:59 and it fails, on
+ * identical code. That is not an accessibility result.
+ *
+ * Late evening local time, on whatever day the gate runs, so the sky is dark
+ * and there is a recommendation to inspect. The fixture is the clock, not the
+ * astronomy: everything below is still computed from the real ephemeris for
+ * that instant.
+ */
+const RUN_AT = (() => {
+  const today = new Date();
+  // 22:30 at UTC−7 (Pacific daylight time, which is what the fixture's
+  // timezone resolves to for these dates).
+  return new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 5, 30, 0),
+  );
+})();
+
 const PLACE_FIXTURE = {
   features: [
     {
@@ -378,6 +403,7 @@ async function run() {
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await stubProviders(desktop);
     const page = await desktop.newPage();
+    await page.clock.setFixedTime(RUN_AT);
     await page.goto(TRACKER, { waitUntil: "networkidle" });
     await scan(page, "entry");
 
@@ -570,6 +596,7 @@ async function run() {
     });
     await stubProviders(mobile);
     const phone = await mobile.newPage();
+    await phone.clock.setFixedTime(RUN_AT);
     await phone.goto(TRACKER, { waitUntil: "networkidle" });
     await scan(phone, "entry on a phone");
     await chooseFirstResult(phone, "Joshua Tree Village Campground");
@@ -615,6 +642,7 @@ async function run() {
       fromDevice: false,
     });
     const narrowPage = await narrow.newPage();
+    await narrowPage.clock.setFixedTime(RUN_AT);
     await narrowPage.goto(TRACKER, { waitUntil: "networkidle" });
     await narrowPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
     await scan(narrowPage, "recommendation at 320 CSS pixels");
@@ -642,6 +670,7 @@ async function run() {
       fromDevice: false,
     });
     const reducedPage = await reduced.newPage();
+    await reducedPage.clock.setFixedTime(RUN_AT);
     await reducedPage.goto(TRACKER, { waitUntil: "networkidle" });
     await reducedPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
     expect(

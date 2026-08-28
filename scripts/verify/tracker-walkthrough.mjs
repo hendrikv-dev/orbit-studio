@@ -102,6 +102,12 @@ async function readPageState(page) {
     heroName: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? null,
     recommendationLevel:
       document.querySelector(".tk-hero")?.getAttribute("data-recommendation") ?? null,
+    recommendation:
+      document.querySelector(".tk-hero-recommendation")?.textContent?.trim() ?? null,
+    support: document.querySelector(".tk-hero-support")?.textContent?.trim() ?? null,
+    actions: [...document.querySelectorAll(".tk-hero-actions .tk-action")].map((node) =>
+      node.textContent?.trim(),
+    ),
     pills: [...document.querySelectorAll(".tk-pill")].map((node) => node.textContent?.trim()),
     metrics: [...document.querySelectorAll(".tk-hero-metrics .tk-metric")].map((node) => ({
       label: node.querySelector("dt")?.textContent?.trim(),
@@ -160,18 +166,26 @@ function assertUniversalGeometry(state, label) {
   check(state.geometry.heading, `${label}: has the category heading`);
   check(state.geometry.hero, `${label}: has the hero`);
   check(state.geometry.visualization, `${label}: has a visualization in the fixed slot`);
-  // Was "exactly four". The row is now three constants — cloud, moonlight,
-  // temperature — plus up to two conditions that are actually happening, so a
-  // clear night shows three wider cards rather than a fourth reading "Not
-  // reported". What must hold is that the constants are always there and the
-  // row never grows past what stays scannable.
-  // Two to five. Cloud and temperature always bear on the decision; moonlight
-  // only does when the Moon is interference rather than the subject, so a
-  // planet page legitimately shows two. The old "exactly four" contract is what
-  // forced a permanent smoke slot reading "Not reported".
+  /**
+   * Exactly four, in a fixed order, on every page.
+   *
+   * This assertion has been round the loop: a fixed four, then a dynamic two-to-
+   * five, and now fixed again. The argument that settled it is that the row is
+   * the one piece of geometry a returning reader learns — a reader who knows the
+   * second card is smoke can check smoke without reading, and a reader whose
+   * second card is sometimes smoke and sometimes moonlight cannot.
+   *
+   * The order is asserted as well as the count, because a row of four that
+   * permutes between phenomena has the same problem as a row that resizes.
+   */
   check(
-    state.geometry.conditions >= 2 && state.geometry.conditions <= 5,
-    `${label}: has two to five condition cards (${state.geometry.conditions})`,
+    state.geometry.conditions === 4,
+    `${label}: has exactly four condition cards (${state.geometry.conditions})`,
+  );
+  check(
+    JSON.stringify(state.conditions.map((card) => card.label)) ===
+      JSON.stringify(["Cloud cover", "Smoke / haze", "Moonlight", "Temperature"]),
+    `${label}: condition cards are the universal four in order`,
   );
   check(
     ["Cloud cover", "Temperature"].every((wanted) =>
@@ -179,20 +193,44 @@ function assertUniversalGeometry(state, label) {
     ),
     `${label}: always answers cloud and temperature`,
   );
-  // Scoped to the conditional cards. Cloud and temperature are always shown
-  // because they always bear on the decision, and "Not reported" is the honest
-  // answer when the provider has nothing for that instant — the defect this
-  // guards against is a *conditional* slot that exists only to say it has
-  // nothing to say, which is what the permanent smoke card did every night.
+  /**
+   * A permanent slot must still distinguish its kinds of empty.
+   *
+   * The objection to a fixed smoke card was that it said "Not reported" every
+   * night. The answer is not to drop it but to make the empty states carry
+   * information: "Clear" is a measurement, "Not reported · No model covers this
+   * location" is an absence of one, and "Forecast closer to date" is a date
+   * nobody can forecast yet. What is forbidden is a card that says nothing at
+   * all about which of those it is.
+   */
   check(
     !state.conditions.some(
-      (card) =>
-        /smoke|haze|precipitation|fog|dew/i.test(card.label ?? "") &&
-        /^No smoke$|^Not reported$|^None$/.test(card.value ?? ""),
+      (card) => /^(None|No smoke|—|-|n\/a)$/i.test((card.value ?? "").trim()),
     ),
-    `${label}: no conditional card is present only to report its own absence`,
+    `${label}: no condition card reports a bare absence`,
   );
   check(state.metrics.length === 3, `${label}: has exactly three metrics`);
+  /**
+   * The judgements the brief removed, asserted gone from the rendered page.
+   *
+   * A grep over the source would miss a template that assembles one at runtime,
+   * which is the only kind that reaches a reader.
+   */
+  const heroText = `${state.heroName ?? ""} ${state.recommendation ?? ""} ${state.support ?? ""} ${state.metrics
+    .map((metric) => `${metric.label} ${metric.value}`)
+    .join(" ")}`;
+  check(
+    !/worth it|worth going out|worth a special trip|worth staying up|worth a look/i.test(heroText),
+    `${label}: the hero passes no "worth it" judgement`,
+  );
+  check(
+    state.metrics[2]?.label === "Where to look",
+    `${label}: the third metric says where to look (${state.metrics[2]?.label})`,
+  );
+  check(
+    Boolean(state.metrics[2]?.value?.trim()),
+    `${label}: the where-to-look metric is never blank`,
+  );
   check(
     state.pills.length >= 1 && state.pills.length <= 2,
     `${label}: has one or two state pills`,
@@ -205,6 +243,30 @@ function assertUniversalGeometry(state, label) {
     `${label}: hero holds roughly two thirds of the row (${state.geometry.heroWidthRatio})`,
   );
 }
+
+/**
+ * The instant the whole walk is run at.
+ *
+ * ## Why every page is pinned, not just the aurora ones
+ *
+ * The aurora section already pinned its clock, for a reason that turned out to
+ * apply to the entire file: Tracker's answers are a function of the time, so a
+ * gate that reads the wall clock is testing the hour as much as the code. Run
+ * this at 22:00 and Best tonight has two rows; run it at 06:20, after the
+ * night has ended at the test location, and it correctly has none — and eight
+ * assertions about a ranked list fail on a product that is behaving perfectly.
+ *
+ * Late evening Pacific, on whatever day the walk runs. The date still moves, so
+ * the astronomy is never a frozen fixture — only the hour is held still, which
+ * is the part that decides whether there is a night to look at.
+ */
+const WALK_AT = (() => {
+  const today = new Date();
+  // 22:30 at UTC−7, which is what the test locations resolve to for these dates.
+  return new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 5, 30, 0),
+  );
+})();
 
 async function seedPlace(page, place) {
   await page.addInitScript((value) => {
@@ -279,6 +341,32 @@ async function openTonightEvent(page, id) {
   return (await page.locator(".tk-hero-name").count()) > 0;
 }
 
+/**
+ * A night whose lunar eclipse is known, rather than whichever one is in range.
+ *
+ * The eclipse-dependent sections used to hunt for a lunar eclipse card in
+ * Upcoming. That made them a function of the sky: a lunar eclipse falls inside
+ * Upcoming's thirty nights a few times a year, and on every other day these
+ * checks reported a failure the product did not have. A gate that goes red
+ * because the Moon is not cooperating teaches its readers to ignore it.
+ *
+ * 11 January 2028 carries a partial lunar eclipse visible from Portland, so
+ * the date pins the phenomenon and every assertion below is about the code.
+ * Nothing is faked: the geometry is computed from the ephemeris at run time,
+ * exactly as it is for tonight.
+ */
+const LUNAR_ECLIPSE_NIGHT = "2028-01-11";
+
+async function openLunarEclipse(page) {
+  await page.goto(`${TRACKER}&date=${LUNAR_ECLIPSE_NIGHT}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await page.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+  await page.waitForTimeout(4000);
+  return (await page.locator(".tk-hero-name").count()) > 0;
+}
+
 /** Whether Best tonight currently recommends something matching `pattern`. */
 async function bestTonightHas(page, pattern) {
   const names = await page.locator(".tk-relevant-name").allInnerTexts();
@@ -293,6 +381,7 @@ async function main() {
   /* --- 1. location, from nothing ---------------------------------------- */
   const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   const page = await context.newPage();
+  await page.clock.setFixedTime(WALK_AT);
   await page.goto(TRACKER, { waitUntil: "networkidle" });
   await page.waitForSelector(".tk-entry");
   console.log("\nLocation");
@@ -323,6 +412,7 @@ async function main() {
   });
   await seedPlace(portlandContext, PLACES.portland);
   const portland = await portlandContext.newPage();
+  await portland.clock.setFixedTime(WALK_AT);
   await portland.goto(TRACKER, { waitUntil: "networkidle" });
   await portland.waitForSelector(".tk-tonight", { timeout: 30_000 });
   await portland.waitForTimeout(3000);
@@ -580,10 +670,26 @@ async function main() {
   const eclipseInCalendar = (
     calendarByCategory.get("eclipses") ?? { agenda: [] }
   ).agenda;
+  /**
+   * Calendar used to generate its own events and could therefore never contain
+   * an eclipse: two views, two generators. The fix was one source for both, and
+   * the property that proves it is the parity loop immediately above — run for
+   * every category, eclipses included.
+   *
+   * The old form of this check asserted that an eclipse was *present* in the
+   * Calendar, which is unsatisfiable in most months: List reaches thirty nights
+   * and years ahead for solar eclipses, the Calendar shows one month, and
+   * whether an eclipse falls in it is a fact about the solar system rather than
+   * about the code. A gate that fails because the Moon is not cooperating is
+   * not a gate.
+   *
+   * What is still asserted here is the half that is always checkable and that
+   * would catch the original defect returning: an eclipse the Calendar does
+   * show must be one the shared source produced.
+   */
   check(
-    eclipseInCalendar.length > 0 ||
-      (listByCategory.get("eclipses") ?? []).length === 0,
-    "eclipses reach Calendar, not only List",
+    eclipseInCalendar.every((title) => (listByCategory.get("eclipses") ?? []).includes(title)),
+    `every eclipse the Calendar shows comes from the one shared source (${eclipseInCalendar.length} shown)`,
   );
 
   await portland.getByLabel("Show").selectOption("all");
@@ -602,8 +708,17 @@ async function main() {
       .filter((key) => {
         if (!key) return false;
         const [year, month, day] = key.split("-").map(Number);
-        // End of that local day, so an event earlier today still counts.
-        return new Date(year, month - 1, day, 23, 59, 59).getTime() < now;
+        /**
+         * A Tracker date is a *night*, and nights cross midnight.
+         *
+         * This compared against the end of the labelled day, which flagged the
+         * Full Moon of the 27th as past at 01:37 on the 28th — while it was
+         * still up, from the night it belongs to. The night that begins on a
+         * date runs to dawn the following one, so noon the next day is the
+         * earliest hour at which every event bearing that date has certainly
+         * finished, whatever the latitude.
+         */
+        return new Date(year, month - 1, day + 1, 12, 0, 0).getTime() < now;
       });
   });
   check(
@@ -626,34 +741,43 @@ async function main() {
     const solarState = await readPageState(portland);
     assertUniversalGeometry(solarState, "solar eclipse");
     check(solarState.heading === "Eclipses", "the eclipse page uses the eclipse heading");
-    // Two, not three. Cloud and temperature still say the forecast does not
-    // reach; the smoke slot is gone entirely, because a card whose only content
-    // is "there is no reading" is the empty slot this pass removed. Moonlight
-    // still answers, because it is geometry.
+    /**
+     * Three of the four say the forecast does not exist yet; the fourth is
+     * geometry and answers anyway.
+     *
+     * This is the state of knowledge for an eclipse years out, and showing it
+     * is the point of a fixed row: a reader can see at a glance that cloud,
+     * smoke and temperature are simply not knowable for that morning, and that
+     * the Moon's position is. A row that dropped the three unknowable cards
+     * would leave a lone moonlight card looking like the whole answer.
+     */
     check(
       solarState.conditions.filter((card) => /Forecast closer to date/i.test(card.value ?? ""))
-        .length === 2,
-      "the weather cards refuse to forecast beyond the horizon",
+        .length === 3,
+      `the weather cards refuse to forecast beyond the horizon (${solarState.conditions
+        .map((card) => `${card.label}=${card.value}`)
+        .join(", ")})`,
     );
     check(
-      !solarState.conditions.some((card) => /smoke|haze/i.test(card.label ?? "")),
-      "no smoke or haze card is invented for a date beyond any forecast",
+      solarState.conditions.find((card) => /smoke/i.test(card.label ?? ""))?.value ===
+        "Forecast closer to date",
+      "no smoke reading is invented for a date beyond any forecast",
     );
-    // Was: moonlight is still answered on a solar eclipse page, because the
-    // Moon's position is geometry rather than forecast. True, and beside the
-    // point — during a solar eclipse the Moon is the occulting body in a
-    // daylit sky, not a light source competing with the target. Reporting its
-    // phase as glare there is the same category error as "Full Moon · 100% ·
-    // Some glare" on a lunar eclipse. The card is now omitted, and what must
-    // still hold is that the geometry-derived cards are the ones that survive
-    // beyond the forecast horizon.
+    /**
+     * Moonlight keeps its slot and stops calling the Moon an obstacle.
+     *
+     * During a solar eclipse the Moon is the occulting body in a daylit sky,
+     * not a light source competing with the target — reporting its phase as
+     * glare is the same category error as "Full Moon · 100% · Some glare" on a
+     * lunar eclipse page. Omitting the card fixed that by removing the slot,
+     * which broke the row's geometry; the card now says what the Moon is doing
+     * here instead.
+     */
+    const solarMoonlight = solarState.conditions.find((card) => card.label === "Moonlight");
+    check(Boolean(solarMoonlight), "the moonlight slot is present on a solar eclipse page");
     check(
-      !solarState.conditions.some((card) => card.label === "Moonlight"),
-      "no moonlight card on a solar eclipse, where the Moon is the occulter",
-    );
-    check(
-      solarState.conditions.length >= 2,
-      `solar eclipse: the row still answers what it can (${solarState.conditions.length} cards)`,
+      !/glare|washes out/i.test(solarMoonlight?.value ?? ""),
+      `the Moon is not described as glare when it is the occulter (${solarMoonlight?.value})`,
     );
     check(
       (await portland.locator(".tracker-safety").count()) > 0,
@@ -679,19 +803,23 @@ async function main() {
     check(false, "an upcoming solar eclipse is offered for Portland");
   }
 
-  const lunar = portland.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
-  if ((await lunar.count()) > 0) {
-    await lunar.click();
-    await portland.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
-    await portland.waitForTimeout(2500);
+  // Pinned to a date rather than taken from whatever is in Upcoming, so the
+  // assertions below are about the code. See `LUNAR_ECLIPSE_NIGHT`.
+  if (await openLunarEclipse(portland)) {
     const lunarState = await readPageState(portland);
     assertUniversalGeometry(lunarState, "lunar eclipse");
     check(
       (await portland.locator(".tk-eclipse-track").count()) === 0,
       "a lunar eclipse map draws no track, because a lunar eclipse has none",
     );
+    check(
+      (await portland.locator(".tk-viz-slot .tk-geomap").count()) > 0,
+      "a lunar eclipse leads with the geographic map, not the altitude chart",
+    );
     await shot(portland, "09-eclipse-lunar", lunarState.heroName ?? "");
     captured.lunarEclipse = lunarState;
+  } else {
+    check(false, "the pinned lunar eclipse night renders an eclipse page");
   }
 
   /**
@@ -707,6 +835,7 @@ async function main() {
   const luxorContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   await seedPlace(luxorContext, PLACES.luxor);
   const luxor = await luxorContext.newPage();
+  await luxor.clock.setFixedTime(WALK_AT);
   await luxor.goto(TRACKER, { waitUntil: "networkidle" });
   await luxor.waitForSelector(".tk-tonight", { timeout: 30_000 });
   await luxor.getByRole("button", { name: "Upcoming", exact: true }).click();
@@ -793,6 +922,7 @@ async function main() {
     await seedPlace(context, auroraPlace);
     await context.route("**/ovation_aurora_latest.json", routeHandler);
     const page = await context.newPage();
+    // This section needs its own hour; the run-wide pin does not apply.
     await page.clock.setFixedTime(auroraInstant);
     await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
@@ -960,7 +1090,7 @@ async function main() {
         "stale: the pill says the nowcast has expired",
       );
       check(
-        state.recommendationLevel === "Conditions unknown — check before going",
+        state.recommendationLevel === "conditions-unknown",
         `stale: the recommendation is withdrawn, not qualified (${state.recommendationLevel})`,
       );
       const recommendation = await page.locator(".tk-hero-recommendation").innerText();
@@ -1048,6 +1178,7 @@ async function main() {
     await seedPlace(context, auroraPlace);
     await context.route("**/ovation_aurora_latest.json", serveGrid(auroraGridAt(38, 5, 30)));
     const page = await context.newPage();
+    await page.clock.setFixedTime(WALK_AT);
     // Mid-morning local at the test location: hours before any darkness.
     const morning = new Date(auroraInstant.getTime() + 9 * 60 * 60_000);
     await page.clock.setFixedTime(morning);
@@ -1106,7 +1237,33 @@ async function main() {
   {
     const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
     await seedPlace(context, PLACES.portland);
+    /**
+     * A quiet three-day forecast, served rather than hoped for.
+     *
+     * This check used to read the live K-index and report "not applicable"
+     * whenever a storm happened to be inside the horizon — which is most weeks
+     * that anybody runs it, and which means the state the brief names was
+     * never actually exercised. The Upcoming aurora list is built from the
+     * planetary K-index product, so a quiet fixture on that endpoint is what
+     * makes "there is nothing forecastable" reachable on demand.
+     *
+     * Kp 2 is genuinely quiet: the oval stays well north of the reader and no
+     * night in the window qualifies as an opportunity.
+     */
+    await context.route("**/noaa-planetary-k-index-forecast.json", (route) => {
+      const rows = [["time_tag", "kp", "observed", "noaa_scale"]];
+      for (let step = 0; step < 24; step += 1) {
+        const at = new Date(Date.now() + step * 3 * 3_600_000);
+        rows.push([at.toISOString().replace(/\.\d+Z$/, "Z"), "2.00", "predicted", null]);
+      }
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(rows),
+      });
+    });
     const page = await context.newPage();
+    await page.clock.setFixedTime(WALK_AT);
     await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
     await page.getByRole("button", { name: "Upcoming" }).click();
@@ -1138,10 +1295,10 @@ async function main() {
         );
       }
     } else {
-      // A storm inside the horizon is a legitimate outcome; the state simply is
-      // not reachable right now, and saying so beats asserting against reality.
-      console.log("  · a forecastable aurora event exists right now; empty-state check skipped");
-      findings.push({ label: "aurora empty state (needs a quiet forecast)", pass: null });
+      // With the feed pinned quiet there is no legitimate way to reach this
+      // branch: an aurora entry here means something is generating Upcoming
+      // opportunities from a forecast that does not support one.
+      check(false, "a quiet K-index forecast produces an empty aurora list");
     }
     await page.close();
     await context.close();
@@ -1158,12 +1315,34 @@ async function main() {
   // The measured floor. Below it Tracker scrolls rather than clipping, which
   // is asserted separately at the end of this block.
   const ONE_SCREEN_MIN_HEIGHT = 720;
-  for (const viewportHeight of [1000, 900, 800, ONE_SCREEN_MIN_HEIGHT]) {
-    const context = await browser.newContext({
-      viewport: { width: 1440, height: viewportHeight },
-    });
+  /**
+   * Widths as well as heights, because the contract is stated in both.
+   *
+   * This checked one width — 1440 — and reported 0px clipped at every height,
+   * while at 1024x800 the hero's whole row of controls was cut off below the
+   * card. The reason is that the narrower page wraps the conditions row to two
+   * lines, which takes its height out of the `1fr` main row, and the hero was
+   * being clipped rather than the row growing.
+   *
+   * 920 is just inside the `min-width: 900px` the one-screen rules declare
+   * themselves for, so it is the hardest case the contract actually claims.
+   */
+  const ONE_SCREEN_MIN_WIDTH = 920;
+  const SCREENS = [
+    { width: 1440, height: 1000 },
+    { width: 1440, height: 900 },
+    { width: 1440, height: 800 },
+    { width: 1440, height: ONE_SCREEN_MIN_HEIGHT },
+    { width: 1280, height: ONE_SCREEN_MIN_HEIGHT },
+    { width: 1024, height: 800 },
+    { width: ONE_SCREEN_MIN_WIDTH, height: ONE_SCREEN_MIN_HEIGHT },
+  ];
+  for (const screen of SCREENS) {
+    const label = `${screen.width}x${screen.height}`;
+    const context = await browser.newContext({ viewport: screen });
     await seedPlace(context, PLACES.portland);
     const page = await context.newPage();
+    await page.clock.setFixedTime(WALK_AT);
     await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
     await page.waitForTimeout(4000);
@@ -1183,6 +1362,27 @@ async function main() {
           const hero = document.querySelector(".tk-hero");
           return hero ? hero.scrollHeight - hero.clientHeight : 0;
         })(),
+        /**
+         * The two paragraphs that carry a claim, measured one by one.
+         *
+         * `heroClipped` measures the card, and the card was reporting zero
+         * while a paragraph inside it hid sixty-five pixels of "cloud is
+         * forecast to cover most of the sky" behind a two-line clamp. A
+         * container that does not overflow can still contain something that
+         * does, and the thing that overflowed was a warning.
+         *
+         * The expectation line is deliberately not in here: it is clamped by
+         * design and is the one piece of hero text that is an elaboration
+         * rather than a claim, so it may lose its tail. A recommendation or a
+         * condition warning may not.
+         */
+        textClipped: (() => {
+          const worst = [".tk-hero-recommendation", ".tk-hero-support"].map((selector) => {
+            const node = document.querySelector(selector);
+            return node ? node.scrollHeight - node.clientHeight : 0;
+          });
+          return Math.max(0, ...worst);
+        })(),
         hasHeading: region(".tk-page-heading h1"),
         hasHero: region(".tk-hero .tk-hero-name"),
         hasViz: region(".tk-viz-slot"),
@@ -1191,27 +1391,31 @@ async function main() {
       };
     });
 
-    check(fit.overflow <= 1, `${viewportHeight}px: the page does not scroll (${fit.overflow}px over)`);
+    check(fit.overflow <= 1, `${label}: the page does not scroll (${fit.overflow}px over)`);
     check(
       fit.lastRowBottom !== null && fit.lastRowBottom <= fit.viewport + 1,
-      `${viewportHeight}px: the last ranked row is on screen (${fit.lastRowBottom} of ${fit.viewport})`,
+      `${label}: the last ranked row is on screen (${fit.lastRowBottom} of ${fit.viewport})`,
     );
     check(
       fit.hasHeading && fit.hasHero && fit.hasViz && fit.hasConditions && fit.hasList,
-      `${viewportHeight}px: every region is present, not dropped to make room`,
+      `${label}: every region is present, not dropped to make room`,
     );
     // Fitting by collapsing the hero to nothing is not fitting.
     check(
       fit.heroHeight >= 190,
-      `${viewportHeight}px: the hero keeps a usable height (${fit.heroHeight}px)`,
+      `${label}: the hero keeps a usable height (${fit.heroHeight}px)`,
     );
     // Nothing may be hidden to achieve the fit.
     check(
-      fit.heroClipped === 0,
-      `${viewportHeight}px: the hero shows all of its content (${fit.heroClipped}px clipped)`,
+      fit.textClipped === 0,
+      `${label}: no recommendation or warning is clipped (${fit.textClipped}px)`,
     );
-    if (viewportHeight === ONE_SCREEN_MIN_HEIGHT) {
-      await shot(page, "26-one-screen", "Tonight at the documented minimum height");
+    check(
+      fit.heroClipped === 0,
+      `${label}: the hero shows all of its content (${fit.heroClipped}px clipped)`,
+    );
+    if (screen.width === ONE_SCREEN_MIN_WIDTH && screen.height === ONE_SCREEN_MIN_HEIGHT) {
+      await shot(page, "26-one-screen", "Tonight at the documented minimum, 920x720");
     }
     await page.close();
     await context.close();
@@ -1223,6 +1427,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1440, height: 680 } });
     await seedPlace(context, PLACES.portland);
     const page = await context.newPage();
+    await page.clock.setFixedTime(WALK_AT);
     await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForSelector(".tk-tonight", { timeout: 30_000 });
     await page.waitForTimeout(4000);
@@ -1258,6 +1463,7 @@ async function main() {
   const dateContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await seedPlace(dateContext, PLACES.portland);
   const dated = await dateContext.newPage();
+  await dated.clock.setFixedTime(WALK_AT);
 
   // A date in the past, reconstructed by the ordinary interface.
   await dated.goto(`${TRACKER}&date=2024-04-08`, {
@@ -1333,6 +1539,142 @@ async function main() {
   await dated.close();
   await dateContext.close();
 
+  /* --- 4d. an ineligible event does not overclaim -------------------------- */
+  //
+  // Found by reading the rendered product rather than the source. The
+  // `viewability` band is min(sky, phenomenon) and predated the eligibility
+  // stage, so on a night of sporadic meteors it produced "Worth it: Excellent"
+  // on a page whose own recommendation said "not worth a special trip" and
+  // whose absence from Best tonight was Tracker declining to recommend it at
+  // all. Three statements, two contradicting the third.
+  //
+  // The "Worth it" metric is gone entirely now — the brief removes that whole
+  // class of judgement — so what is checked here is what replaced it: the page
+  // is reachable, is still not recommended, says *why* in the reader's own
+  // terms, and passes no verdict anywhere on it.
+  console.log("\nIneligible events tell the truth about themselves");
+
+  const honestContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await seedPlace(honestContext, PLACES.portland);
+  const honest = await honestContext.newPage();
+  await honest.clock.setFixedTime(WALK_AT);
+
+  for (const id of ["meteors", "moon", "aurora"]) {
+    await honest.goto(`${TRACKER}&event=${id}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
+    await honest.waitForSelector(".tk-tonight", { timeout: 30_000 });
+    await honest.waitForTimeout(4500);
+
+    const state = await honest.evaluate(() => {
+      const metrics = [...document.querySelectorAll(".tk-hero-metrics .tk-metric")].map((node) => ({
+        label: node.querySelector("dt")?.textContent?.trim() ?? "",
+        value: node.querySelector("dd")?.textContent?.trim() ?? "",
+      }));
+      return {
+        name: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
+        recommendation:
+          document.querySelector(".tk-hero-recommendation")?.textContent?.trim() ?? "",
+        verdict: document.querySelector(".tk-viz-verdict-head")?.textContent?.trim() ?? "",
+        rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
+        metricCount: metrics.length,
+        metricLabels: metrics.map((metric) => metric.label),
+        allText: document.querySelector(".tk-page")?.textContent ?? "",
+      };
+    });
+
+    const listed = state.rows.some((row) => new RegExp(id, "i").test(row ?? ""));
+    check(!listed, `${id}: reachable directly, and still not recommended`);
+    check(
+      !/worth it/i.test(state.metricLabels.join(" ")),
+      `${id}: no metric passes a "worth it" judgement`,
+    );
+    check(
+      !/worth going out|worth a special trip|worth staying up/i.test(state.allText),
+      `${id}: the page passes no lifestyle verdict anywhere`,
+    );
+    check(
+      state.recommendation.length > 0 && !/^\s*$/.test(state.recommendation),
+      `${id}: the page says why it is not being recommended`,
+    );
+    check(state.metricCount === 3, `${id}: the hero still carries exactly three metrics`);
+  }
+
+  // And the fix is scoped: an event Tracker does recommend still reads as one.
+  await honest.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await honest.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await honest.waitForTimeout(4500);
+  const recommended = await honest.evaluate(() => ({
+    name: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
+    rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
+    where:
+      [...document.querySelectorAll(".tk-hero-metrics .tk-metric")]
+        .find((node) => /where to look/i.test(node.querySelector("dt")?.textContent ?? ""))
+        ?.querySelector("dd")
+        ?.textContent?.trim() ?? "",
+  }));
+  check(
+    recommended.rows[0] === recommended.name,
+    `the hero is the top of Best tonight ("${recommended.name}" vs "${recommended.rows[0]}")`,
+  );
+  check(
+    recommended.where.length > 0,
+    `a recommended event says where to look ("${recommended.where}")`,
+  );
+
+  await honest.close();
+  await honestContext.close();
+
+  /* --- 4e. the night ending is not the night disappointing ---------------- */
+  //
+  // Every opportunity having *passed* and none of them being worth going out
+  // for produce the same empty Best tonight and are completely different
+  // statements. Reached by pinning the clock to just before dawn, because that
+  // is the only thing that distinguishes them.
+  {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await seedPlace(context, PLACES.portland);
+    const page = await context.newPage();
+    // This section needs its own hour; the run-wide pin does not apply.
+    // Fifteen minutes before the sky starts to lighten, whatever the date.
+    const beforeDawn = new Date();
+    beforeDawn.setUTCHours(12, 55, 0, 0);
+    await page.clock.setFixedTime(beforeDawn);
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForSelector(".tk-page", { timeout: 60_000 });
+    await page.waitForTimeout(3000);
+
+    const quiet = page.locator(".tk-quiet");
+    if ((await quiet.count()) > 0) {
+      const reason = await quiet.getAttribute("data-quiet-reason");
+      check(
+        reason === "night-over",
+        `an empty list before dawn is reported as the night ending (${reason})`,
+      );
+      const words = await quiet.innerText();
+      check(
+        /over|getting light|has set/i.test(words),
+        "the copy says the night ended rather than that it disappointed",
+      );
+      // The whole page is a heading and a paragraph; hiding the paragraph left
+      // three words alone on a blank screen.
+      check(
+        (await page.locator(".tk-quiet .tk-page-heading p").isVisible()) &&
+          words.length > 60,
+        "the explanation is on screen rather than hidden to save height",
+      );
+      await shot(page, "27-night-over", "everything has set, before dawn");
+    } else {
+      check(
+        (await page.locator(".tk-hero-name").count()) > 0,
+        "something is still observable before dawn, and it is shown",
+      );
+    }
+    await page.close();
+    await context.close();
+  }
+
   /* --- 5a. rank does not move when the reader navigates ------------------- */
   //
   // The reported defect: on the Saturn page Saturn was rank 1 and Meteors 4; on
@@ -1345,6 +1687,7 @@ async function main() {
   const rankContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   await seedPlace(rankContext, PLACES.portland);
   const rankPage = await rankContext.newPage();
+  await rankPage.clock.setFixedTime(WALK_AT);
   await rankPage.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await rankPage.waitForSelector(".tk-tonight", { timeout: 30_000 });
   await rankPage.waitForTimeout(3500);
@@ -1462,6 +1805,7 @@ async function main() {
   const navContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   await seedPlace(navContext, PLACES.portland);
   const nav = await navContext.newPage();
+  await nav.clock.setFixedTime(WALK_AT);
   await nav.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await nav.waitForSelector(".tk-tonight", { timeout: 30_000 });
   await nav.waitForTimeout(3000);
@@ -1489,14 +1833,33 @@ async function main() {
   await openUpcoming();
   check(urlState().view === "upcoming", "switching to Upcoming is written into the URL");
 
-  // --- the lunar eclipse's three map controls -------------------------------
+  /**
+   * The three map controls, and Sequence C, from Upcoming.
+   *
+   * Prefers a lunar eclipse — it is the event with all three controls — and
+   * falls back to whatever Upcoming does have. The fallback matters: the
+   * history sequence being exercised here is about Upcoming, not about
+   * eclipses, and it used to be skipped entirely on every day of the year with
+   * no lunar eclipse inside the thirty-night window.
+   */
   const lunarCard = nav.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
-  if ((await lunarCard.count()) > 0) {
-    await lunarCard.click();
-    await nav.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+  const anyCard = nav.locator(".tk-upcoming-card").first();
+  const isEclipse = (await lunarCard.count()) > 0;
+  const openCard = isEclipse ? lunarCard : anyCard;
+  let eventUrl = urlState();
+  if ((await openCard.count()) > 0) {
+    await openCard.click();
+    await nav.waitForSelector(".tk-page", { timeout: 30_000 });
     await nav.waitForTimeout(2500);
-    const eventUrl = urlState();
+    eventUrl = urlState();
     check(eventUrl.event !== null, "opening an event puts its id in the URL");
+    if (!isEclipse) {
+      console.log(
+        "  · no lunar eclipse in Upcoming's window; the three map controls are covered deterministically from Tonight",
+      );
+    }
+  }
+  if (isEclipse) {
 
     // "View visibility map" must open the geographic map. It used to open the
     // altitude chart, which is a different tool answering a different question.
@@ -1594,20 +1957,21 @@ async function main() {
       );
     }
 
-    // --- Sequence C: Upcoming -> event -> map -> Back -> Back --------------
-    await nav.goBack();
-    await nav.waitForTimeout(1500);
-    check(
-      urlState().view === "upcoming" && urlState().event === null,
-      "Sequence C: a second Back returns to Upcoming",
-    );
-    check(
-      new URL(nav.url()).searchParams.get("app") === "tracker",
-      "Sequence C: Back never leaves Tracker while Tracker states remain",
-    );
-  } else {
-    check(false, "a lunar eclipse is available to exercise the map controls");
   }
+
+  // --- Sequence C: Upcoming -> event -> (map) -> Back -> Upcoming ----------
+  // Runs whichever event was opened, because what is under test is the history
+  // stack rather than the phenomenon.
+  await nav.goBack();
+  await nav.waitForTimeout(1500);
+  check(
+    urlState().view === "upcoming" && urlState().event === null,
+    "Sequence C: Back returns to Upcoming",
+  );
+  check(
+    new URL(nav.url()).searchParams.get("app") === "tracker",
+    "Sequence C: Back never leaves Tracker while Tracker states remain",
+  );
 
   // --- Sequence D: filter and mode survive a round trip ---------------------
   await nav.selectOption(".tk-phenomenon-filter select", "eclipses");
@@ -1701,7 +2065,18 @@ async function main() {
   const deepUrl = nav.url();
   if (new URL(deepUrl).searchParams.get("event")) {
     await nav.reload({ waitUntil: "domcontentloaded" });
-    await nav.waitForTimeout(3500);
+    /**
+     * Waited for, not timed.
+     *
+     * A cold load of an Upcoming event page recomputes the whole planning
+     * horizon before it can resolve which event the URL names, and that is
+     * comfortably more than the 3.5s this used to allow — so the check failed
+     * on a page that restores correctly, which is the worst kind of failing
+     * test. The page's own appearance is the signal; there is no need to guess
+     * how long producing it takes on the machine of the day.
+     */
+    await nav.waitForSelector(".tk-page", { timeout: 90_000 }).catch(() => {});
+    await nav.waitForTimeout(500);
     check(
       new URL(nav.url()).searchParams.get("app") === "tracker",
       "refreshing an event page stays in Tracker",
@@ -1711,6 +2086,141 @@ async function main() {
       "refreshing an event page restores an event page",
     );
   }
+
+
+  /* --- 5b2. one press, one entry ------------------------------------------- */
+  //
+  // The defect this catches, found by counting `history.length` in the browser:
+  // `navigate` wrote to the history stack inside a `setState` updater, which
+  // React is explicitly allowed to call more than once and StrictMode
+  // deliberately does. Every navigation pushed two entries, so the reader's
+  // first Back press consumed a duplicate of the entry they were already on and
+  // appeared to do nothing.
+  //
+  // Nothing about the rendered page showed it, which is why the previous walk
+  // passed over it: the assertion has to be about the stack itself.
+  console.log("\nHistory hygiene");
+
+  await nav.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await nav.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await nav.waitForTimeout(3000);
+
+  const depthNow = () => nav.evaluate(() => window.history.length);
+
+  const beforeStep = await depthNow();
+  await nav.locator(".tk-relevant-row").nth(1).click();
+  await nav.waitForTimeout(1800);
+  const afterStep = await depthNow();
+  check(
+    afterStep - beforeStep === 1,
+    `opening an event pushes exactly one history entry (${afterStep - beforeStep})`,
+  );
+
+  const beforeDrill = await depthNow();
+  const primary = nav.locator(".tk-hero-actions .tk-action.is-primary");
+  await primary.click();
+  await nav.waitForTimeout(1500);
+  const afterDrill = await depthNow();
+  check(
+    afterDrill - beforeDrill === 1,
+    `opening a drill-in pushes exactly one history entry (${afterDrill - beforeDrill})`,
+  );
+
+  await nav.goBack();
+  await nav.waitForTimeout(1200);
+  check(
+    new URLSearchParams(new URL(nav.url()).search).get("drill") === null,
+    "one Back press closes one drill-in",
+  );
+
+  /* --- 5b3. Tonight leads an eclipse with geography, not with a chart ------ */
+  //
+  // The universal hierarchy is: left, the recommendation; right, the
+  // phenomenon's own primary evidence. For an eclipse that evidence is
+  // geographic — "can I see it from here" is a question about where you are
+  // standing — and Tonight was falling through to the altitude chart while the
+  // Upcoming page showed the map. The same eclipse, two different primary
+  // visualizations, depending which door the reader came through.
+  console.log("\nTonight's eclipse hierarchy");
+
+  // A date chosen for its eclipse rather than for today's sky, so the check
+  // does not depend on what happens to be up when the walk runs.
+  const ECLIPSE_NIGHT = "2028-01-11";
+  await nav.goto(`${TRACKER}&date=${ECLIPSE_NIGHT}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await nav.waitForSelector(".tk-tonight", { timeout: 30_000 });
+  await nav.waitForTimeout(4500);
+
+  const eclipseNight = await nav.evaluate(() => ({
+    category: document.querySelector(".tk-page")?.getAttribute("data-category") ?? null,
+    hero: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
+    rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
+    hasGeoMap: Boolean(document.querySelector(".tk-viz-slot .tk-geomap")),
+    hasSkyChart: Boolean(document.querySelector(".tk-viz-slot .tk-skypathpanel")),
+    actions: [...document.querySelectorAll(".tk-hero-actions .tk-action")].map((n) =>
+      n.textContent?.trim(),
+    ),
+    where:
+      [...document.querySelectorAll(".tk-hero-metrics .tk-metric")]
+        .find((node) => /where to look/i.test(node.querySelector("dt")?.textContent ?? ""))
+        ?.querySelector("dd")
+        ?.textContent?.trim() ?? "",
+  }));
+
+  check(
+    eclipseNight.category === "eclipses",
+    `an eclipse night leads with the eclipse (${eclipseNight.category})`,
+  );
+  check(
+    /eclipse/i.test(eclipseNight.rows[0] ?? ""),
+    `the eclipse is rank 1, above any planet (${eclipseNight.rows.slice(0, 3).join(", ")})`,
+  );
+  check(
+    eclipseNight.rows[0] === eclipseNight.hero,
+    "the hero and the top of the ranked list are the same event",
+  );
+  check(
+    eclipseNight.hasGeoMap && !eclipseNight.hasSkyChart,
+    "Tonight's eclipse shows the geographic map in the primary slot, not the altitude chart",
+  );
+  check(
+    eclipseNight.actions.includes("View visibility map") &&
+      eclipseNight.actions.includes("Where to look"),
+    `Tonight's eclipse offers both tools (${eclipseNight.actions.join(", ")})`,
+  );
+  check(
+    /\d+°/.test(eclipseNight.where),
+    `Tonight's eclipse says where to look on the card (${eclipseNight.where})`,
+  );
+  await shot(nav, "24b-tonight-eclipse", "Tonight leads an eclipse with the geographic map");
+
+  // The same three controls, from Tonight rather than from Upcoming.
+  await nav.getByRole("button", { name: "View visibility map" }).click();
+  await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
+  await nav.waitForTimeout(1500);
+  check(
+    (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
+    "Tonight: View visibility map opens the geographic map",
+  );
+  await nav.keyboard.press("Escape");
+  await nav.waitForTimeout(800);
+
+  await nav.getByRole("button", { name: "Where to look" }).click();
+  await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
+  await nav.waitForTimeout(1200);
+  const skyTitle = await nav.locator(".tk-overlay").innerText().catch(() => "");
+  check(
+    (await nav.locator(".tk-overlay .tk-chart-path").count()) > 0,
+    "Tonight: Where to look opens the altitude and bearing chart",
+  );
+  check(
+    !/view visibility map/i.test(skyTitle.split("\n")[0] ?? ""),
+    "Tonight: the sky panel is not titled after the map control that did not open it",
+  );
+  await nav.keyboard.press("Escape");
+  await nav.waitForTimeout(800);
 
   await nav.close();
   await navContext.close();
@@ -1725,22 +2235,14 @@ async function main() {
   const mapContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   await seedPlace(mapContext, PLACES.portland);
   const map = await mapContext.newPage();
-  await map.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
-  await map.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
-  await map.waitForTimeout(800);
+  await map.clock.setFixedTime(WALK_AT);
 
   const viewBox = () =>
     map.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox");
   /** viewBox as numbers, which is what "did it move" has to be measured on. */
   const box = async () => (await viewBox()).split(" ").map(Number);
 
-  const lunarForMap = map.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
-  if ((await lunarForMap.count()) > 0) {
-    await lunarForMap.click();
-    await map.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
+  if (await openLunarEclipse(map)) {
     await map.waitForTimeout(2500);
 
     // The embedded panel must stay a glance: a map that captured drags there
@@ -1974,7 +2476,7 @@ async function main() {
     await map.keyboard.press("Escape");
     await map.waitForTimeout(700);
   } else {
-    check(false, "a lunar eclipse is available to exercise the interactive map");
+    check(false, "the pinned lunar eclipse night renders a map to exercise");
   }
 
   // --- the solar map answers for a picked point too -------------------------
@@ -2050,27 +2552,32 @@ async function main() {
   });
   await seedPlace(phoneContext, PLACES.portland);
   const phone = await phoneContext.newPage();
-  await phone.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
-  await phone.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
-  await phone.waitForTimeout(900);
+  await phone.clock.setFixedTime(WALK_AT);
 
   const phoneBox = async () =>
     (await phone.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox"))
       .split(" ")
       .map(Number);
 
-  const phoneLunar = phone.locator(".tk-upcoming-card", { hasText: /lunar eclipse/i }).first();
-  if ((await phoneLunar.count()) > 0) {
-    await phoneLunar.tap();
-    await phone.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
-    await phone.waitForTimeout(2500);
+  if (await openLunarEclipse(phone)) {
     await shot(phone, "22-mobile-event", "eclipse event page on a phone");
 
-    await phone.locator(".tk-viz-open", { hasText: /open full map/i }).first().tap();
-    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
+    /**
+     * A generous tap deadline, because what is slow here is the answer.
+     *
+     * Opening the expanded lunar map samples the horizon over most of a
+     * hemisphere and blocks the main thread for a second or two — measured at
+     * about 2.1s on a 375-wide viewport. Playwright holds a tap until the page
+     * can process it, so the default 30s is a budget shared with whatever else
+     * the machine is doing, and the check starts reporting on the machine
+     * rather than on the control. The control's behaviour is the subject; the
+     * timeout is widened rather than the assertion weakened.
+     */
+    await phone
+      .locator(".tk-viz-open", { hasText: /open full map/i })
+      .first()
+      .tap({ timeout: 90_000 });
+    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
     await phone.waitForTimeout(1800);
 
     const controlBox = await phone
@@ -2150,14 +2657,66 @@ async function main() {
       (await phone.locator(".tk-page").count()) > 0,
       "mobile: Back returns to the event page rather than leaving Tracker",
     );
-    await phone.goBack();
-    await phone.waitForTimeout(1500);
+    /**
+     * The boundary, on a phone.
+     *
+     * The eclipse was opened by URL, so there is exactly one Tracker entry
+     * behind the drill-in. One Back closes the map and lands on the event; a
+     * second has no Tracker history left to consume and correctly leaves.
+     * That is the rule the brief states — Back leaves Tracker only after
+     * Tracker's own history is exhausted — and asserting it here is what stops
+     * a future "stop Back from leaving" hack from passing.
+     */
     check(
-      new URL(phone.url()).searchParams.get("filter") === "eclipses",
-      "mobile: Back to the list keeps the filter",
+      new URL(phone.url()).searchParams.get("drill") === null &&
+        new URL(phone.url()).searchParams.get("date") === LUNAR_ECLIPSE_NIGHT,
+      "mobile: one Back closes the map and leaves the event page standing",
     );
   } else {
-    check(false, "mobile: a lunar eclipse is available to exercise the map");
+    check(false, "mobile: the pinned lunar eclipse night renders a map to exercise");
+  }
+
+  /**
+   * Upcoming, filtered, on a phone.
+   *
+   * Split out from the map sequence above rather than folded into it. Those
+   * checks open the eclipse by date, straight into Tonight, so there is no
+   * filtered list anywhere in that history — an assertion about a surviving
+   * filter there was checking a state the phone had never been in, and passing
+   * or failing for reasons unrelated to the filter.
+   *
+   * Restoring browse state is a mobile question in its own right: the phone
+   * lays Upcoming out differently, so "Back put me where I was" has to be
+   * demonstrated here and not inferred from the desktop.
+   */
+  await phone.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
+  await phone.waitForSelector(".tk-upcoming", { timeout: 30_000 });
+  await phone.waitForTimeout(2500);
+  const phoneCard = phone.locator(".tk-upcoming-card").first();
+  if ((await phoneCard.count()) > 0) {
+    await phoneCard.tap();
+    await phone.waitForSelector(".tk-page", { timeout: 30_000 });
+    await phone.waitForTimeout(1500);
+    check(
+      new URL(phone.url()).searchParams.get("event") !== null,
+      "mobile: opening an event from Upcoming is a history step",
+    );
+    await phone.goBack();
+    await phone.waitForTimeout(1500);
+    const back = new URL(phone.url()).searchParams;
+    check(
+      back.get("filter") === "eclipses" && back.get("view") === "upcoming",
+      "mobile: Back to the list keeps the filter",
+    );
+    check(
+      (await phone.locator(".tk-upcoming").count()) > 0,
+      "mobile: Back renders the list it restored rather than an empty shell",
+    );
+  } else {
+    check(false, "mobile: the filtered Upcoming list has something to open");
   }
 
   await phone.close();
@@ -2172,6 +2731,7 @@ async function main() {
   console.log("\nLocation change");
   const changeContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   const changing = await changeContext.newPage();
+  await changing.clock.setFixedTime(WALK_AT);
   await changing.goto(TRACKER, { waitUntil: "networkidle" });
   const setPlace = async (place) => {
     await changing.evaluate((value) => {
@@ -2213,6 +2773,68 @@ async function main() {
     (await changing.locator("header.tk-header").innerText()).includes(PLACES.portland.name),
     "the location control still names where Tracker thinks you are",
   );
+
+  /**
+   * The control opens and shuts, and leaves nothing behind when it shuts.
+   *
+   * The defect this covers was visible rather than behavioural: a stale
+   * `position: absolute` from the picker that predates React Aria took the
+   * panel out of flow inside its popover, the popover measured zero height, and
+   * the panel's contents spilled across the page under the header as a stray
+   * search field. Everything still *worked* — which is why an interaction test
+   * that only clicked things would not have caught it, and why these assertions
+   * are about the resting state as much as the open one.
+   */
+  const placeTrigger = changing.locator(".tracker-place-current");
+  check(
+    (await changing.locator(".tracker-place-popover").count()) === 0 &&
+      (await placeTrigger.getAttribute("aria-expanded")) === "false",
+    "the location control rests closed, with no field loose in the header",
+  );
+  await placeTrigger.click();
+  await changing.waitForSelector(".tracker-place-popover", { timeout: 10_000 });
+  await changing.waitForTimeout(500);
+  check(
+    (await changing.locator(".tracker-place-popover input").count()) > 0 &&
+      (await changing.locator(".tracker-place-popover .tracker-place-device").count()) > 0,
+    "opening it exposes both search and the current-location control",
+  );
+  /**
+   * Containment, not height.
+   *
+   * The collapse left the panel a ~22px strip with its search field and its
+   * device button painted outside it, further down the page. A height
+   * threshold is only a proxy for that and picks an arbitrary number — 115px
+   * is a perfectly good resting height for a panel showing no results yet, and
+   * the first version of this check failed on it.
+   *
+   * So the assertion is the thing itself: every control the panel owns has to
+   * be inside the panel's own box.
+   */
+  const contained = await changing.evaluate(() => {
+    const panel = document.querySelector(".tracker-place-popover .tracker-place-panel");
+    if (!panel) return { ok: false, reason: "no panel" };
+    const box = panel.getBoundingClientRect();
+    const escaped = [...panel.querySelectorAll("input, button")]
+      .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.height > 0 && rect.bottom > box.bottom + 1)
+      .map(({ node }) => node.className || node.tagName);
+    return { ok: escaped.length === 0, escaped, height: Math.round(box.height) };
+  });
+  check(
+    contained.ok,
+    `the panel contains its own controls (${contained.height}px tall${
+      contained.ok ? "" : `, escaped: ${contained.escaped.join(", ")}`
+    })`,
+  );
+  await changing.keyboard.press("Escape");
+  await changing.waitForTimeout(600);
+  check(
+    (await changing.locator(".tracker-place-popover").count()) === 0 &&
+      (await placeTrigger.getAttribute("aria-expanded")) === "false",
+    "Escape closes it and returns the header to its clean state",
+  );
+
   await shot(changing, "12-location-changed", "same page, re-ranked for a different place");
   await changing.close();
   await changeContext.close();
@@ -2230,6 +2852,7 @@ async function main() {
     });
     await seedPlace(smallContext, PLACES.portland);
     const small = await smallContext.newPage();
+    await small.clock.setFixedTime(WALK_AT);
     await small.goto(TRACKER, { waitUntil: "networkidle" });
     await small.waitForSelector(".tk-tonight", { timeout: 30_000 });
     await small.waitForTimeout(2500);
@@ -2292,6 +2915,7 @@ async function main() {
   // so a generous viewport leaves half the sheet empty.
   const sheetContext = await browser.newContext({ viewport: { width: 1500, height: 560 } });
   const sheet = await sheetContext.newPage();
+  await sheet.clock.setFixedTime(WALK_AT);
   const panels = [
     ["Meteor showers — the master layout", "04-meteors-tonight.png"],
     ["Auroras — same geometry, forecast field in the slot", "10-aurora-tonight.png"],

@@ -42,6 +42,7 @@ import type {
 import type { LunarPhase } from "./lunarPhase";
 import type { LunarEclipseTiming } from "./lunarEclipse";
 import type { PlanetaryOpposition } from "./planetaryEvents";
+import { ROUTINE, priorityFor, type PlanetState, type Significance } from "./significance";
 import type { AngularSeparationDegrees } from "./scientificUnits";
 
 export type OpportunityKind =
@@ -149,6 +150,16 @@ export interface Opportunity {
   /** Caveats that apply to the numbers actually produced. */
   limitations: string[];
   /**
+   * How much of an event this is, as opposed to how good a view it is.
+   *
+   * Supplied by the phenomenon, because only the phenomenon knows what makes
+   * one of its own showings unusual — days from opposition for a planet,
+   * contact geometry for an eclipse, the rate actually produced for a shower.
+   * Absent means routine, which is the safe default: a phenomenon that has not
+   * been taught what is unusual about itself must not claim to be unusual.
+   */
+  significance?: Significance;
+  /**
    * Unit-bearing scientific meaning consumed by every Tracker projection.
    * Titles, Calendar labels, detail copy, and imagery must derive from this
    * structure rather than reinterpret dependency numbers independently.
@@ -161,7 +172,19 @@ export interface Opportunity {
         obscurationFraction: number;
         localContactAltitudesDeg: Readonly<Record<string, number>>;
       }
-    | { kind: "planet"; body: string; event: PlanetaryOpposition | null }
+    | {
+        kind: "planet";
+        body: string;
+        event: PlanetaryOpposition | null;
+        /**
+         * The measured circumstances behind this showing.
+         *
+         * Carried so the page can quote the facts that decided the ranking —
+         * days from opposition, apparent size, ring tilt — rather than a score.
+         * Null where no physical constants are recorded for the body.
+         */
+        state?: PlanetState | null;
+      }
     | {
         kind: "conjunction";
         bodies: readonly [string, string];
@@ -269,7 +292,17 @@ const EQUIPMENT_DEMOTION: Record<Equipment, number> = {
   telescope: 0.7,
 };
 
-/** The most rarity may move an item. One band, never more. */
+/**
+ * The most rarity may move an item *within its significance band*.
+ *
+ * This used to be the whole of Tracker's novelty model, and it was the defect:
+ * one band was not enough to lift a locally visible lunar eclipse over a planet
+ * that is up most nights of the year, so Saturn led a page on eclipse night.
+ * Novelty now decides which band an opportunity is ordered in — see
+ * `significance.ts` — and this small term survives only as a tie-break inside
+ * a band, where two showings of comparable significance differ slightly in how
+ * uncommon they are.
+ */
 const RARITY_CAP = 0.08;
 
 export type Band = "exceptional" | "very good" | "good" | "fair" | "marginal";
@@ -279,8 +312,22 @@ export interface RankedOpportunity {
   /** Position in the ranked list, 1-based. */
   rank: number;
   band: Band;
-  /** The ordering value. Exposed, never the only thing exposed. */
+  /**
+   * How good this opportunity is. Not the ordering value.
+   *
+   * Quality labels, the eligibility floor and the hero floor are all calibrated
+   * on this, and it deliberately kept its meaning when novelty was introduced:
+   * "how good is the view" and "how much is this worth noticing" are different
+   * questions and Tracker answers them with different numbers.
+   */
   strength: number;
+  /** How much of an event it is, with the facts that decided it. */
+  significance: Significance;
+  /**
+   * What the list is actually ordered by: the significance band, with
+   * `strength` deciding the position inside it.
+   */
+  priority: number;
   /** How much of `strength` came from rarity, after the cap. */
   rarityContribution: number;
   /** True where it may take the hero position. */
@@ -366,8 +413,23 @@ export function rankOpportunities(candidates: Opportunity[]): Ranking {
     const promotable = strength >= HERO_FLOOR;
     if (!promotable) {
       rules.push(
-        "Kept in the list rather than led with: not strong enough tonight to be worth a special trip.",
+        "Below the floor for leading the page: nothing weak is promoted merely to fill the hero slot.",
       );
+    }
+
+    /**
+     * Novelty first, then how good the view is.
+     *
+     * The band comes from the phenomenon's own measured state; `strength`
+     * places the opportunity inside that band. So a routine target can be the
+     * best routine target of the night and still sit below an unusual event
+     * that is merely decent — which is the ordering the product's headline
+     * question implies and the previous model could not produce.
+     */
+    const significance = opportunity.significance ?? ROUTINE;
+    const priority = priorityFor(significance, strength);
+    if (significance.tier !== "routine") {
+      rules.push(...significance.reasons);
     }
 
     scored.push({
@@ -375,13 +437,19 @@ export function rankOpportunities(candidates: Opportunity[]): Ranking {
       rank: 0,
       band: bandFor(strength),
       strength,
+      significance,
+      priority,
       rarityContribution,
       promotable,
       appliedRules: rules,
     });
   }
 
-  const ordered = scored.sort((a, b) => b.strength - a.strength);
+  const ordered = scored.sort((a, b) =>
+    b.priority === a.priority
+      ? a.opportunity.id.localeCompare(b.opportunity.id)
+      : b.priority - a.priority,
+  );
   ordered.forEach((entry, index) => {
     entry.rank = index + 1;
   });
@@ -474,6 +542,13 @@ export interface SkyAdjustedOpportunity extends RankedOpportunity {
  * excellent and the sky is shut" is still expressible afterwards. That
  * separation is the whole requirement, and folding the weather back into
  * `strength` would quietly destroy it.
+ *
+ * What the weather is applied *to* is `priority`, which already carries the
+ * significance band. That ordering matters: a quarter-swing on an ordering
+ * value that starts at 0.6 for a notable event cannot push it below a routine
+ * one that tops out at 0.34, so cloud can shuffle comparable events and can
+ * never bury an eclipse. Applying the same swing to `strength` — which knows
+ * nothing about novelty — is what would have allowed exactly that.
  */
 export function applySkyAccess(
   ranked: RankedOpportunity[],
@@ -486,9 +561,9 @@ export function applySkyAccess(
       ...entry,
       skyAccess: access,
       rankBeforeConditions: entry.rank,
-      // `strength` deliberately keeps its phenomenon-only meaning; only the
+      // `strength` and `priority` both keep their own meanings; only the
       // ordering below sees the weather.
-      ordering: entry.strength * factor,
+      ordering: entry.priority * factor,
     };
   });
 
@@ -717,15 +792,33 @@ export function verdictFor(input: VerdictInput): Verdict {
  * the scoring model to tell which was which.
  *
  * These are the words for the recommendation. The forecast has its own.
+ *
+ * ## Why none of them is a verdict any more
+ *
+ * They used to be: "Worth going out for", "Good if you're already outside",
+ * "Not worth a special trip". Every one of those is a judgement about how the
+ * reader should spend their evening, and the brief is right that it is both
+ * presumptuous and useless — it tells somebody standing at a window nothing
+ * they can act on. Worse, the same page carried three of them at once from
+ * three different scales, which is how "Worth it: Excellent" came to sit above
+ * "not worth a special trip".
+ *
+ * What replaced them describes the *situation*: how well placed the thing is,
+ * and what is limiting the view. Tracker still computes the judgement — it has
+ * to, to rank at all — it simply stops narrating it. The reader is given a
+ * direction, a height and a time, and makes the decision themselves.
  */
 export type RecommendationLevel =
-  | "Exceptional"
-  | "Worth going out for"
-  | "Good if you're already outside"
-  | "Only if conditions improve"
-  | "Not worth a special trip"
-  | "Astronomically promising — conditions unknown"
-  | "Conditions unknown — check before going";
+  /** Strong phenomenon, sky expected to cooperate. */
+  | "well-placed"
+  /** Observable and unremarkable; nothing is limiting it but itself. */
+  | "modest"
+  /** The sky is what decides this one. */
+  | "conditions-limited"
+  /** No forecast reached here. Says nothing about how good the sky will be. */
+  | "conditions-unknown"
+  /** Below the horizon, or its window has gone. */
+  | "unavailable";
 
 export function recommendationFor(
   band: Band,
@@ -733,21 +826,15 @@ export function recommendationFor(
   skyAccess: number | null,
   evidenceStatus: EnvironmentalEvidenceStatus = skyAccess === null ? "unavailable" : "available",
 ): RecommendationLevel {
-  if (unavailable) return "Not worth a special trip";
-  if (evidenceStatus !== "available") {
-    return band === "exceptional" || band === "very good"
-      ? "Astronomically promising — conditions unknown"
-      : "Conditions unknown — check before going";
-  }
-  // Conditions can veto, because sending somebody out under thick cloud for
-  // something excellent is still sending them out for nothing.
-  if (skyAccess !== null && skyAccess < 0.45) {
-    return band === "exceptional" || band === "very good"
-      ? "Only if conditions improve"
-      : "Not worth a special trip";
-  }
-  if (band === "exceptional") return "Exceptional";
-  if (band === "very good") return "Worth going out for";
-  if (band === "good") return "Good if you're already outside";
-  return "Not worth a special trip";
+  if (unavailable) return "unavailable";
+  // An absent forecast is its own state and may never be reported as a good
+  // sky. The review harness asserts exactly this, which is why it is a distinct
+  // value rather than a wording variant of one of the others.
+  if (evidenceStatus !== "available") return "conditions-unknown";
+  // Conditions lead when they are what is actually deciding it — said before
+  // any praise of the phenomenon, because a striking event under thick cloud
+  // still sends people outside for nothing.
+  if (skyAccess !== null && skyAccess < 0.45) return "conditions-limited";
+  if (band === "exceptional" || band === "very good" || band === "good") return "well-placed";
+  return "modest";
 }

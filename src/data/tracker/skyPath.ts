@@ -205,7 +205,21 @@ const COMFORTABLE_ALTITUDE_DEG = 60;
  * Returns null where the question does not apply — a total lunar eclipse is
  * wherever the Moon is and the reader will find it without help.
  */
-export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): GazeRegion | null {
+export function gazeRegionFor(
+  opportunity: Opportunity,
+  path: SkyPath | null,
+  /**
+   * The instant the reader is being told to be outside, where one is known.
+   *
+   * Without it this used the point of highest *phenomenon quality*, which for a
+   * planet is culmination — and the recommended window is not culmination on
+   * any night whose best hour is clouded out. The page then said "look
+   * south-east at 2:27" in one place and "face south" in another, about the
+   * same object, from two different instants. Both were correct and the pair
+   * was not usable.
+   */
+  atUtc?: string | null,
+): GazeRegion | null {
   if (!path || path.points.length === 0) return null;
 
   // Sporadic meteors have no direction, and saying so is the answer. The rate
@@ -215,13 +229,28 @@ export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): G
   // arrives from everywhere gets no bearing rather than a fabricated one.
   if (path.kind === "rate") return null;
 
+  /**
+   * The moment being described: the recommended one where the caller knows it,
+   * otherwise the phenomenon's own best. Never an average — a target moves
+   * enough across a night that a mean bearing can point somewhere it never was.
+   */
+  const at = (): SkyPoint => {
+    if (atUtc) {
+      const target = Date.parse(atUtc);
+      if (!Number.isNaN(target)) {
+        return path.points.reduce((closest, point) =>
+          Math.abs(Date.parse(point.atUtc) - target) <
+          Math.abs(Date.parse(closest.atUtc) - target)
+            ? point
+            : closest,
+        );
+      }
+    }
+    return path.points.reduce((top, point) => (point.relative > top.relative ? point : top));
+  };
+
   if (path.kind === "radiant") {
-    // Judged at the best moment rather than averaged: that is when the reader
-    // will be outside, and a radiant moves enough across a night that the mean
-    // bearing can point somewhere the radiant never was.
-    const best = path.points.reduce((top, point) =>
-      point.relative > top.relative ? point : top,
-    );
+    const best = at();
     // Offset away from the radiant, along the horizon, towards the darker sky.
     // Which side barely matters — what matters is not being aimed at it.
     const center = (best.azimuthDeg + RADIANT_STANDOFF_DEG + 360) % 360;
@@ -237,9 +266,7 @@ export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): G
     };
   }
 
-  const best = path.points.reduce((top, point) =>
-    point.relative > top.relative ? point : top,
-  );
+  const best = at();
   return {
     centerAzimuthDeg: best.azimuthDeg,
     // Tight: this is a thing to find, and being 40 degrees out means not
@@ -247,7 +274,9 @@ export function gazeRegionFor(opportunity: Opportunity, path: SkyPath | null): G
     azimuthSpreadDeg: 8,
     centerAltitudeDeg: Math.max(0, best.altitudeDeg),
     altitudeSpreadDeg: 5,
-    reason: `${opportunity.title} is there at its best.`,
+    // Reads under the chart, so it says what the region on the chart is
+    // rather than restating the object's name back at the reader.
+    reason: "The marked region is where it stands at the recommended time.",
   };
 }
 

@@ -46,16 +46,48 @@ function byId(cards: ConditionCard[]) {
 }
 
 describe("the shape of the row", () => {
-  it("always leads with cloud, moonlight and temperature, in that order", () => {
-    // The row was a fixed four, the fourth being smoke. Smoke is negligible on
-    // most nights almost everywhere, so that slot spent every night saying
-    // "Not reported" to be useful on the few nights it was not. These three
-    // always bear on the decision and so are always present; anything else
-    // appears only when it would change what somebody does.
+  /**
+   * ## The row is four, and the same four, whatever the night does
+   *
+   * These assertions have been round the loop once. They started as a fixed
+   * four, were rewritten to a dynamic three-plus-conditional row on the ground
+   * that a permanently empty smoke slot wastes a quarter of the most valuable
+   * strip on the page, and are now fixed again.
+   *
+   * The argument that settled it is not about smoke: it is that the row is the
+   * one piece of geometry a returning reader learns. A reader who knows the
+   * second card is smoke can check smoke without reading; a reader whose second
+   * card is sometimes smoke and sometimes moonlight has to read all four, every
+   * time, on every page. The permanently-empty-slot cost is real and smaller.
+   *
+   * So the contract asserted here is stronger than the original fixed row was:
+   * exactly four, in a fixed order, on every input state — including the states
+   * that previously produced three, five, or a differently ordered row.
+   */
+  const FOUR = ["cloud", "smoke", "moonlight", "temperature"];
+
+  it("is always the same four cards, in the same order", () => {
     const cases = [
+      // An ordinary night with a full forecast.
       { atUtc: "2026-08-22T06:00:00Z", snapshots: [snapshot()], pending: false },
+      // Still fetching.
       { atUtc: "2026-08-22T06:00:00Z", snapshots: [], pending: true },
+      // Beyond the forecast horizon.
       { atUtc: "2029-01-14T16:30:00Z", snapshots: [], pending: false },
+      // Everything at once: rain, heavy smoke, fog and a soaking dew point.
+      {
+        atUtc: "2026-08-22T06:00:00Z",
+        snapshots: [
+          snapshot({
+            precipitating: true,
+            smokeColumnMgM2: 140,
+            aerosolOpticalDepth: 0.9,
+            visibilityM: 300,
+            relativeHumidityPercent: 97,
+          }),
+        ],
+        pending: false,
+      },
     ];
     for (const item of cases) {
       const cards = conditionCards({
@@ -66,98 +98,88 @@ describe("the shape of the row", () => {
         now: NOW,
         pending: item.pending,
       });
-      expect(cards.slice(0, 3).map((card) => card.id)).toEqual([
-        "cloud",
-        "moonlight",
-        "temperature",
-      ]);
+      expect(cards.map((card) => card.id)).toEqual(FOUR);
     }
   });
 
-  it("adds nothing on an ordinary night", () => {
-    const cards = conditionCards({
-      ...PORTLAND,
-      atUtc: "2026-08-22T06:00:00Z",
-      snapshots: [snapshot()],
-      evidenceStatus: "available",
-      now: NOW,
-      pending: false,
-    });
-    expect(cards).toHaveLength(3);
-    expect(cards.some((card) => card.id === "smoke" || card.id === "haze")).toBe(false);
-  });
-
-  it("never exceeds five cards, however bad the night is", () => {
-    // Everything at once: rain, heavy smoke, fog and a soaking dew point.
-    const cards = conditionCards({
-      ...PORTLAND,
-      atUtc: "2026-08-22T06:00:00Z",
-      snapshots: [
-        snapshot({
-          precipitating: true,
-          smokeColumnMgM2: 140,
-          aerosolOpticalDepth: 0.9,
-          visibilityM: 300,
-          relativeHumidityPercent: 97,
-        }),
-      ],
-      evidenceStatus: "available",
-      now: NOW,
-      pending: false,
-    });
-    expect(cards.length).toBeLessThanOrEqual(5);
-    expect(cards.length).toBeGreaterThan(3);
-    // The two that matter most survive the cap, in priority order.
-    expect(cards[3].id).toBe("precipitation");
-    expect(cards[4].id).toBe("smoke");
-  });
-
-  describe("smoke is not the same claim as haze", () => {
-    it("says wildfire smoke only when the smoke model says so", () => {
-      const cards = conditionCards({
+  it("folds rain into cloud rather than growing a fifth card", () => {
+    // Rain is the most decisive thing on the page and has nowhere of its own to
+    // go. It takes over the cloud card's headline, which is where a reader
+    // looking for "is there a sky tonight" is already looking.
+    const cards = byId(
+      conditionCards({
         ...PORTLAND,
         atUtc: "2026-08-22T06:00:00Z",
-        snapshots: [snapshot({ smokeColumnMgM2: 60, aerosolOpticalDepth: 0.5 })],
+        snapshots: [snapshot({ precipitating: true })],
         evidenceStatus: "available",
         now: NOW,
         pending: false,
-      });
-      const card = cards.find((entry) => entry.id === "smoke");
-      expect(card?.label).toBe("Wildfire smoke");
+      }),
+    );
+    expect(cards.cloud.value).toMatch(/rain|snow/i);
+    expect(cards.cloud.tone).toBe("poor");
+  });
+
+  it("folds dew into temperature rather than growing a fifth card", () => {
+    // Dew is what the night's air does to a lens, which is temperature's
+    // department. The number stays the headline because that is what the card
+    // is for.
+    const cards = byId(
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-22T06:00:00Z",
+        snapshots: [snapshot({ relativeHumidityPercent: 97 })],
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }),
+    );
+    expect(cards.temperature.interpretation).toMatch(/dew at 97% humidity/i);
+  });
+
+  describe("smoke is not the same claim as haze", () => {
+    /**
+     * The two claims now share one slot, so the distinction has to live in the
+     * card's own words instead of in which card appeared. That is a weaker
+     * signal than a different label was, which is why these assertions are on
+     * the value and the provenance rather than on the label alone.
+     */
+    const smokeCardFor = (overrides: Partial<ConditionSnapshot>) =>
+      conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-22T06:00:00Z",
+        snapshots: [snapshot(overrides)],
+        evidenceStatus: "available",
+        now: NOW,
+        pending: false,
+      }).find((entry) => entry.id === "smoke");
+
+    it("says wildfire smoke only when the smoke model says so", () => {
+      const card = smokeCardFor({ smokeColumnMgM2: 60, aerosolOpticalDepth: 0.5 });
+      expect(card?.value).toMatch(/moderate|heavy/i);
       expect(card?.interpretation).toMatch(/Dims the sky by \d\.\d mag/);
+      expect(card?.provenance?.detail).toMatch(/smoke model/i);
     });
 
     it("calls thick aerosol haze, because optical depth cannot identify smoke", () => {
       // Optical depth measures dust, sea salt, pollution and smoke together.
       // Calling a hazy summer evening "Smoky" on that basis is a small
       // confident wrongness in front of the readers most likely to notice.
-      const cards = conditionCards({
-        ...PORTLAND,
-        atUtc: "2026-08-22T06:00:00Z",
-        snapshots: [snapshot({ smokeColumnMgM2: 0, aerosolOpticalDepth: 0.5 })],
-        evidenceStatus: "available",
-        now: NOW,
-        pending: false,
-      });
-      const card = cards.find((entry) => entry.id === "haze");
-      expect(card).toBeDefined();
-      expect(card?.label).toBe("Haze");
+      const card = smokeCardFor({ smokeColumnMgM2: 0, aerosolOpticalDepth: 0.5 });
+      expect(card?.value).toBe("Thick");
       // The reader-facing text, not the provenance note — which mentions smoke
       // precisely in order to disclaim it.
-      expect(`${card?.label} ${card?.value} ${card?.interpretation}`).not.toMatch(/smok/i);
-      expect(cards.some((entry) => entry.id === "smoke")).toBe(false);
+      expect(`${card?.value} ${card?.interpretation}`).not.toMatch(/smok/i);
+      expect(card?.provenance?.detail).toMatch(/cannot identify smoke/i);
     });
 
-    it("omits both when the air is clean", () => {
-      const cards = conditionCards({
-        ...PORTLAND,
-        atUtc: "2026-08-22T06:00:00Z",
-        snapshots: [snapshot({ smokeColumnMgM2: 0, aerosolOpticalDepth: 0.04 })],
-        evidenceStatus: "available",
-        now: NOW,
-        pending: false,
-      });
-      expect(cards.some((entry) => entry.id === "smoke" || entry.id === "haze")).toBe(false);
+    it("says the air was measured and is clean, which absence could not", () => {
+      const card = smokeCardFor({ smokeColumnMgM2: 0, aerosolOpticalDepth: 0.04 });
+      expect(card?.value).toBe("Clear");
+      expect(card?.tone).toBe("good");
+      // Distinguishable from the unmeasured state, which is the whole reason
+      // the slot is permanent rather than conditional.
+      expect(card?.value).not.toBe("Not reported");
     });
   });
 });
@@ -177,11 +199,12 @@ describe("beyond the forecast horizon", () => {
   it("says the forecast does not exist yet rather than inventing one", () => {
     expect(cards.cloud.value).toBe("Forecast closer to date");
     expect(cards.temperature.value).toBe("Forecast closer to date");
-    // No smoke or haze card at all beyond the horizon: there is no reading to
-    // be uncertain about, and an empty slot saying so was the old defect.
-    expect(cards.smoke).toBeUndefined();
-    expect(cards.haze).toBeUndefined();
-    for (const id of ["cloud", "temperature"] as const) {
+    // Smoke keeps its slot and says the same thing the others do. The point of
+    // the permanent row is that a reader planning an eclipse three years out
+    // can see at a glance that three of the four are simply not knowable yet,
+    // which an absent card cannot tell them.
+    expect(cards.smoke.value).toBe("Forecast closer to date");
+    for (const id of ["cloud", "smoke", "temperature"] as const) {
       expect(cards[id].tone).toBe("unknown");
       expect(cards[id].value).not.toMatch(/\d+%/);
       expect(cards[id].value).not.toMatch(/°/);
@@ -273,12 +296,13 @@ describe("the forecast horizon, at both ends", () => {
         pending: false,
       }),
     );
-    for (const id of ["cloud", "temperature"] as const) {
+    for (const id of ["cloud", "smoke", "temperature"] as const) {
       expect(cards[id].tone).toBe("unknown");
       expect(cards[id].value).not.toMatch(/\d/);
     }
-    expect(cards.smoke).toBeUndefined();
-    expect(cards.haze).toBeUndefined();
+    // "Not recorded", not "forecast closer to date": the date has been and
+    // gone, and Tracker keeps no weather history to answer it from.
+    expect(cards.smoke.value).toBe("Not recorded");
   });
 
   it("still answers the Moon for a past date, because that is geometry", () => {
@@ -322,12 +346,12 @@ describe("provider states", () => {
     expect(failed.cloud.value).toBe("Forecast unavailable");
   });
 
-  it("omits the smoke card rather than reporting an absence of smoke", () => {
+  it("says nobody measured the air rather than implying it is clean", () => {
     // Previously this asserted a card reading "Not reported", on the reasoning
     // that an unmeasured layer should say so rather than imply clean air. That
-    // holds for cloud, which is always relevant; it does not hold for smoke,
-    // which is irrelevant on most nights in most places — and a permanent slot
-    // saying nothing is worse than no slot.
+    // holds for every slot, smoke included: with no aerosol model and no
+    // surface reading the honest answer is that nobody measured it, and that
+    // is a different statement from "the air is clean".
     const cards = byId(
       conditionCards({
         ...PORTLAND,
@@ -338,9 +362,10 @@ describe("provider states", () => {
         pending: false,
       }),
     );
-    expect(cards.smoke).toBeUndefined();
-    expect(cards.haze).toBeUndefined();
-    // And the cards that are always relevant are all still there.
+    expect(cards.smoke.value).toBe("Not reported");
+    expect(cards.smoke.tone).toBe("unknown");
+    expect(cards.smoke.interpretation).toMatch(/no model covers this location/i);
+    // And every other slot is still there.
     expect(cards.cloud).toBeDefined();
     expect(cards.moonlight).toBeDefined();
     expect(cards.temperature).toBeDefined();
@@ -406,21 +431,43 @@ describe("conditions that bear on this event, not every event", () => {
   const idsFor = (subject: Parameters<typeof conditionCards>[0]["subject"]) =>
     conditionCards({ ...base, subject }).map((card) => card.id);
 
-  it("omits moonlight when the Moon is the thing being watched", () => {
+  const moonlightFor = (subject: Parameters<typeof conditionCards>[0]["subject"]) =>
+    conditionCards({ ...base, subject }).find((card) => card.id === "moonlight");
+
+  /**
+   * The card stays; what it *says* changes.
+   *
+   * These previously asserted the card was dropped where the Moon was the
+   * subject or barely mattered. Dropping it is what made the row change shape
+   * between phenomena, and the phase is a fact worth its slot on any night.
+   * The assertion is now stronger: the card is always present *and* it must
+   * never describe the Moon as an obstacle when the Moon is the thing being
+   * looked at, which is the defect the omission was working around.
+   */
+  it("never describes the Moon as interference when it is the subject", () => {
     // The defect: a lunar eclipse page carried "Moonlight · Full Moon · 100% ·
-    // Some glare" — the event described as its own obstacle. The Moon's
-    // brightness during a lunar eclipse is the subject, not interference.
-    expect(
-      idsFor({ categoryId: "eclipses", moonIsTheTarget: true, moonlightSensitivity: "low" }),
-    ).not.toContain("moonlight");
+    // Some glare" — the event described as its own obstacle.
+    const card = moonlightFor({
+      categoryId: "eclipses",
+      moonIsTheTarget: true,
+      moonlightSensitivity: "low",
+    });
+    expect(card).toBeDefined();
+    expect(card?.interpretation).toBe("The Moon is what you are looking at");
+    expect(card?.tone).toBe("good");
+    expect(card?.interpretation).not.toMatch(/glare|washes out/i);
   });
 
-  it("omits moonlight for a pairing the Moon is half of", () => {
+  it("says the same for a pairing the Moon is half of", () => {
     // "Moonlight washes out faint objects" is not guidance when the Moon is one
     // of the two things you are looking at.
-    expect(
-      idsFor({ categoryId: "pairings", moonIsTheTarget: true, moonlightSensitivity: "low" }),
-    ).not.toContain("moonlight");
+    const card = moonlightFor({
+      categoryId: "pairings",
+      moonIsTheTarget: true,
+      moonlightSensitivity: "low",
+    });
+    expect(card?.interpretation).toBe("The Moon is what you are looking at");
+    expect(card?.interpretation).not.toMatch(/glare|washes out/i);
   });
 
   it("shows moonlight for meteors, where it decides whether you see anything", () => {
@@ -435,12 +482,18 @@ describe("conditions that bear on this event, not every event", () => {
     ).toContain("moonlight");
   });
 
-  it("omits moonlight for a bright planet, which it barely troubles", () => {
+  it("does not warn about moonlight for a bright planet it barely troubles", () => {
     // Saturn is not meaningfully affected by moonlight in any way the reader
-    // can act on, so the slot goes to something that is.
-    expect(
-      idsFor({ categoryId: "planets", moonIsTheTarget: false, moonlightSensitivity: "low" }),
-    ).not.toContain("moonlight");
+    // can act on. The card reports the phase, because that is a fact, and
+    // refuses to dress it up as a problem.
+    const card = moonlightFor({
+      categoryId: "planets",
+      moonIsTheTarget: false,
+      moonlightSensitivity: "low",
+    });
+    expect(card).toBeDefined();
+    expect(card?.tone).toBe("good");
+    expect(card?.interpretation).not.toMatch(/washes out/i);
   });
 
   it("still always answers cloud and temperature", () => {
@@ -450,10 +503,8 @@ describe("conditions that bear on this event, not every event", () => {
       { categoryId: "planets" as const, moonIsTheTarget: false, moonlightSensitivity: "low" as const },
     ]) {
       const ids = idsFor(subject);
-      expect(ids).toContain("cloud");
-      expect(ids).toContain("temperature");
-      // And never an empty slot.
-      expect(ids.length).toBeGreaterThanOrEqual(2);
+      // The universal four, whatever the subject is.
+      expect(ids).toEqual(["cloud", "smoke", "moonlight", "temperature"]);
       expect(ids.length).toBeLessThanOrEqual(5);
     }
   });

@@ -11,22 +11,29 @@ import { rankTonight, visibleRanked, type RankableEvent } from "./tonightRanking
  * first and opening Meteors made Meteors first.
  */
 
-/** A night with a clear, deliberately non-alphabetical order. */
+/**
+ * A night with a clear, deliberately non-alphabetical order.
+ *
+ * The values are priorities rather than raw strengths: ordering moved onto the
+ * significance band when novelty was introduced, so a routine target with a
+ * high strength can sit below an unusual one. `rankTonight` only ever sees the
+ * final ordering value, which is what these fixtures are.
+ */
 const NIGHT: RankableEvent[] = [
-  { id: "saturn", strength: 0.61 },
-  { id: "mars", strength: 0.55 },
-  { id: "jupiter", strength: 0.52 },
-  { id: "meteors", strength: 0.41 },
-  { id: "moon", strength: 0.33 },
-  { id: "aurora", strength: -0.5 },
-  { id: "mercury", strength: 0.18 },
-  { id: "neptune", strength: 0.16 },
+  { id: "saturn", priority: 0.61 },
+  { id: "mars", priority: 0.55 },
+  { id: "jupiter", priority: 0.52 },
+  { id: "meteors", priority: 0.41 },
+  { id: "moon", priority: 0.33 },
+  { id: "aurora", priority: -0.5 },
+  { id: "mercury", priority: 0.18 },
+  { id: "neptune", priority: 0.16 },
 ];
 
 const EXPECTED = ["saturn", "mars", "jupiter", "meteors", "moon", "mercury", "neptune", "aurora"];
 
 describe("tonight's canonical ranking", () => {
-  it("orders by strength, strongest first", () => {
+  it("orders by priority, highest first", () => {
     expect(rankTonight(NIGHT).map((event) => event.id)).toEqual(EXPECTED);
   });
 
@@ -44,8 +51,8 @@ describe("tonight's canonical ranking", () => {
 
   it("breaks ties deterministically rather than leaving them to sort stability", () => {
     const tied: RankableEvent[] = [
-      { id: "beta", strength: 0.4 },
-      { id: "alpha", strength: 0.4 },
+      { id: "beta", priority: 0.4 },
+      { id: "alpha", priority: 0.4 },
     ];
     expect(rankTonight(tied).map((event) => event.id)).toEqual(["alpha", "beta"]);
     expect(rankTonight([...tied].reverse()).map((event) => event.id)).toEqual(["alpha", "beta"]);
@@ -117,9 +124,10 @@ describe("the invariant: rank does not move when the reader navigates", () => {
 
   it("changes rank when an input genuinely changes, and only then", () => {
     // The other half of the invariant: ranking is not frozen, it is caused. A
-    // real change in strength — worse sky, a shower peaking — must move it.
+    // real change in priority — worse sky, a shower peaking, an eclipse
+    // arriving — must move it.
     const clouded = NIGHT.map((event) =>
-      event.id === "saturn" ? { ...event, strength: 0.12 } : event,
+      event.id === "saturn" ? { ...event, priority: 0.12 } : event,
     );
     const after = rankTonight(clouded);
     expect(after.find((event) => event.id === "saturn")!.rank).toBeGreaterThan(

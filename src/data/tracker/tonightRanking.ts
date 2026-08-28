@@ -28,8 +28,15 @@
 /** The minimum an event must carry to be ranked. */
 export interface RankableEvent {
   id: string;
-  /** Ordering value, higher is better. */
-  strength: number;
+  /**
+   * The ordering value, higher first.
+   *
+   * Deliberately named for what it is rather than for how good the event is.
+   * It carries the significance band from `significance.ts` with the event's
+   * own quality deciding the position inside that band, which is why a routine
+   * target with a higher `strength` still sorts below an unusual one.
+   */
+  priority: number;
 }
 
 export type Ranked<T extends RankableEvent> = T & {
@@ -38,19 +45,19 @@ export type Ranked<T extends RankableEvent> = T & {
 };
 
 /**
- * Sorts by strength and assigns positions.
+ * Sorts by priority and assigns positions.
  *
  * Ties break on `id` rather than being left to the sort's stability, so two
- * events of identical strength cannot swap ranks between renders because their
+ * events of identical priority cannot swap ranks between renders because their
  * input order happened to differ. A rank that flickers is a rank nobody can
  * trust, even when it is not navigation causing it.
  */
 export function rankTonight<T extends RankableEvent>(events: T[]): Ranked<T>[] {
   return [...events]
     .sort((left, right) =>
-      right.strength === left.strength
+      right.priority === left.priority
         ? left.id.localeCompare(right.id)
-        : right.strength - left.strength,
+        : right.priority - left.priority,
     )
     .map((event, index) => ({ ...event, rank: index + 1 }));
 }

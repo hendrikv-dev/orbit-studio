@@ -20,6 +20,18 @@ import {
  * Past, no Future and no Archive, only a control that says which night is on
  * screen and lets the reader change it.
  *
+ * ## Why it never says "Tonight"
+ *
+ * It did, and that put `‹ Tonight ›` in the header three centimetres from the
+ * `Tonight | Upcoming` tabs. Two controls, the same word, different jobs: one
+ * chooses a date and the other chooses between two views. A reader cannot tell
+ * from the interface which of them the word belongs to, and the arrows either
+ * side of it imply — wrongly — that Upcoming is one step to the right of
+ * Tonight.
+ *
+ * So the date control always shows a date. "Tonight" belongs to the primary
+ * navigation and appears in exactly one place.
+ *
  * ## Why the year is typed rather than paged
  *
  * Reaching 1999 by clicking a month arrow is three hundred clicks. The control
@@ -41,6 +53,18 @@ export function TrackerDate({ date, today, onSelect }: Props) {
   const [draft, setDraft] = useState(date);
   const description = useMemo(() => describeDate(date, today), [date, today]);
   const isToday = date === today;
+
+  // Always a date, never a mode word. The year is dropped in the current year
+  // and kept outside it, because "12 Aug" is unambiguous this year and useless
+  // for 1999.
+  const shortDate = useMemo(() => {
+    const [year, month, day] = date.split("-").map(Number);
+    return new Intl.DateTimeFormat(undefined, {
+      day: "numeric",
+      month: "short",
+      ...(date.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }),
+    }).format(new Date(year, month - 1, day));
+  }, [date, today]);
 
   // The arrows stop at the edges of what the ephemeris is trusted for rather
   // than walking silently into numbers Tracker will not stand behind.
@@ -66,7 +90,7 @@ export function TrackerDate({ date, today, onSelect }: Props) {
             accessible name and the visible label saying the same thing. */}
         <span className="tk-visually-hidden">Night to display</span>
         <span className="tk-date-label" aria-hidden>
-          {isToday ? "Tonight" : description.heading.replace(/^on /, "")}
+          {shortDate}
         </span>
         <input
           type="date"
@@ -91,12 +115,15 @@ export function TrackerDate({ date, today, onSelect }: Props) {
       </button>
 
       {/* Only when it would do something. A permanently present "Today" on the
-          day it is already showing is a control that does nothing. */}
+          day it is already showing is a control that does nothing.
+      
+          "Today", not "Tonight": this resets the date, and the word that names
+          the view lives in the primary navigation and nowhere else. */}
       {isToday ? null : (
         <button type="button" className="tk-date-today" onClick={() => onSelect(today)}>
           Today
           <span className="tk-visually-hidden">
-            {` — ${Math.abs(daysBetween(today, date))} days from the night shown`}
+            {` — ${Math.abs(daysBetween(today, date))} days from ${description.heading.replace(/^on /, "")}`}
           </span>
         </button>
       )}

@@ -19,7 +19,15 @@ import type { Opportunity, PhenomenonGeometry } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 import { lunarPhaseAt } from "./lunarPhase";
 import { lunarEclipseTiming } from "./lunarEclipse";
-import { angularSeparation, oppositionDuring } from "./planetaryEvents";
+import { angularSeparation, nearestOpposition, oppositionDuring } from "./planetaryEvents";
+import {
+  conjunctionSignificance,
+  lunarEclipseSignificance,
+  meteorSignificance,
+  moonPhaseSignificance,
+  planetSignificance,
+  type PlanetState,
+} from "./significance";
 
 /**
  * The phenomena Tracker can offer tonight, each turned into an `Opportunity`.
@@ -278,6 +286,17 @@ function meteorOpportunity(
       confidence: 0.55,
       rarity: headline ? Math.min(1, headline.zhrTonight / 100) : 0.05,
     },
+    // What the shower is actually producing here, which is the number that
+    // decides whether tonight is a meteor night or a night that happens to have
+    // meteors in it.
+    significance: meteorSignificance(
+      headline?.name ?? null,
+      // The headline shower's own contribution, never the total: the sporadic
+      // background is exactly what this is trying to distinguish itself from,
+      // so counting it would let a quiet night look like an active one.
+      headline?.perHour ?? null,
+      headline?.daysFromPeak ?? null,
+    ),
     guidance: {
       appearance: headline
         ? `Brief streaks lasting a fraction of a second — ${describeCharacter(headline.character, headline.speedKmS)}. Nothing like the long trails in photographs, which are built from many minutes of exposure.`
@@ -377,6 +396,10 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
       confidence: 1,
       rarity: 0.02,
     },
+    // A phase is a calendar fact rather than an event. The brief is explicit
+    // that a routine Moon must not outrank a rarer thing merely for being
+    // bright and obvious, and this is where that is guaranteed.
+    significance: moonPhaseSignificance(),
     guidance: {
       appearance: isNewMoon
         ? "The Moon itself is not visible at night. Its absence makes faint stars and meteors easier to see."
@@ -479,6 +502,104 @@ const PLANETS: PlanetProfile[] = [
   },
 ];
 
+/**
+ * The physical constants behind "is this an unusually good showing".
+ *
+ * Equatorial radii are IAU values; the geocentric distance ranges are the
+ * standard perigee/apogee extremes for each planet. Both are properties of the
+ * solar system rather than of Tracker, which is the point — the apparent
+ * diameter tonight is computed from the ephemeris distance, and these say what
+ * that number should be measured against. A planet is "large" when it is large
+ * *for itself*, because 45″ is enormous for Mars and edge-on invisible for
+ * Jupiter.
+ *
+ * `brightestMagnitude` is the brightest each body is known to get. Saturn's
+ * −0.55 belongs to a wide-open ring presentation; with the rings closed its own
+ * best opposition is nearer +0.5, so the test correctly reports that a
+ * ring-plane-crossing Saturn is not as bright as Saturn gets.
+ */
+const PLANET_PHYSICAL: Record<
+  string,
+  { radiusKm: number; distanceRangeAu: readonly [number, number]; brightestMagnitude: number }
+> = {
+  Venus: { radiusKm: 6051.8, distanceRangeAu: [0.265, 1.735], brightestMagnitude: -4.9 },
+  Mars: { radiusKm: 3396.2, distanceRangeAu: [0.372, 2.68], brightestMagnitude: -2.94 },
+  Jupiter: { radiusKm: 71492, distanceRangeAu: [3.95, 6.45], brightestMagnitude: -2.94 },
+  Saturn: { radiusKm: 60268, distanceRangeAu: [8.03, 11.09], brightestMagnitude: -0.55 },
+};
+
+const AU_KM = 149_597_870.7;
+const ARCSEC_PER_RADIAN = 206_264.806;
+
+/** Apparent equatorial diameter in arcseconds at a geocentric distance. */
+function apparentDiameterArcsec(radiusKm: number, distanceAu: number): number {
+  return 2 * Math.atan(radiusKm / (distanceAu * AU_KM)) * ARCSEC_PER_RADIAN;
+}
+
+/**
+ * How long a target is usefully placed, in minutes.
+ *
+ * "Usefully" is above ten degrees, which is where it has cleared the worst of
+ * the horizon murk and most suburban obstructions. The number matters because a
+ * thirty-minute pre-dawn gap and a five-hour evening are different offers even
+ * when the planet is identical.
+ */
+function usefulWindowMinutes(profile: { atUtc: string }[], observer: Observer, body: Body): number {
+  let minutes = 0;
+  for (let index = 1; index < profile.length; index += 1) {
+    const at = new Date(profile[index].atUtc);
+    if (horizontal(observer, body, at).altitude >= 10) {
+      minutes += (Date.parse(profile[index].atUtc) - Date.parse(profile[index - 1].atUtc)) / MS_PER_MINUTE;
+    }
+  }
+  return minutes;
+}
+
+/**
+ * Everything about tonight's showing of one planet that could make it unusual.
+ *
+ * Read from the ephemeris, every field. The brief's warning is against
+ * "arbitrary novelty bonuses", and the test of whether a factor is arbitrary is
+ * whether it would change if the sky changed — each of these would.
+ */
+function planetState(
+  observer: Observer,
+  body: Body,
+  name: string,
+  at: Date,
+  placement: Placement,
+  profile: OpportunitySample[],
+): PlanetState | null {
+  const physical = PLANET_PHYSICAL[name];
+  if (!physical) return null;
+  const illumination = Illumination(body, MakeTime(at));
+  const [near, far] = physical.distanceRangeAu;
+  let peakAltitudeDeg = placement.altitudeDeg;
+  for (const sample of profile) {
+    if (sample.altitudeDeg !== undefined && sample.altitudeDeg > peakAltitudeDeg) {
+      peakAltitudeDeg = sample.altitudeDeg;
+    }
+  }
+  return {
+    body: name,
+    daysFromOpposition: nearestOpposition(body, at),
+    magnitude: illumination.mag,
+    brightestMagnitude: physical.brightestMagnitude,
+    apparentDiameterArcsec: apparentDiameterArcsec(physical.radiusKm, illumination.geo_dist),
+    // Largest at perigee, smallest at apogee — so the range is built from the
+    // distance extremes rather than quoted separately and allowed to drift.
+    diameterRangeArcsec: [
+      apparentDiameterArcsec(physical.radiusKm, far),
+      apparentDiameterArcsec(physical.radiusKm, near),
+    ],
+    peakAltitudeDeg,
+    usefulWindowMinutes: usefulWindowMinutes(profile, observer, body),
+    // Undefined for every body but Saturn, which is what the ephemeris means by
+    // "this body has no ring plane to tilt".
+    ringTiltDeg: illumination.ring_tilt ?? null,
+  };
+}
+
 function planetOpportunities(observer: Observer, period: ObservationPeriod): Opportunity[] {
   const times = sampleTimes(observer, period, false);
   if (times.length === 0) return [];
@@ -499,6 +620,7 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
 
     const target = profile.telescopeTarget;
     const physicalEvent = oppositionDuring(profile.body, period.startUtc, period.endUtc);
+    const state = planetState(observer, profile.body, profile.name, at, placement, planetProfile);
     // Saturn and "Saturn's rings" used to be two entries, ranked separately and
     // reading as unrelated events. They are one thing in the sky: a point you
     // can find with your eyes, which becomes a ringed planet through a
@@ -522,6 +644,16 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
         confidence: 1,
         rarity: 0.05,
       },
+      /**
+       * What is unusual about *this* showing, from the ephemeris.
+       *
+       * "Saturn is visible tonight" and "Saturn is three weeks from opposition,
+       * forty degrees up, with the rings well open" are the same object and
+       * different opportunities, and this is what tells them apart. Null state
+       * would fall back to routine, which is the honest default for a body with
+       * no physical constants recorded.
+       */
+      significance: state ? planetSignificance(state) : undefined,
       guidance: {
         appearance: `A steady point of light, ${profile.name === "Mars" ? "distinctly orange" : profile.name === "Venus" ? "brilliant white" : "creamy white"}. Planets hold still while stars twinkle — that is how to tell them apart.`,
         whenUtc: placement.atUtc,
@@ -541,7 +673,7 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
             "No promise is made about what a particular instrument will show — aperture, magnification and the steadiness of the air all change it.",
           ]
         : [],
-      science: { kind: "planet", body: profile.name, event: physicalEvent },
+      science: { kind: "planet", body: profile.name, event: physicalEvent, state },
       profile: planetProfile,
       geometry: targetGeometry(planetProfile),
       transparency: "low",
@@ -630,6 +762,10 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
           confidence: 1,
           rarity: 0.15 + 0.3 * closeness,
         },
+        // Separation is the event. Two things a degree apart read as one
+        // object; the same two things eight degrees apart are a coincidence of
+        // direction that happens constantly.
+        significance: conjunctionSignificance(best.separation),
         guidance: {
           appearance: `Two points close together — ${best.separation.toFixed(1)}° is about ${best.separation < 1.5 ? "a fingernail" : best.separation < 3 ? "a finger" : "two fingers"} held at arm's length.`,
           whenUtc: best.at.toISOString(),
@@ -741,12 +877,22 @@ function lunarEclipseOpportunity(
         : "A faint shading across the Moon. Subtle, and easy to miss.",
     qualities: {
       observability: Math.min(1, altitudeObservability(position.altitude) + 0.35),
-      spectacle: totality ? 0.95 : partial ? 0.7 : 0.25,
-      recognisability: totality ? 0.95 : partial ? 0.85 : 0.3,
+      // Depth is most of what a partial looks like. A flat 0.7 for every
+      // partial rated a three-percent graze the same as a dark bite across
+      // most of the disc, and the two are not the same evening.
+      spectacle: totality ? 0.95 : partial ? 0.3 + 0.45 * eclipse.obscuration : 0.25,
+      recognisability: totality ? 0.95 : partial ? 0.45 + 0.45 * eclipse.obscuration : 0.3,
       ease: timingEase(eclipse.peak.date.toISOString(), period) * 0.9,
       confidence: 1,
       rarity: totality ? 0.9 : partial ? 0.6 : 0.3,
     },
+    // The reason this file exists to be changed: Earth's shadow crossing the
+    // Moon is the most unusual thing in any night sky it happens in, and the
+    // old capped-rarity model could not lift it past a well-placed planet.
+    significance: lunarEclipseSignificance(
+      totality ? "total" : partial ? "partial" : "penumbral",
+      eclipse.obscuration,
+    ),
     guidance: {
       appearance: totality
         ? "Copper red to brick brown, and much dimmer than you expect — the colour is sunlight bent through every sunrise and sunset on Earth at once. Photographs exaggerate the saturation."

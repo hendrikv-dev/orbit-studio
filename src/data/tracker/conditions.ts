@@ -587,12 +587,46 @@ export function bestViewingWindow(
  * this, an opportunity whose window had passed fell back to displaying its own
  * best moment, which is how Venus came to be recommended for 07:41 to someone
  * standing outside at 17:19.
+ *
+ * ## Why the period is a parameter
+ *
+ * Two situations produce a profile that is entirely in the past and they mean
+ * opposite things:
+ *
+ * - The reader is browsing an earlier date. Nothing has been *missed*; the
+ *   whole night is historical and every event on it is equally over. Marking
+ *   them "Already set" would be noise on every row.
+ * - The reader is in tonight, and this particular event has finished. That is
+ *   exactly what needs saying.
+ *
+ * Without the period those are indistinguishable, so the original guard treated
+ * both as "not passed" — and a lunar eclipse, whose profile is a short window
+ * rather than the whole night, therefore stayed at the top of Best tonight for
+ * hours after it ended, telling the reader to look south-east at a time that
+ * had gone. A planet never showed the bug because its profile spans the night,
+ * so `now` was still inside it.
+ *
+ * Passing the period is what separates them. It stays optional because callers
+ * that genuinely have no period — the unit tests for the ambiguous case, and
+ * any caller looking at a bare profile — should keep the conservative answer.
  */
-export function hasPassedTonight(profile: OpportunitySample[], now: Date): boolean {
+export function hasPassedTonight(
+  profile: OpportunitySample[],
+  now: Date,
+  period?: { startUtc: string; endUtc: string },
+): boolean {
   if (profile.length === 0) return false;
   const last = Date.parse(profile[profile.length - 1].atUtc);
   const first = Date.parse(profile[0].atUtc);
-  if (now.getTime() <= first || now.getTime() >= last) return false;
+  if (now.getTime() <= first) return false;
+  if (now.getTime() >= last) {
+    if (!period) return false;
+    // Inside the night being shown, so this really has been missed rather than
+    // being one row of a night the reader is reading about.
+    return (
+      now.getTime() >= Date.parse(period.startUtc) && now.getTime() <= Date.parse(period.endUtc)
+    );
+  }
   return !profile.some(
     (sample) => Date.parse(sample.atUtc) >= now.getTime() && sample.relative > 0,
   );

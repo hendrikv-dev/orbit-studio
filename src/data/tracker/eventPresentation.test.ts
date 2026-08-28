@@ -138,8 +138,32 @@ describe("every phenomenon fills the same hero", () => {
     for (const presentation of everything) {
       expect(presentation.row.state.length).toBeGreaterThan(0);
       expect(presentation.row.window.length).toBeGreaterThan(0);
-      // The row's quality is the hero's third metric, not a second opinion.
-      expect(presentation.row.quality.label).toBe(presentation.metrics[2].label);
+      /**
+       * The row's quality used to be asserted equal to the hero's third metric,
+       * because both were "Worth it" read off the same band. They are now two
+       * different questions on purpose: the hero's third slot says which way to
+       * face, and the row's column says how good the view will be, because a
+       * comparison between events is what a reader scanning the list is making
+       * and a direction is what a reader who has already chosen one needs.
+       *
+       * What still has to hold is that the row's quality comes from the same
+       * band the ranking used rather than being decided again — the drift this
+       * assertion originally existed to catch.
+       */
+      // Whatever the row's quality column is called, it names what it measures.
+      // "Worth it" — the vague verdict this replaced — is forbidden outright.
+      expect(["Visibility", "Your view"]).toContain(presentation.row.quality.label);
+      expect(presentation.row.quality.label).not.toMatch(/worth/i);
+      expect(presentation.metrics[2].label).toBe("Where to look");
+    }
+  });
+
+  it("tells the reader where to look on the card itself, not only in a drill-in", () => {
+    // The real-use failure: a reader had the event and the time and still had
+    // to work out which part of the sky to search. The third metric is now that
+    // answer, and it is never empty — an event with no direction says so.
+    for (const presentation of everything) {
+      expect(presentation.metrics[2].value.length).toBeGreaterThan(0);
     }
   });
 
@@ -153,24 +177,40 @@ describe("every phenomenon fills the same hero", () => {
 });
 
 describe("an unknown sky never reads as a confident recommendation", () => {
+  /**
+   * The level vocabulary changed with the removal of the "worth it" verdicts —
+   * it now names what governs the view rather than judging the reader's
+   * evening. `conditions-unknown` is a distinct value rather than a wording
+   * variant, which is what lets this assert the invariant on the value instead
+   * of by matching English.
+   */
   it("holds for every tonight opportunity with no forecast behind it", () => {
     for (const presentation of tonightPresentations()) {
-      expect(presentation.recommendationLevel).not.toBe("Exceptional");
-      expect(presentation.recommendationLevel).not.toBe("Worth going out for");
-      expect(presentation.recommendation).toMatch(/conditions unknown/i);
+      expect(presentation.recommendationLevel).toBe("conditions-unknown");
+      /**
+       * Asserted on the support line rather than the recommendation, because
+       * that is where the statement now lives — and it lives there for a
+       * measured reason. The recommendation is clamped to two lines to hold the
+       * one-screen contract, and when this sentence was appended to it the
+       * browser hid sixty-five pixels of it. A caveat that CSS can truncate is
+       * not a caveat, so it has an element of its own.
+       */
+      expect(presentation.support).toMatch(/no forecast reached here/i);
     }
   });
 
   it("holds for aurora, whose best case is still a half-hour nowcast", () => {
     const presentation = auroraPresentation();
-    expect(presentation.recommendationLevel).not.toBe("Exceptional");
-    expect(presentation.recommendationLevel).not.toBe("Worth going out for");
+    expect(presentation.recommendationLevel).not.toBe("well-placed");
   });
 
   it("holds for an eclipse, whose geometry is certain and whose weather is not", () => {
     const presentation = solarEclipsePresentation();
-    expect(presentation.recommendationLevel).toMatch(/conditions unknown/i);
-    expect(presentation.support).toMatch(/weather this far ahead is not/i);
+    expect(presentation.recommendationLevel).toBe("conditions-unknown");
+    // The support line carries the partial-phase times where the eclipse is
+    // visible from here, and the weather caveat where it is not. Either is a
+    // statement of what is and is not known, which is what this asserts.
+    expect(presentation.support).toMatch(/partial phase runs|weather over it this far ahead is not/i);
   });
 });
 
@@ -182,9 +222,12 @@ describe("what the eclipse card claims", () => {
     // labelled as the local view rather than as the eclipse's global kind, and
     // it must carry the duration: "Totality" is the same word for six minutes
     // and for forty seconds, and the difference is what somebody travels on.
-    expect(presentation.metrics[2].label).toBe("Your view");
-    expect(presentation.metrics[2].value).toMatch(/^Totality · \d+m \d+s$/);
-    const seconds = /(\d+)m (\d+)s/.exec(presentation.metrics[2].value);
+    // The local result moved to the middle slot when "where to look" took the
+    // third, which every phenomenon now shares. The claim under test is
+    // unchanged: this is the observer's own view, with the duration on it.
+    expect(presentation.metrics[1].label).toBe("Your view");
+    expect(presentation.metrics[1].value).toMatch(/^Totality · \d+m \d+s$/);
+    const seconds = /(\d+)m (\d+)s/.exec(presentation.metrics[1].value);
     const total = Number(seconds![1]) * 60 + Number(seconds![2]);
     // Published: about 6m 23s at Luxor.
     expect(total).toBeGreaterThan(370);

@@ -201,7 +201,12 @@ export function TrackerSkyPathPanel({
         <p className="tk-viz-verdict-head">{verdict.headline}</p>
         <p className="tk-viz-verdict-detail">
           {verdict.detail}
-          {gaze
+          {/* The gaze sentence only where the headline is not already an
+              instruction. Tonight's headline is now the observing instruction
+              itself, and appending a second one put the same direction on the
+              page three times — hero metric, hero sentence, and here — which
+              reads as the interface stuttering rather than as emphasis. */}
+          {gaze && !verdict.headline.toLowerCase().startsWith("look")
             ? ` ${describeDirection(gaze.centerAzimuthDeg, gaze.centerAltitudeDeg)}, ${describeAltitude(gaze.centerAltitudeDeg)}.`
             : ""}
         </p>

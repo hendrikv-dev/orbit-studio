@@ -13,7 +13,6 @@ import { planNight, type NightPlan } from "../../data/tracker/schedule";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
-  chooseHero,
   type SkyAdjustedOpportunity,
 } from "../../data/tracker/opportunity";
 import {
@@ -36,6 +35,7 @@ import {
 import { heroImageryFor } from "../../data/tracker/imagery";
 import { conditionCards } from "../../data/tracker/conditionCards";
 import {
+  VISIBILITY_LABEL,
   presentAuroraEvent,
   presentTonightEvent,
   visibilityMetric,
@@ -72,6 +72,7 @@ import {
   todayIn,
 } from "../../data/tracker/skyContext";
 import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
+import { auroraSignificance, priorityFor } from "../../data/tracker/significance";
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
 import { useTrackerHistory } from "./useTrackerHistory";
@@ -90,7 +91,14 @@ import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
 const TrackerAuroraMap = lazy(() =>
   import("./viz/TrackerAuroraMap").then((module) => ({ default: module.TrackerAuroraMap })),
 );
+const TrackerEclipseMap = lazy(() =>
+  import("./viz/TrackerEclipseMap").then((module) => ({ default: module.TrackerEclipseMap })),
+);
 import { TrackerAuroraArt } from "./viz/TrackerAuroraArt";
+import {
+  lunarGeographicVisibility,
+  lunarLocalVisibility,
+} from "../../data/tracker/lunarEclipse";
 import type { RelevantEventRow } from "./RelevantEventsList";
 import type { HeroMedia } from "./EventHero";
 
@@ -249,8 +257,13 @@ interface TonightEvent {
   media: HeroMedia;
   expectation: string | null;
   safety: string | null;
-  /** Ordering value in the same 0–1 space the ranking uses. */
-  strength: number;
+  /**
+   * What the list is ordered by: the significance band with the event's own
+   * quality placing it inside that band. See `significance.ts` — this is why a
+   * routine Full Moon with the night's highest raw strength still sorts below a
+   * partial lunar eclipse.
+   */
+  priority: number;
   /**
    * Whether this belongs in Best tonight at all, and why.
    *
@@ -420,12 +433,31 @@ function TrackerScreen() {
   //  - Replacing rather than pushing, because the reader did not navigate: the
   //    night moved under them, and an entry they never chose is one they would
   //    have to press Back through.
-  const planSettled = useRef(false);
+  /**
+   * The identity of the last *real* plan, not merely the last effect run.
+   *
+   * The guard used to be a boolean flipped on the first run, and that was not
+   * the same thing. Tracker restores the reader's place from local storage
+   * asynchronously, so the first run happens while `night` is still null and
+   * only marks the flag; the plan then arrives, the identity changes from
+   * nothing to something, and the effect treats that as "the night rolled over"
+   * and clears the event.
+   *
+   * The consequence is the bug the comment above says this was written to
+   * prevent, reintroduced from the other side: `?app=tracker&event=aurora`
+   * loaded, the URL was rewritten to `?app=tracker`, and the reader landed on
+   * Saturn. Comparing plan identities rather than counting runs makes the
+   * condition say what it means — the night the reader was looking at has been
+   * replaced by a different one.
+   */
+  const settledPlan = useRef<string | null>(null);
   useEffect(() => {
-    const first = !planSettled.current;
-    planSettled.current = true;
+    const key = night?.identity.key ?? null;
+    const previous = settledPlan.current;
+    if (key !== null) settledPlan.current = key;
+    const rolledOver = previous !== null && key !== null && previous !== key;
     if (
-      !first &&
+      rolledOver &&
       viewRef.current === "tonight" &&
       (selectedIdRef.current !== null || drillRef.current !== null)
     ) {
@@ -500,7 +532,7 @@ function TrackerScreen() {
     const passed = new Set<string>();
     for (const entry of night.ranking.ranked) {
       const { opportunity } = entry;
-      if (hasPassedTonight(opportunity.profile, now)) {
+      if (hasPassedTonight(opportunity.profile, now, night.period)) {
         passed.add(opportunity.id);
         access.set(opportunity.id, 0);
         continue;
@@ -629,7 +661,7 @@ function TrackerScreen() {
         safety: entry.opportunity.guidance.safety,
         // Passed events sink rather than disappear: "the Moon is already down"
         // is worth being able to see, and it is not a recommendation.
-        strength: passed ? -1 : entry.strength,
+        priority: passed ? -1 : entry.priority,
         /**
          * Eligibility, decided on the phenomenon and never on the weather.
          *
@@ -749,7 +781,7 @@ function TrackerScreen() {
                   environment.status,
                   false,
                 )
-              : { label: "Worth it", value: "Not known", tone: "unknown" },
+              : { label: VISIBILITY_LABEL, value: "Not known", tone: "unknown" },
             // Whether it could be seen from here, which is the reader's
             // question and not the one OVATION answers.
             auroraVisibility(
@@ -778,7 +810,23 @@ function TrackerScreen() {
           // Present but last, when there is nothing to report. -0.5 sits below
           // every live recommendation and above events that have already set,
           // which is where "unlikely tonight" belongs.
-          strength: !worthListing ? -0.5 : expired ? 0.05 : ranking.strength,
+          priority: !worthListing
+            ? -0.5
+            : expired
+              ? 0.05
+              : priorityFor(
+                  // Aurora's band comes from whether it could be seen from
+                  // here, which is the same question `auroraEligibility` asks
+                  // and a different one from what OVATION reports overhead.
+                  auroraSignificance(
+                    auroraLocalVisibility?.kind === "overhead"
+                      ? "overhead"
+                      : auroraLocalVisibility?.kind === "horizon"
+                        ? "horizon"
+                        : "none",
+                  ),
+                  ranking.strength,
+                ),
           /**
            * Aurora earns its slot from the aurora, not from the sky.
            *
@@ -839,28 +887,71 @@ function TrackerScreen() {
     [tonightEvents],
   );
 
+  /**
+   * What leads the page: the top of the one ranking, and nothing else.
+   *
+   * ## The contradiction this removes
+   *
+   * There used to be two authorities. `chooseHero` picked the hero from the
+   * *full* ranked set — everything observable, recommended or not — and it won
+   * whenever its pick out-scored the top of Best tonight. On a real night from
+   * Portland that produced a page led by the Full Moon, whose own card said
+   * there was no particular lunar event to watch, above a Best tonight list
+   * whose first row was Saturn. Two surfaces, two answers, both computed by
+   * Tracker, neither wrong on its own terms.
+   *
+   * The brief's requirement is one authoritative model that the hero, the side
+   * visualization, the ranked list and the detail copy all agree with. So the
+   * hero is `bestTonight[0]` — literally the same array the list renders from,
+   * with the same ranks — and the only thing that can override it is the reader
+   * explicitly opening something else.
+   *
+   * The guarantees `chooseHero` existed to provide have not been dropped; they
+   * moved into the ordering itself. A telescope target still cannot displace a
+   * naked-eye one, because `EQUIPMENT_DEMOTION` is applied to `strength` before
+   * the band is computed. Nothing weak is promoted to fill the slot, because
+   * eligibility already removed everything below the floor. And where nothing
+   * is eligible at all, the page says so rather than leading with the least bad
+   * option — which is why the fallback is a quiet-night state and not
+   * `tonightEvents[0]`.
+   */
   const heroEvent = useMemo(() => {
-    if (tonightEvents.length === 0) return null;
     if (selectedId) {
       const found = tonightEvents.find((event) => event.id === selectedId);
       if (found) return found;
     }
-    // The ranking's own hero rule still decides the default: nothing below the
-    // floor is promoted merely to fill the position, and a telescope target
-    // never displaces a naked-eye one.
-    if (withSky) {
-      const chosen = chooseHero(withSky.ranked, withSky.passed);
-      const matched = chosen
-        ? tonightEvents.find((event) => event.id === chosen.opportunity.id)
-        : null;
-      // Aurora can lead only by out-scoring the astronomical hero, never by
-      // default, because a nowcast is the least certain thing on the page.
-      const leader = bestTonight[0];
-      if (matched && (!leader || leader.strength <= matched.strength)) return matched;
-    }
-    return bestTonight[0] ?? tonightEvents[0];
-  }, [bestTonight, selectedId, tonightEvents, withSky]);
+    return bestTonight[0] ?? null;
+  }, [bestTonight, selectedId, tonightEvents]);
 
+
+  /**
+   * The hero's presentation, saying plainly when Tracker is not recommending it.
+   *
+   * The hero is normally the top of Best tonight and therefore eligible by
+   * construction. The exception is direct lookup: a reader can open Meteors on a
+   * night with no shower, and that page must still tell them the truth rather
+   * than describing the sporadic background as tonight's opportunity.
+   *
+   * Only the recommendation sentence is replaced, and only with the eligibility
+   * reason — which is a fact about the sky ("no shower is active tonight"),
+   * never a verdict about the reader's evening. The three metrics are untouched
+   * because they are facts too: the best time, the rate, and which way to face
+   * are all still correct and still useful to somebody who went out anyway.
+   */
+  const heroPresentation = useMemo(() => {
+    if (!heroEvent) return null;
+    if (heroEvent.eligibility.eligible) return heroEvent.presentation;
+    // A phenomenon that already explains its own limiting condition keeps its
+    // own words; replacing them with the generic reason loses detail. See
+    // `EventPresentation.selfExplaining`.
+    if (heroEvent.presentation.selfExplaining) return heroEvent.presentation;
+    return {
+      ...heroEvent.presentation,
+      recommendation: heroEvent.presentation.where
+        ? `${heroEvent.eligibility.reason} ${heroEvent.presentation.where.sentence}`
+        : heroEvent.eligibility.reason,
+    } as EventPresentation;
+  }, [heroEvent]);
 
   const rows = useMemo<RelevantEventRow[]>(() => {
     if (!heroEvent) return [];
@@ -947,10 +1038,21 @@ function TrackerScreen() {
   // The tab title is how this page is found again in a row of tabs, in history
   // and in a shared link. "Orbit Studio" on every view told nobody anything.
   useEffect(() => {
+    // Named for the night actually on screen. "Saturn tonight" is wrong in a
+    // tab showing 7 September, and the tab title is how this page is found
+    // again in a row of tabs, in history and in a shared link.
+    //
+    // And wrong in a tab showing Upcoming, which is where it was: this effect
+    // only knows about the Tonight hero, so opening a solar eclipse from the
+    // calendar left the tab still called "Saturn tonight". Upcoming names
+    // itself instead of inheriting a title from a view the reader has left —
+    // the event's own name is set by `UpcomingEventPage`, which is the only
+    // component that knows it.
+    if (view === "upcoming") return;
     document.title = heroEvent
-      ? `${heroEvent.presentation.title} tonight — Orbit Studio Tracker`
+      ? `${heroEvent.presentation.title} ${describeDate(selectedDate, today).heading} — Orbit Studio Tracker`
       : "Orbit Studio Tracker";
-  }, [heroEvent]);
+  }, [heroEvent, selectedDate, today, view]);
 
   const remind = useCallback((presentation: EventPresentation) => {
     downloadCalendarFile({
@@ -970,7 +1072,12 @@ function TrackerScreen() {
     [heroEvent],
   );
   const gaze = useMemo(
-    () => (heroEvent?.entry ? gazeRegionFor(heroEvent.entry.opportunity, skyPath) : null),
+    () =>
+      heroEvent?.entry
+        ? // The same instant the hero's instruction names, so the drawn region
+          // and the sentence beside it cannot describe different moments.
+          gazeRegionFor(heroEvent.entry.opportunity, skyPath, heroEvent.presentation.atUtc)
+        : null,
     [heroEvent, skyPath],
   );
 
@@ -983,6 +1090,25 @@ function TrackerScreen() {
    * this one has the screen to itself and should. Only aurora needs it here —
    * every other Tonight visualization is a chart rather than a map.
    */
+  const lunarEclipseField = useMemo(
+    () => lunarEclipseGeometry(heroEvent, place, "card"),
+    [heroEvent, place],
+  );
+
+  /**
+   * The same eclipse at hemisphere scale, built only while the drill-in is open.
+   *
+   * Separate from the card's node rather than shared, exactly as the aurora map
+   * is. Sharing one node made the card behind the overlay silently become the
+   * interactive, finely sampled version of itself — a panel that shares a scroll
+   * surface with the page must not capture drags, and the expanded one has the
+   * screen to itself and should.
+   */
+  const lunarEclipseExpanded = useMemo(
+    () => (overlay === "field-map" ? lunarEclipseGeometry(heroEvent, place, "full") : null),
+    [heroEvent, overlay, place],
+  );
+
   const expandedVisualization = useMemo(() => {
     if (heroEvent?.id !== "aurora" || !auroraAssessment || !aurora.data?.grid || !place) {
       return null;
@@ -1027,6 +1153,43 @@ function TrackerScreen() {
   ]);
 
   /**
+   * The eclipse map at hemisphere scale, for the drill-in.
+   *
+   * Interactive here and inert on the card, for the reason the aurora map is:
+   * a panel sharing a scroll surface with the page must not capture drags, and
+   * this one owns the screen.
+   */
+  const expandedEclipse = useMemo(() => {
+    if (!lunarEclipseExpanded || !place || !heroEvent) return null;
+    return (
+      <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
+        <TrackerEclipseMap
+          kind="lunar"
+          title={heroEvent.presentation.title}
+          maximumUtc={lunarEclipseExpanded.timing.maximumUtc}
+          visibility={lunarEclipseExpanded.visibility}
+          local={lunarEclipseExpanded.local}
+          bounds={lunarEclipseExpanded.bounds}
+          observer={{
+            latitudeDeg: place.latitude,
+            longitudeDeg: place.longitude,
+            label: place.name,
+          }}
+          clock={clock}
+          onOpenFullMap={null}
+          interactive
+          inspection={{
+            point: inspected,
+            onSelect: (latitudeDeg, longitudeDeg) => setInspected({ latitudeDeg, longitudeDeg }),
+          }}
+          timing={lunarEclipseExpanded.timing}
+          observerAltitudeDeg={lunarEclipseExpanded.altitudeDeg}
+        />
+      </Suspense>
+    );
+  }, [clock, heroEvent, inspected, lunarEclipseExpanded, place]);
+
+  /**
    * The clip that shows what this actually looks like, where one exists.
    *
    * Hoisted out of the overlay's JSX so the sporadic-meteor state can put it
@@ -1043,27 +1206,60 @@ function TrackerScreen() {
     ) : null;
   }, [heroEvent]);
 
+  /**
+   * The lunar eclipse's geographic visibility, when one is the hero.
+   *
+   * ## Why this is here at all
+   *
+   * The right-hand slot is "phenomenon-specific primary evidence", and for an
+   * eclipse that evidence is geographic: whether the Moon is above the horizon
+   * where you are while Earth's shadow crosses it, and where else on Earth the
+   * same is true. Tonight's page was falling through to the altitude-and-bearing
+   * chart instead — which is a real and useful tool, and is the answer to a
+   * different question. The Upcoming page had the geographic map all along, so
+   * the same eclipse showed two different primary visualizations depending on
+   * which door the reader came through.
+   *
+   * Computed in its own memo rather than inside `visualization` so the sampling
+   * — which is a few thousand horizon evaluations — is not redone every time an
+   * unrelated dependency of that memo changes.
+   */
+  /**
+   * Whether the reason there is nothing to recommend is simply the hour.
+   *
+   * Dawn is not a disappointing night. Every opportunity having *passed* is a
+   * different statement from none of them being worth going out for, and a
+   * reader at 5:59am told "nothing stands out tonight" would rightly conclude
+   * Tracker had not noticed the sun coming up.
+   */
+  const nightIsOver = useMemo(() => {
+    if (!night || tonightEvents.length === 0) return false;
+    if (now.getTime() < Date.parse(night.period.startUtc)) return false;
+    return tonightEvents.every((event) => event.passed);
+  }, [night, now, tonightEvents]);
+
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
     const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
     // "Saturn tonight" is wrong on a night that is not tonight.
     const nightWord = describeDate(selectedDate, today).heading;
-    const quality = heroEvent.presentation.metrics[2];
+    /**
+     * The line under the chart, which is now an instruction rather than a grade.
+     *
+     * It used to read "Worth going out for tonight" / "Worth a look if you are
+     * out anyway" — the same lifestyle verdict the hero has stopped giving, in
+     * a panel whose whole subject is where and when. The chart already shows
+     * the window; the words say which way to face while looking at it.
+     */
+    const where = heroEvent.presentation.where;
+    const ineligible = !heroEvent.eligibility.eligible;
     const verdict = {
-      // These describe the whole opportunity, which is what the third metric
-      // now measures — sky and phenomenon together. "The sky is the limit
-      // tonight, not the target" was a clever line that told nobody what was
-      // wrong or what to do about it.
-      headline:
-        quality.tone === "good"
-          ? `Worth going out for ${nightWord}`
-          : quality.tone === "fair"
-            ? "Worth a look if you are out anyway"
-            : quality.tone === "poor"
-              ? `Not much to see ${nightWord}`
-              : `Not enough information for ${nightWord === "tonight" ? "tonight" : nightWord.replace(/^on /, "")}`,
-      detail: heroEvent.presentation.support ?? "",
-      tone: quality.tone === "plain" ? ("unknown" as const) : quality.tone,
+      headline: ineligible
+        ? heroEvent.eligibility.reason
+        : (where?.sentence ??
+          `Best around ${formatClockTime(heroEvent.presentation.atUtc, clock)} ${nightWord}.`),
+      detail: where?.change ?? heroEvent.presentation.support ?? "",
+      tone: "unknown" as const,
     };
 
     if (heroEvent.id === "aurora") {
@@ -1097,6 +1293,45 @@ function TrackerScreen() {
               "No space-weather product reached this device, so nothing can be said about the oval."}
           </p>
         </div>
+      );
+    }
+
+    /**
+     * An eclipse leads with where on Earth, never with where in your sky.
+     *
+     * The universal hierarchy is: left, the recommendation; right, the
+     * phenomenon's own primary evidence. For an eclipse that evidence is the
+     * visibility footprint — the question "can I see it from here" is a question
+     * about geography, and the altitude chart cannot answer it. The chart is
+     * still one control away, under "Where to look", where it answers the
+     * question it is actually good at.
+     */
+    if (lunarEclipseField) {
+      return (
+        <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
+          <TrackerEclipseMap
+            kind="lunar"
+            title={heroEvent.presentation.title}
+            maximumUtc={lunarEclipseField.timing.maximumUtc}
+            visibility={lunarEclipseField.visibility}
+            local={lunarEclipseField.local}
+            bounds={lunarEclipseField.bounds}
+            observer={{
+              latitudeDeg: place.latitude,
+              longitudeDeg: place.longitude,
+              label: place.name,
+            }}
+            clock={clock}
+            // Null on the expanded map itself: a control that reopens the thing
+            // you are already looking at is the inert-button defect in another
+            // costume.
+            onOpenFullMap={() => navigate({ drill: "field" })}
+            interactive={false}
+            inspection={null}
+            timing={lunarEclipseField.timing}
+            observerAltitudeDeg={lunarEclipseField.altitudeDeg}
+          />
+        </Suspense>
       );
     }
 
@@ -1153,7 +1388,21 @@ function TrackerScreen() {
         </p>
       </div>
     );
-  }, [aurora.data, auroraAssessment, clock, gaze, heroEvent, night, place, skyPath]);
+  }, [
+    aurora.data,
+    auroraAssessment,
+    auroraLocalVisibility,
+    clock,
+    gaze,
+    heroEvent,
+    lunarEclipseField,
+    navigate,
+    night,
+    place,
+    selectedDate,
+    skyPath,
+    today,
+  ]);
 
   if (!place) {
     return (
@@ -1212,7 +1461,7 @@ function TrackerScreen() {
           <PhenomenonPage
             categoryId={heroEvent.presentation.categoryId}
             mode="tonight"
-            presentation={heroEvent.presentation}
+            presentation={heroPresentation ?? heroEvent.presentation}
             media={heroEvent.media}
             visualization={visualization}
             conditions={conditions}
@@ -1229,6 +1478,24 @@ function TrackerScreen() {
               navigate({
                 drill: heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky" : "field",
               })
+            }
+            /**
+             * The second tool, where the event genuinely has two.
+             *
+             * An eclipse is the case that forces it: "View visibility map"
+             * answers *where on Earth*, and the altitude-and-bearing chart
+             * answers *where in your sky*. One control cannot be both, and
+             * making it try is how a button labelled "View visibility map" came
+             * to open a sky chart. Only offered where there is a real path to
+             * draw — a control that opens an empty panel is the inert-button
+             * defect again.
+             */
+            tertiaryAction={
+              heroEvent.presentation.primaryAction.kind !== "sky-map" &&
+              skyPath &&
+              skyPath.kind !== "rate"
+                ? { label: "Where to look", onSelect: () => navigate({ drill: "sky" }) }
+                : null
             }
             onReminder={() => remind(heroEvent.presentation)}
             safety={heroEvent.safety}
@@ -1254,7 +1521,21 @@ function TrackerScreen() {
           <TrackerOverlay
             open={overlay === "sky-map"}
             onClose={() => back({ drill: null })}
-            title={`${heroEvent.presentation.primaryAction.label} — ${heroEvent.presentation.title}`}
+            /**
+             * Named for what this panel is, not for whichever control opened it.
+             *
+             * It used `primaryAction.label`, which is "View visibility map" on
+             * an eclipse — so opening the sky chart from the *tertiary* control
+             * produced a panel headed "View visibility map" above an
+             * altitude-and-bearing chart. The same conflation of "where on
+             * Earth" and "where in your sky" that this pass exists to separate,
+             * reappearing in the title bar.
+             */
+            title={`${
+              heroEvent.presentation.primaryAction.kind === "sky-map"
+                ? heroEvent.presentation.primaryAction.label
+                : "Where to look"
+            } — ${heroEvent.presentation.title}`}
             subtitle={
               // The subtitle has to describe the state below it. On a night
               // with no radiant it promised "real altitude and bearing" above a
@@ -1331,10 +1612,17 @@ function TrackerScreen() {
               <div>
                 <dt>Observing window</dt>
                 <dd>
-                  {heroEvent.window
+                  {/* A brief window is an instant, and printing it as a range
+                      produced "8:13–8:13 PM" on a shallow eclipse — a span with
+                      identical ends, which reads as a bug rather than as a
+                      short event. The hero metric already applied this rule;
+                      the drill-in was formatting the same value by hand. */}
+                  {heroEvent.window && !heroEvent.window.brief
                     ? formatClockRange(heroEvent.window.startUtc, heroEvent.window.endUtc, clock)
                     : formatClockTime(
-                        heroEvent.entry?.opportunity.guidance.whenUtc ?? night.period.startUtc,
+                        heroEvent.window?.peakUtc ??
+                          heroEvent.entry?.opportunity.guidance.whenUtc ??
+                          night.period.startUtc,
                         clock,
                       )}
                 </dd>
@@ -1375,23 +1663,92 @@ function TrackerScreen() {
                   : "NOAA OVATION nowcast: where the oval is now, valid for about half an hour."
             }
           >
-            <div className="tk-overlay-map">{expandedVisualization ?? visualization}</div>
+            <div className="tk-overlay-map">
+              {expandedVisualization ?? expandedEclipse ?? visualization}
+            </div>
           </TrackerOverlay>
         </>
       ) : (
-        <div className="tk-page tk-tonight" data-plan-identity={night?.identity.key}>
+        /**
+         * Nothing to recommend, and why — which is not always the same why.
+         *
+         * `tk-quiet` marks the one page whose subtitle is its whole content, so
+         * the 720px tier stops hiding it. Left hidden, this rendered as the
+         * words "A quiet night" alone on a blank screen, which reads as the
+         * product having failed rather than having answered.
+         *
+         * The three cases are genuinely different and were previously one
+         * sentence. Being told "nothing stands out tonight" at 5:59 in the
+         * morning is wrong in a way a reader would notice: the night did not
+         * disappoint, it ended.
+         */
+        <div
+          className="tk-page tk-tonight tk-quiet"
+          data-plan-identity={night?.identity.key}
+          data-quiet-reason={
+            night?.period.kind === "polar-day"
+              ? "polar-day"
+              : nightIsOver
+                ? "night-over"
+                : "nothing-eligible"
+          }
+        >
           <div className="tk-page-heading">
-            <h1>A quiet night</h1>
+            <h1>{nightIsOver ? "The night is over" : "A quiet night"}</h1>
             <p>
               {night?.period.kind === "polar-day"
                 ? "The Sun does not set here today, so there is no dark sky to look at."
-                : `Nothing above the horizon tonight is worth a special trip from ${place.name}.`}
+                : nightIsOver
+                  ? `It is getting light at ${shortPlaceName(place)} and everything worth watching ${describeDate(selectedDate, today).heading} has set. Tomorrow night is on the Upcoming pages, or pick a date to plan another one.`
+                  : `Nothing above the horizon ${describeDate(selectedDate, today).heading} from ${shortPlaceName(place)} stands out enough to recommend. The Moon, the planets that are up and the background meteor rate are all still on the Upcoming pages.`}
             </p>
           </div>
         </div>
       )}
     </main>
   );
+}
+
+/**
+ * A lunar eclipse's geographic visibility at one of two extents.
+ *
+ * Shared by the card and the drill-in so the two cannot disagree about the
+ * geometry, and parameterised by extent rather than by a boolean on a single
+ * memo so the card is never silently rebuilt as the interactive version of
+ * itself while the overlay is open.
+ *
+ * The sampling steps differ deliberately: the card answers "can I see it from
+ * around here" over a regional box, and the full map answers "where on Earth"
+ * over most of a hemisphere, which needs a finer step to keep the moonrise and
+ * moonset boundaries smooth at that scale.
+ */
+function lunarEclipseGeometry(
+  heroEvent: TonightEvent | null,
+  place: SelectedPlace | null,
+  extent: "card" | "full",
+) {
+  const science = heroEvent?.entry?.opportunity.science;
+  if (!place || science?.kind !== "lunar-eclipse") return null;
+  const timing = science.timing;
+  const full = extent === "full";
+  const bounds = full
+    ? { south: -85, north: 85, west: place.longitude - 175, east: place.longitude + 175 }
+    : {
+        south: Math.max(-85, place.latitude - 40),
+        north: Math.min(85, place.latitude + 40),
+        west: place.longitude - 70,
+        east: place.longitude + 70,
+      };
+  return {
+    timing,
+    bounds,
+    visibility: lunarGeographicVisibility(timing, bounds, full ? 1.4 : 2, full ? 13 : 9),
+    local: lunarLocalVisibility(timing, place.latitude, place.longitude),
+    altitudeDeg:
+      science.localContactAltitudesDeg?.maximum ??
+      Object.values(science.localContactAltitudesDeg ?? {})[0] ??
+      0,
+  };
 }
 
 /**

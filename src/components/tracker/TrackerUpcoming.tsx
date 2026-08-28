@@ -164,9 +164,56 @@ export function TrackerUpcoming({
 
   const visible = useMemo(() => filterUpcoming(events, category), [category, events]);
 
-  const selected = selectedId
-    ? events.find((event) => event.id === selectedId) ?? null
-    : null;
+  /**
+   * The event named by the URL, found even when the browse list has moved on.
+   *
+   * ## The defect
+   *
+   * `events` is capped — a gallery shows twelve, a calendar twenty — and which
+   * twelve depends on `planAnchor`, which is *now*. So an event that was in the
+   * list when the reader opened it can be outside the list a few minutes later,
+   * and a reload of its own URL found nothing. Upcoming then fell through to the
+   * browse view while the address bar still said `event=…`: the URL and the page
+   * disagreed, and the reader's refresh silently lost their place.
+   *
+   * ## Why a second pass rather than a bigger cap
+   *
+   * Raising `notableLimit` for everyone would change what the *list* offers,
+   * which is a product decision about what is worth planning for and not
+   * something a lookup should quietly alter. This asks a different question —
+   * "does this identifier name anything in the horizon we already computed" —
+   * and asks it only when the first answer was no.
+   *
+   * The plans are the expensive part and they are already memoised, so the
+   * fallback is a rebuild over data in hand rather than more astronomy.
+   */
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    const found = events.find((event) => event.id === selectedId);
+    if (found || planning.status !== "ready") return found ?? null;
+    const everything = buildUpcomingEvents({
+      plans: planning.plans,
+      latitudeDeg: place.latitude,
+      longitudeDeg: place.longitude,
+      timeZone: clock.timeZone,
+      auroraConditions,
+      now,
+      from: planAnchor,
+      // Every notable night in the horizon, not the handful worth showing.
+      notableLimit: Number.MAX_SAFE_INTEGER,
+    });
+    return everything.find((event) => event.id === selectedId) ?? null;
+  }, [
+    auroraConditions,
+    clock.timeZone,
+    events,
+    now,
+    place.latitude,
+    place.longitude,
+    planAnchor,
+    planning,
+    selectedId,
+  ]);
 
   if (selected) {
     return (

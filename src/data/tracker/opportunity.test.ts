@@ -69,7 +69,7 @@ describe("the gates", () => {
     ]);
     expect(ranking.ranked).toHaveLength(1);
     expect(ranking.hero).toBeNull();
-    expect(ranking.ranked[0].appliedRules.join(" ")).toMatch(/not strong enough/i);
+    expect(ranking.ranked[0].appliedRules.join(" ")).toMatch(/below the floor for leading/i);
   });
 });
 
@@ -403,13 +403,17 @@ describe("the verdict", () => {
   });
 
   it("never turns missing environmental evidence into higher confidence than verified clear sky", () => {
+    // The level vocabulary no longer grades the reader's evening — it names
+    // what governs the view. The invariant is unchanged and is now easier to
+    // state: an absent forecast has its own value and can never produce the one
+    // that means "the sky is expected to cooperate".
     const verified = recommendationFor("very good", false, 1, "available");
     const missing = recommendationFor("very good", false, null, "unavailable");
     const failed = recommendationFor("very good", false, null, "request-failed");
-    expect(verified).toBe("Worth going out for");
-    expect(missing).toBe("Astronomically promising — conditions unknown");
+    expect(verified).toBe("well-placed");
+    expect(missing).toBe("conditions-unknown");
     expect(failed).toBe(missing);
-    expect(missing).not.toBe("Exceptional");
+    expect(missing).not.toBe("well-placed");
     expect(verdictFor({ ...base, skyAccess: null, evidenceStatus: "request-failed" })).toBe(
       "CONDITIONS UNKNOWN — CHECK BEFORE GOING",
     );

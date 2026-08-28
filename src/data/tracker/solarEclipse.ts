@@ -167,6 +167,14 @@ export interface LocalSolarCircumstances {
   /** Sun altitude at local maximum. Negative means it happens below the horizon. */
   sunAltitudeAtPeakDeg: number;
   /**
+   * Sun azimuth at local maximum, degrees clockwise from north.
+   *
+   * Carried so the page can say which way to face. An eclipse page that gives a
+   * time and a percentage and leaves the reader to work out the direction has
+   * answered the astronomy and not the question.
+   */
+  sunAzimuthAtPeakDeg: number;
+  /**
    * True only where the Sun is actually above the horizon during the eclipse.
    * An eclipse that peaks at local midnight is a real event that this observer
    * cannot see, and the two must never be conflated.
@@ -184,6 +192,7 @@ interface DiscGeometry {
   sunRadiusDeg: number;
   moonRadiusDeg: number;
   sunAltitudeDeg: number;
+  sunAzimuthDeg: number;
 }
 
 function discGeometry(time: AstroTime, latitudeDeg: number, longitudeDeg: number): DiscGeometry {
@@ -204,11 +213,17 @@ function discGeometry(time: AstroTime, latitudeDeg: number, longitudeDeg: number
       Math.cos(moon.dec * DEG) *
       Math.cos((sun.ra - moon.ra) * 15 * DEG);
 
+  // One `Horizon` call for both coordinates. The altitude decides visibility
+  // and the azimuth is what a reader has to face; computing them separately
+  // would be two chances for them to describe different instants.
+  const horizon = Horizon(time, observer, sun.ra, sun.dec, "normal");
+
   return {
     separationDeg: Math.acos(Math.min(1, Math.max(-1, cosine))) / DEG,
     sunRadiusDeg,
     moonRadiusDeg,
-    sunAltitudeDeg: Horizon(time, observer, sun.ra, sun.dec, "normal").altitude,
+    sunAltitudeDeg: horizon.altitude,
+    sunAzimuthDeg: horizon.azimuth,
   };
 }
 
@@ -698,6 +713,7 @@ export function localSolarCircumstances(
     centralEndUtc: null,
     centralDurationSeconds: null,
     sunAltitudeAtPeakDeg: -90,
+    sunAzimuthAtPeakDeg: 0,
     visibleFromHere: false,
     distanceToCentralLineKm,
   };
@@ -727,7 +743,11 @@ export function localSolarCircumstances(
     atMaximum.moonRadiusDeg,
   );
   if (obscurationFraction <= 0) {
-    return { ...none, sunAltitudeAtPeakDeg: atMaximum.sunAltitudeDeg };
+    return {
+      ...none,
+      sunAltitudeAtPeakDeg: atMaximum.sunAltitudeDeg,
+      sunAzimuthAtPeakDeg: atMaximum.sunAzimuthDeg,
+    };
   }
 
   const partialThreshold = (offset: number) => {
@@ -778,6 +798,7 @@ export function localSolarCircumstances(
         ? Math.round((centralEnd - centralBegin) * 60)
         : null,
     sunAltitudeAtPeakDeg: atMaximum.sunAltitudeDeg,
+    sunAzimuthAtPeakDeg: atMaximum.sunAzimuthDeg,
     visibleFromHere,
     distanceToCentralLineKm,
   };
