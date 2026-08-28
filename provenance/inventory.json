@@ -1221,19 +1221,20 @@
         "url": "https://air-quality-api.open-meteo.com/v1/air-quality",
         "publicationUrl": "https://open-meteo.com/en/docs/air-quality-api",
         "publisher": "Open-Meteo, serving Copernicus Atmosphere Monitoring Service model output",
-        "version": "Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5",
+        "version": "Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5, requested with past_days=1 and forecast_days=3",
         "retrievedAt": "2026-08-21"
       },
       "localSha256": {
-        "src/data/tracker/airQuality.ts": "0ceab700142d5a14594eeb1ed91c8d65094b7e62a4f90fc244c80bfc0fa17191"
+        "src/data/tracker/airQuality.ts": "7b08a580c9585b2af12699ce53c304d124d37b15d8cd571ac068dc2b11a474d9"
       },
       "processing": [
-        "Fetched from the browser at the observer\u2019s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key.",
+        "Fetched from the browser at the observer\u2019s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key. One past day is requested alongside three forecast days because the NowCast below needs the twelve hours preceding the instant being asked about; without it the series begins at 00:00 UTC of the current day and no twelve-hour window exists before noon.",
         "Aerosol optical depth at 550 nm is the value the interface reasons from; it is converted to magnitudes of extinction (1.0857 per unit optical depth) rather than shown as a bare index, because magnitudes are the unit the observing judgement is made in. The conversion is the definition of optical depth, not a calibration.",
-        "Surface PM2.5 is used for one purpose only: a health reading, converted to the US AQI against the EPA's published PM2.5 breakpoints (2024 revision) and shown solely when the resulting category carries outdoor-exposure guidance \u2014 index 101 and above. It is never presented as sky transparency, and the two live on separate cards because they are different quantities that routinely disagree. Two limitations are stated on the card itself: the breakpoints are defined against a 24-hour average while the input is hourly, and the official index applies a NowCast weighting this does not, so a brief plume reads higher here than the published figure for the area. The cautionary wording shown with each category is the EPA's own, shortened but not reinterpreted.",
-        "Merged into the weather snapshots by timestamp with a 45-minute tolerance. A snapshot with no aerosol sample within tolerance keeps its nulls and renders as unmeasured rather than as clean air.",
+        "Surface PM2.5 is used for one purpose only: a health reading. It is NOT converted directly to an AQI. The US AQI's PM2.5 breakpoints are defined against a 24-hour average, so an index is derived only from an EPA NowCast \u2014 the twelve hourly values ending at the instant in question, weighted by w^i where w = max(0.5, 1 - (max-min)/max) over the available values, summed and divided by the same weights, truncated to one decimal place. EPA's validity rule is applied unchanged: at least two of the three most recent hours must be present, and where it is not met no index is computed and none is displayed. Missing hours are dropped from both sums and are never forward-filled. The AQI category thresholds are a separate function that takes the NowCast concentration as its only input. Where no NowCast is available the interface may still report the hourly concentration as a concentration in \u00b5g/m\u00b3, without an index and without any AQI category name, since those names belong to a scale that has not been evaluated.",
+        "Aerosol optical depth is merged into the weather snapshots by timestamp with a 45-minute tolerance; a snapshot with no aerosol sample within tolerance keeps its nulls and renders as unmeasured rather than as clean air. The PM2.5 series is read separately and in full, because a NowCast cannot be computed from a single merged snapshot value.",
         "Requested as a separate query from the weather providers so that losing it costs one condition card rather than the whole row.",
-        "Aerosol optical depth and surface PM2.5 are never combined into a single figure. Where no aerosol model covers a location the interface shows no transparency card rather than substituting the ground-level particulate reading for it."
+        "Aerosol optical depth and surface PM2.5 are never combined into a single figure. Where no aerosol model covers a location the interface shows no transparency card rather than substituting the ground-level particulate reading for it.",
+        "Both quantities are modelled output from the Copernicus Atmosphere Monitoring Service, not monitor observations, and hours after the present are forecasts. The interface distinguishes a NowCast whose window has already elapsed from one that projects forward, and states which on the card."
       ],
       "rights": {
         "verification": "verified",

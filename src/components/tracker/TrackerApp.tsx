@@ -30,6 +30,7 @@ import { adaptersFor, conditionsForLocation } from "../../data/tracker/weatherPr
 import {
   fetchAerosol,
   OPEN_METEO_AIR_QUALITY_SOURCE,
+  readAirQuality,
   withAerosol,
 } from "../../data/tracker/airQuality";
 import { heroImageryFor } from "../../data/tracker/imagery";
@@ -988,6 +989,26 @@ function TrackerScreen() {
     }));
   }, [bestTonight, heroEvent]);
 
+  /**
+   * The air, read from the whole hourly series rather than from one snapshot.
+   *
+   * The NowCast needs the twelve hours before the instant being asked about,
+   * and the merged snapshots carry one value each — so this reads the aerosol
+   * series directly. Null without it, which suppresses the health card, which
+   * is the right answer for a page that cannot show its working.
+   */
+  const airQuality = useMemo(
+    () =>
+      aerosol.data && heroEvent
+        ? readAirQuality(
+            aerosol.data.map((sample) => ({ atUtc: sample.atUtc, pm25: sample.surfacePm25 })),
+            heroEvent.presentation.atUtc,
+            now,
+          )
+        : null,
+    [aerosol.data, heroEvent, now],
+  );
+
   const conditions = useMemo(() => {
     if (!place || !heroEvent) return [];
     const opportunity = heroEvent.entry?.opportunity ?? null;
@@ -997,6 +1018,7 @@ function TrackerScreen() {
       latitudeDeg: place.latitude,
       longitudeDeg: place.longitude,
       snapshots,
+      airQuality,
       evidenceStatus: environment.status,
       now,
       pending: conditionsPending,
@@ -1016,7 +1038,7 @@ function TrackerScreen() {
           heroEvent.id === "aurora" || opportunity?.transparency === "high" ? "high" : "low",
       },
     });
-  }, [conditionsPending, environment.status, heroEvent, now, place, snapshots]);
+  }, [airQuality, conditionsPending, environment.status, heroEvent, now, place, snapshots]);
 
   /** How stale the freshest live reading behind this page is. */
   const freshnessMinutes = useMemo(() => {

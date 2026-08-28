@@ -192,6 +192,18 @@ export function UpcomingEventPage({
     [auroraConditions, clock, drill, event, evidenceStatus, inspection, now, place, snapshots],
   );
 
+  /**
+   * No air-quality reading here, and so no health card.
+   *
+   * The NowCast needs the hourly PM2.5 series and this page is handed merged
+   * snapshots, which carry one value per hour with no window behind them. An
+   * Upcoming event is also typically days out, where a twelve-hour NowCast is a
+   * projection of a projection.
+   *
+   * Omitting it is the honest option rather than a gap: the alternative was the
+   * defect being fixed — taking whatever single value happened to be nearest
+   * and calling it an index.
+   */
   const conditions = useMemo(
     () =>
       conditionCards({

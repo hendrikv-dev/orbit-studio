@@ -1671,16 +1671,35 @@ async function main() {
      * looks exactly like "the product does not report air quality" and would
      * have made three of the four states below pass for the wrong reason.
      */
+    /**
+     * A served hourly series, shaped like the real one.
+     *
+     * `pm25` may be a constant or a function of "hours before the instant the
+     * page is pinned to", which is what makes a spike expressible: the AQI is
+     * now derived from a twelve-hour NowCast, so the difference between a brief
+     * plume and sustained pollution only exists in a series and cannot be
+     * expressed as a single number.
+     *
+     * The hours are built from the pinned clock rather than from wall-clock
+     * now. `withAerosol` matches a sample to a snapshot within forty-five
+     * minutes and keeps the nulls when nothing lines up, so a fixture starting
+     * at the real current hour is discarded — which looks exactly like "the
+     * product reports no air quality" and would make these pass for the wrong
+     * reason.
+     */
     const airQuality = (hours) => (route) => {
       const times = [];
       const pm25 = [];
       const depths = [];
       const from = new Date(WALK_AT);
-      from.setUTCHours(from.getUTCHours() - 12, 0, 0, 0);
-      for (let index = 0; index < 72; index += 1) {
+      from.setUTCHours(from.getUTCHours() - 24, 0, 0, 0);
+      for (let index = 0; index < 96; index += 1) {
         const at = new Date(from.getTime() + index * 3_600_000);
         times.push(at.toISOString().slice(0, 19));
-        pm25.push(hours.pm25);
+        const hoursFromPin = Math.round((WALK_AT.getTime() - at.getTime()) / 3_600_000);
+        pm25.push(
+          typeof hours.pm25 === "function" ? hours.pm25(hoursFromPin) : hours.pm25,
+        );
         depths.push(hours.aerosolOpticalDepth);
       }
       route.fulfill({
@@ -1692,9 +1711,55 @@ async function main() {
       });
     };
 
+    /**
+     * The weather provider is stubbed too, and it has to be.
+     *
+     * The transparency card reads aerosol off the merged forecast snapshots, so
+     * it exists only where a *weather* snapshot exists to merge onto. Left on
+     * the live National Weather Service, a rate limit or a slow response
+     * produced "Cloud cover · Not reported", no snapshot, and therefore no
+     * transparency card — and three assertions about the atmosphere failed for
+     * a reason that had nothing to do with the atmosphere. A check whose result
+     * depends on somebody else's uptime is not a check.
+     */
+    const forecast = (route) => {
+      const start = new Date(WALK_AT);
+      start.setUTCMinutes(0, 0, 0);
+      const values = (value) =>
+        Array.from({ length: 48 }, (_, hour) => ({
+          validTime: `${new Date(start.getTime() + (hour - 12) * 3_600_000)
+            .toISOString()
+            .slice(0, 19)}+00:00/PT1H`,
+          value,
+        }));
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          properties: {
+            updateTime: new Date(WALK_AT).toISOString(),
+            skyCover: { values: values(18) },
+            temperature: { values: values(14) },
+            probabilityOfPrecipitation: { values: values(5) },
+            relativeHumidity: { values: values(60) },
+          },
+        }),
+      });
+    };
+
     const cardsUnder = async (label, air) => {
       const context = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
       await seedPlace(context, PLACES.portland);
+      await context.route("**/api.weather.gov/points/**", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            properties: { forecastGridData: "https://api.weather.gov/gridpoints/TEST/1,1" },
+          }),
+        }),
+      );
+      await context.route("**/api.weather.gov/gridpoints/**", forecast);
       await context.route("**/air-quality**", airQuality(air));
       const page = await context.newPage();
       await page.clock.setFixedTime(WALK_AT);
@@ -1756,6 +1821,84 @@ async function main() {
     check(
       /Cloud cover/.test(missing) && /Moonlight/.test(missing) && /Temperature/.test(missing),
       "the standing three are still there when the atmospheric layers are not",
+    );
+
+    /**
+     * 5. A short plume, which is the defect.
+     *
+     * One hour at 200 µg/m³ with clean air either side. Run through the AQI
+     * breakpoints directly that reads "AQI 250 · Very unhealthy"; through a
+     * twelve-hour NowCast it is a fraction of that, because the breakpoints
+     * describe a 24-hour average and one hour is not one.
+     */
+    const spike = await cardsUnder("one-hour plume", {
+      pm25: (hoursBefore) => (hoursBefore === 0 ? 200 : 4),
+      aerosolOpticalDepth: 0.04,
+    });
+    const spikeAqi = /AQI (\d+)/.exec(spike);
+    check(
+      spikeAqi === null || Number(spikeAqi[1]) < 200,
+      `a one-hour plume does not become the AQI of that hour${spikeAqi ? ` (${spikeAqi[0]})` : " (no index shown)"}`,
+    );
+    check(
+      !/very unhealthy|hazardous/i.test(spike),
+      "a one-hour plume does not reach the categories a sustained one would",
+    );
+
+    /**
+     * 6. The same peak, sustained. The NowCast is supposed to notice this — a
+     * method that only ever damps would be as wrong as one that never did.
+     */
+    const sustained = await cardsUnder("sustained pollution", {
+      pm25: 200,
+      aerosolOpticalDepth: 0.04,
+    });
+    const sustainedAqi = /AQI (\d+)/.exec(sustained);
+    check(
+      sustainedAqi !== null && Number(sustainedAqi[1]) > Number(spikeAqi?.[1] ?? 0),
+      `sustained pollution ranks above the same peak lasting one hour (${sustainedAqi?.[0]} vs ${spikeAqi?.[0] ?? "none"})`,
+    );
+    check(
+      /very unhealthy|hazardous/i.test(sustained),
+      "sustained pollution reaches the category it has earned",
+    );
+    /**
+     * That the index came from a NowCast is asserted in the unit tests, which
+     * can read the provenance note; the note is not rendered into the DOM, so
+     * there is nothing here for a browser check to read. What *is* visible, and
+     * is the reader-facing proof, is the pair of numbers above: the same peak
+     * lasting one hour and lasting twelve produce materially different indices,
+     * which an hourly conversion could not do.
+     */
+
+    /**
+     * 7. Insufficient history: nulls everywhere but the most recent hour.
+     *
+     * EPA's validity rule needs two of the three most recent hours, so no index
+     * may be computed — and no index may be shown, however alarming the one
+     * value is.
+     */
+    const thin = await cardsUnder("one hour of history", {
+      pm25: (hoursBefore) => (hoursBefore === 0 ? 200 : null),
+      aerosolOpticalDepth: 0.04,
+    });
+    check(!/AQI/i.test(thin), "a lone hourly reading produces no AQI at all");
+    check(
+      /PM2\.5 \d+/.test(thin),
+      "the concentration itself is still reported, labelled as a concentration",
+    );
+    /**
+     * Scoped to the particulates card. The first version of this searched the
+     * whole row and matched "Cloud cover · 18% · Good" — a cloud reading, not
+     * an AQI category, and the check failed on correct output.
+     */
+    const thinCard = thin
+      .split("\u2016")
+      .map((card) => card.trim())
+      .find((card) => /^Particulates/.test(card) || /PM2\.5/.test(card));
+    check(
+      thinCard !== undefined && !/\b(good|moderate|unhealthy|hazardous)\b/i.test(thinCard),
+      `and it borrows none of the AQI category names (${thinCard ?? "no card"})`,
     );
   }
 

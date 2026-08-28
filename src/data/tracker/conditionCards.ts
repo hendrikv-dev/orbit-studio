@@ -7,9 +7,9 @@ import {
 } from "./conditions";
 import {
   aerosolExtinctionMagnitudes,
-  airQualityIndex,
   readAerosol,
   type AerosolReading,
+  type AirQualityReading,
 } from "./airQuality";
 import { lunarPhaseAt } from "./lunarPhase";
 import { formatTemperature } from "../../lib/localTime";
@@ -378,33 +378,98 @@ function transparencyCard(snapshot: ConditionSnapshot | null): ConditionCard | n
 }
 
 /**
+ * How high a bare concentration has to be before it is worth saying anything
+ * about without an index behind it.
+ *
+ * 55.5 µg/m³ is the floor of the EPA's "Unhealthy" 24-hour band. It is used
+ * here as a *concentration* threshold and never as a category: an hourly figure
+ * at that level is genuinely a lot of particulate to stand in for two hours,
+ * which is a statement about the number, and it is not an AQI, which is a
+ * statement about a 24-hour average that has not been computed.
+ */
+const PM25_BARE_ALERT_UG_M3 = 55.5;
+
+/**
  * The air as a health matter, on the nights it is one.
  *
- * Present only at or above the first published category that asks anybody to
- * change what they do outdoors. Below that there is no card, because "AQI 23 ·
- * Good" tells a reader nothing they can act on and turns an observing page into
- * an air-quality dashboard.
+ * ## The defect this rewrites
  *
- * The guidance is the category's own, not Tracker's. Where the air is bad
- * enough that the published statement is about avoiding time outdoors, that is
- * a statement about the activity this whole product exists to encourage, and it
- * is shown at the same weight as anything else that would stop the night.
+ * This card used to take the single hourly PM2.5 value nearest the event and
+ * run it straight through the AQI breakpoints. Those breakpoints are defined
+ * against a 24-hour average, so the result was a category error that erred
+ * high: a brief modelled plume came out as "AQI 175 · Unhealthy" on the
+ * strength of one hour, with a number and a category name that nothing
+ * supported.
+ *
+ * The index is now derived only from the NowCast — EPA's own method for
+ * reporting current air quality — and `readAirQuality` is built so there is no
+ * other route to one. Where the NowCast cannot be computed there is no number.
+ *
+ * ## What is said when there is no index
+ *
+ * Usually nothing. The exception is a concentration high enough to matter on
+ * its own: a reader about to stand outside for two hours in 80 µg/m³ should be
+ * told, and telling them is not the same as inventing an index. That card
+ * carries the concentration, says it is a current level rather than an index,
+ * and uses none of the AQI category names — those belong to a scale that has
+ * not been evaluated.
  */
-function airQualityAlertCard(snapshot: ConditionSnapshot | null): ConditionCard | null {
-  const pm25 = snapshot?.surfacePm25;
-  if (pm25 === null || pm25 === undefined) return null;
-  const index = airQualityIndex(pm25);
-  if (!index.advisory) return null;
+function airQualityAlertCard(
+  reading: AirQualityReading | null,
+  clock: { now: Date },
+): ConditionCard | null {
+  if (!reading) return null;
+
+  const { nowCast, index } = reading;
+
+  if (nowCast && index) {
+    if (!index.advisory) return null;
+    // The window may end in the future — the reader usually asks about tonight.
+    // A projection is a real thing to offer and a different claim from a
+    // reading of air that has already been breathed, so the card says which.
+    const basis =
+      nowCast.basis === "forecast"
+        ? "Forecast for that hour"
+        : `As of ${new Date(nowCast.latestUtc).toISOString().slice(11, 16)} UTC`;
+    return {
+      id: "air-quality",
+      label: "Air quality",
+      value: `AQI ${index.aqi} · ${index.label}`,
+      interpretation: index.guidance,
+      tone: index.category === "sensitive" ? "fair" : "poor",
+      provenance: {
+        kind: "model",
+        detail:
+          `US AQI derived from a ${nowCast.hoursUsed}-hour EPA NowCast of modelled surface PM2.5 ` +
+          `(Copernicus via Open-Meteo), weight ${nowCast.weight.toFixed(2)}, NowCast ` +
+          `${nowCast.value.toFixed(1)} µg/m³. ${basis}. The NowCast is a weighted average of the ` +
+          `preceding twelve hours, which is what makes the 24-hour AQI breakpoints applicable; a ` +
+          `single hourly value is never converted to an index. Modelled output, not a monitor ` +
+          `reading, and a health measure: it does not describe how transparent the sky is.`,
+      },
+    };
+  }
+
+  /**
+   * No valid NowCast. The index is withheld, and the concentration speaks only
+   * if it is loud enough to be worth hearing on its own.
+   */
+  const pm25 = reading.pm25;
+  if (pm25 === null || pm25 < PM25_BARE_ALERT_UG_M3) return null;
   return {
     id: "air-quality",
-    label: "Air quality",
-    value: `AQI ${index.aqi} · ${index.label}`,
-    interpretation: index.guidance,
-    tone: index.category === "sensitive" ? "fair" : "poor",
+    label: "Particulates",
+    // Deliberately not an index, and deliberately not an AQI category name.
+    value: `PM2.5 ${Math.round(pm25)} µg/m³`,
+    interpretation: "High enough to affect people with heart or lung conditions.",
+    tone: "fair",
     provenance: {
       kind: "model",
       detail:
-        "US AQI computed from the hourly surface PM2.5 forecast (Copernicus via Open-Meteo) against the EPA's 24-hour breakpoints. The official index uses a NowCast average, so a brief plume reads higher here than the published figure for the area. A health measure: it does not describe how transparent the sky is.",
+        "Modelled hourly surface PM2.5 (Copernicus via Open-Meteo), shown as a concentration. " +
+        "Not enough of the preceding twelve hours was available to compute an EPA NowCast, so no " +
+        "AQI is claimed — the AQI's breakpoints are defined against a 24-hour average and a single " +
+        "hour cannot stand in for one. A health measure: it says nothing about sky transparency.",
     },
   };
 }
@@ -533,11 +598,30 @@ export interface ConditionRowInput {
    * behaviour and is wrong for Moon-target events.
    */
   subject?: ConditionSubject;
+  /**
+   * The air, already read.
+   *
+   * Passed in rather than derived here because computing it needs the whole
+   * hourly series and this module only ever sees the merged snapshots. Optional
+   * so callers without the series keep working — and without it there is simply
+   * no health card, which is the correct behaviour for a caller that cannot
+   * supply the evidence.
+   */
+  airQuality?: AirQualityReading | null;
 }
 
 export function conditionCards(input: ConditionRowInput): ConditionCard[] {
-  const { atUtc, latitudeDeg, longitudeDeg, snapshots, evidenceStatus, now, pending, subject } =
-    input;
+  const {
+    atUtc,
+    latitudeDeg,
+    longitudeDeg,
+    snapshots,
+    evidenceStatus,
+    now,
+    pending,
+    subject,
+    airQuality,
+  } = input;
 
   /**
    * Moonlight, which is always in the row and does not always mean the same
@@ -628,7 +712,7 @@ export function conditionCards(input: ConditionRowInput): ConditionCard[] {
     transparencyCard(snapshot),
     moonlight ?? moonlightCard(atUtc, latitudeDeg, longitudeDeg),
     withDew(temperatureCard(snapshot), snapshot),
-    airQualityAlertCard(snapshot),
+    airQualityAlertCard(airQuality ?? null, { now }),
   ].filter((card): card is ConditionCard => card !== null);
 }
 

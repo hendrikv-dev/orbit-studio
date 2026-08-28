@@ -451,7 +451,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Release status: retained
 - Release 1.0 included: yes
 - Publisher or rights holder: Open-Meteo, serving Copernicus Atmosphere Monitoring Service model output
-- Version or snapshot: Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5
+- Version or snapshot: Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5, requested with past_days=1 and forecast_days=3
 - Retrieval date: 2026-08-21
 - Authoritative source: https://open-meteo.com/en/docs/air-quality-api
 - Authoritative source: https://air-quality-api.open-meteo.com/v1/air-quality

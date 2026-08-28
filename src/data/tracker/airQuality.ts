@@ -103,6 +103,184 @@ export function readAerosol(opticalDepth: number): AerosolReading {
  * reports "23, Good" every night is a dashboard, and the brief is right that
  * telling somebody normal air is normal has no value.
  */
+/**
+ * ## What the source actually gives us, and what it does not
+ *
+ * `fetchAerosol` asks Open-Meteo for `pm2_5` hourly, one day back and three
+ * forward. That is a *modelled* concentration from the Copernicus Atmosphere
+ * Monitoring Service — an analysis for hours that have passed and a forecast
+ * for hours that have not. It is never a monitor reading, and nothing here is
+ * allowed to imply otherwise.
+ *
+ * The past day is requested because the NowCast needs it. Without it the series
+ * begins at 00:00 UTC of the current day, so at 03:00 there were three hours of
+ * history and no twelve-hour window existed at all — and the code took the
+ * single value nearest the event and called the result an AQI.
+ *
+ * ## Why a single hourly value may not be called AQI
+ *
+ * The US AQI's PM2.5 breakpoints are defined against a **24-hour average**.
+ * Feeding them one hour's concentration is a category error: it answers a
+ * question the scale was not built for, and it errs high — a twenty-minute
+ * plume that a 24-hour average would barely register comes out as "AQI 175 ·
+ * Unhealthy". Tracker was doing exactly that.
+ *
+ * EPA's own answer for reporting current air quality is the NowCast: a weighted
+ * average of the last twelve hours that reacts quickly when conditions are
+ * changing and behaves like an average when they are not. That is what is
+ * implemented below, and the AQI is derived from its output rather than from
+ * any single reading.
+ */
+
+/** Half an hour either side, which is the resolution the model is published at. */
+const MATCH_TOLERANCE_MS = 45 * 60_000;
+
+/** One hour of the series, as the NowCast consumes it. */
+export interface Pm25Hour {
+  atUtc: string;
+  /** Concentration in µg/m³, or null where the model reported nothing. */
+  pm25: number | null;
+}
+
+/**
+ * The twelve-hour window the NowCast is defined over.
+ *
+ * EPA's specification is explicit about the length; it is not a tunable.
+ */
+export const NOWCAST_WINDOW_HOURS = 12;
+
+/**
+ * The floor on the weight, also from the specification.
+ *
+ * Without it a violently changing hour would drive the weight towards zero and
+ * the NowCast would collapse onto the single most recent value — which is the
+ * defect this whole function exists to prevent.
+ */
+export const NOWCAST_MINIMUM_WEIGHT = 0.5;
+
+export interface NowCastPm25 {
+  /** The NowCast concentration, µg/m³, truncated to one decimal as specified. */
+  value: number;
+  /** How many of the twelve hourly slots carried a usable value. */
+  hoursUsed: number;
+  /** The weight the rate of change produced, before rounding. */
+  weight: number;
+  /** The hour the most recent contributing sample describes. */
+  latestUtc: string;
+  /**
+   * Whether every contributing hour is already in the past.
+   *
+   * The series runs into the future, and Tracker asks about an event that is
+   * usually a few hours ahead. A window ending at a future hour is a projection
+   * of what the NowCast *would* read then if the model is right — a real and
+   * useful thing, and not the same claim as a reading of air that has already
+   * been breathed. The interface is required to be able to tell them apart.
+   */
+  basis: "analysis" | "forecast";
+}
+
+/**
+ * The EPA NowCast for PM2.5, over whatever of the last twelve hours exists.
+ *
+ * ## The method, in the order the specification states it
+ *
+ *  1. Take the twelve hourly concentrations ending at the hour in question,
+ *     most recent first.
+ *  2. Require at least two of the three most recent hours to be present. This
+ *     is EPA's validity rule and it is the whole of the validity rule — an
+ *     extra condition invented here would be a different method wearing the
+ *     same name.
+ *  3. Let `range = max − min` over the available values, and the scaled rate of
+ *     change `w* = 1 − range / max`. A flat twelve hours gives `w*` near 1; a
+ *     spike gives it near 0.
+ *  4. Clamp: `w = max(w*, 0.5)`.
+ *  5. `NowCast = Σ cᵢ·wⁱ / Σ wⁱ` over the available hours, `i` counting back
+ *     from the most recent.
+ *  6. Truncate to one decimal place.
+ *
+ * ## What it does to a spike, which is the point
+ *
+ * Eleven quiet hours and one bad one give a large range, so `w` hits its floor
+ * of 0.5 and the denominator is close to 2 — the bad hour contributes about
+ * half its value rather than all of it. Twelve consistently bad hours give a
+ * small range, `w` near 1, and an answer close to the plain average. The
+ * measure tracks a genuine change quickly and refuses to be moved far by a
+ * single hour, which is exactly the behaviour the 24-hour breakpoints assume.
+ *
+ * Returns null when the validity rule is not met. Null is a real answer and the
+ * caller is required to treat it as one: there is no fallback to the latest
+ * hour, because that fallback was the bug.
+ */
+export function nowCastPm25(
+  series: readonly Pm25Hour[],
+  atUtc: string,
+  now: Date,
+): NowCastPm25 | null {
+  const target = Date.parse(atUtc);
+  if (!Number.isFinite(target)) return null;
+
+  /**
+   * The twelve slots ending at the target hour, most recent first.
+   *
+   * Indexed by whole hours back from the target rather than by position in the
+   * array, so a series with holes in it puts its samples in the right slots
+   * instead of sliding later hours into earlier ones. Nothing is forward-filled
+   * — a missing hour stays missing and simply drops out of both sums, which is
+   * what the specification says to do with it.
+   */
+  const slots: (Pm25Hour | null)[] = Array.from({ length: NOWCAST_WINDOW_HOURS }, () => null);
+  for (const hour of series) {
+    if (hour.pm25 === null || hour.pm25 === undefined || !Number.isFinite(hour.pm25)) continue;
+    if (hour.pm25 < 0) continue;
+    const at = Date.parse(hour.atUtc);
+    if (!Number.isFinite(at) || at > target + 30 * 60_000) continue;
+    const hoursBack = Math.round((target - at) / 3_600_000);
+    if (hoursBack < 0 || hoursBack >= NOWCAST_WINDOW_HOURS) continue;
+    // A later sample wins a contested slot: the series is hourly, so two
+    // samples in one slot means an off-grid series and the nearer one is meant.
+    const held = slots[hoursBack];
+    if (!held || Math.abs(Date.parse(held.atUtc) - target) > Math.abs(at - target)) {
+      slots[hoursBack] = hour;
+    }
+  }
+
+  // EPA's validity rule: two of the three most recent hours.
+  const recentPresent = slots.slice(0, 3).filter((slot) => slot !== null).length;
+  if (recentPresent < 2) return null;
+
+  const present = slots
+    .map((slot, index) => (slot ? { index, value: slot.pm25 as number, atUtc: slot.atUtc } : null))
+    .filter((entry): entry is { index: number; value: number; atUtc: string } => entry !== null);
+  if (present.length === 0) return null;
+
+  const values = present.map((entry) => entry.value);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  // A window of pure zeroes has no rate of change to scale; the specification's
+  // ratio is undefined there and the weight is 1.
+  const scaled = max === 0 ? 1 : 1 - (max - min) / max;
+  const weight = Math.max(NOWCAST_MINIMUM_WEIGHT, Math.min(1, scaled));
+
+  let numerator = 0;
+  let denominator = 0;
+  for (const entry of present) {
+    const factor = weight ** entry.index;
+    numerator += entry.value * factor;
+    denominator += factor;
+  }
+  if (denominator === 0) return null;
+
+  const latest = present[0];
+  return {
+    // Truncated, not rounded — the specification says truncate.
+    value: Math.trunc((numerator / denominator) * 10) / 10,
+    hoursUsed: present.length,
+    weight,
+    latestUtc: latest.atUtc,
+    basis: Date.parse(latest.atUtc) <= now.getTime() ? "analysis" : "forecast",
+  };
+}
+
 export type AirQualityCategory =
   | "good"
   | "moderate"
@@ -217,6 +395,56 @@ const PM25_BREAKPOINTS: {
  * Erring high on a health measure is the right direction to err, but it is
  * still an error and is labelled as one.
  */
+/**
+ * Everything the interface is allowed to know about the air, in one value.
+ *
+ * The four quantities are kept apart on purpose, because collapsing them is how
+ * the defect happened: a raw hourly concentration became an AQI number with a
+ * category name attached, and nothing downstream could tell that it had.
+ *
+ *   `pm25`     the model's concentration for that hour — raw, never displayed
+ *              as an index
+ *   `nowCast`  the twelve-hour weighted average, or null
+ *   `index`    the AQI, derived only from `nowCast`, or null
+ *   `basis`    whether the window is analysis or forecast, and how fresh
+ */
+export interface AirQualityReading {
+  /** The hourly concentration at the instant asked about. Null where absent. */
+  pm25: number | null;
+  /** Null whenever EPA's validity rule is not met. */
+  nowCast: NowCastPm25 | null;
+  /** Null whenever `nowCast` is null. There is no other way to obtain one. */
+  index: AirQualityIndex | null;
+}
+
+/**
+ * Read the air at one instant.
+ *
+ * The single guarantee this function exists to provide: `index` is non-null
+ * only when `nowCast` is non-null. There is no path from a bare concentration
+ * to an index, which is the defect being fixed, and the type makes the absence
+ * of that path visible rather than relying on the caller to remember it.
+ */
+export function readAirQuality(
+  series: readonly Pm25Hour[],
+  atUtc: string,
+  now: Date,
+): AirQualityReading {
+  const target = Date.parse(atUtc);
+  let pm25: number | null = null;
+  let bestGap = Number.POSITIVE_INFINITY;
+  for (const hour of series) {
+    if (hour.pm25 === null || hour.pm25 === undefined) continue;
+    const gap = Math.abs(Date.parse(hour.atUtc) - target);
+    if (gap < bestGap && gap <= MATCH_TOLERANCE_MS) {
+      bestGap = gap;
+      pm25 = hour.pm25;
+    }
+  }
+  const nowCast = nowCastPm25(series, atUtc, now);
+  return { pm25, nowCast, index: nowCast ? airQualityIndex(nowCast.value) : null };
+}
+
 export function airQualityIndex(pm25: number): AirQualityIndex {
   const concentration = Math.max(0, pm25);
   const band =
@@ -273,16 +501,22 @@ export async function fetchAerosol(
   longitudeDeg: number,
   signal?: AbortSignal,
 ): Promise<AerosolSample[]> {
+  /**
+   * `past_days=1`, which is what makes the NowCast possible at all.
+   *
+   * Without it the hourly series begins at 00:00 UTC of the current day, so
+   * before noon there is no twelve-hour window to average — and the previous
+   * implementation responded to that by taking the single value nearest the
+   * event and calling the result an AQI. The past day is the same endpoint and
+   * the same model, asked for the hours it has already produced.
+   */
   const url =
     `${ENDPOINT}?latitude=${latitudeDeg.toFixed(2)}&longitude=${longitudeDeg.toFixed(2)}` +
-    `&hourly=pm2_5,aerosol_optical_depth&forecast_days=3&timezone=UTC`;
+    `&hourly=pm2_5,aerosol_optical_depth&past_days=1&forecast_days=3&timezone=UTC`;
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Open-Meteo air quality responded ${response.status}`);
   return parseAerosolSamples(await response.json());
 }
-
-/** Half an hour either side, which is the resolution the model is published at. */
-const MATCH_TOLERANCE_MS = 45 * 60_000;
 
 /**
  * Fold aerosol into the forecast snapshots the rest of Tracker already uses.

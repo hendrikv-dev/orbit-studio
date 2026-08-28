@@ -428,6 +428,23 @@ async function run() {
     // Checked against the trigger itself. An earlier version of this assertion
     // looked for a `.tracker-place` wrapper that the React Aria rebuild had
     // removed, and reported a failure against code that was working.
+    /**
+     * Waited for, not sampled once.
+     *
+     * React Aria restores focus asynchronously after the popover unmounts, and
+     * this read happened immediately after the panel detached — so on a loaded
+     * machine it could look at `document.activeElement` before the restore had
+     * run and report a failure against code that works. The requirement is
+     * unchanged and is still asserted: focus must come back to the trigger. It
+     * is simply allowed to take a frame or two to get there.
+     */
+    await page
+      .waitForFunction(
+        () => Boolean(document.activeElement?.classList.contains("tracker-place-current")),
+        undefined,
+        { timeout: 5000 },
+      )
+      .catch(() => {});
     expect(
       await page.evaluate(() =>
         Boolean(document.activeElement?.classList.contains("tracker-place-current")),

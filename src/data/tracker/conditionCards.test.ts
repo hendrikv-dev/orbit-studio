@@ -6,6 +6,7 @@ import {
   withinForecastHorizon,
   type ConditionCard,
 } from "./conditionCards";
+import { readAirQuality } from "./airQuality";
 import { nearestSnapshot } from "./conditions";
 import type { ConditionSnapshot } from "./conditions";
 
@@ -129,10 +130,24 @@ describe("the shape of the row", () => {
   });
 
   it("appends the health warning last, so the sky cards stay together", () => {
+    /**
+     * The health card needs the hourly series, not a snapshot value — the AQI
+     * is derived from a twelve-hour NowCast and a single reading can no longer
+     * produce one. A sustained ninety across the window is what earns the card.
+     */
+    const at = "2026-08-22T06:00:00Z";
     const ids = conditionCards({
       ...PORTLAND,
-      atUtc: "2026-08-22T06:00:00Z",
-      snapshots: [snapshot({ aerosolOpticalDepth: 0.5, surfacePm25: 90 })],
+      atUtc: at,
+      snapshots: [snapshot({ atUtc: at, aerosolOpticalDepth: 0.5 })],
+      airQuality: readAirQuality(
+        Array.from({ length: 12 }, (_, index) => ({
+          atUtc: new Date(Date.parse(at) - (11 - index) * 3_600_000).toISOString(),
+          pm25: 90,
+        })),
+        at,
+        new Date(Date.parse(at) + 3_600_000),
+      ),
       evidenceStatus: "available",
       now: NOW,
       pending: false,
