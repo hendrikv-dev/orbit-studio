@@ -240,7 +240,19 @@ export function TrackerMapCanvas({
     });
     instance.touchZoomRotate.disableRotation();
     map.current = instance;
-    (window as any).__trackerMap = instance; // TEMP
+    /**
+     * The verification harness's handle on the camera.
+     *
+     * `scripts/verify/tracker-refinement.mjs` asks the map directly whether it
+     * is still moving after a world-wrap pan, because the regression it guards
+     * — a camera that re-clamps every frame and so never comes to rest — is a
+     * question about the camera and cannot be answered from the DOM. There is
+     * no other route to a MapLibre instance from outside React.
+     *
+     * Deliberate and named, not a leftover: it was briefly deleted as debug
+     * scaffolding and took the refinement gate with it.
+     */
+    (window as unknown as { __trackerMap?: MapLibreMap }).__trackerMap = instance;
 
     instance.addControl(
       // No `customAttribution`: the style and every source we add carry their
@@ -250,7 +262,28 @@ export function TrackerMapCanvas({
       "bottom-right",
     );
 
-    instance.on("load", () => {
+    /**
+     * `style.load`, not `load`.
+     *
+     * MapLibre's `load` fires after the first *visually complete* render, which
+     * means it waits for every tile in the opening viewport. Recolouring the
+     * style needs none of that — the layers exist the moment the style JSON is
+     * parsed — and hanging it off `load` made the palette depend on the tile
+     * server's mood.
+     *
+     * The failure was not subtle and did not look like a failure. OpenFreeMap's
+     * own dark style paints land #0c0c0c and water #1b1b1d, six percent apart;
+     * Tracker's palette is what separates them, by painting water *lighter*
+     * than the land. So whenever the opening view needed more tiles than the
+     * server felt like serving — a whole continent at low zoom, which is
+     * exactly what fitting an eclipse path asks for — `load` never fired, the
+     * recolour never ran, and the map rendered as a uniform near-black
+     * rectangle: no coastline, no rivers, no hillshade, and no error anywhere.
+     *
+     * This is the same lesson as the settled signal a few lines down. Anything
+     * gated on a third party finishing will, sooner or later, not happen.
+     */
+    instance.on("style.load", () => {
       recolour(instance);
       addHillshade(instance);
       setEpoch((n) => n + 1);
@@ -349,6 +382,8 @@ export function TrackerMapCanvas({
       watchSize.disconnect();
       instance.remove();
       map.current = null;
+      const global = window as unknown as { __trackerMap?: MapLibreMap };
+      if (global.__trackerMap === instance) delete global.__trackerMap;
     };
     // Built once. The handlers read refs and props through closures that are
     // replaced below, so re-running this would tear down a live map for nothing.
@@ -1181,11 +1216,20 @@ function drawEventOverlay(instance: MapLibreMap, overlay: EventOverlay) {
     const value = bilinear(at, latitudeDeg, longitudeDeg, step) / ceiling;
     if (value <= 0.06) return null;
     const t = Math.min(1, value);
+    /**
+     * Weaker than the eclipse ramp, because it covers a hemisphere.
+     *
+     * An eclipse field is a band a few hundred kilometres wide and can afford
+     * to be emphatic. A shower's potential varies smoothly over half the
+     * planet, so the same opacity turns the whole continent into fog and takes
+     * the coastline and the place names with it. The gradient is the
+     * information; forty percent at the peak is enough to read it.
+     */
     return [
       Math.round(96 + 120 * t),
       Math.round(112 + 128 * t),
       Math.round(210 + 40 * t),
-      Math.round(255 * (0.12 + 0.5 * t)),
+      Math.round(255 * (0.06 + 0.34 * t)),
     ];
   };
   paintField(instance, EVENT_ID, sample, 1);

@@ -51,10 +51,31 @@ describe("meteor observing potential", () => {
   });
 
   it("reads the same at a point as the field does around it", () => {
-    const cell = field.cells.find((c) => c.latitudeDeg === 45 && c.longitudeDeg === -120)!;
-    const direct = meteorPotentialAt(PERSEIDS, PEAK, 45, -120);
+    const cell = field.cells.find((c) => c.latitudeDeg === 40 && c.longitudeDeg === -120)!;
+    const direct = meteorPotentialAt(PERSEIDS, PEAK, 40, -120);
     expect(direct.potential).toBeCloseTo(cell.potential, 10);
     expect(direct.darkHours).toBeCloseTo(cell.darkHours, 10);
+  });
+
+  /**
+   * The bug this guards is invisible: a misaligned grid draws an empty map.
+   *
+   * The map snaps a coordinate to `round(value / step) * step` before looking a
+   * cell up, and answers a miss with zero. So a grid whose rows are not on
+   * multiples of its own step does not fail — it reports that the shower is
+   * worth nothing everywhere on Earth, which is a sentence the interface is
+   * perfectly willing to print.
+   */
+  it("puts its cells where a consumer that snaps to the step will find them", () => {
+    for (const step of [4, 5, 10]) {
+      const grid = meteorPotentialField(PERSEIDS, PEAK, step);
+      const found = new Set(grid.cells.map((c) => `${c.latitudeDeg},${c.longitudeDeg}`));
+      for (const cell of grid.cells) {
+        const lat = Math.round(cell.latitudeDeg / step) * step;
+        const lon = ((Math.round(cell.longitudeDeg / step) * step + 540) % 360) - 180;
+        expect(found.has(`${lat},${lon}`)).toBe(true);
+      }
+    }
   });
 
   it("falls away from the peak night", () => {

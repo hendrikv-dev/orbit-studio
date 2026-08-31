@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState, useCallback} from "react";
-import {
-  Check,
-  Cloud,
-  Layers,
-  Lightbulb,
-  Sparkles,
-  Sunset,
-  Waves,
-  X,
-} from "lucide-react";
+import { Check, Layers, Lightbulb, Sparkles, Sunset, X } from "lucide-react";
 import { useDismissableSurface } from "../../../data/tracker/dismissable";
 
 /**
@@ -17,37 +8,46 @@ import { useDismissableSurface } from "../../../data/tracker/dismissable";
  * ## Why this stopped being a row of chips
  *
  * A chip per layer is fine for two and impossible for eight. The row was
- * already the widest thing on a phone at three, and the honest list — light
- * pollution, cloud, smoke, twilight, aurora, terrain, and whatever comes after
- * them — has nowhere to go. Every mature map product solves this the same way,
- * with one control that opens a panel, and there is no reason for Tracker to
- * invent a different answer to a solved problem.
+ * already the widest thing on a phone at three, and every field Tracker
+ * eventually draws — a gridded cloud forecast, an aerosol field, whatever comes
+ * after them — arrives into that same row. Every mature map product solves this
+ * the same way, with one control that opens a panel, and there is no reason for
+ * Tracker to invent a different answer to a solved problem.
  *
  * ## What is deliberately not in here
  *
  * The selected event's overlay. It is not a layer: it belongs to one event
  * rather than to the place, it changes when the event changes, and it goes away
- * when the reader stops looking at that event. Putting it in this list as a
- * ninth checkbox would say the opposite — that "the eclipse" is a property of
- * the map in the way that cloud cover is. The panel shows it, and the map draws
+ * when the reader stops looking at that event. Putting it in this list as one
+ * more checkbox would say the opposite — that "the eclipse" is a property of
+ * the map in the way that darkness is. The panel shows it, and the map draws
  * it, for as long as an event is selected.
  *
- * ## Availability is stated, not implied
+ * ## Availability is stated, and capability is not implied
  *
- * A layer with no data behind it is listed and disabled, with the reason, rather
- * than hidden. Hiding it makes the product look smaller than it is and leaves a
- * reader wondering whether they missed a control; disabling it says "this
- * exists, and here is why it is not available right now".
+ * A layer Tracker can draw but has no data for *right now* is listed and
+ * disabled with the reason: hiding it leaves a reader wondering whether they
+ * missed a control, and disabling it says "this exists, and here is why it is
+ * not available for this date".
+ *
+ * A layer Tracker cannot draw at all is not listed. Cloud and smoke used to
+ * appear here permanently disabled, reading "Needs a gridded forecast, not yet
+ * fetched" — internal language for "we never built this", printed in the
+ * product as though it were a temporary outage. Tracker has cloud and aerosol
+ * figures for a *point*, which is why the conditions on a card are real; it has
+ * no gridded field to draw across a continent. A control that can never turn on
+ * is not a disclosure, it is an advertisement for a feature that does not
+ * exist, so the two are gone until there is a field behind them.
  */
 
-export type MapLayerId = "twilight" | "aurora" | "light-pollution" | "cloud" | "smoke";
+export type MapLayerId = "twilight" | "aurora" | "light-pollution";
 
 export interface MapLayerDefinition {
   id: MapLayerId;
   label: string;
   /** One line, said in the panel under the name. */
   blurb: string;
-  icon: typeof Cloud;
+  icon: typeof Sunset;
   group: "conditions" | "context";
 }
 
@@ -55,9 +55,10 @@ export interface MapLayerDefinition {
  * The layers, grouped by the question they answer.
  *
  * "Sky context" is about the light: whether it is dark, and what else is in the
- * sky. "Observing conditions" is about the air and the ground: what is between
- * the reader and the sky. A reader looking for cloud does not look under
- * twilight, and the grouping is what stops them having to read all eight.
+ * sky. "Observing conditions" is about the ground: what the place itself does
+ * to the sky above it. Three fit without grouping; the grouping is here because
+ * the list grows, and it is the thing that will stop a reader reading all of it
+ * when it does.
  */
 export const MAP_LAYERS: MapLayerDefinition[] = [
   {
@@ -79,20 +80,6 @@ export const MAP_LAYERS: MapLayerDefinition[] = [
     label: "Light pollution",
     blurb: "Upward light measured from orbit, at 500 m",
     icon: Lightbulb,
-    group: "conditions",
-  },
-  {
-    id: "cloud",
-    label: "Cloud cover",
-    blurb: "Forecast cloud over the observing window",
-    icon: Cloud,
-    group: "conditions",
-  },
-  {
-    id: "smoke",
-    label: "Smoke and haze",
-    blurb: "Aerosol between you and the sky",
-    icon: Waves,
     group: "conditions",
   },
 ];
@@ -140,6 +127,18 @@ interface Props {
     facts: { label: string; value: string }[];
   } | null;
   onClearEvent?: () => void;
+  /**
+   * Told to the shell, so a phone can get out of its own way.
+   *
+   * On a narrow screen this panel and an expanded observing card are both
+   * near-full-height sheets, and opening one over the other left a sliver of
+   * map between them — with the reader unable to see the field they had just
+   * turned on. The shell suppresses the card's expanded *presentation* while
+   * this is open and restores it afterwards; nothing about the selection
+   * changes, because the selection is in the URL and this is a matter of what
+   * is on screen.
+   */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function TrackerMapLayers({
@@ -150,9 +149,30 @@ export function TrackerMapLayers({
   onClearEvent,
   readings,
   eventReading = null,
+  onOpenChange,
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const closeSurface = useCallback(() => setOpen(false), []);
+  const [open, setOpenState] = useState(false);
+  /**
+   * Opening tells the shell in the same commit, not the one after.
+   *
+   * Routed through a `useEffect` this was a render late, so on a phone the
+   * expanded card stayed unfolded for a frame after the panel appeared and
+   * stayed folded for a frame after it went — a visible flicker at both ends,
+   * and a test that read the DOM straight after the panel and saw the wrong
+   * answer twice. The ref is what makes it safe to do outside an updater:
+   * React may call an updater more than once, and StrictMode does, so the next
+   * value is decided here and the parent is told exactly once.
+   */
+  const openRef = useRef(false);
+  const notifyOpen = useRef(onOpenChange);
+  notifyOpen.current = onOpenChange;
+  const setOpen = useCallback((next: boolean) => {
+    if (openRef.current === next) return;
+    openRef.current = next;
+    setOpenState(next);
+    notifyOpen.current?.(next);
+  }, []);
+  const closeSurface = useCallback(() => setOpen(false), [setOpen]);
   // While this is open, a click on the map dismisses it rather than
   // moving the reader's observing location.
   useDismissableSurface(open, closeSurface);
@@ -179,7 +199,7 @@ export function TrackerMapLayers({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointerdown", onDown);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   const activeCount = MAP_LAYERS.filter((layer) => active.has(layer.id)).length;
 
@@ -207,7 +227,7 @@ export function TrackerMapLayers({
         aria-label={activeCount === 0 ? "Layers" : `Layers, ${activeCount} on`}
         aria-expanded={open}
         aria-haspopup="true"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen(!openRef.current)}
       >
         <Layers size={17} aria-hidden />
         {/* What is on, without opening anything. A control that hides its own
@@ -283,9 +303,18 @@ export function TrackerMapLayers({
               <h3>Selected event</h3>
               <div className="tk-layers-event">
                 <span>{eventOverlayLabel}</span>
+                {/*
+                  Named for what it does, because of where it sits. This button
+                  said "Clear", directly between "Perseids observing potential"
+                  and the verdict below it — so the panel read "Perseids
+                  observing potential · Clear · Not favourable", and the word
+                  the reader met first was a weather word standing where the
+                  answer goes. It removes an overlay from the map, and that is
+                  what it now says.
+                */}
                 {onClearEvent ? (
                   <button type="button" className="tk-layers-clear" onClick={onClearEvent}>
-                    Clear
+                    Remove from map
                   </button>
                 ) : null}
               </div>
@@ -295,9 +324,9 @@ export function TrackerMapLayers({
                   {eventReading.detail ? (
                     <span className="tk-map-layer-detail">{eventReading.detail}</span>
                   ) : null}
-                  {/* The facts are the whole point of the fallback: "Not
-                      favourable" is a verdict, and the reader is owed the
-                      reason — that the radiant never rises from here. */}
+                  {/* The facts are the whole point of the fallback: the value
+                      above is a verdict, and the reader is owed the reason —
+                      that the radiant never rises from here. */}
                   {eventReading.facts.length > 0 ? (
                     <ul className="tk-map-event-facts">
                       {eventReading.facts.map((fact) => (

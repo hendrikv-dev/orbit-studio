@@ -733,9 +733,28 @@ async function main() {
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const listed = await page.locator(".tk-layers-item-name").allInnerTexts();
-    for (const expected of ["Light pollution", "Cloud cover", "Smoke and haze", "Aurora", "Twilight and darkness"]) {
+    for (const expected of ["Light pollution", "Aurora", "Twilight and darkness"]) {
       check(listed.some((name) => name === expected), `the panel offers ${expected}`);
     }
+    /**
+     * The panel lists what Tracker can draw, and nothing else.
+     *
+     * Cloud and smoke used to be listed here permanently disabled, reading
+     * "Needs a gridded forecast, not yet fetched" — an engineering note about
+     * work never started, printed in the product as if it were a temporary
+     * outage. Tracker has cloud and aerosol figures for a point, which is why a
+     * card's conditions are real; it has no field to draw across a continent.
+     * A control that can never turn on advertises a feature that does not
+     * exist, so both are gone until there is data behind them.
+     */
+    for (const absent of ["Cloud cover", "Smoke and haze"]) {
+      check(!listed.some((name) => name === absent), `the panel does not offer ${absent}`);
+    }
+    const panelText = await page.locator(".tk-layers-panel").innerText();
+    check(
+      !/not yet fetched|gridded (forecast|aerosol)/i.test(panelText),
+      "and no engineering placeholder text reaches the panel",
+    );
     check(
       (await page.locator(".tk-layers-group h3").count()) >= 2,
       "layers are grouped rather than listed flat",
@@ -894,6 +913,60 @@ async function main() {
       )) === true,
       "and its rows are still real touch targets",
     );
+
+    /**
+     * A phone has room for one sheet at a time.
+     *
+     * An expanded observing card and the layer panel are both most of a phone
+     * screen, and opening the second over the first left a strip of map about a
+     * centimetre tall — while the reader's reason for opening the panel was to
+     * look at a field drawn on that map. The card's expanded *presentation* is
+     * suppressed while the panel is open and comes back when it closes; what
+     * must not happen is losing the selection, which lives in the URL, so the
+     * URL is checked at every step rather than only at the end.
+     */
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".tk-layers-panel", { state: "detached", timeout: 5000 });
+    await page.locator(".tk-rail-card-head").first().click();
+    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
+    const urlWithCard = await page.evaluate(() => location.search);
+    check(
+      /[?&]card=/.test(urlWithCard),
+      "expanding a card on a phone puts it in the URL",
+    );
+    const bodyShown = () =>
+      page.evaluate(() => {
+        const body = document.querySelector('.tk-rail-card[data-expanded="true"] .tk-rail-card-body');
+        return Boolean(body) && getComputedStyle(body).display !== "none";
+      });
+    check(await bodyShown(), "and the card is actually unfolded");
+
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    check(!(await bodyShown()), "opening Layers folds the expanded card away");
+    check(
+      (await page.evaluate(() => location.search)) === urlWithCard,
+      "without changing the selection, the date, the place or the layers",
+    );
+    check(
+      (await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 1,
+      "and the card is still the selected one",
+    );
+    const visibleMap = await page.evaluate(() => {
+      const panel = document.querySelector(".tk-layers-panel").getBoundingClientRect();
+      const rail = document.querySelector(".tk-rail").getBoundingClientRect();
+      return Math.round(Math.min(panel.top, rail.top) - 0);
+    });
+    check(visibleMap >= 200, `and the map is still meaningfully visible (${visibleMap}px)`);
+
+    await page.keyboard.press("Escape");
+    await page.waitForSelector(".tk-layers-panel", { state: "detached", timeout: 5000 });
+    check(await bodyShown(), "closing Layers brings the card back unfolded");
+    check(
+      (await page.evaluate(() => location.search)) === urlWithCard,
+      "and everything it was showing is still what it was showing",
+    );
+
     await context.close();
   }
 

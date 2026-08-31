@@ -137,8 +137,13 @@ export function TrackerDate({ date, today, timeZone, onSelect }: Props) {
       {isToday ? null : (
         <button type="button" className="tk-date-today" onClick={() => onSelect(today)}>
           Today
+          {/* Says what pressing it does, and in which direction. It used to
+              read "345 days from Aug 12, 2027", which names the distance from
+              the night on screen to itself. */}
           <span className="tk-visually-hidden">
-            {` — ${Math.abs(daysBetween(today, date))} days from ${description.heading.replace(/^on /, "")}`}
+            {` — ${Math.abs(daysBetween(today, date))} ${
+              Math.abs(daysBetween(today, date)) === 1 ? "day" : "days"
+            } ${date > today ? "earlier" : "later"}`}
           </span>
         </button>
       )}

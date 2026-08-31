@@ -239,7 +239,26 @@ export function meteorPotentialField(
 
   const cells: MeteorPotentialCell[] = [];
   let peak = 0;
-  for (let lat = -85; lat <= 85; lat += stepDeg) {
+  /**
+   * The rows sit on multiples of the step, because that is where every reader
+   * of this field looks for them.
+   *
+   * Latitude used to start at −85, so at a four-degree step the rows were −85,
+   * −81, −77 … while the map's sampler and the shared bilinear interpolation
+   * both snap a coordinate to `round(value / step) * step` — a lattice this
+   * grid had no cells on. Every lookup missed, the `?? 0` behind each miss
+   * turned it into a plausible-looking zero, and the observing-potential
+   * overlay drew nothing at all: for every shower, at every zoom, with no error
+   * raised anywhere and a rendered map that simply had no field on it.
+   *
+   * Aligning the grid is the fix rather than teaching each consumer a second
+   * lattice, because the other fields — aurora, eclipse coverage, light
+   * pollution — are already aligned this way, and this one was the exception.
+   * ±85 becomes ±84 at a four-degree step, which costs a degree of Antarctica
+   * and Greenland's north coast and no observers at all.
+   */
+  const limit = Math.floor(85 / stepDeg) * stepDeg;
+  for (let lat = -limit; lat <= limit + 1e-9; lat += stepDeg) {
     for (let lon = -180; lon < 180; lon += stepDeg) {
       const cell = accumulate(samples, lat, lon);
       if (cell.potential > peak) peak = cell.potential;

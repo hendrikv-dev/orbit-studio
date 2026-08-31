@@ -15488,29 +15488,76 @@ button.primary,
    pulled down to the shell's weight so it does not compete with the map. */
 .tk-map-canvas .maplibregl-map { font: inherit; }
 /* Attribution is required and stays. What it does not need to be is one of the
-   brightest objects on a dark map: a full-width bar in near-white was competing
-   with the geography and with everything drawn over it. Dimmed to the weight of
-   a caption, with the full text still present, still selectable, still legible,
-   and brightening on hover for anyone who wants to read it properly. */
+   brightest objects on a dark map: MapLibre paints it near-black on near-white,
+   which on this cartography is the single lightest object on screen and reads
+   as a UI panel rather than a credit line. Dimmed to the weight of a caption,
+   with the full text present, selectable and legible, and brightening on hover
+   and focus for anyone who wants to read it properly.
+
+   Every one of these rules carries `.maplibregl-compact` as well as the class
+   MapLibre styles, and that is deliberate. MapLibre's own stylesheet is
+   imported from the map component, so it lands *after* this file in the
+   cascade; at equal specificity it wins, which is why the earlier, shorter
+   version of this block had no visible effect at all. The extra class puts
+   these rules one step above `.maplibregl-ctrl-attrib.maplibregl-compact`
+   rather than level with it. */
 .tk-map-canvas .maplibregl-ctrl-bottom-right { margin: 0 4px 4px 0; }
-.tk-map-canvas .maplibregl-ctrl-attrib {
+.tk-map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  margin: 0;
   padding: 1px 7px;
   border-radius: 5px;
-  background: rgba(8, 11, 18, 0.5);
+  /* Quiet, and still readable: the contrast has to come from somewhere, and
+     taking it from an opaque dark plate rather than from bright text keeps the
+     credit line at caption weight while holding it at 4.6:1 against its own
+     background. It also survives sitting over the light-pollution field, which
+     is the one place the map underneath goes pale. */
+  background-color: rgba(6, 8, 13, 0.86);
   font-size: 0.58rem;
-  line-height: 1.5;
-  color: rgba(150, 166, 194, 0.42);
+  line-height: 1.6;
+  color: rgba(150, 166, 194, 0.72);
   transition: color 140ms ease, background-color 140ms ease;
 }
-.tk-map-canvas .maplibregl-ctrl-attrib:hover {
-  background: rgba(8, 11, 18, 0.86);
-  color: rgba(190, 205, 230, 0.88);
+/* Room for the ⓘ, which only exists once the control has collapsed. */
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 26px; }
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact:hover,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show:hover,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact:focus-within,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show:focus-within {
+  background-color: rgba(6, 8, 13, 0.95);
+  color: rgba(206, 219, 240, 0.96);
 }
-.tk-map-canvas .maplibregl-ctrl-attrib a { color: inherit; text-decoration: none; }
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact a,
+.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show a {
+  color: inherit;
+  text-decoration: none;
+}
 .tk-map-canvas .maplibregl-ctrl-attrib a:hover { text-decoration: underline; }
-.tk-map-canvas .maplibregl-ctrl-attrib-button { filter: invert(1) opacity(0.32); }
+.tk-map-canvas .maplibregl-ctrl-attrib a:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+/* The ⓘ ships as a dark glyph on a white pill, for a light map. Inverted and
+   held at the same weight as the text it opens. */
+.tk-map-canvas .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+  filter: invert(1) opacity(0.42);
+}
+.tk-map-canvas .maplibregl-ctrl-attrib:hover .maplibregl-ctrl-attrib-button,
+.tk-map-canvas .maplibregl-ctrl-attrib:focus-within .maplibregl-ctrl-attrib-button {
+  filter: invert(1) opacity(0.78);
+}
+.tk-map-canvas .maplibregl-ctrl-attrib-button:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
 @media (prefers-reduced-motion: reduce) {
-  .tk-map-canvas .maplibregl-ctrl-attrib { transition: none; }
+  .tk-map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib,
+  .tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact,
+  .tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show { transition: none; }
 }
 
 .tk-map-basemap-failed {
@@ -16937,6 +16984,25 @@ button.primary,
      the collapsed height, for the frame before the first measurement. */
   .tk-map-controls-view { bottom: calc(var(--tk-rail-height, 106px) + 12px); }
   .tk-map-notice { bottom: calc(var(--tk-rail-height, 106px) + 126px); }
+
+  /* Two sheets, one phone.
+
+     An expanded observing card is most of the screen and so is the layer
+     panel, and opening the second over the first left about a centimetre of
+     map showing — while the reader's reason for opening it was to look at a
+     field drawn on that map. So while the panel is open the card returns to
+     its collapsed presentation: same card, same event, same place, same
+     scroll position in the rail, just not unfolded. Closing the panel restores
+     it, because nothing was thrown away — `card` is still in the URL and this
+     rule simply stops applying. */
+  .tk-map-shell[data-layers-open="true"] .tk-rail-card[data-expanded="true"] {
+    width: 200px;
+  }
+  .tk-map-shell[data-layers-open="true"] .tk-rail-card[data-expanded="true"] .tk-rail-card-body {
+    display: none;
+  }
+  /* The legend would be behind the panel; the panel carries the reading. */
+  .tk-map-shell[data-layers-open="true"] .tk-map-legend { display: none; }
 }
 
 /* --- where the map controls sit ------------------------------------------
@@ -16954,6 +17020,94 @@ button.primary,
 @media (min-width: 721px) {
   .tk-map-controls-view { bottom: 136px; }
   .tk-map-notice { bottom: 250px; }
+}
+
+/* --- the light-pollution key --------------------------------------------
+
+   Bottom left, above the rail, and only while the layer is on. It is the one
+   field whose colour is a measured number rather than a named state, so it is
+   the one field that is decoration without a key.
+
+   Sized to the smallest thing that can carry a logarithmic scale: a bar, five
+   ticks at the band thresholds the reading's words come from, and a mark for
+   where the selected place sits on it. */
+.tk-map-legend {
+  position: absolute;
+  left: 14px;
+  bottom: 18px;
+  z-index: 5;
+  width: 218px;
+  padding: 9px 11px 7px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 12px;
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+  pointer-events: none;
+}
+.tk-map-legend-title {
+  margin: 0 0 7px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tk-ink-dim, #a9b6cd);
+}
+/* The ramp itself, over the map's own land colour, so the swatch and the field
+   are the same colour rather than merely similar. */
+.tk-map-legend-bar {
+  position: relative;
+  height: 9px;
+  border-radius: 3px;
+  background-color: #0e1219;
+  box-shadow: inset 0 0 0 1px rgba(126, 152, 190, 0.16);
+}
+.tk-map-legend-here {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--tk-ink, #e8ecf6);
+  box-shadow: 0 0 0 1px rgba(6, 9, 15, 0.9);
+}
+.tk-map-legend-scale {
+  position: relative;
+  height: 14px;
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tk-ink-dim, #a9b6cd);
+}
+.tk-map-legend-scale li {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+/* The end ticks would hang off the block; they are pulled back inside it. */
+.tk-map-legend-scale li:first-child { transform: none; }
+.tk-map-legend-scale li:last-child { transform: translateX(-100%); }
+.tk-map-legend-unit {
+  margin: 2px 0 0;
+  font-size: 0.56rem;
+  line-height: 1.4;
+  /* Two even lines rather than one full line and a hanging "brightness". */
+  text-wrap: balance;
+  color: var(--tk-ink-faint, #7f8ca4);
+}
+@media (max-width: 720px) {
+  /* Above the rail, like the controls, and narrow enough to sit beside them. */
+  .tk-map-legend {
+    left: 10px;
+    bottom: calc(var(--tk-rail-height, 106px) + 12px);
+    width: min(218px, calc(100vw - 92px));
+  }
+}
+@media (min-width: 721px) {
+  .tk-map-legend { bottom: 136px; }
 }
 
 /* --- onboarding callouts ------------------------------------------------- */

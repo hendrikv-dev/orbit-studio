@@ -233,15 +233,28 @@ export function readEventAt(
   const shower = showerFor(event);
   if (!shower) return null;
   const cell = meteorPotentialAt(shower, new Date(event.atUtc), latitudeDeg, longitudeDeg);
+  /**
+   * A shower that cannot be seen from here is not a weak shower.
+   *
+   * `describePotential` grades a continuum, and at the bottom of that continuum
+   * it says "Not favourable" — which is the right word for a bright Moon and a
+   * low radiant, and the wrong word for a place where the radiant never clears
+   * the horizon at all or the Sun never sets. Those two are not a poor score,
+   * they are the absence of the opportunity, and grading them invites the
+   * reader to go anyway and be disappointed by the sky rather than by the
+   * geometry. So the verdict names which of the two it is, and the grade is
+   * kept for nights that actually have one.
+   */
+  const unobservable =
+    cell.darkHours === 0
+      ? "It does not get astronomically dark here on this night."
+      : cell.radiantTerm === 0
+        ? "The radiant never rises at this latitude, so none of this shower's meteors reach this place."
+        : null;
   return {
     label: `${shower.name} observing potential`,
-    value: describePotential(cell.potential),
-    detail:
-      cell.darkHours === 0
-        ? "It does not get astronomically dark here on this night."
-        : cell.radiantTerm === 0
-          ? "The radiant does not rise here, so none of this shower's meteors reach this place."
-          : null,
+    value: unobservable ? "Not observable from here" : describePotential(cell.potential),
+    detail: unobservable,
     facts: [
       { label: "Astronomical darkness", value: `${cell.darkHours.toFixed(1)} h` },
       { label: "Radiant elevation", value: describeRadiant(cell.radiantTerm) },

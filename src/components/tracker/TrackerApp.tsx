@@ -124,6 +124,7 @@ import { EclipseFigure } from "./media/CardFigures";
 import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTerrain";
 import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerMapControls } from "./map/TrackerMapControls";
+import { TrackerMapLightLegend } from "./map/TrackerMapLegend";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
@@ -637,6 +638,14 @@ function TrackerScreen() {
   const drillRef = useRef(location.drill);
   selectedIdRef.current = selectedId;
   drillRef.current = location.drill;
+  /**
+   * Whether the layer sheet is open, for the narrow-screen rules only.
+   *
+   * Deliberately not in the URL: it is not a place the reader can be sent to,
+   * and putting it there would make opening a panel a thing to press Back
+   * through.
+   */
+  const [layersOpen, setLayersOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   /**
    * The instant "today" rolls over on, kept separate from the chosen date.
@@ -2008,8 +2017,17 @@ function TrackerScreen() {
     queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
   });
 
-  /** The nowcast grid itself, which is what the map draws from. */
-  const auroraGrid = aurora.data?.grid ?? null;
+  /**
+   * The nowcast grid itself, which is what the map draws from.
+   *
+   * OVATION is a *nowcast*: it describes the next half hour or so, and NOAA
+   * publishes exactly one of them. Tracker lets the reader choose any night,
+   * and the layer was drawing that same half-hour grid over every one of them —
+   * a picture of tonight's aurora presented as a forecast for a date three
+   * weeks out, with nothing on screen to say so. It is offered only for today,
+   * and the panel says why on any other date.
+   */
+  const auroraGrid = selectedDate === today ? (aurora.data?.grid ?? null) : null;
 
   /**
    * The place as the reader should see it named, everywhere it is named.
@@ -2385,7 +2403,14 @@ function TrackerScreen() {
   const detailPlace = place;
 
   return (
-    <main className="tracker-shell tk-map-shell" data-map-state={detailOpen ? "detail" : "map"}>
+    <main
+      className="tracker-shell tk-map-shell"
+      data-map-state={detailOpen ? "detail" : "map"}
+      /* Read only by the narrow-screen rules, which collapse an expanded card
+         while the layer sheet is open so the two do not fill the phone between
+         them. The card stays selected; only its presentation is suppressed. */
+      data-layers-open={layersOpen ? "true" : "false"}
+    >
       {/* Search is the accessible route to a location: the map must never be
           the only way in, and a reader who cannot drag can still type. */}
       <a className="tracker-skip" href="#tk-map-search">
@@ -2488,13 +2513,16 @@ function TrackerScreen() {
               else next.add(layer);
               navigate({ layers: [...next] });
             }}
-            unavailable={{
-              ...(auroraGrid ? {} : { aurora: "Nowcast unavailable right now" }),
-              cloud: "Needs a gridded forecast, not yet fetched",
-              smoke: "Needs a gridded aerosol field, not yet fetched",
-            }}
+            unavailable={
+              selectedDate !== today
+                ? { aurora: "Forecast only reaches tonight" }
+                : auroraGrid
+                  ? {}
+                  : { aurora: "No current forecast available" }
+            }
             eventOverlayLabel={selectedEvent ? overlayTitle(selectedEvent) : null}
             onClearEvent={() => navigate({ event: null })}
+            onOpenChange={setLayersOpen}
           />
         }
         onZoom={(steps) =>
@@ -2520,6 +2548,12 @@ function TrackerScreen() {
           })
         }
       />
+
+      {/* The key to the one layer whose colour is a measured number. Only while
+          that layer is on, and never over a detail page. */}
+      {activeLayers.has("light-pollution") && !detailOpen ? (
+        <TrackerMapLightLegend radiance={lightHere.data ?? null} />
+      ) : null}
 
       {place && !detailOpen ? (
         <TrackerObservingRail
