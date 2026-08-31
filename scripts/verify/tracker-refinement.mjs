@@ -417,16 +417,47 @@ async function main() {
 
     const heading = await page.locator(".tk-page-heading").innerText();
     check(!/tonight/i.test(heading), `the category heading is date-aware ("${heading.replace(/\n+/g, " / ")}")`);
-    const list = await page.locator(".tk-relevant-head h2").innerText();
-    check(!/tonight/i.test(list), `the ranked list is date-aware ("${list}")`);
+    /**
+     * One ranking, and it is the rail's.
+     *
+     * The detail page used to carry a second cross-event list — "Best
+     * tonight", with a grade on every row — running beside the rail the reader
+     * had just chosen this event *from*. Two rankings of one night is exactly
+     * the disagreement this project keeps carefully in step elsewhere, and the
+     * page's job is the one event.
+     */
+    check(
+      (await page.locator(".tk-map-detail .tk-relevant, .tk-map-detail .tk-relevant-row").count()) === 0,
+      "the detail page carries no second ranking of the night",
+    );
 
-    const clear = await page.evaluate(() => {
-      const back = document.querySelector(".tk-map-detail-back")?.getBoundingClientRect();
-      const title = document.querySelector(".tk-page-heading h1")?.getBoundingClientRect();
-      if (!back || !title) return null;
-      return back.right <= title.left + 1;
+    /**
+     * One left edge for the whole page.
+     *
+     * The way back used to be a pill positioned over the top-left corner, and
+     * the heading was pushed 168 pixels clear of it to avoid a collision — so
+     * the title alone stood a hundred and sixty-eight pixels right of the hero,
+     * the conditions and everything else, and the number was the width of one
+     * particular English label.
+     */
+    const edges = await page.evaluate(() => {
+      const left = (selector) => {
+        const element = document.querySelector(selector);
+        return element ? Math.round(element.getBoundingClientRect().left) : null;
+      };
+      return {
+        back: left(".tk-map-detail .tk-back"),
+        heading: left(".tk-page-heading h1"),
+        subtitle: left(".tk-page-heading p"),
+        hero: left(".tracker-hero"),
+        conditions: left(".tk-conditions-row, .tk-conditions"),
+      };
     });
-    check(clear === true, "Back to the map sits clear of the page heading");
+    const distinct = [...new Set(Object.values(edges).filter((value) => value !== null))];
+    check(
+      distinct.length === 1,
+      `back, heading, subtitle, hero and conditions share one left edge (${JSON.stringify(edges)})`,
+    );
 
     await page.goBack();
     await page.waitForSelector(".tk-rail", { timeout: 30_000 });
@@ -459,10 +490,23 @@ async function main() {
         pushed += 1;
       }
     }
-    const otherRow = page.locator(".tk-relevant-row").nth(1);
-    if ((await otherRow.count()) > 0) {
-      await otherRow.click();
-      await page.waitForTimeout(2500);
+    /**
+     * The list this used to click is gone, so the drill-in is the push.
+     *
+     * It opens as a dialog over the page, and the point of the check below is
+     * that one press of "Back to the map" crosses *every* entry laid down
+     * since — so the dialog is dismissed first, which is itself another entry,
+     * and the reader is left on the detail page with three behind them.
+     */
+    const drill = page.locator(".tk-map-detail .tk-hero-actions button").nth(0);
+    if ((await drill.count()) > 0) {
+      await drill.click();
+      await page.waitForSelector(".tk-overlay", { timeout: 15_000 });
+      await page.waitForTimeout(1500);
+      pushed += 1;
+      await page.keyboard.press("Escape");
+      await page.waitForSelector(".tk-overlay", { state: "detached", timeout: 15_000 });
+      await page.waitForTimeout(1200);
       pushed += 1;
     }
     check(pushed > 0, `intervening history entries were laid down (${pushed})`);
@@ -471,7 +515,7 @@ async function main() {
       "and they moved the URL away from the map state",
     );
 
-    await page.locator(".tk-map-detail-back").click();
+    await page.locator(".tk-map-detail .tk-back").click();
     await page.waitForSelector(".tk-rail", { timeout: 30_000 });
     await page.waitForTimeout(2500);
     check(
@@ -835,6 +879,76 @@ async function main() {
       /solar eclipse/i.test(lead),
       `a daytime eclipse leads the ranking on its own date ("${lead}")`,
     );
+    await context.close();
+  }
+
+  /* --- the light-pollution field actually draws ---------------------------- */
+  console.log("\nLight pollution");
+  {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+
+    /**
+     * Proved by differencing, not by asserting a layer exists.
+     *
+     * A source and a layer can both be present while nothing is drawn — a
+     * failed range read, a sampler that returns transparent, an archive whose
+     * format changed. What matters is that the reader sees the city, so this
+     * photographs the same view with and without the layer and measures what
+     * appeared.
+     */
+    const stripOver = async (layers) => {
+      await page.goto(`${TRACKER}&at=45.52,-122.66&z=8${layers ? `&layers=${layers}` : ""}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await settled(page, 6000);
+      // Across the middle of the view, which at this zoom is metropolitan
+      // Portland — some of the brightest ground in the Pacific North-West.
+      return sampleStrip(page, { x: 0, y: 340, width: 1200, height: 90 });
+    };
+    const bare = await stripOver(null);
+    const lit = await stripOver("light-pollution");
+    const brightened = Math.round(lit.max - bare.max);
+    check(
+      brightened >= 8,
+      `the light-pollution field draws over the city (${brightened} levels brighter than the same view without it)`,
+    );
+
+    await openLayerPanel(page);
+    const reading = await page.locator(".tk-map-layer-value").first().innerText();
+    /**
+     * The number, in the unit the archive is in.
+     *
+     * Not a Bortle class, not an SQM figure, not a limiting magnitude: those
+     * are claims about the sky, and this is a measurement of the ground.
+     */
+    check(
+      /nW\/cm²\/sr/.test(reading),
+      `and the panel reads it as radiance at the selected point ("${reading}")`,
+    );
+    check(
+      !/bortle|sqm|limiting magnitude/i.test(reading),
+      "without claiming a sky-brightness figure it cannot support",
+    );
+
+    const legend = await page.evaluate(() => {
+      const element = document.querySelector(".tk-map-legend");
+      if (!element) return null;
+      return {
+        ticks: [...element.querySelectorAll(".tk-map-legend-scale li")].map((li) => li.textContent),
+        here: Boolean(element.querySelector(".tk-map-legend-here")),
+        label: element.getAttribute("aria-label") ?? "",
+      };
+    });
+    check(legend !== null, "the field has a key on the map");
+    check(
+      legend?.ticks.join(",") === "0.25,1,4,16,64",
+      `whose stops are the bands the reading's words come from (${legend?.ticks.join(", ")})`,
+    );
+    check(legend?.here === true, "and which marks where the selected place sits on it");
+
     await context.close();
   }
 

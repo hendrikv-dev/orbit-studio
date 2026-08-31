@@ -148,7 +148,6 @@ import {
   lunarGeographicVisibility,
   lunarLocalVisibility,
 } from "../../data/tracker/lunarEclipse";
-import type { RelevantEventRow } from "./RelevantEventsList";
 import type { HeroMedia } from "./EventHero";
 
 /**
@@ -1282,40 +1281,6 @@ function TrackerScreen() {
     } as EventPresentation;
   }, [heroEvent]);
 
-  const rows = useMemo<RelevantEventRow[]>(() => {
-    if (!heroEvent) return [];
-    /**
-     * The canonical order, unmodified.
-     *
-     * This used to hoist everything sharing the open event's category to the
-     * front, which — with rank rendered from the row index — meant opening an
-     * event promoted it to rank 1. Two bugs that only became visible together:
-     * either alone would have been survivable, and the pair falsified the one
-     * number the product exists to provide.
-     *
-     * The selected row is highlighted in place instead. Where it falls outside
-     * the visible window it is appended rather than promoted, so it is reachable
-     * and still carries the rank it actually holds.
-     */
-    /**
-     * Only the eligible, and never padded.
-     *
-     * A night with one worthwhile opportunity shows one row. The selected event
-     * is appended only when it is itself eligible; opening something Tracker
-     * does not recommend shows it in the hero with the reason, and does not
-     * insert it into a list of recommendations.
-     */
-    return visibleRanked(bestTonight, heroEvent.id, 6).map((event) => ({
-      presentation: event.presentation,
-      imagery: event.media.kind === "imagery" ? event.media.imagery : null,
-      thumb: event.media.kind === "drawn" ? event.media.node : undefined,
-      illuminatedFraction:
-        event.media.kind === "imagery" ? event.media.illuminatedFraction : undefined,
-      waning: event.media.kind === "imagery" ? event.media.waning : undefined,
-      active: event.id === heroEvent.id,
-      rank: event.rank,
-    }));
-  }, [bestTonight, heroEvent]);
 
   /**
    * The air, read from the whole hourly series rather than from one snapshot.
@@ -2657,25 +2622,27 @@ function TrackerScreen() {
 
       {detailOpen && detailPlace ? (
         <div className="tk-map-detail">
-          <button
-            type="button"
-            className="tk-back tk-map-detail-back"
-            onClick={backToMap}
-          >
-            ← Back to the map
-          </button>
           {/**
             * No header here, deliberately.
             *
             * The event page is laid out to fit a viewport exactly — six window
             * sizes are measured for it — and a full header spends that budget
             * reproducing a place and a date the reader can see on the map they
-            * just came from. The way back floats over the page instead, and
-            * everything about *when* stays on the map where the brief puts it.
+            * just came from. Everything about *when* stays on the map where the
+            * brief puts it.
+            *
+            * The way back is the page's own back control rather than a second
+            * one floating over it. It used to be an absolutely positioned pill,
+            * which meant the heading had to be pushed 168 pixels clear of it to
+            * avoid a collision — so "Planets" started a hundred and sixty-eight
+            * pixels right of the hero, the conditions and everything else on
+            * the page, and the offset was the width of one particular English
+            * label.
             */}
           {heroEvent && night ? (
         <>
           <PhenomenonPage
+            back={{ label: "Back to the map", onSelect: backToMap }}
             categoryId={heroEvent.presentation.categoryId}
             nightWord={describeDate(selectedDate, today).heading}
             presentation={heroPresentation ?? heroEvent.presentation}
@@ -2684,13 +2651,6 @@ function TrackerScreen() {
             conditions={conditions}
             conditionsCaption={conditionsCaption(sources)}
             evidenceStatus={environment.status}
-            rows={rows}
-            onSelectEvent={(id) => {
-              // A drill-in belongs to the event it was opened from. Leaving it
-              // up while the hero changes underneath shows one event's map over
-              // another event's page.
-              navigate({ detail: id, drill: null });
-            }}
             onPrimaryAction={() =>
               navigate({
                 drill: heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky" : "field",
@@ -2717,16 +2677,6 @@ function TrackerScreen() {
             onReminder={() => remind(heroEvent.presentation)}
             safety={heroEvent.safety}
             expectation={heroEvent.expectation}
-            // The place is context for the ranking, not its title. Kept short:
-            // a saved location can be a full postal description, and repeating
-            // it at length under a heading two lines from the header's copy of
-            // it reads as a stutter.
-            // "Best tonight" on today, "Best on 12 Aug" on any other date. The
-            // calendar already says when the reader is looking, so the heading
-            // names the night rather than the software's state — no "Historical
-            // results", no "Past mode".
-            listHeading={`Best ${describeDate(selectedDate, today).heading}`}
-            listCaption={`From ${shortPlaceName(place)} · ranked by overall observing opportunity`}
             planIdentity={night.identity.key}
           />
 

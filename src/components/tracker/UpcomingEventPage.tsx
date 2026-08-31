@@ -46,7 +46,6 @@ const TrackerEclipseMap = lazy(() =>
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
 import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
 import type { SelectedPlace } from "./TrackerPlace";
-import type { RelevantEventRow } from "./RelevantEventsList";
 import type { HeroMedia } from "./EventHero";
 
 /**
@@ -219,54 +218,6 @@ export function UpcomingEventPage({
     [built.presentation.atUtc, evidenceStatus, now, place, snapshots],
   );
 
-  // Rows are built without their visualizations. Tracing a shadow path and
-  // sampling a coverage grid costs the better part of a second, and a list of
-  // ten events containing one eclipse would pay it for a drawing no row shows.
-  const rows = useMemo<RelevantEventRow[]>(() => {
-    /**
-     * Chronological, and left that way.
-     *
-     * This used to hoist everything sharing the open event's category to the
-     * front. Combined with a rank badge rendered from the row index, that made
-     * the number change with which page was open. Upcoming is ordered by date
-     * rather than by merit, so it now carries no rank at all — a number here
-     * would be inventing a ranking nobody computed.
-     */
-    const presented = events.map((entry) => ({
-      entry,
-      built: buildPresentation(
-        entry,
-        place,
-        clock,
-        now,
-        snapshots,
-        evidenceStatus,
-        auroraConditions,
-        false,
-      ),
-    }));
-    return presented.slice(0, 6).map((row) => ({
-      presentation: row.built.presentation,
-      imagery: row.built.media.kind === "imagery" ? row.built.media.imagery : null,
-      thumb: row.built.media.kind === "drawn" ? row.built.media.node : undefined,
-      illuminatedFraction:
-        row.built.media.kind === "imagery" ? row.built.media.illuminatedFraction : undefined,
-      waning: row.built.media.kind === "imagery" ? row.built.media.waning : undefined,
-      active: row.entry.id === event.id,
-      rank: null,
-    }));
-  }, [
-    auroraConditions,
-    built.presentation.categoryId,
-    clock,
-    evidenceStatus,
-    event.id,
-    events,
-    now,
-    place,
-    snapshots,
-  ]);
-
   return (
     <>
     <PhenomenonPage
@@ -290,8 +241,6 @@ export function UpcomingEventPage({
       conditions={conditions}
       conditionsCaption="Eclipse and Moon geometry computed on this device. Weather is only claimed inside the forecast horizon."
       evidenceStatus={evidenceStatus}
-      rows={rows}
-      onSelectEvent={(id) => onSelectEvent(id)}
       onPrimaryAction={() =>
         // The action's own `kind` decides, rather than whatever geometry
         // happened to be available. A control that says "View visibility map"

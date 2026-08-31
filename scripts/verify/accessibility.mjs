@@ -437,7 +437,6 @@ async function visibleBounds(page) {
       ".tk-hero",
       ".tk-viz-slot",
       ".tk-conditions",
-      ".tk-relevant",
       ".tk-tonight",
       ".tk-upcoming",
       ".tk-upcoming-bar",
@@ -761,20 +760,24 @@ async function run() {
       await openDetail(page);
     }
 
-    // "Already set" cards are styled differently and were the source of every
-    // contrast violation the audit found, so the state is forced rather than
-    // waited for — it depends on the time of day.
-    // The ranked rows carry the "already set" state through their quality tone
-    // rather than through a card modifier, so the state is forced on the tone
-    // that produced every contrast violation the original audit found.
+    /**
+     * "Already set", which is the state that produced every contrast violation.
+     *
+     * It used to be forced onto a row of the detail page's cross-event list.
+     * That list is gone — one ranking, and it is the rail's — so the state is
+     * forced where a reader meets it now: the hero metric that says where to
+     * look, which reads "Already set" for an event that has finished for the
+     * night. Forced rather than waited for, because whether any event has set
+     * depends on the time of day.
+     */
     const forced = await page.evaluate(() => {
-      const quality = document.querySelector(".tk-relevant-quality");
-      if (!quality) return false;
-      quality.className = "tk-relevant-quality is-unknown";
-      quality.textContent = "Already set";
+      const metric = document.querySelector(".tk-hero-metrics .tk-metric dd");
+      if (!metric) return false;
+      metric.textContent = "Already set";
+      metric.classList.add("is-unknown");
       return true;
     });
-    if (forced) await scan(page, "ranked row in its already-set state");
+    if (forced) await scan(page, "a metric in its already-set state");
 
     /* --- the expanded map, which is a control rather than a picture --------
      *

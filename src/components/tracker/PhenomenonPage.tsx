@@ -4,16 +4,32 @@ import { categoryOf, subtitleFor, type EventCategoryId } from "../../data/tracke
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
 import { ConditionsRow } from "./ConditionsRow";
 import { EventHero, type HeroMedia } from "./EventHero";
-import { RelevantEventsList, type RelevantEventRow } from "./RelevantEventsList";
 
 /**
  * The page. There is only one.
  *
- * Heading, main row, conditions, ranked list — in that order, at those
- * proportions, for a meteor shower and for an eclipse and for anything added
- * later. The universality is structural rather than aspirational: this
- * component holds the geometry and accepts content, and a phenomenon has no way
- * to reach past it and rearrange anything.
+ * Back, heading, main row, conditions — in that order, at those proportions,
+ * for a meteor shower and for an eclipse and for anything added later. The
+ * universality is structural rather than aspirational: this component holds the
+ * geometry and accepts content, and a phenomenon has no way to reach past it
+ * and rearrange anything.
+ *
+ * ## One left edge
+ *
+ * Every row starts where the page starts. The back control is part of that
+ * column rather than a pill floating over it — when it floated, the heading had
+ * to be pushed clear of it with a hard-coded indent, so the title alone stood a
+ * hundred and sixty-eight pixels right of everything below it, and the number
+ * was the width of one particular English label.
+ *
+ * ## What is deliberately no longer here
+ *
+ * The cross-event list — "Best tonight", with rows and a grade each. It was a
+ * second ranking of the same night, running beside the observing rail that the
+ * reader chose this event *from*, on a page whose whole job is this one event.
+ * Two ranking systems for one night is a thing this project already keeps
+ * carefully in step in two other places; a third copy on the detail page bought
+ * nothing and competed with the subject.
  *
  * The main row is two thirds hero and one third visualization. That ratio is
  * fixed even where the visualization is a map, which is the specific drift this
@@ -34,8 +50,6 @@ interface Props {
   conditionsCaption?: string | null;
   /** The forecast state behind the row, for the review harness and for tests. */
   evidenceStatus: string;
-  rows: RelevantEventRow[];
-  onSelectEvent: (id: string) => void;
   onPrimaryAction: () => void;
   onReminder: () => void;
   /** An extra hero control, where the event has a second distinct tool. */
@@ -44,9 +58,7 @@ interface Props {
   expectation: string | null;
   /** Distinguishes one plan from another for the review harness. */
   planIdentity?: string;
-  listHeading?: string;
-  listCaption?: string;
-  /** Rendered above the heading when this page was reached from Upcoming. */
+  /** The way back, rendered as the first row of the page's own column. */
   back?: { label: string; onSelect: () => void };
 }
 
@@ -59,16 +71,12 @@ export function PhenomenonPage({
   conditions,
   conditionsCaption,
   evidenceStatus,
-  rows,
-  onSelectEvent,
   onPrimaryAction,
   onReminder,
   tertiaryAction = null,
   safety,
   expectation,
   planIdentity,
-  listHeading,
-  listCaption,
   back,
 }: Props) {
   const category = categoryOf(categoryId);
@@ -108,12 +116,6 @@ export function PhenomenonPage({
         atUtc={presentation.atUtc}
       />
 
-      <RelevantEventsList
-        rows={rows}
-        onSelect={onSelectEvent}
-        heading={listHeading}
-        caption={listCaption}
-      />
     </div>
   );
 }

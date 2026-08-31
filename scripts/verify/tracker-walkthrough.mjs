@@ -118,9 +118,6 @@ async function readPageState(page) {
       value: node.querySelector(".tk-condition-value")?.textContent?.trim(),
     })),
     evidenceStatus: document.querySelector(".tk-conditions")?.getAttribute("data-evidence-status"),
-    rows: [...document.querySelectorAll(".tk-relevant-row")].map((node) =>
-      node.textContent?.replace(/\s+/g, " ").trim(),
-    ),
     visualization: document.querySelector(".tk-viz-slot .tk-viz-title")?.textContent?.trim() ?? null,
     /** The geometry the universal layout promises, as booleans. */
     geometry: {
@@ -128,7 +125,6 @@ async function readPageState(page) {
       hero: Boolean(document.querySelector(".tk-hero .tk-hero-name")),
       visualization: Boolean(document.querySelector(".tk-viz-slot")?.firstElementChild),
       conditions: document.querySelectorAll(".tk-condition-card").length,
-      list: document.querySelectorAll(".tk-relevant-row").length,
       heroWidthRatio: (() => {
         const hero = document.querySelector(".tk-hero")?.getBoundingClientRect();
         const viz = document.querySelector(".tk-viz-slot")?.getBoundingClientRect();
@@ -147,7 +143,6 @@ async function readPageState(page) {
           ["hero", ".tk-hero"],
           ["visualization", ".tk-viz-slot"],
           ["conditions", ".tk-conditions-row"],
-          ["list", ".tk-relevant-list"],
         ].map(([name, selector]) => {
           const rect = document.querySelector(selector)?.getBoundingClientRect();
           return [
@@ -252,7 +247,15 @@ function assertUniversalGeometry(state, label) {
     state.pills.length >= 1 && state.pills.length <= 2,
     `${label}: has one or two state pills`,
   );
-  check(state.geometry.list > 0, `${label}: has a ranked list`);
+  /**
+   * And nothing else. The page used to end with a cross-event list — a second
+   * ranking of the same night, beside the rail the reader chose this event
+   * from — and its absence is now part of what "the universal page" means.
+   */
+  check(
+    state.geometry.conditions > 0,
+    `${label}: has its conditions row (${state.geometry.conditions} cards)`,
+  );
   check(
     state.geometry.heroWidthRatio !== null &&
       state.geometry.heroWidthRatio > 0.6 &&
@@ -393,11 +396,23 @@ async function checkReminder(page, label) {
   );
 }
 
+/**
+ * Open a card from the observing rail, which is where the ranking lives.
+ *
+ * It used to click a row of the detail page's own cross-event list. That list
+ * is gone: it was a second ranking of the same night running beside the rail
+ * the reader chose the event from, and the page's job is the one event.
+ */
 async function clickRow(page, pattern) {
-  const row = page.locator(".tk-relevant-row", { hasText: pattern }).first();
-  if ((await row.count()) === 0) return false;
-  await row.click();
+  const card = page.locator(".tk-rail-card", { hasText: pattern }).first();
+  if ((await card.count()) === 0) return false;
+  await card.locator(".tk-rail-card-head").click();
   await page.waitForTimeout(500);
+  const details = card.locator(".tk-rail-details");
+  if ((await details.count()) > 0) {
+    await details.click();
+    await page.waitForTimeout(800);
+  }
   return true;
 }
 
@@ -498,6 +513,21 @@ async function landOnTonight(page, { optional = false } = {}) {
   } else if ((await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0) {
     await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
   }
+  /**
+   * Remember the ranking before leaving the map.
+   *
+   * The detail page used to carry its own copy of it, and several checks below
+   * read that copy. It is gone — one ranking, and it is the rail's — so the
+   * order is captured here, on the surface that owns it, with the first card
+   * expanded so its name is the full title rather than the truncated one a
+   * collapsed card shows.
+   */
+  await page.evaluate(() => {
+    window.__rail = [...document.querySelectorAll(".tk-rail-card")].map((card) => ({
+      id: card.dataset.card ?? "",
+      name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
+    }));
+  });
   const open = page.locator(".tk-rail-details").first();
   if ((await open.count()) > 0) {
     await open.click();
@@ -512,9 +542,9 @@ async function landOnTonight(page, { optional = false } = {}) {
   return true;
 }
 
-/** Whether Best tonight currently recommends something matching `pattern`. */
+/** Whether the rail currently offers something matching `pattern`. */
 async function bestTonightHas(page, pattern) {
-  const names = await page.locator(".tk-relevant-name").allInnerTexts();
+  const names = await page.locator(".tk-rail-card-name").allInnerTexts();
   return names.some((name) => pattern.test(name));
 }
 
@@ -1275,8 +1305,8 @@ async function main() {
     // proves nothing — which is exactly what the previous version of this check
     // did, and it reported a defect the product did not have.
     const arrival = await readPageState(page);
-    const arrivalRows = await page.locator(".tk-relevant-row").allInnerTexts();
-    const nameOf = (row) => (row ?? "").split("\n")[1] ?? "nothing";
+    const arrivalRows = await page.locator(".tk-rail-card-name").allInnerTexts();
+    const nameOf = (row) => (row ?? "nothing").trim();
     check(
       arrival.category !== "auroras",
       `stale: an expired nowcast does not take the hero (it is ${arrival.category})`,
@@ -1567,13 +1597,15 @@ async function main() {
     await page.waitForTimeout(4000);
 
     const fit = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll(".tk-relevant-row")];
-      const last = rows[rows.length - 1]?.getBoundingClientRect() ?? null;
+      // The conditions row and its caption end the page now that the
+      // cross-event list is gone, so that is the bottom that has to fit.
+      const last =
+        document.querySelector(".tk-conditions-caption, .tk-conditions-row")?.getBoundingClientRect() ??
+        null;
       const heroRow = document.querySelector(".tk-main-row")?.getBoundingClientRect();
       const region = (selector) => Boolean(document.querySelector(selector));
       return {
         overflow: document.documentElement.scrollHeight - window.innerHeight,
-        rows: rows.length,
         lastRowBottom: last ? Math.round(last.bottom) : null,
         viewport: window.innerHeight,
         heroHeight: heroRow ? Math.round(heroRow.height) : 0,
@@ -1606,17 +1638,16 @@ async function main() {
         hasHero: region(".tk-hero .tk-hero-name"),
         hasViz: region(".tk-viz-slot"),
         hasConditions: region(".tk-condition-card"),
-        hasList: region(".tk-relevant-head"),
       };
     });
 
     check(fit.overflow <= 1, `${label}: the page does not scroll (${fit.overflow}px over)`);
     check(
       fit.lastRowBottom !== null && fit.lastRowBottom <= fit.viewport + 1,
-      `${label}: the last ranked row is on screen (${fit.lastRowBottom} of ${fit.viewport})`,
+      `${label}: the page ends on screen (${fit.lastRowBottom} of ${fit.viewport})`,
     );
     check(
-      fit.hasHeading && fit.hasHero && fit.hasViz && fit.hasConditions && fit.hasList,
+      fit.hasHeading && fit.hasHero && fit.hasViz && fit.hasConditions,
       `${label}: every region is present, not dropped to make room`,
     );
     // Fitting by collapsing the hero to nothing is not fitting.
@@ -1667,7 +1698,6 @@ async function main() {
           return document.documentElement.scrollHeight > window.innerHeight;
         })(),
         heroClipped: hero ? hero.scrollHeight - hero.clientHeight : 0,
-        rows: document.querySelectorAll(".tk-relevant-row").length,
       };
     });
     check(
@@ -1676,9 +1706,8 @@ async function main() {
     );
     check(
       released.scrolls,
-      "below the floor: the page scrolls rather than hiding the rest of the ranking",
+      "below the floor: the page scrolls rather than hiding what will not fit",
     );
-    check(released.rows > 0, "below the floor: the ranked list is still rendered");
     await page.close();
     await context.close();
   }
@@ -1705,9 +1734,8 @@ async function main() {
   await dated.waitForTimeout(4500);
 
   const historical = await dated.evaluate(() => ({
-    heading: document.querySelector(".tk-relevant-head h2")?.textContent ?? "",
+    heading: document.querySelector(".tk-page-heading h1")?.textContent ?? "",
     body: document.body.innerText,
-    rows: document.querySelectorAll(".tk-relevant-row").length,
     // The map's place control, not the app header: the event page no longer
     // carries one, because the map behind it owns the place and the date.
     place:
@@ -1717,12 +1745,14 @@ async function main() {
     conditions: [...document.querySelectorAll(".tk-condition-value")].map((n) => n.textContent),
   }));
 
-  check(/Apr 8, 2024|8 Apr 2024/.test(historical.heading), `the heading names the date (${historical.heading})`);
+  check(
+    /planet|moon|eclipse|meteor|aurora|deep sky|pairing/i.test(historical.heading),
+    `the page still names its phenomenon on a historical night (${historical.heading})`,
+  );
   check(
     !/historical|past mode|future mode|archive/i.test(historical.body),
     "no language about modes, archives or the software's state",
   );
-  check(historical.rows > 0, `a historical night still produces a ranking (${historical.rows} rows)`);
   check(
     historical.place.includes(PLACES.portland.name),
     "changing the date preserves the place",
@@ -1840,6 +1870,15 @@ async function main() {
   await honest.clock.setFixedTime(WALK_AT);
 
   for (const id of ["meteors", "moon", "aurora"]) {
+    // The ranking is on the map, and this page is opened directly, so the rail
+    // is read first and the event page second.
+    await honest.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await honest.waitForSelector(".tk-rail-card", { timeout: 45_000 }).catch(() => {});
+    await honest.waitForTimeout(3500);
+    const railIds = await honest.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+
     await honest.goto(`${TRACKER}&event=${id}`, {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
@@ -1857,7 +1896,6 @@ async function main() {
         recommendation:
           document.querySelector(".tk-hero-recommendation")?.textContent?.trim() ?? "",
         verdict: document.querySelector(".tk-viz-verdict-head")?.textContent?.trim() ?? "",
-        rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
         metricCount: metrics.length,
         metricLabels: metrics.map((metric) => metric.label),
         allText: document.querySelector(".tk-page")?.textContent ?? "",
@@ -1873,13 +1911,15 @@ async function main() {
      * while the thing it actually tests — the routine Moon is not in the
      * ranking — remained true.
      */
-    const NAMES = {
-      moon: /^the moon(,|$)/i,
-      meteors: /^(sporadic|the .* meteors?|.*meteor shower)$/i,
-      aurora: /^aurora/i,
-    };
-    const matcher = NAMES[id] ?? new RegExp(id, "i");
-    const listed = state.rows.some((row) => matcher.test((row ?? "").trim()));
+    /**
+     * Matched on the card's own id rather than on its rendered name.
+     *
+     * The ranking is the rail now, and a collapsed card truncates its title —
+     * "The Moon and …" — so matching English would compare against a string the
+     * product deliberately shortens. The id is what the URL carries and what
+     * the ranking is keyed by, which is the thing this is actually asking about.
+     */
+    const listed = railIds.includes(id);
     check(!listed, `${id}: reachable directly, and still not recommended`);
     check(
       !/worth it/i.test(state.metricLabels.join(" ")),
@@ -1902,7 +1942,7 @@ async function main() {
   await honest.waitForTimeout(4500);
   const recommended = await honest.evaluate(() => ({
     name: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
-    rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
+    rows: (window.__rail ?? []).map((card) => card.name),
     where:
       [...document.querySelectorAll(".tk-hero-metrics .tk-metric")]
         .find((node) => /where to look/i.test(node.querySelector("dt")?.textContent ?? ""))
@@ -1911,7 +1951,7 @@ async function main() {
   }));
   check(
     recommended.rows[0] === recommended.name,
-    `the hero is the top of Best tonight ("${recommended.name}" vs "${recommended.rows[0]}")`,
+    `the hero is the top of the rail ("${recommended.name}" vs "${recommended.rows[0]}")`,
   );
   check(
     recommended.where.length > 0,
@@ -2298,103 +2338,133 @@ async function main() {
   await landOnTonight(rankPage);
   await rankPage.waitForTimeout(3500);
 
-  /** Every ranked row as {rank, name}, exactly as a reader would read it. */
+  /**
+   * The rail's order, which is the night's one ranking.
+   *
+   * It used to be read from the detail page's own cross-event list. That list
+   * is gone — it was a second ranking of the same night, running beside the
+   * rail the reader chose the event from — so this reads the rail, on the map,
+   * which is the surface that owns the order.
+   *
+   * Keyed by the card's id rather than its rendered name: a collapsed card
+   * truncates its title, and comparing truncated English across navigation
+   * would test the ellipsis rather than the ranking.
+   */
   const readRanking = () =>
     rankPage.evaluate(() =>
-      [...document.querySelectorAll(".tk-relevant-row")].map((row) => ({
-        rank: row.querySelector(".tk-relevant-rank")?.textContent?.trim() ?? "",
-        name: row.querySelector(".tk-relevant-name")?.textContent?.trim() ?? "",
+      [...document.querySelectorAll(".tk-rail-card")].map((card, index) => ({
+        rank: String(index + 1),
+        id: card.dataset.card ?? "",
+        name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
       })),
     );
 
-  const baseline = await readRanking();
-  check(baseline.length > 0, `a ranked list is present (${baseline.length} rows)`);
-  console.log(
-    `  · baseline: ${baseline.map((row) => `${row.rank}. ${row.name}`).join(", ")}`,
-  );
+  const toMap = async () => {
+    if ((await rankPage.locator(".tk-map-detail .tk-back").count()) > 0) {
+      await rankPage.locator(".tk-map-detail .tk-back").click();
+    }
+    await rankPage.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await rankPage.waitForTimeout(2000);
+  };
 
-  // Ranks must be 1..n with no repeats, or the number means nothing.
+  await toMap();
+  const baseline = await readRanking();
+  check(baseline.length > 0, `the rail ranks the night (${baseline.length} cards)`);
+  console.log(`  · baseline: ${baseline.map((row) => `${row.rank}. ${row.id}`).join(", ")}`);
+
   check(
     baseline.every((row, index) => row.rank === String(index + 1)),
-    "the ranked list is numbered one upwards with no gaps",
+    "the ranking is an order, one upwards, with no gaps",
+  );
+  check(
+    new Set(baseline.map((row) => row.id)).size === baseline.length,
+    "and no event appears in it twice",
   );
 
-  /** Comparable regardless of which rows a page happens to show. */
-  const rankOf = (rows) => new Map(rows.map((row) => [row.name, row.rank]));
+  /** Comparable regardless of which cards a view happens to show. */
+  const rankOf = (rows) => new Map(rows.map((row) => [row.id, row.rank]));
   const baselineRanks = rankOf(baseline);
 
   const disagreements = [];
   const compare = (rows, where) => {
     for (const row of rows) {
-      const expected = baselineRanks.get(row.name);
+      const expected = baselineRanks.get(row.id);
       if (expected !== undefined && expected !== row.rank) {
-        disagreements.push(`${row.name} was ${expected}, is ${row.rank} on ${where}`);
+        disagreements.push(`${row.id} was ${expected}, is ${row.rank} on ${where}`);
       }
     }
   };
 
-  // Visit each event in the list by name, recording the ranking from its page.
+  /**
+   * Open each event and come back, checking the order did not move.
+   *
+   * The defect this guards is specific and was real: opening an event once
+   * promoted it to the top of the ranking, because the list hoisted the open
+   * event's category and the rank was rendered from the row index. Either bug
+   * alone would have been survivable; together they falsified the one number
+   * the product exists to provide.
+   */
   const visited = [];
-  for (const target of baseline.slice(0, 5)) {
-    const opened = await clickRow(rankPage, new RegExp(target.name.slice(0, 14).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
-    if (!opened) continue;
-    await rankPage.waitForTimeout(1800);
-    const rows = await readRanking();
-    compare(rows, target.name);
-    visited.push(target.name);
-
-    // And the open event must not have been promoted to the top.
-    const top = rows[0];
+  for (const target of baseline.slice(0, 4)) {
+    const card = rankPage.locator(`.tk-rail-card[data-card="${target.id}"]`);
+    if ((await card.count()) === 0) continue;
+    if ((await card.getAttribute("data-expanded")) !== "true") {
+      await card.locator(".tk-rail-card-head").click();
+      await rankPage.waitForTimeout(900);
+    }
+    const details = card.locator(".tk-rail-details");
+    if ((await details.count()) === 0) continue;
+    await details.click();
+    await rankPage.waitForSelector(".tk-map-detail", { timeout: 30_000 }).catch(() => {});
+    await rankPage.waitForTimeout(1500);
     check(
-      top.name === baseline[0].name,
-      `${target.name}: the list still leads with ${baseline[0].name}`,
+      (await rankPage.locator(".tk-map-detail .tk-relevant-row").count()) === 0,
+      `${target.id}: its page carries no second ranking`,
     );
-    const self = rows.find((row) => row.name === target.name);
+    await toMap();
+    const rows = await readRanking();
+    compare(rows, target.id);
+    visited.push(target.id);
+
     check(
-      self !== undefined && self.rank === baselineRanks.get(target.name),
-      `${target.name}: keeps rank ${baselineRanks.get(target.name)} on its own page`,
+      rows[0]?.id === baseline[0].id,
+      `${target.id}: the rail still leads with ${baseline[0].id}`,
+    );
+    const self = rows.find((row) => row.id === target.id);
+    check(
+      self !== undefined && self.rank === baselineRanks.get(target.id),
+      `${target.id}: keeps rank ${baselineRanks.get(target.id)} after being opened`,
     );
   }
   console.log(`  · visited ${visited.length} event pages: ${visited.join(", ")}`);
 
-  // A drill-in must not disturb it either.
-  if ((await rankPage.locator(".tk-action.is-primary").count()) > 0) {
-    await rankPage.locator(".tk-action.is-primary").first().click();
-    await rankPage.waitForTimeout(1500);
-    await rankPage.keyboard.press("Escape");
-    await rankPage.waitForTimeout(1200);
-    compare(await readRanking(), "closing a drill-in");
-  }
-
   // Nor may Back and Forward.
   await rankPage.goBack();
-  await rankPage.waitForTimeout(1500);
+  await rankPage.waitForTimeout(1800);
   compare(await readRanking(), "Back");
   await rankPage.goForward();
-  await rankPage.waitForTimeout(1500);
+  await rankPage.waitForTimeout(1800);
   compare(await readRanking(), "Forward");
 
   // And returning to where we started must reproduce the baseline exactly.
   await rankPage.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await landOnTonight(rankPage);
+  await rankPage.waitForSelector(".tk-rail-card", { timeout: 45_000 }).catch(() => {});
   await rankPage.waitForTimeout(3500);
   const returned = await readRanking();
-  compare(returned, "returning to Tonight");
+  compare(returned, "returning to the map");
+  check(
+    returned.map((row) => row.id).join(",") === baseline.map((row) => row.id).join(","),
+    "coming back to the map reproduces the same order",
+  );
 
   check(
     disagreements.length === 0,
     disagreements.length === 0
-      ? `rank is identical across every page, drill-in and history move (${visited.length + 4} observations)`
+      ? `rank is identical across every page, drill-in and history move (${visited.length + 3} observations)`
       : `rank changed with navigation — ${disagreements.join("; ")}`,
   );
 
-  // The list must also describe itself truthfully.
-  const caption = await rankPage.locator(".tk-relevant-head p").innerText();
-  check(
-    !/sorted by time/i.test(caption),
-    "the list does not claim to be sorted by time, which it never was",
-  );
-  await shot(rankPage, "24-ranking", "the ranked list, from Tonight");
+  await shot(rankPage, "24-ranking", "the observing rail, which is the night's ranking");
 
   await rankPage.close();
   await rankContext.close();
@@ -2673,10 +2743,19 @@ async function main() {
     await nav.waitForTimeout(2000);
     const eventA = urlState().event;
 
-    // Move to a second event from the ranked list on the event page itself.
-    const nextRow = nav.locator(".tk-relevant-row").nth(1);
+    // Move to a second event. The page carries no cross-event list any more,
+    // so this goes back to the rail and opens a different card — which is the
+    // route the product actually offers.
+    const nextRow = nav.locator(".tk-rail-card").nth(1);
+    if ((await nav.locator(".tk-map-detail .tk-back").count()) > 0) {
+      await nav.locator(".tk-map-detail .tk-back").click();
+      await nav.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+      await nav.waitForTimeout(1500);
+    }
     if ((await nextRow.count()) > 0) {
-      await nextRow.click();
+      await nextRow.locator(".tk-rail-card-head").click();
+      await nav.waitForTimeout(900);
+      await nextRow.locator(".tk-rail-details").click();
       await nav.waitForTimeout(2200);
       const eventB = urlState().event;
       check(eventB !== eventA, "Sequence B: moving between events changes the URL");
@@ -2747,19 +2826,31 @@ async function main() {
   // passed over it: the assertion has to be about the stack itself.
   console.log("\nHistory hygiene");
 
+  // Measured from the map, which is where an event is opened from.
   await nav.goto(TRACKER, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await landOnTonight(nav);
+  await nav.waitForSelector(".tk-rail-card", { timeout: 45_000 }).catch(() => {});
   await nav.waitForTimeout(3000);
 
   const depthNow = () => nav.evaluate(() => window.history.length);
 
   const beforeStep = await depthNow();
-  await nav.locator(".tk-relevant-row").nth(1).click();
+  const secondCard = nav.locator(".tk-rail-card").nth(1);
+  await secondCard.locator(".tk-rail-card-head").click();
   await nav.waitForTimeout(1800);
   const afterStep = await depthNow();
   check(
     afterStep - beforeStep === 1,
-    `opening an event pushes exactly one history entry (${afterStep - beforeStep})`,
+    `expanding a card pushes exactly one history entry (${afterStep - beforeStep})`,
+  );
+
+  const beforeOpen = await depthNow();
+  await secondCard.locator(".tk-rail-details").click();
+  await nav.waitForSelector(".tk-map-detail", { timeout: 30_000 }).catch(() => {});
+  await nav.waitForTimeout(1800);
+  const afterOpen = await depthNow();
+  check(
+    afterOpen - beforeOpen === 1,
+    `opening an event pushes exactly one history entry (${afterOpen - beforeOpen})`,
   );
 
   const beforeDrill = await depthNow();
@@ -2802,7 +2893,7 @@ async function main() {
   const eclipseNight = await nav.evaluate(() => ({
     category: document.querySelector(".tk-page")?.getAttribute("data-category") ?? null,
     hero: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
-    rows: [...document.querySelectorAll(".tk-relevant-name")].map((n) => n.textContent?.trim()),
+    rows: (window.__rail ?? []).map((card) => card.name),
     hasGeoMap: Boolean(document.querySelector(".tk-viz-slot .tk-geomap")),
     hasSkyChart: Boolean(document.querySelector(".tk-viz-slot .tk-skypathpanel")),
     actions: [...document.querySelectorAll(".tk-hero-actions .tk-action")].map((n) =>
@@ -3508,10 +3599,13 @@ async function main() {
     return changing.locator(".tk-tonight").getAttribute("data-plan-identity");
   };
 
+  // The ranking captured on the map on the way in, since the detail page no
+  // longer carries a copy of it.
+  const railOrder = () => changing.evaluate(() => (window.__rail ?? []).map((card) => card.id));
   const fairbanksIdentity = await setPlace(PLACES.fairbanks);
-  const fairbanksRows = await changing.locator(".tk-relevant-row").allInnerTexts();
+  const fairbanksRows = await railOrder();
   const portlandIdentity = await setPlace(PLACES.portland);
-  const portlandRows = await changing.locator(".tk-relevant-row").allInnerTexts();
+  const portlandRows = await railOrder();
 
   check(
     fairbanksIdentity !== portlandIdentity,
@@ -3519,7 +3613,7 @@ async function main() {
   );
   check(
     JSON.stringify(fairbanksRows) !== JSON.stringify(portlandRows),
-    "the ranked list is re-ranked for the new place rather than carried over",
+    `the rail is re-ranked for the new place rather than carried over (${fairbanksRows.join(", ")} vs ${portlandRows.join(", ")})`,
   );
   // Was: the header labels a restored place "Restored". That described where
   // the value came from inside the application rather than anything about the
@@ -3638,14 +3732,13 @@ async function main() {
         hero: y(".tk-hero"),
         viz: y(".tk-viz-slot"),
         conditions: y(".tk-conditions"),
-        list: y(".tk-relevant"),
         overflowsHorizontally:
           document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
     });
     check(
-      order.hero < order.viz && order.viz < order.conditions && order.conditions < order.list,
-      `${label}: the hierarchy survives — recommendation, evidence, conditions, alternatives`,
+      order.hero < order.viz && order.viz < order.conditions,
+      `${label}: the hierarchy survives — recommendation, then evidence, then conditions`,
     );
     check(!order.overflowsHorizontally, `${label}: the page does not scroll sideways`);
     await shot(small, `13-${label}-tonight`);
@@ -3670,7 +3763,7 @@ async function main() {
       findings.push({ label: `${label}: comparable with the meteor page`, pass: null });
       continue;
     }
-    for (const region of ["heading", "hero", "visualization", "conditions", "list"]) {
+    for (const region of ["heading", "hero", "visualization", "conditions"]) {
       const a = reference.geometry.rects[region];
       const b = state.geometry.rects[region];
       check(

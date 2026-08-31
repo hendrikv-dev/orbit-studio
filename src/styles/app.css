@@ -7967,7 +7967,6 @@ button.primary,
   }
 }
 
-
 /* Release shell corrections: shared app menu must render identically in both apps. */
 .explorer-header-actions .orbit-app-menu-panel button,
 .explorer-header-actions .orbit-app-menu-panel a {
@@ -8696,7 +8695,6 @@ button.primary,
   }
 }
 
-
 /* Mobile sheet handle parity: one real, interactive handle in every Explorer and Playground sheet. */
 .explorer-panel-header,
 .explorer-mobile-sheet,
@@ -8881,7 +8879,6 @@ button.primary,
     pointer-events: none;
   }
 }
-
 
 /* Responsive Playground orbit controls: persistent desktop sidebar, compact mobile tab + sheet. */
 @media (min-width: 821px) {
@@ -9614,7 +9611,6 @@ button.primary,
   }
 }
 /* END APPROVED-FOCUSED-FIX */
-
 
 /* 2026-07-31 approved header-only correction.
    Scope: remove duplicate brand lockups and keep the primary brand/menu anchors
@@ -10970,15 +10966,12 @@ button.primary,
 
 .explorer-debris-key-parent { background: #6fd7f2; }
 
-
 /* The mission sliders do not reuse .orbit-slider-control: that is a two-column
    grid expecting a paired number input, and a lone range lands in its 78px
    column. These carry their own layout instead. */
 
-
 /* Encounter: hypothetical impact geometry and avoidance. Shares the mission
    planner's slider and budget styling; only its own pieces are defined here. */
-
 
 .encounter-verdict.catastrophic {
   border-left-color: #ff7a5c;
@@ -11427,7 +11420,6 @@ button.primary,
   mix-blend-mode: screen;
 }
 
-
 /* Photographs get a gentle lift so they read as photography rather than as a
    dim texture behind type. */
 .tracker-media-photo img { filter: saturate(1.04) contrast(1.03); }
@@ -11454,7 +11446,6 @@ button.primary,
    against a scene that is bright in places. A gradient rather than a panel:
    a box would cut the image in half and put us back where we started. */
 
-
 .tracker-primary,
 .tracker-secondary {
   min-height: 46px;
@@ -11480,7 +11471,6 @@ button.primary,
   border-color: rgba(63, 214, 168, 0.6);
   color: #b7f4de;
 }
-
 
 /* The classification of the picture. Passive, but never absent. */
 
@@ -11512,7 +11502,6 @@ button.primary,
 
 .tracker-condition svg { flex: none; color: #9fb6c8; }
 
-
 /* --- ranked alternatives, as cards --------------------------------------- */
 
 .tracker-more {
@@ -11529,9 +11518,7 @@ button.primary,
   letter-spacing: 0;
 }
 
-
 .tracker-card:hover .tracker-card-scene img { transform: scale(1.04); }
-
 
 /* Already set: kept, de-emphasised, never hidden — and never below the
    contrast floor. `opacity: 0.62` on the whole card was the cause of all six
@@ -11542,9 +11529,7 @@ button.primary,
 
 /* --- the working, behind one control ------------------------------------- */
 
-
 /* --- the chart, now a detail rather than the hero ------------------------ */
-
 
 /* --- desktop: give the picture the room it was not getting --------------- */
 
@@ -11576,7 +11561,6 @@ button.primary,
   .tracker-bar { gap: 10px; }
   .tracker-bar-logo { height: 24px; }
 
-
   /* Lifted clear of where the panel fades up into the image. At the desktop
      offset it sat exactly under the headline. */
   .tracker-hero-scene .tracker-credit {
@@ -11585,7 +11569,6 @@ button.primary,
     right: 20px;
     text-align: left;
   }
-
 
 }
 
@@ -11724,7 +11707,6 @@ button.primary,
   outline: none;
 }
 
-
 .tracker-place-combobox { display: block; }
 
 /* Selection and keyboard focus are now distinct states, and both are visible.
@@ -11745,7 +11727,6 @@ button.primary,
 /* A pending sky is not an unavailable sky. The interface used to assert the
    second while it was still doing the first. */
 
-
 @keyframes tracker-spin { to { transform: rotate(360deg); } }
 
 /* Motion is decoration here; the words carry the state on their own. */
@@ -11754,7 +11735,6 @@ button.primary,
   .tracker-card-scene img { transition: none; }
   .tracker-card:hover .tracker-card-scene img { transform: none; }
 }
-
 
 /* --- focus, target size and page identity --------------------------------
    The ranked cards had no focus indicator at all: a global input reset had set
@@ -11767,7 +11747,6 @@ button.primary,
   border-radius: 6px;
   box-shadow: 0 0 0 5px var(--tk-focus-halo);
 }
-
 
 /* React Aria reports its own focus state, which is more accurate than the CSS
    heuristic inside a popover. */
@@ -12346,9 +12325,7 @@ button.primary,
 
 /* ------------------------------------------------------------------ upcoming */
 
-
 /* ------------------------------------------------------------------ calendar */
-
 
 @media (max-width: 900px) {
   .tracker-nav { margin-left: 12px; }
@@ -12363,10 +12340,8 @@ button.primary,
    information. Two deliberate columns instead — the reading column, and the
    observing column that says what to actually do outside. */
 
-
 @media (min-width: 1040px) {
 }
-
 
 .tk-chart-guide { stroke: rgba(150, 186, 222, 0.22); stroke-width: 1; stroke-dasharray: 3 5; }
 .tk-chart-guidelabel { fill: var(--tk-ink-faint); font-size: 10px; }
@@ -12387,16 +12362,13 @@ button.primary,
   letter-spacing: 0.1em;
 }
 
-
 /* ------------------------------------------- meteor timeline and orientation
 
    A shower gets two graphics because it asks the reader two questions. The
    timeline says when; the compass says where. Neither answers the other. */
 
-
 /* Twilight is drawn as an absence of darkness rather than a colour: the plot
    ground is the dark sky, and this lifts it where the sky has not got there. */
-
 
 /* The four things a person acts on, given the width they deserve.
 
@@ -12406,17 +12378,14 @@ button.primary,
 /* The condition chip inherits the row rather than bringing its own block. */
 .tk-fact .tracker-condition { margin: 0; font-size: 0.84rem; }
 
-
 /* ============================================================== the sky plate
 
    One frame for every sky drawing, with the photograph as its ground rather
    than a separate box beneath it. The picture is dimmed and washed hard enough
    that the annotation always wins: it is the surface, never the subject. */
 
-
 /* Two washes: a flat one to hold contrast everywhere, and a vertical one so
    the caption end of the plate is darkest, where the small type sits. */
-
 
 /* Over a photograph the drawing needs a little more presence than it did on
    flat panel colour. */
@@ -12447,9 +12416,6 @@ button.primary,
   line-height: 1.3;
 }
 
-@media (max-width: 1180px) {
-}
-
 /* The reading column ran out well before the observing column did, leaving a
    quarter of the viewport empty. Anchoring the columns to the top of the grid
    and letting the aside run its own length closes it without stretching
@@ -12458,7 +12424,6 @@ button.primary,
 }
 
 /* ---------------------------------------------------------------------- now */
-
 
 /* ================================================= the one-page constraint
 
@@ -12489,13 +12454,11 @@ button.primary,
   grid-template-rows: auto 1fr;
 }
 
-
 /* The entry screen already fitted; it just needs to stop centring against a
    height it no longer owns. */
 .tk-entry { min-height: 0; align-content: center; }
 
 /* --------------------------------------------------- Tonight, as one screen */
-
 
 @media (min-width: 1040px) {
   /* The ranked rail spans the foot of both columns. */
@@ -12536,7 +12499,6 @@ button.primary,
    match just moves the failure: the page stopped scrolling and started cutting
    the headline off instead. Type and media are sized against viewport height so
    the composition shrinks with the window instead of overflowing it. */
-
 
 /* The plate and the portrait are both load-bearing, and the composition is
    proportional rather than conditional.
@@ -12595,7 +12557,6 @@ button.primary,
    the closing lines step aside, and the guidance takes the space they were
    using. Nothing new is created below the fold and nothing is shrunk to fit —
    the column shows one thing or the other. */
-
 
 /* The guidance itself is bounded and scrolls inside its own box. This is the
    one scroll the product allows: a panel that owns its overflow, rather than a
@@ -12756,8 +12717,6 @@ button.primary,
 }
 .tk-highlights-empty .tk-action {
   margin-top: 4px;
-}
-@media (min-width: 1040px) {
 }
 .tk-feature-kind {
   margin: 0 0 8px;
@@ -13006,7 +12965,6 @@ button.primary,
    below them moves when a panel opens, and no state can borrow another's
    space. */
 
-
 /* The trigger keeps its own row and its own line. It used to sit in the flow
    directly above the panel body, so an open panel put its first paragraph
    underneath the button. */
@@ -13148,8 +13106,6 @@ button.primary,
    remove. Equal, shrinkable columns keep them together and keep the card
    rectangular. */
 .tk-fact .tracker-condition { font-size: 0.78rem; }
-@media (max-width: 1320px) {
-}
 
 /* ================================================= Tracker Phase 2: reflow
 
@@ -13273,9 +13229,6 @@ button.primary,
 .tk-month-detail:focus-visible {
   outline: 3px solid var(--tk-focus);
   outline-offset: 3px;
-}
-
-@media (max-width: 1179px) {
 }
 
 @media (max-width: 1039px) {
@@ -14156,110 +14109,10 @@ button.primary,
   font-size: 0.7rem;
   line-height: 1.5;
 }
-
-/* --- the ranked list ------------------------------------------------------ */
-
-.tk-relevant { margin: 0; }
-.tk-relevant-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.tk-relevant-head h2 {
-  margin: 0;
-  color: var(--tk-ink);
-  font-family: var(--tk-display);
-  font-size: 1.25rem;
-  font-weight: 400;
-}
-.tk-relevant-head p { margin: 0; color: var(--tk-ink-faint); font-size: 0.82rem; }
-
-.tk-relevant-list {
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--tk-line);
-  border-radius: 12px;
-  background: var(--tk-panel);
-  list-style: none;
-  overflow: hidden;
-}
-.tk-relevant-list li + li { border-top: 1px solid var(--tk-line); }
-
-.tk-relevant-row {
-  display: grid;
-  grid-template-columns: 34px 76px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 92px 20px;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  border: 0;
-  background: none;
-  padding: 9px 14px;
-  color: var(--tk-ink-soft);
-  font-family: var(--tk-body);
-  font-size: 0.88rem;
-  text-align: left;
-  cursor: pointer;
-}
-.tk-relevant-row:hover { background: rgba(126, 166, 207, 0.06); }
-.tk-relevant-row[aria-current="true"] { background: var(--tk-violet-soft); }
-
-.tk-relevant-row:not(:has(.tk-relevant-rank)) {
-  grid-template-columns: 56px minmax(0, 1fr) auto auto 16px;
-}
-.tk-relevant-rank {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--tk-line);
-  border-radius: 7px;
-  color: var(--tk-ink-dim);
-  font-family: var(--tk-mono);
-  font-size: 0.78rem;
-}
-.tk-relevant-thumb {
-  position: relative;
-  overflow: hidden;
-  width: 76px;
-  height: 40px;
-  border-radius: 6px;
-  background: #060a14;
-}
-.tk-relevant-thumb .tracker-media { position: absolute; inset: 0; }
-.tk-relevant-thumb img,
-.tk-relevant-thumb svg { width: 100%; height: 100%; object-fit: cover; }
 /* A planet portrait is an object on a large black field, and `contain` in a
    76×40 box renders it as a speck. The frame is far too small for the "do not
    crop Saturn's rings" rule that governs the hero to matter — a horizontal
    slice through the middle of a planet is the recognisable part of it. */
-.tk-relevant-thumb .tracker-media-subject img { transform: scale(2.1); }
-.tk-relevant-name { color: var(--tk-ink); min-width: 0; }
-.tk-relevant-state,
-.tk-relevant-window {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--tk-ink-dim);
-  min-width: 0;
-}
-.tk-relevant-window svg { flex: none; color: var(--tk-ink-faint); }
-.tk-relevant-dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--tk-ink-faint);
-}
-.tk-relevant-dot.is-good { background: var(--tk-good); }
-.tk-relevant-dot.is-fair { background: var(--tk-fair); }
-.tk-relevant-dot.is-poor { background: var(--tk-poor); }
-.tk-relevant-quality { color: var(--tk-ink-dim); }
-.tk-relevant-quality.is-good { color: var(--tk-good); }
-.tk-relevant-quality.is-fair { color: var(--tk-fair); }
-.tk-relevant-quality.is-poor { color: var(--tk-poor); }
-.tk-relevant-chevron { color: var(--tk-ink-faint); }
 
 /* --- the drill-in --------------------------------------------------------- */
 
@@ -14454,10 +14307,6 @@ button.primary,
 @media (max-width: 1180px) {
   .tk-main-row { grid-template-columns: minmax(0, 1fr); }
   .tk-viz-slot { min-height: 300px; }
-  .tk-relevant-row {
-    grid-template-columns: 30px 64px minmax(0, 1.4fr) minmax(0, 1fr) 84px 18px;
-  }
-  .tk-relevant-state { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -14489,36 +14338,6 @@ button.primary,
   .tk-page { padding: 14px 14px 40px; }
   .tk-hero-metrics { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .tk-metric + .tk-metric { border-left: 0; border-top: 1px solid var(--tk-line); padding-left: 0; padding-top: 12px; }
-  /* The row keeps every variable a decision is made on.
-  
-     It previously dropped the observing window and the visibility on a phone
-     and kept the state label — which is to say it kept "Visible tonight" and
-     threw away *when* and *whether it is worth it*. Somebody choosing what to
-     look at needs what, when, how good, and why it ranks there; the thumbnail
-     is the only one of those that is decoration, so the thumbnail is what
-     shrinks. */
-  .tk-relevant-row {
-    grid-template-columns: 24px 44px minmax(0, 1fr) 16px;
-    row-gap: 2px;
-    padding: 10px 12px;
-  }
-  .tk-relevant-thumb { width: 100%; height: 30px; }
-  .tk-relevant-name { grid-column: 3; font-size: 0.9rem; }
-  /* Second line, under the name, carrying the three decision variables. */
-  .tk-relevant-state,
-  .tk-relevant-window,
-  .tk-relevant-quality {
-    display: inline-flex;
-    align-items: center;
-    grid-column: 3;
-    font-size: 0.78rem;
-  }
-  .tk-relevant-state { grid-row: 2; }
-  .tk-relevant-window { grid-row: 3; gap: 5px; }
-  .tk-relevant-quality { grid-row: 4; }
-  .tk-relevant-chevron { grid-column: 4; grid-row: 1 / -1; }
-  .tk-relevant-rank { grid-row: 1 / -1; }
-  .tk-relevant-thumb { grid-row: 1 / -1; align-self: start; }
   .tk-hero-body { padding: 18px; }
 }
 
@@ -14796,16 +14615,6 @@ button.primary,
 
 /* The list keeps every row visible: it is the ranking, and a ranking with its
    tail cut off is the thing this rule exists to prevent. */
-.tk-page.tk-tonight .tk-relevant,
-.tk-page[data-mode="upcoming"] .tk-relevant {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-}
-.tk-page.tk-tonight .tk-relevant-list,
-.tk-page[data-mode="upcoming"] .tk-relevant-list {
-  min-height: 0;
-}
 
 /* Compaction, in the places that cost nothing legible. */
 .tk-page.tk-tonight .tk-page-heading,
@@ -14815,14 +14624,6 @@ button.primary,
   margin-bottom: 2px;
   font-size: clamp(1.5rem, 2.4vh, 2rem);
 }
-.tk-page.tk-tonight .tk-relevant-head,
-.tk-page[data-mode="upcoming"] .tk-relevant-head { margin-bottom: 6px; }
-.tk-page.tk-tonight .tk-relevant-row,
-.tk-page[data-mode="upcoming"] .tk-relevant-row {
-  padding: 6px 12px;
-}
-.tk-page.tk-tonight .tk-relevant-thumb,
-.tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 34px; }
 .tk-page.tk-tonight .tk-condition-card,
 .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 10px 12px; }
 .tk-page.tk-tonight .tk-conditions-caption,
@@ -14894,12 +14695,6 @@ button.primary,
   .tk-page[data-mode="upcoming"] .tk-main-row {
     min-height: 200px;
   }
-  .tk-page.tk-tonight .tk-relevant-row,
-  .tk-page[data-mode="upcoming"] .tk-relevant-row {
-    padding: 4px 12px;
-  }
-  .tk-page.tk-tonight .tk-relevant-thumb,
-  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 30px; }
   .tk-page.tk-tonight .tk-condition-card,
   .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 8px 12px; }
   .tk-page.tk-tonight .tk-conditions-caption,
@@ -14936,10 +14731,6 @@ button.primary,
   }
   .tk-page.tk-tonight .tk-hero-actions,
   .tk-page[data-mode="upcoming"] .tk-hero-actions { margin-top: 10px; }
-  .tk-page.tk-tonight .tk-relevant-row,
-  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 3px 12px; }
-  .tk-page.tk-tonight .tk-relevant-thumb,
-  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 28px; }
 }
 
 /* The last of the spacing, to bring the contract down to a 900px laptop.
@@ -15104,10 +14895,6 @@ button.primary,
   .tk-page[data-mode="upcoming"] .tk-hero-expect { margin-top: 6px; font-size: 0.74rem; }
 
   /* And a little more from the fixed regions, to hand it to the hero. */
-  .tk-page.tk-tonight .tk-relevant-row,
-  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 2px 12px; }
-  .tk-page.tk-tonight .tk-relevant-thumb,
-  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 24px; }
   .tk-page.tk-tonight .tk-condition-card,
   .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 6px 10px; }
   .tk-page.tk-tonight .tk-page-heading,
@@ -15138,10 +14925,6 @@ button.primary,
 @media (min-height: 720px) and (max-height: 779px) and (min-width: 900px) {
   .tk-page.tk-tonight:not(.tk-quiet) .tk-page-heading p,
   .tk-page[data-mode="upcoming"]:not(.tk-quiet) .tk-page-heading p { display: none; }
-  .tk-page.tk-tonight .tk-relevant-row,
-  .tk-page[data-mode="upcoming"] .tk-relevant-row { padding: 1px 12px; }
-  .tk-page.tk-tonight .tk-relevant-thumb,
-  .tk-page[data-mode="upcoming"] .tk-relevant-thumb { height: 22px; }
   .tk-page.tk-tonight .tk-condition-card,
   .tk-page[data-mode="upcoming"] .tk-condition-card { padding: 5px 10px; }
   .tk-page.tk-tonight .tk-conditions-caption,
@@ -15221,7 +15004,6 @@ button.primary,
 @media (max-width: 900px) {
   .tk-howto-row { grid-template-columns: minmax(0, 1fr); }
 }
-
 
 /* The expectation note is clamped rather than hidden.
    It was briefly behind a disclosure, which bought 56px and cost the reader the
@@ -15413,7 +15195,6 @@ button.primary,
 }
 /* The distance disclaimer travels with every distance shown. */
 .tk-dest-note { color: var(--tk-ink-faint, var(--tk-ink-dim)); }
-
 
 /* --------------------------------------------------- Tracker, map-first ---
 
@@ -16242,33 +16023,20 @@ button.primary,
 }
 
 /**
- * The way back sits beside the heading, not on top of it.
+ * The way back is the page's first row, not a pill floating over it.
  *
- * It floats rather than sitting in the flow, because the event page is laid out
- * to fit a viewport exactly and a control in the flow above it pushed the last
- * ranked row off every screen. But floating it over the top-left corner put it
- * squarely on the category heading — "Planets" was underneath "Back to the
- * map". Indenting the heading past it turns a collision into the ordinary
- * back-then-title pattern, and costs no height at all.
+ * It used to be absolutely positioned in the top-left corner, which put it
+ * squarely on top of the category heading — "Planets" underneath "Back to the
+ * map" — and the fix at the time was to indent the heading 168 pixels past it.
+ * That number was the width of one particular English label, so the page's
+ * title stood a hundred and sixty-eight pixels to the right of the hero, the
+ * conditions and everything else, and a longer translation would have collided
+ * again anyway.
+ *
+ * In the flow it costs one short row and every element on the page shares one
+ * left edge, which is the whole of what an aligned page means here.
  */
-.tk-map-detail-back {
-  position: absolute;
-  top: 20px;
-  left: clamp(12px, 2vw, 24px);
-  z-index: 2;
-  margin: 0;
-  padding: 6px 11px;
-  border-radius: 9px;
-  background: var(--tk-glass-solid, rgba(13, 17, 28, 0.95));
-  border: 1px solid var(--tk-glass-line, rgba(126, 152, 190, 0.16));
-  backdrop-filter: blur(10px);
-  font-size: 0.82rem;
-}
-.tk-map-detail .tk-page-heading { padding-left: 168px; }
-@media (max-width: 720px) {
-  /* On a phone the heading gets the row to itself; there is not width for both. */
-  .tk-map-detail .tk-page-heading { padding-left: 0; padding-top: 34px; }
-}
+.tk-map-detail .tk-back { margin-bottom: 12px; }
 
 /* --- narrow screens: the panel becomes a sheet, the map stays the base ---- */
 
