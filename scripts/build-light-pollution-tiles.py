@@ -60,6 +60,7 @@ it. `--source` accepts the file documented in provenance/inventory.json under
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import math
@@ -312,11 +313,13 @@ def main() -> int:
 
     index: dict[str, list[int]] = {}
     offset = 0
+    digest = hashlib.sha256()
     with blob_path.open("wb") as blob:
         for z in range(0, MAX_ZOOM + 1):
             for (x, y), tile in sorted(levels[z].items()):
                 data = encode(tile)
                 blob.write(data)
+                digest.update(data)
                 index[f"{z}/{x}/{y}"] = [offset, len(data)]
                 offset += len(data)
 
@@ -328,6 +331,11 @@ def main() -> int:
         "unit": "nW/cm2/sr",
         "scale": 10,
         "blob": f"{args.name}.bin",
+        # The blob's own checksum, so a copy served from object storage can be
+        # proved identical to the one this script wrote. Tiles are emitted in a
+        # fixed order from a sorted key list, so the same source produces the
+        # same bytes and therefore the same digest.
+        "blobSha256": digest.hexdigest(),
         "bytes": offset,
         "tiles": len(index),
         "source": {

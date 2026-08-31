@@ -33,8 +33,39 @@
  * product and the reader's screen has to guess.
  */
 
-/** Where the vendored archive and its index live, relative to the site root. */
-export const LIGHT_POLLUTION_INDEX = "/tracker/light-pollution-v21-2024.json";
+/**
+ * The archive's file name, which carries its provenance.
+ *
+ * `v21` is the EOG product version and `2024` the composite year, so the object
+ * is self-describing wherever it is served from and a new year is a new object
+ * rather than an overwrite. That is what makes the URL safe to cache forever.
+ */
+export const LIGHT_POLLUTION_ARCHIVE = "light-pollution-v21-2024.json";
+
+/**
+ * Where the archive is served from.
+ *
+ * The numeric archive is ~46 MB, which is more than a static-asset bundle
+ * should carry and more than several hosts will accept at all, so production
+ * serves it from object storage — Cloudflare R2 — while development serves the
+ * file sitting in `public/tracker/`. Set `VITE_LIGHT_POLLUTION_BASE` to the
+ * bucket's public base URL at build time and both the index and the blob beside
+ * it are read from there; leave it unset and the local copy is used.
+ *
+ * A base rather than a full URL, because the index names the blob relative to
+ * itself: the two objects have to stay together, and one setting is one fewer
+ * way for them to come apart. `docs/LIGHT_POLLUTION_DELIVERY.md` has the upload
+ * and CORS steps, including the `Content-Range` exposure that byte-range reads
+ * need.
+ */
+function archiveBase(): string {
+  const configured = import.meta.env.VITE_LIGHT_POLLUTION_BASE?.trim();
+  if (!configured) return "/tracker/";
+  return configured.endsWith("/") ? configured : `${configured}/`;
+}
+
+/** Where the archive's index lives, local or remote. */
+export const LIGHT_POLLUTION_INDEX = `${archiveBase()}${LIGHT_POLLUTION_ARCHIVE}`;
 
 /**
  * The credit the map shows while this layer is on.
@@ -50,7 +81,11 @@ export const LIGHT_POLLUTION_ATTRIBUTION =
 /** Radiance below this is indistinguishable from the composite's noise floor. */
 export const DETECTION_FLOOR = 0.25;
 
+/** The archive layout this client understands; see the build script. */
+const ARCHIVE_FORMAT = "tracker-light-pollution/1";
+
 interface ArchiveHeader {
+  format: string;
   tileSize: number;
   maxZoom: number;
   scale: number;
@@ -92,6 +127,21 @@ export async function loadLightPollution(
   const response = await fetch(indexUrl, { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`light pollution index ${response.status}`);
   const header = (await response.json()) as ArchiveHeader;
+  /**
+   * Refuse an archive this code does not know how to read.
+   *
+   * The index and the client agree on a good deal that is nowhere in the
+   * numbers: that radiance is split across the red and green channels, that
+   * `scale` divides it, that offsets address PNGs. A future archive that
+   * changes any of it would decode into plausible nonsense — wrong values,
+   * silently, on a map whose whole purpose is to be trusted about how dark a
+   * place is. The format string is the one thing that can catch it, and a
+   * version the reader's build does not understand is a reason to say nothing
+   * rather than to say something wrong.
+   */
+  if (header.format !== ARCHIVE_FORMAT) {
+    throw new Error(`light pollution archive format ${header.format ?? "unknown"}`);
+  }
   const blobUrl = new URL(header.blob, new URL(indexUrl, location.href)).toString();
 
   /**
@@ -120,7 +170,10 @@ export async function loadLightPollution(
           headers: { Range: `bytes=${offset}-${offset + length - 1}` },
           signal: AbortSignal.timeout(20_000),
         });
-        if (!tileResponse.ok) return null;
+        // Same reasoning as the `catch` below: a 503 from a CDN is a bad
+        // moment, not a measurement, and it must not become this tile's answer
+        // for the rest of the session.
+        if (!tileResponse.ok) throw new Error(`light pollution tile ${tileResponse.status}`);
         const bitmap = await createImageBitmap(await tileResponse.blob());
         const canvas = document.createElement("canvas");
         canvas.width = bitmap.width;

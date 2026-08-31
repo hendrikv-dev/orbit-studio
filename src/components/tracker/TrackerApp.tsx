@@ -2513,13 +2513,20 @@ function TrackerScreen() {
               else next.add(layer);
               navigate({ layers: [...next] });
             }}
-            unavailable={
-              selectedDate !== today
+            unavailable={{
+              ...(selectedDate !== today
                 ? { aurora: "Forecast only reaches tonight" }
                 : auroraGrid
                   ? {}
-                  : { aurora: "No current forecast available" }
-            }
+                  : { aurora: "No current forecast available" }),
+              /**
+               * The archive is a large object served from elsewhere, and
+               * elsewhere can be down. Saying so is the difference between a
+               * layer that is off and a layer that looks on and draws nothing —
+               * which, for this one, would read as "no artificial light here".
+               */
+              ...(lightPollution.isError ? { "light-pollution": "Measurements unavailable" } : {}),
+            }}
             eventOverlayLabel={selectedEvent ? overlayTitle(selectedEvent) : null}
             onClearEvent={() => navigate({ event: null })}
             onOpenChange={setLayersOpen}
@@ -2551,7 +2558,7 @@ function TrackerScreen() {
 
       {/* The key to the one layer whose colour is a measured number. Only while
           that layer is on, and never over a detail page. */}
-      {activeLayers.has("light-pollution") && !detailOpen ? (
+      {activeLayers.has("light-pollution") && !detailOpen && !lightPollution.isError ? (
         <TrackerMapLightLegend radiance={lightHere.data ?? null} />
       ) : null}
 

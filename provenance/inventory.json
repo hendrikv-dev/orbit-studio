@@ -1495,9 +1495,9 @@
       },
       "localSha256": {
         "public/tracker/light-pollution-v21-2024.bin": "8679b8f1f695e5c2df69c6bf10b54c42f9051aa0801d7ef2d2db77deeb70ec8d",
-        "public/tracker/light-pollution-v21-2024.json": "9f6e212403cb872185a2e6a1e6a2161f0e7d37f5a56445bef3b62e1d1aae1ae2",
-        "scripts/build-light-pollution-tiles.py": "56099ab645b0f932fbed8b7b4824b89f4b2b390b915e43b85232ab67031ce628",
-        "src/data/tracker/lightPollution.ts": "0406bde8b0474894ff7f3ea43547f4d00aeb0a25ea8d84c9258558dc6138d14c"
+        "public/tracker/light-pollution-v21-2024.json": "1d974acc36226ccbd261906abe01c0b17b9031e4d2e1a672b5154d74f082413d",
+        "scripts/build-light-pollution-tiles.py": "c3ae8d1376b1bd209b37487c0f879f9c608b40afbce785f1ed32a7cfa3f6c028",
+        "src/data/tracker/lightPollution.ts": "832a745aa9bf44aafb765ba11a58d08b8b4b693adf4826451f62acf8e1373948"
       },
       "processing": [
         "Obtained from the Zenodo redistribution rather than from EOG directly, because eogdata.mines.edu now requires an account: every path under it, including direct file URLs, 302-redirects to a Keycloak sign-in. The Zenodo record is CC BY 4.0 and states that its 2012-2024 layers are the Annual VNL V2 images of Elvidge et al. (2021); only its pre-2012 layers are extrapolated, and none of those are used here. Swapping in EOG's own average_masked GeoTIFF is a one-argument change to the build script for anyone who holds an account.",

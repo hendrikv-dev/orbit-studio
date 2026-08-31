@@ -168,6 +168,17 @@ Ko-fi, Open Collective, or enabled GitHub Sponsors destination. The Support and 
 hidden when the variable is unset, so the public build never ships a dead or invented payment link.
 See `.env.example`.
 
+## Light-pollution archive
+
+Tracker's light-pollution layer reads measured VIIRS radiance from a 47.8 MB
+numeric archive. It is generated data: the repository carries the index, the
+build script, the source and its checksum, and `.gitignore` excludes the blob.
+Production serves it from Cloudflare R2 rather than the static bundle — set
+`VITE_LIGHT_POLLUTION_BASE` to the bucket's public base URL at build time, and
+leave it unset for development, which reads the copy in `public/tracker/`.
+`docs/LIGHT_POLLUTION_DELIVERY.md` has the format, the build, the upload and
+CORS steps, and how to verify a published archive.
+
 ## License
 
 Source code is released under the MIT License. See `LICENSE`.
