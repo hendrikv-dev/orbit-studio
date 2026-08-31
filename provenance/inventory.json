@@ -1548,7 +1548,7 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "a493cf65e145fcb1b261c13713b7037169566d6fbc65f1d409cd52c58337e4be"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "8aba900919783eb9bbe03ff8d022366e43301dd3a161032c2d321510a5618ce0"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",

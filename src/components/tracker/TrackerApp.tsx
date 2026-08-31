@@ -2214,6 +2214,32 @@ function TrackerScreen() {
   useDismissableSurface(expandedCardId !== null, collapseCard);
 
   /**
+   * Where the reader should be facing for the card they have open.
+   *
+   * Taken from the card's own instruction rather than derived again. The
+   * instruction reads the sky at the *recommended* moment, not at the night's
+   * best — deliberately, because those differ on any night whose peak hour is
+   * clouded out, and moving the window is the whole point. A cue computed from
+   * the peak instead would point somewhere the card is not sending anybody,
+   * which is worse than no cue: a reader who goes outside and finds the map
+   * disagreeing with the card has been told two directions by one product.
+   *
+   * Null for a meteor shower even when its radiant is up and has a bearing.
+   * The radiant is where the trails appear to come *from*; staring at it is
+   * the commonest mistake in meteor watching, because trails there are head-on
+   * and almost pointlike. The card says "Whole sky" and tells the reader to
+   * look half the sky away from it, and an arrow on the map would undo that
+   * sentence. Only a path you actually point at gets a cue.
+   */
+  const observingBearing = useMemo(() => {
+    if (!expandedCard) return null;
+    const instruction = expandedCard.presentation.where;
+    if (!instruction || instruction.azimuthDeg === null) return null;
+    const path = skyPathFor(expandedCard.opportunity, expandedCard.window);
+    return path?.kind === "target" ? instruction.azimuthDeg : null;
+  }, [expandedCard]);
+
+  /**
    * Terrain for the expanded card, and only for it.
    *
    * Keyed on the card and the place, so panning and zooming never trigger a
@@ -2256,7 +2282,7 @@ function TrackerScreen() {
        */
       if (!path || path.kind === "rate") return null;
       const best =
-        path.points.reduce<typeof path.points[number] | null>(
+        path.points.reduce<(typeof path.points)[number] | null>(
           (top, point) => (!top || point.relative > top.relative ? point : top),
           null,
         ) ?? path.points[0];
@@ -2432,6 +2458,7 @@ function TrackerScreen() {
         }
         pin={location.pin}
         pinLabel={namedPlace ? shortPlaceName(namedPlace) : null}
+        bearingDeg={observingBearing}
         daylightAt={now}
         auroraGrid={auroraGrid}
         lightPollution={lightPollution.data ?? null}

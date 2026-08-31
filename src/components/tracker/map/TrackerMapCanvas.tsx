@@ -108,6 +108,13 @@ interface Props {
   /** A decision: this is the place now. No confirmation step. */
   onPick: (point: MapPoint) => void;
   pin: MapPoint | null;
+  /**
+   * Which way to face for the event the reader has open, in degrees from north.
+   *
+   * Null whenever there is no such direction — nothing open, the object below
+   * the horizon, or a meteor shower, whose meteors arrive over the whole sky.
+   */
+  bearingDeg?: number | null;
   /** What to call the selected point, beside the target. Null while unknown. */
   pinLabel: string | null;
   /** When to draw the night for, or null to leave the map undarkened. */
@@ -159,6 +166,7 @@ export function TrackerMapCanvas({
   onPick,
   pin,
   pinLabel,
+  bearingDeg = null,
   daylightAt,
   auroraGrid,
   lightPollution,
@@ -443,7 +451,9 @@ export function TrackerMapCanvas({
         // The name belongs *on* the map, next to the point it names. Without it
         // the target says "somewhere is selected" and the panel says which
         // place, and joining the two is left to the reader.
-        '<span class="tk-map-target-label"></span>';
+        '<span class="tk-map-target-label"></span>' +
+        // Which way to face, drawn from the point the reader is standing on.
+        '<span class="tk-map-target-bearing" aria-hidden="true"></span>';
       marker.current = new Marker({ element, anchor: "center" });
       markerEpoch.current = epoch;
       marker.current.setLngLat([pin.longitudeDeg, pin.latitudeDeg]).addTo(instance);
@@ -461,6 +471,31 @@ export function TrackerMapCanvas({
     const element = marker.current?.getElement().querySelector(".tk-map-target-label");
     if (element) element.textContent = pinLabel ?? "";
   }, [pinLabel, pin?.latitudeDeg, pin?.longitudeDeg, epoch]);
+
+  /**
+   * The direction to face, as a wedge on the pin.
+   *
+   * Screen space, not geography, and that is the point. A ray drawn on the
+   * ground would have a length, and a length on a map is a distance — it would
+   * say the planet is forty kilometres to the south-west, which is not a thing
+   * anyone should be told. A fixed-size wedge that fades out says only "this
+   * way", stays the same size at every zoom, and never lands on a place.
+   *
+   * A plain CSS rotation is the bearing because the map's own bearing is always
+   * zero: rotation is disabled, north is up, and screen-up is north.
+   */
+  useEffect(() => {
+    const element = marker.current
+      ?.getElement()
+      .querySelector<HTMLElement>(".tk-map-target-bearing");
+    if (!element) return;
+    if (bearingDeg === null || !Number.isFinite(bearingDeg)) {
+      element.dataset.on = "false";
+      return;
+    }
+    element.dataset.on = "true";
+    element.style.setProperty("--tk-bearing", `${bearingDeg}deg`);
+  }, [bearingDeg, pin?.latitudeDeg, pin?.longitudeDeg, epoch]);
 
   /**
    * Twilight, as geography rather than a filter over the whole page.

@@ -838,6 +838,121 @@ async function main() {
     await context.close();
   }
 
+  /* --- which way to face ------------------------------------------------- */
+  console.log("\nObserving direction");
+  {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=9`, { waitUntil: "domcontentloaded" });
+    await settled(page, 1500);
+
+    const wedge = () =>
+      page.evaluate(() => {
+        const element = document.querySelector(".tk-map-target-bearing");
+        if (!element) return null;
+        const box = element.getBoundingClientRect();
+        return {
+          on: element.dataset.on === "true",
+          bearing: Number.parseFloat(element.style.getPropertyValue("--tk-bearing")),
+          width: Math.round(box.width),
+          height: Math.round(box.height),
+        };
+      });
+
+    check((await wedge())?.on === false, "no direction is drawn until a card is open");
+
+    // The first card is a planet or the Moon on any ordinary night: something
+    // with a place in the sky to point at.
+    await page.locator(".tk-rail-card-head").first().click();
+    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
+    await page.waitForTimeout(1200);
+
+    const open = await wedge();
+    check(open?.on === true, "opening a card the reader can point at draws one");
+
+    /**
+     * The map and the card have to name the same direction.
+     *
+     * They are two derivations of one fact, and they diverged once already:
+     * the card reads the sky at the *recommended* moment while an earlier
+     * version of the cue read it at the night's best, which put the wedge due
+     * south of a card that said south-east. A reader who goes outside and finds
+     * the map disagreeing with the card has been told two directions by one
+     * product.
+     */
+    const said = await page
+      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-facts li')
+      .last()
+      .innerText();
+    const cardinal = said.replace(/\s+/g, " ").match(/\b(N|NE|E|SE|S|SW|W|NW)\b/)?.[1] ?? null;
+    const expected = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
+      Math.round(((open?.bearing ?? 0) % 360) / 45) % 8
+    ];
+    check(
+      cardinal !== null && cardinal === expected,
+      `the wedge points where the card says (${cardinal ?? "no compass point"} on the card, ${expected} on the map)`,
+    );
+
+    /**
+     * The same size at every zoom, because it is a heading and not a distance.
+     *
+     * Drawn as geography it would have a length, and a length on a map says the
+     * planet is forty kilometres to the south-west. Fixed screen size is what
+     * makes that reading impossible.
+     */
+    await page.evaluate(() => window.__trackerMap.zoomTo(4, { duration: 0 }));
+    await page.waitForTimeout(1500);
+    const zoomedOut = await wedge();
+    check(
+      zoomedOut?.width === open?.width && zoomedOut?.height === open?.height,
+      `zooming out does not change its size (${open?.width}x${open?.height} at z9, ${zoomedOut?.width}x${zoomedOut?.height} at z4)`,
+    );
+
+    await context.close();
+  }
+
+  /* --- a shower has no direction to face --------------------------------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    // The Perseid maximum, from a latitude where the shower is genuinely good.
+    await page.goto(`${TRACKER}&date=2027-08-12&at=45.5,-122.7&z=8`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 1500);
+    await page.waitForTimeout(4000);
+    await page.locator(".tk-rail-card-head").first().click();
+    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
+    await page.waitForTimeout(1200);
+
+    const name = await page
+      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-card-name')
+      .innerText();
+    check(/perseid/i.test(name), `the shower leads its own peak night ("${name}")`);
+    const said = await page
+      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-card-where')
+      .innerText();
+    check(/whole sky/i.test(said), `and the card says to take in the whole sky ("${said}")`);
+    /**
+     * No arrow for a radiant, even though the radiant has a bearing.
+     *
+     * Staring at the radiant is the commonest mistake in meteor watching —
+     * trails there are head-on and almost pointlike — and the card's own
+     * sentence tells the reader to look half the sky away from it. An arrow
+     * would undo that sentence.
+     */
+    const on = await page.evaluate(
+      () => document.querySelector(".tk-map-target-bearing")?.dataset.on === "true",
+    );
+    check(!on, "and the map does not point at the radiant anyway");
+
+    await context.close();
+  }
+
   /* --- world wrap with overlays ----------------------------------------- */
   console.log("\nOverlays across the antimeridian");
   {

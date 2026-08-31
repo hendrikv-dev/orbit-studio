@@ -16431,6 +16431,44 @@ button.primary,
 }
 .tk-map-target-label:empty { display: none; }
 
+/* --- which way to face ---------------------------------------------------
+
+   A wedge from the pin, in screen space rather than on the ground. A ray drawn
+   as geography would have a length, and a length on a map is a distance — it
+   would be telling the reader that Saturn is forty kilometres to the
+   south-west. This has the same size at every zoom, fades out rather than
+   ending anywhere, and so can only be read as a heading.
+
+   Quiet on purpose: it is a hint attached to a card the reader already opened,
+   not a thing to notice before the geography. It appears only when the open
+   card has a real bearing, which excludes meteor showers and anything below
+   the horizon. */
+.tk-map-target-bearing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38px;
+  height: 96px;
+  /* Apex on the pin, widening away from it, rotated to the bearing. North is
+     up because the map's own bearing is fixed at zero. */
+  transform: translate(-50%, -100%) rotate(var(--tk-bearing, 0deg));
+  transform-origin: 50% 100%;
+  clip-path: polygon(50% 100%, 100% 4%, 0% 4%);
+  background: linear-gradient(
+    to top,
+    rgba(147, 167, 255, 0.34) 0%,
+    rgba(147, 167, 255, 0.16) 46%,
+    rgba(147, 167, 255, 0) 100%
+  );
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+.tk-map-target-bearing[data-on="true"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .tk-map-target-bearing { transition: none; }
+}
+
 /* --- the layer control, and finding an event ----------------------------- */
 
 /* One control that opens a panel, rather than a chip per layer. A row of chips
