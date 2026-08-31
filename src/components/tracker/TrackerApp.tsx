@@ -414,7 +414,14 @@ export function TrackerApp() {
 }
 
 /** What the hero is currently showing, and where it came from. */
-type Overlay = null | "sky-map" | "field-map";
+/**
+ * The only drill-in left is the sky chart.
+ *
+ * "View visibility map" used to open a second one — a modal containing a larger
+ * copy of the panel beside it. It goes to the map now, which is where the
+ * geography actually lives, so there is nothing to expand.
+ */
+type Overlay = null | "sky-map";
 
 interface TonightEvent {
   id: string;
@@ -610,12 +617,7 @@ function TrackerScreen() {
   );
 
   const selectedId = location.detail;
-  const overlay: Overlay =
-    location.detail && location.drill === "sky"
-      ? "sky-map"
-      : location.detail && location.drill === "field"
-        ? "field-map"
-        : null;
+  const overlay: Overlay = location.detail && location.drill === "sky" ? "sky-map" : null;
 
   /**
    * A place the reader is asking about on the expanded map.
@@ -624,13 +626,6 @@ function TrackerScreen() {
    * has exactly one writer, the place picker, and this is a question rather
    * than a move. Cleared when the map closes.
    */
-  const [inspected, setInspected] = useState<{
-    latitudeDeg: number;
-    longitudeDeg: number;
-  } | null>(null);
-  useEffect(() => {
-    if (location.drill !== "field") setInspected(null);
-  }, [location.drill]);
 
   // Read by the plan-identity effect, which must not re-run when the reader
   // picks a different event — only when the night itself changes.
@@ -648,6 +643,8 @@ function TrackerScreen() {
   const [layersOpen, setLayersOpen] = useState(false);
   /** The place control's trigger, so a local search can send the reader to it. */
   const placeTrigger = useRef<HTMLButtonElement>(null);
+  /** Bumped when the reader explicitly asks to be shown the event's geography. */
+  const [frameRequest, setFrameRequest] = useState(0);
   const [now, setNow] = useState(() => new Date());
   /**
    * The instant "today" rolls over on, kept separate from the chosen date.
@@ -1403,127 +1400,81 @@ function TrackerScreen() {
   );
 
   /**
-   * The same eclipse at hemisphere scale, built once and kept.
+   * The catalogue event a rail card corresponds to, where there is one.
    *
-   * Separate from the card's node rather than shared, exactly as the aurora map
-   * is. Sharing one node made the card behind the overlay silently become the
-   * interactive, finely sampled version of itself — a panel that shares a scroll
-   * surface with the page must not capture drags, and the expanded one has the
-   * screen to itself and should.
+   * This is what makes expanding a card change the map rather than merely
+   * highlight the card. An eclipse card and the eclipse overlay are the same
+   * subject reached two ways — through the rail or through event search — so
+   * selecting either has to produce the same state, and the rail resolves its
+   * card to the catalogue entry for the night on screen.
    *
-   * Keying this on `overlay` meant the whole hemisphere was re-derived every
-   * time the drill-in opened — and closing and reopening the same map measured
-   * 15 427 ms in the production build at phone width, worse than the first open
-   * because the browser was also tearing down and rebuilding the field.
-   *
-   * Nothing about the geometry depends on whether the overlay is open: the
-   * eclipse's contact times and the reader's coordinates are the only inputs.
-   * So the cache is keyed on those, `overlay` only decides whether the node is
-   * rendered, and reopening is a lookup. A single entry is enough — the reader
-   * has one event open at a time, and holding the previous event's hemisphere
-   * would be megabytes to save a computation they may never ask for again.
+   * Objects that are simply up have no catalogue entry and no overlay, which is
+   * correct: there is no geography to Saturn being visible.
    */
-  const expandedEclipseCache = useRef<{
-    key: string;
-    value: ReturnType<typeof lunarEclipseGeometry>;
-  } | null>(null);
-
-  /**
-   * The cache key: the eclipse and the place, which are its only inputs.
-   *
-   * Null whenever there is no hemisphere to build, which is how both the warm-up
-   * below and the read at open time agree on when there is nothing to do.
-   */
-  const expandedEclipseKey = useMemo(() => {
-    const science = heroEvent?.entry?.opportunity.science;
-    if (!place || science?.kind !== "lunar-eclipse") return null;
-    return `${science.timing.maximumUtc}|${place.latitude}|${place.longitude}`;
-  }, [heroEvent, place]);
-
-  const buildExpandedEclipse = useCallback(() => {
-    if (!expandedEclipseKey) return null;
-    if (expandedEclipseCache.current?.key !== expandedEclipseKey) {
-      expandedEclipseCache.current = {
-        key: expandedEclipseKey,
-        value: lunarEclipseGeometry(heroEvent, place, "full"),
+  const catalogueEventForCard = useCallback(
+    (cardId: string): string | null => {
+      const kinds: Record<string, "solar-eclipse" | "lunar-eclipse" | "meteor-shower"> = {
+        "solar-eclipse": "solar-eclipse",
+        "lunar-eclipse": "lunar-eclipse",
+        meteors: "meteor-shower",
       };
-    }
-    return expandedEclipseCache.current.value;
-  }, [expandedEclipseKey, heroEvent, place]);
+      const kind = kinds[cardId];
+      if (!kind) return null;
+      const from = new Date(Date.now() - 400 * 86_400_000);
+      const match = catalogue(from).find(
+        (entry) => entry.kind === kind && eventDate(entry, clock.timeZone) === selectedDate,
+      );
+      return match?.id ?? null;
+    },
+    [clock.timeZone, selectedDate],
+  );
 
   /**
-   * ## The warm-up that was tried here, and taken out again
+   * "View visibility map" goes to the map, rather than opening a picture of one.
    *
-   * The obvious next move after the drawing was fixed was to build the
-   * hemisphere before it was asked for: the reader is already looking at a card
-   * labelled "Open full map", and idle time is free. It worked — the longest
-   * task on open fell from 202 ms to 105 ms.
+   * It used to open a modal containing a larger copy of the same drawn panel:
+   * the reader asked for the full geographic view and was handed the thumbnail
+   * at twice the size, with no pan, no zoom, no basemap, no terrain and no
+   * relationship to the map they had come from. Tracker has a real map, the
+   * event overlay is already drawn on it, and the camera already knows how to
+   * frame each phenomenon — so the honest answer to "show me where this
+   * happens" is to take the reader there.
    *
-   * It also broke Escape. The accessibility gate reported that focus no longer
-   * returned to the location picker's trigger when its popover was dismissed,
-   * and the cause was this: React Aria restores focus asynchronously after the
-   * popover unmounts, and a forty-millisecond synchronous block landing in that
-   * window pushes the restore past the moment it is expected. That is not a
-   * test artifact — a reader pressing Escape while the warm-up ran would feel
-   * the same delay, on the control this product's whole entry flow depends on.
+   * Everything arrives in one navigation, which is what makes it feel like a
+   * transition rather than four systems catching up: the detail page closes,
+   * the event is selected so its overlay draws, its card opens on the rail, and
+   * the camera fits the track. It is all in the URL, so it is shareable, and
+   * Back returns to the event page the reader left.
    *
-   * Chunking the geometry would fix it and means restructuring the astronomy;
-   * a worker would fix it and means serialising thirty thousand cells back
-   * across the boundary. Neither is worth a hundred milliseconds on an
-   * interaction that is already well under the threshold where anyone notices.
-   * So the work stays on the open, where it is one task nobody is waiting
-   * through, and the picker keeps its keyboard behaviour.
+   * Aurora goes to the map too, with its own layer switched on. The oval is a
+   * layer here, not an event, and the layer is where it belongs.
    */
-  const lunarEclipseExpanded = useMemo(() => {
-    if (overlay !== "field-map") return null;
-    // A cache hit in the ordinary case; the warm-up above has usually run.
-    return buildExpandedEclipse();
-    // `expandedEclipseKey` is a dependency in substance — `buildExpandedEclipse`
-    // closes over it — and is listed so the memo re-reads when the event changes.
-  }, [buildExpandedEclipse, expandedEclipseKey, overlay]);
-
-  const expandedVisualization = useMemo(() => {
-    if (heroEvent?.id !== "aurora" || !auroraAssessment || !aurora.data?.grid || !place) {
-      return null;
+  const openFullMap = useCallback(() => {
+    if (!heroEvent) return;
+    /**
+     * Asking to be shown where it happens is a request to be shown, again.
+     *
+     * The camera frames an event once and then leaves the map alone, so that
+     * panning is not undone every time something recomputes. But this control
+     * is the reader saying "put me where this is" — and by the time they press
+     * it the event has usually been selected for a while and may have been
+     * panned away from. Bumping the frame request makes the key change without
+     * pretending the event did.
+     */
+    setFrameRequest((count) => count + 1);
+    if (heroEvent.id === "aurora") {
+      const layers = new Set(location.layers);
+      layers.add("aurora");
+      navigate({ detail: null, drill: null, layers: [...layers] });
+      return;
     }
-    return (
-      <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-        <TrackerAuroraMap
-          grid={aurora.data.grid}
-          assessment={auroraAssessment}
-          // Opened out: the oval is continental, and a panel-sized window on it
-          // cannot answer "how far north would I have to go".
-          bounds={{
-            south: Math.max(-90, place.latitude - 38),
-            north: Math.min(90, place.latitude + 38),
-            west: place.longitude - 62,
-            east: place.longitude + 62,
-          }}
-          observer={{
-            latitudeDeg: place.latitude,
-            longitudeDeg: place.longitude,
-            label: place.name,
-          }}
-          clock={clock}
-          onOpenFullMap={null}
-          interactive
-          inspection={{
-            point: inspected,
-            onSelect: (latitudeDeg, longitudeDeg) => setInspected({ latitudeDeg, longitudeDeg }),
-          }}
-          visibility={auroraLocalVisibility}
-        />
-      </Suspense>
-    );
-  }, [
-    aurora.data,
-    auroraAssessment,
-    auroraLocalVisibility,
-    clock,
-    heroEvent?.id,
-    inspected,
-    place,
-  ]);
+    navigate({
+      detail: null,
+      drill: null,
+      event: catalogueEventForCard(heroEvent.id),
+      card: heroEvent.id,
+    });
+  }, [catalogueEventForCard, heroEvent, location.layers, navigate]);
 
   /**
    * A solar eclipse's geography, for the page and its drill-in.
@@ -1549,43 +1500,6 @@ function TrackerScreen() {
       local: localSolarCircumstances(found, place.latitude, place.longitude, centralPath),
     };
   }, [heroEvent, place]);
-
-  /**
-   * The eclipse map at hemisphere scale, for the drill-in.
-   *
-   * Interactive here and inert on the card, for the reason the aurora map is:
-   * a panel sharing a scroll surface with the page must not capture drags, and
-   * this one owns the screen.
-   */
-  const expandedEclipse = useMemo(() => {
-    if (!lunarEclipseExpanded || !place || !heroEvent) return null;
-    return (
-      <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-        <TrackerEclipseMap
-          kind="lunar"
-          title={heroEvent.presentation.title}
-          maximumUtc={lunarEclipseExpanded.timing.maximumUtc}
-          visibility={lunarEclipseExpanded.visibility}
-          local={lunarEclipseExpanded.local}
-          bounds={lunarEclipseExpanded.bounds}
-          observer={{
-            latitudeDeg: place.latitude,
-            longitudeDeg: place.longitude,
-            label: place.name,
-          }}
-          clock={clock}
-          onOpenFullMap={null}
-          interactive
-          inspection={{
-            point: inspected,
-            onSelect: (latitudeDeg, longitudeDeg) => setInspected({ latitudeDeg, longitudeDeg }),
-          }}
-          timing={lunarEclipseExpanded.timing}
-          observerAltitudeDeg={lunarEclipseExpanded.altitudeDeg}
-        />
-      </Suspense>
-    );
-  }, [clock, heroEvent, inspected, lunarEclipseExpanded, place]);
 
   /**
    * The clip that shows what this actually looks like, where one exists.
@@ -1674,7 +1588,7 @@ function TrackerScreen() {
               label: place.name,
             }}
             clock={clock}
-            onOpenFullMap={() => navigate({ drill: "field" })}
+            onOpenFullMap={openFullMap}
             visibility={auroraLocalVisibility}
           />
           </Suspense>
@@ -1731,7 +1645,7 @@ function TrackerScreen() {
               label: place.name,
             }}
             clock={clock}
-            onOpenFullMap={() => navigate({ drill: "field" })}
+            onOpenFullMap={openFullMap}
             interactive={false}
             inspection={null}
             destinations={null}
@@ -1759,7 +1673,7 @@ function TrackerScreen() {
             // Null on the expanded map itself: a control that reopens the thing
             // you are already looking at is the inert-button defect in another
             // costume.
-            onOpenFullMap={() => navigate({ drill: "field" })}
+            onOpenFullMap={openFullMap}
             interactive={false}
             inspection={null}
             timing={lunarEclipseField.timing}
@@ -2152,36 +2066,6 @@ function TrackerScreen() {
     return buildRail(candidates);
   }, [bestTonight, tonightEvents]);
 
-  /**
-   * The catalogue event a rail card corresponds to, where there is one.
-   *
-   * This is what makes expanding a card change the map rather than merely
-   * highlight the card. An eclipse card and the eclipse overlay are the same
-   * subject reached two ways — through the rail or through event search — so
-   * selecting either has to produce the same state, and the rail resolves its
-   * card to the catalogue entry for the night on screen.
-   *
-   * Objects that are simply up have no catalogue entry and no overlay, which is
-   * correct: there is no geography to Saturn being visible.
-   */
-  const catalogueEventForCard = useCallback(
-    (cardId: string): string | null => {
-      const kinds: Record<string, "solar-eclipse" | "lunar-eclipse" | "meteor-shower"> = {
-        "solar-eclipse": "solar-eclipse",
-        "lunar-eclipse": "lunar-eclipse",
-        meteors: "meteor-shower",
-      };
-      const kind = kinds[cardId];
-      if (!kind) return null;
-      const from = new Date(Date.now() - 400 * 86_400_000);
-      const match = catalogue(from).find(
-        (entry) => entry.kind === kind && eventDate(entry, clock.timeZone) === selectedDate,
-      );
-      return match?.id ?? null;
-    },
-    [clock.timeZone, selectedDate],
-  );
-
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(
     () => (railCards.some((card) => card.id === location.card) ? location.card : null),
@@ -2452,7 +2336,7 @@ function TrackerScreen() {
         bearingDeg={observingBearing}
         // Framed once per event, so panning afterwards is the reader's.
         cameraTarget={cameraTarget}
-        cameraKey={selectedEvent?.id ?? null}
+        cameraKey={selectedEvent ? `${selectedEvent.id}#${frameRequest}` : null}
         daylightAt={now}
         auroraGrid={auroraGrid}
         lightPollution={lightPollution.data ?? null}
@@ -2651,11 +2535,21 @@ function TrackerScreen() {
             conditions={conditions}
             conditionsCaption={conditionsCaption(sources)}
             evidenceStatus={environment.status}
-            onPrimaryAction={() =>
-              navigate({
-                drill: heroEvent.presentation.primaryAction.kind === "sky-map" ? "sky" : "field",
-              })
-            }
+            /**
+             * The hero's own control, routed by what it says it is.
+             *
+             * `sky-map` opens the altitude-and-bearing chart, which is a drill
+             * inside this page. Anything geographic goes to the map itself —
+             * the same destination "View visibility map" reaches from the panel
+             * beside it, because they are one question asked twice.
+             */
+            onPrimaryAction={() => {
+              if (heroEvent.presentation.primaryAction.kind === "sky-map") {
+                navigate({ drill: "sky" });
+                return;
+              }
+              openFullMap();
+            }}
             /**
              * The second tool, where the event genuinely has two.
              *
@@ -2812,28 +2706,6 @@ function TrackerScreen() {
             {skyPath && skyPath.kind !== "rate" ? footageNode : null}
           </TrackerOverlay>
 
-          <TrackerOverlay
-            open={overlay === "field-map"}
-            onClose={() => back({ drill: null })}
-            title={
-              heroEvent.id === "aurora" ? "Current auroral oval" : "Visibility map"
-            }
-            subtitle={
-              heroEvent.id !== "aurora"
-                ? "Computed geometry for your location."
-                : auroraAssessment?.freshness === "stale" ||
-                    auroraAssessment?.freshness === "unavailable"
-                  ? // The drill-in inherits the same field the card shows, so it
-                    // inherits the same obligation not to describe an expired
-                    // nowcast as one that is valid for the next half hour.
-                    "NOAA OVATION nowcast, expired. What was last published, not what is happening now."
-                  : "NOAA OVATION nowcast: where the oval is now, valid for about half an hour."
-            }
-          >
-            <div className="tk-overlay-map">
-              {expandedVisualization ?? expandedEclipse ?? visualization}
-            </div>
-          </TrackerOverlay>
         </>
       ) : (
         /**

@@ -4,11 +4,13 @@
  *
  * ## Why the archive is not a static asset
  *
- * It is 47.8 MB of numeric radiance. Cloudflare Pages refuses single assets
- * over 25 MiB, and even where a host accepts it, shipping it inside the
- * deployment bundle means every deploy re-uploads a file that changes once a
- * year. It belongs in object storage, addressed by a versioned name, cached
- * forever, and read a few kilobytes at a time.
+ * It is 47.8 MB of numeric radiance. Keeping it in the repository would put it
+ * in git history forever and re-upload it on every deploy, for data that
+ * changes once a year; keeping it out means the deployed site has no archive at
+ * all unless one is served from somewhere. It belongs in object storage,
+ * addressed by a versioned name, cached forever, and read a few kilobytes at a
+ * time — and object storage is independent of where the site is hosted, so the
+ * same bucket serves a Netlify build and any other.
  *
  * The reader's browser already asks for it that way: the index names a byte
  * offset and length for every tile that exists, and the map fetches exactly
@@ -155,8 +157,10 @@ new year is a new object and these URLs never need to change or be purged.
 
    VITE_LIGHT_POLLUTION_BASE=${base}
 
-   Set it in the Pages project's build environment. Unset, the app reads the
-   copy in public/tracker/, which is what development uses.
+   Set it in the site host's build environment — on Netlify, Site
+   configuration → Environment variables — and redeploy: Vite reads it at build
+   time. Unset, the app reads the copy in public/tracker/, which is what
+   development uses and why the layer works locally without any of this.
 
 6. Prove it
 

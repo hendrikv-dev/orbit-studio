@@ -1237,18 +1237,28 @@ async function main() {
       await shot(page, "10-aurora-tonight", "fresh nowcast");
       captured.aurora = state;
 
-      // The control is "View current oval" now: it opens the OVATION field,
-      // which describes now rather than tonight, and calling it a forecast map
-      // contradicted the panel it opens.
+      /**
+       * "View current oval" goes to the map, with the aurora layer on.
+       *
+       * It used to open a modal holding a bigger copy of the panel beside it.
+       * The oval is a *layer* — it is a field over geography, exactly like
+       * darkness and light pollution — so the place it belongs is the map's
+       * layer list, and asking to see it turns that layer on rather than
+       * building a second map to put it in.
+       */
       await page.getByRole("button", { name: "View current oval" }).click();
-      await page.waitForSelector(".tk-overlay", { timeout: 5000 });
-      await page.waitForTimeout(800);
+      await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+      await page.waitForTimeout(2500);
       check(
-        !/forecast map/i.test(await page.locator(".tk-overlay-panel").innerText()),
-        "the current oval is not presented as a forecast map",
+        (await page.locator(".tk-map-detail").count()) === 0 &&
+          (await page.locator(".tk-overlay").count()) === 0,
+        "the current oval is shown on the map rather than in a modal",
       );
-      await shot(page, "11-aurora-current-oval", "the current oval, expanded");
-      await page.keyboard.press("Escape");
+      check(
+        (new URL(page.url()).searchParams.get("layers") ?? "").includes("aurora"),
+        "and the aurora layer is switched on, in the URL",
+      );
+      await shot(page, "11-aurora-current-oval", "the current oval, as a map layer");
       await page.close();
       await context.close();
     }
@@ -2557,115 +2567,47 @@ async function main() {
     }
   }
   if (isEclipse) {
-
-    // "View visibility map" must open the geographic map. It used to open the
-    // altitude chart, which is a different tool answering a different question.
+    /**
+     * "View visibility map" goes to the map, and the map is the real one.
+     *
+     * It used to open a modal holding a larger copy of the panel beside it —
+     * the reader asked for the full geographic view and was handed the
+     * thumbnail at twice the size, with no pan, no zoom, no basemap and no
+     * relationship to the map they had come from. Everything below asserts a
+     * consequence: the detail page closes, the event's overlay is on the map,
+     * the camera framed it, the URL describes all of it, and Back returns to
+     * the page the reader left.
+     */
     await nav.getByRole("button", { name: "View visibility map" }).click();
-    await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
-    await nav.waitForTimeout(1200);
-    check(
-      (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
-      "View visibility map opens the geographic map",
-    );
-    check(
-      (await nav.locator(".tk-overlay .tk-chart-path").count()) === 0,
-      "View visibility map does not open the sky chart instead",
-    );
-    check(urlState().drill === "field", "the open map is a state the URL describes");
-    await shot(nav, "15-lunar-visibility-map", "geographic visibility map for a lunar eclipse");
+    await nav.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await nav.waitForTimeout(3000);
 
-    // The regions have to be distinguishable, or the map is decoration.
-    const legend = await nav.locator(".tk-overlay .tk-geomap-legend").innerText().catch(() => "");
     check(
-      /all of it/i.test(legend) && /rises/i.test(legend) && /sets/i.test(legend),
-      "the map distinguishes seeing all of it from moonrise and moonset",
+      (await nav.locator(".tk-map-detail").count()) === 0,
+      "View visibility map leaves the event page for the map",
     );
-    check(
-      (await nav.locator(".tk-overlay .tk-lunar-limit").count()) >= 2,
-      "the horizon at first and last contact is drawn as a curve",
-    );
-
-    await nav.keyboard.press("Escape");
-    await nav.waitForTimeout(800);
     check(
       (await nav.locator(".tk-overlay").count()) === 0,
-      "Escape closes the visibility map",
+      "and does not open a second map in a modal",
     );
+    const drawn = await nav.evaluate(() =>
+      window.__trackerMap
+        ? window.__trackerMap.getStyle().layers.filter((layer) => /^tracker-e/.test(layer.id)).length
+        : 0,
+    );
+    check(drawn > 0, `the event's own geography is drawn on it (${drawn} layers)`);
+    check(
+      urlState().event !== null || new URL(nav.url()).searchParams.get("show") !== null,
+      "and the selected event is a state the URL describes",
+    );
+    await shot(nav, "15-lunar-visibility-map", "the eclipse, on the map the reader already knows");
 
-    // "Where to look" is the other tool, and must be reachable separately.
-    const whereToLook = nav.getByRole("button", { name: "Where to look" });
-    if ((await whereToLook.count()) > 0) {
-      await whereToLook.click();
-      await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
-      await nav.waitForTimeout(1000);
-      check(
-        (await nav.locator(".tk-overlay .tk-chart-path").count()) > 0,
-        "Where to look opens the altitude and bearing chart",
-      );
-      check(
-        (await nav.locator(".tk-overlay .tk-geomap").count()) === 0,
-        "Where to look is not the geographic map",
-      );
-      check(urlState().drill === "sky", "the sky chart is its own state in the URL");
-      await nav.keyboard.press("Escape");
-      await nav.waitForTimeout(700);
-    } else {
-      check(false, "Where to look is offered alongside the visibility map");
-    }
-
-    // --- Open full map, the control that did nothing at all -----------------
-    const openFull = nav.locator(".tk-viz-open", { hasText: /open full map/i }).first();
-    check((await openFull.count()) > 0, "the visualization offers Open full map");
-    if ((await openFull.count()) > 0) {
-      // Keyboard, not just mouse: the brief requires activation by both.
-      await openFull.focus();
-      await nav.keyboard.press("Enter");
-      await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
-      await nav.waitForTimeout(1800);
-      check(
-        (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
-        "Open full map opens an expanded geographic map (keyboard)",
-      );
-      check(urlState().drill === "field", "Open full map is a history state");
-
-      /**
-       * Expanded means more of the world, not the same card scaled up.
-       *
-       * Read off the field's declared sampling rather than off how many nodes
-       * it drew. Counting rectangles measured the renderer — it broke when the
-       * field stopped being one rectangle per cell, on a map that was sampling
-       * exactly as finely as before.
-       */
-      const cellsIn = async (scope) =>
-        Number(
-          (await nav.locator(`${scope} [data-field-cells]`).first().getAttribute("data-field-cells")) ??
-            0,
-        );
-      const cardCells = await cellsIn(".tk-page .tk-eclipsemap");
-      const fullCells = await cellsIn(".tk-overlay .tk-eclipsemap");
-      check(
-        fullCells > cardCells,
-        `the expanded map samples more than the card (${fullCells} vs ${cardCells})`,
-      );
-      check(
-        (await nav.locator(".tk-overlay .tk-viz-open").count()) === 0,
-        "the expanded map does not offer to open itself again",
-      );
-      await shot(nav, "16-lunar-full-map", "expanded geographic map");
-
-      // Back must close it and land on the event, not leave Tracker.
-      await nav.goBack();
-      await nav.waitForTimeout(1200);
-      check(
-        (await nav.locator(".tk-overlay").count()) === 0 && urlState().drill === null,
-        "Back closes the expanded map",
-      );
-      check(
-        urlState().event === eventUrl.event,
-        "Back from the map returns to the event, not to the homepage",
-      );
-    }
-
+    await nav.goBack();
+    await nav.waitForTimeout(2000);
+    check(
+      (await nav.locator(".tk-map-detail").count()) > 0,
+      "Back returns to the event page, not to the homepage",
+    );
   }
 
   // --- Sequence C: Upcoming -> event -> (map) -> Back -> Upcoming ----------
@@ -2933,16 +2875,20 @@ async function main() {
   );
   await shot(nav, "24b-tonight-eclipse", "Tonight leads an eclipse with the geographic map");
 
-  // The same three controls, from Tonight rather than from Upcoming.
+  // The same two controls, from Tonight rather than from Upcoming. They answer
+  // different questions and go to different places: *where on Earth* is the map
+  // itself, and *where in your sky* is a chart that stays on the page.
   await nav.getByRole("button", { name: "View visibility map" }).click();
-  await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
-  await nav.waitForTimeout(1500);
+  await nav.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+  await nav.waitForTimeout(2500);
   check(
-    (await nav.locator(".tk-overlay .tk-geomap").count()) > 0,
-    "Tonight: View visibility map opens the geographic map",
+    (await nav.locator(".tk-map-detail").count()) === 0 &&
+      (await nav.locator(".tk-overlay").count()) === 0,
+    "Tonight: View visibility map goes to the map rather than opening a modal",
   );
-  await nav.keyboard.press("Escape");
-  await nav.waitForTimeout(800);
+  await nav.goBack();
+  await nav.waitForSelector(".tk-map-detail", { timeout: 30_000 }).catch(() => {});
+  await nav.waitForTimeout(2000);
 
   await nav.getByRole("button", { name: "Where to look" }).click();
   await nav.waitForSelector(".tk-overlay", { timeout: 10_000 });
@@ -2962,609 +2908,133 @@ async function main() {
   await nav.close();
   await navContext.close();
 
-  /* --- 5c. the map as a tool ---------------------------------------------- */
+  /* --- 5d. the geographic answer is the map ------------------------------ */
   //
-  // Everything here asserts a consequence rather than a control's existence:
-  // the viewBox actually moved, the answer for a picked point is a *different*
-  // answer, and the saved place is untouched afterwards.
-  console.log("\nInteractive maps");
+  // There was a second map here: a modal that opened over the event page,
+  // holding a larger copy of the drawn panel beside it, with its own zoom
+  // buttons, its own legend, its own keyboard handling and its own idea of
+  // cartography. Everything a reader could do to it, they can do to the map
+  // Tracker already had — pan, zoom, recentre, pick a point — and the map has
+  // a basemap, terrain and place names besides. So the drill-in is gone and
+  // "View visibility map" goes to the map itself.
+  //
+  // What is checked here is that the transition arrives whole: the event
+  // selected, its overlay drawn, the camera framed on it, and the whole of it
+  // in the URL. The map's own controls are covered in the refinement gate,
+  // which measures them against the real map rather than a copy.
+  console.log("\nThe map is the geographic answer");
 
   const mapContext = await browser.newContext({ viewport: { width: 1512, height: 1180 } });
   await seedPlace(mapContext, PLACES.portland);
   const map = await mapContext.newPage();
   await map.clock.setFixedTime(WALK_AT);
 
-  const viewBox = () =>
-    map.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox");
-  /** viewBox as numbers, which is what "did it move" has to be measured on. */
-  const box = async () => (await viewBox()).split(" ").map(Number);
-
-  if (await openLunarEclipse(map)) {
-    await map.waitForTimeout(2500);
-
-    // The embedded panel must stay a glance: a map that captured drags there
-    // would fight the reader for the page's own scrolling.
-    check(
-      (await map.locator(".tk-page .tk-geomap-frame[data-interactive='true']").count()) === 0,
-      "the embedded map does not capture gestures from the page",
-    );
-
-    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
-    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
-    await map.waitForTimeout(1500);
-    check(
-      (await map.locator(".tk-overlay .tk-geomap-frame[data-interactive='true']").count()) === 1,
-      "the expanded map is the interactive one",
-    );
-
-    /**
-     * The expanded map has to fit the modal it opens in.
-     *
-     * Reported from a production screenshot: the controls were crowded against
-     * the bottom-right boundary and partly clipped. The cause was the drawing
-     * keeping its natural aspect at full width, which on a laptop made it
-     * taller than the scrolling body — so the controls, the legend and the
-     * summary all sat below the fold of what looks like a fixed panel.
-     */
-    const layout = await map.evaluate(() => {
-      const rect = (selector) => {
-        const element = document.querySelector(selector);
-        if (!element) return null;
-        const box = element.getBoundingClientRect();
-        return { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
-      };
-      const body = document.querySelector(".tk-overlay-body");
-      return {
-        viewportHeight: window.innerHeight,
-        controls: rect(".tk-overlay .tk-geomap-controls"),
-        frame: rect(".tk-overlay .tk-geomap-frame"),
-        legend: rect(".tk-overlay .tk-geomap-legend"),
-        summary: rect(".tk-overlay .tk-geomap-summary"),
-        panel: rect(".tk-overlay-panel"),
-      };
+  {
+    // A date chosen for its eclipse, so the check does not depend on what
+    // happens to be up when the walk runs.
+    await map.goto(`${TRACKER}&date=2028-01-11`, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
     });
+    await map.waitForSelector(".tk-rail-card", { timeout: 45_000 }).catch(() => {});
+    await map.waitForTimeout(4000);
 
-    check(
-      layout.controls !== null &&
-        layout.controls.bottom <= layout.viewportHeight &&
-        layout.controls.top >= 0,
-      "the map controls are fully on screen without scrolling",
-    );
-    check(
-      layout.controls !== null &&
-        layout.frame !== null &&
-        layout.controls.bottom <= layout.frame.bottom + 1 &&
-        layout.controls.right <= layout.frame.right + 1 &&
-        layout.frame.right - layout.controls.right >= 8 &&
-        layout.frame.bottom - layout.controls.bottom >= 8,
-      "the controls sit clear of the frame's edge rather than flush against it",
-    );
-    check(
-      layout.legend !== null && layout.legend.bottom <= layout.viewportHeight,
-      "the legend is visible without scrolling",
-    );
-    check(
-      layout.frame !== null &&
-        layout.panel !== null &&
-        layout.frame.bottom <= layout.panel.bottom + 1,
-      "the map does not extend past the modal that contains it",
-    );
+    const camera = () =>
+      map.evaluate(() => {
+        const instance = window.__trackerMap;
+        if (!instance) return null;
+        const centre = instance.getCenter();
+        return { lat: centre.lat, lng: centre.lng, zoom: instance.getZoom() };
+      });
 
-    const initial = await box();
+    const opened = await landOnTonight(map, { optional: true });
+    check(opened, "the eclipse night opens its event page");
+    if (opened) {
+      await map.waitForTimeout(2500);
 
-    // --- zoom ---------------------------------------------------------------
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
-    await map.waitForTimeout(400);
-    const zoomedIn = await box();
-    check(zoomedIn[2] < initial[2], `Zoom in narrows the view (${initial[2]} to ${zoomedIn[2]})`);
-    check(
-      Math.abs(zoomedIn[2] / zoomedIn[3] - initial[2] / initial[3]) < 1e-6,
-      "zooming holds the aspect ratio, so no layer is stretched",
-    );
+      /**
+       * The panel beside the recommendation is a glance, not a workspace.
+       *
+       * It answers "roughly where does this happen"; the map answers "and what
+       * is it like where I am". A panel that captured drags on a page that
+       * scrolls would fight the reader for the same gesture.
+       */
+      check(
+        (await map.locator(".tk-viz-slot").count()) === 1,
+        "the page keeps one visualization slot beside the recommendation",
+      );
 
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom out']").click();
-    await map.waitForTimeout(400);
-    check((await box())[2] > zoomedIn[2], "Zoom out widens it again");
+      /**
+       * Moved away first, or the check proves nothing.
+       *
+       * Opening the event from the rail already selects it and frames the
+       * camera on it, so by the time the reader reaches "View visibility map"
+       * the map behind the page is usually looking at the right place — and a
+       * check that the camera *changed* would pass or fail on that accident.
+       * Sending it somewhere else makes the assertion the one that matters:
+       * wherever the map was, this puts it on the event.
+       */
+      await map.evaluate(() => window.__trackerMap?.jumpTo({ center: [140, -30], zoom: 6 }));
+      await map.waitForTimeout(1200);
+      const before = await camera();
+      const control = map.getByRole("button", { name: "View visibility map" });
+      check((await control.count()) > 0, "an eclipse offers to show where it happens");
+      if ((await control.count()) > 0) {
+        await control.first().click();
+        await map.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+        await map.waitForTimeout(3000);
+        const after = await camera();
 
-    // --- reset --------------------------------------------------------------
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
-    await map.waitForTimeout(300);
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Reset the map']").click();
-    await map.waitForTimeout(400);
-    const reset = await box();
-    check(
-      reset.every((value, index) => Math.abs(value - initial[index]) < 1e-6),
-      "Reset returns the whole map",
-    );
+        check(
+          (await map.locator(".tk-map-detail").count()) === 0,
+          "it takes the reader to the map rather than opening a picture of one",
+        );
+        check(
+          (await map.locator(".tk-overlay").count()) === 0,
+          "and there is no second map in a modal",
+        );
+        const layers = await map.evaluate(() =>
+          window.__trackerMap
+            ? window.__trackerMap
+                .getStyle()
+                .layers.filter((layer) => /^tracker-e/.test(layer.id))
+                .map((layer) => layer.id)
+            : [],
+        );
+        check(layers.length > 0, `the eclipse's own geography is drawn (${layers.join(", ")})`);
+        check(
+          (await map.locator(".tk-map-target").count()) === 1,
+          "the reader's own place is still marked on it",
+        );
+        check(
+          before !== null &&
+            after !== null &&
+            (Math.abs(after.lng - before.lng) > 1 || Math.abs(after.zoom - before.zoom) > 0.2),
+          `and the camera framed it (${before?.lng.toFixed(1)}, z${before?.zoom.toFixed(1)} → ${after?.lng.toFixed(1)}, z${after?.zoom.toFixed(1)})`,
+        );
 
-    // --- recentre on me -----------------------------------------------------
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").click();
-    await map.waitForTimeout(300);
-    await map.locator(".tk-overlay .tk-map-control[aria-label='Recentre on me']").click();
-    await map.waitForTimeout(400);
-    const centred = await box();
-    const markerAt = await map.evaluate(() => {
-      const marker = document.querySelector(".tk-overlay .tk-geomap-marker");
-      const transform = marker?.getAttribute("transform") ?? "";
-      const match = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(transform);
-      return match ? { x: Number(match[1]), y: Number(match[2]) } : null;
-    });
-    // Centred *or* clamped to an edge. Portland sits close to the top of a
-    // pole-to-pole lunar map, so at this zoom the viewport reaches the edge
-    // before the marker reaches the middle — and stopping at the edge is the
-    // correct behaviour, not a failure to centre. What must always hold is
-    // that the observer ends up inside the view.
-    const inView =
-      markerAt !== null &&
-      markerAt.x >= centred[0] &&
-      markerAt.x <= centred[0] + centred[2] &&
-      markerAt.y >= centred[1] &&
-      markerAt.y <= centred[1] + centred[3];
-    const centredOrClamped =
-      markerAt !== null &&
-      (Math.abs(markerAt.x - (centred[0] + centred[2] / 2)) < 1 ||
-        centred[0] === 0 ||
-        Math.abs(centred[0] + centred[2] - 640) < 1e-6) &&
-      (Math.abs(markerAt.y - (centred[1] + centred[3] / 2)) < 1 ||
-        centred[1] === 0 ||
-        Math.abs(centred[1] + centred[3] - initial[3]) < 1e-6);
-    check(inView, "Recentre on me brings the observer into view");
-    check(centredOrClamped, "Recentre on me centres the observer, or stops at the map's edge");
+        const params = new URLSearchParams(new URL(map.url()).search);
+        check(params.get("show") !== null, "the selected event is in the URL");
+        check(params.get("at") !== null && params.get("z") !== null, "and so is the view it framed");
+        await shot(map, "16-event-on-the-map", "the event's geography, on the map itself");
 
-    // --- keyboard -----------------------------------------------------------
-    const beforeKeys = await box();
-    await map.locator(".tk-overlay .tk-geomap-frame").focus();
-    await map.keyboard.press("ArrowRight");
-    await map.waitForTimeout(300);
-    const panned = await box();
-    check(panned[0] > beforeKeys[0], "the arrow keys pan the map");
-    await map.keyboard.press("0");
-    await map.waitForTimeout(300);
-    check((await box())[2] === initial[2], "zero resets the map from the keyboard");
-    await map.keyboard.press("+");
-    await map.waitForTimeout(300);
-    check((await box())[2] < initial[2], "plus zooms in from the keyboard");
-    await map.keyboard.press("-");
-    await map.waitForTimeout(300);
-    check((await box())[2] > 0, "minus zooms back out from the keyboard");
+        // The map is the reader's again the moment it arrives.
+        await map.getByRole("button", { name: "Zoom in" }).click();
+        await map.waitForTimeout(1500);
+        const zoomed = await camera();
+        check(
+          zoomed !== null && Math.abs(zoomed.zoom - after.zoom) > 0.2,
+          "and the reader owns the camera again immediately",
+        );
 
-    // --- the phenomenon layer survives the viewport -------------------------
-    // A viewBox change must not disturb what is drawn in it. If the bands or
-    // the horizon curves vanished on zoom, the map would be showing geometry
-    // that depends on where the reader happens to be looking.
-    check(
-      (await map.locator(".tk-overlay .tk-lunar-limit").count()) >= 2,
-      "the horizon curves survive panning and zooming",
-    );
-    check(
-      Number(
-        (await map
-          .locator(".tk-overlay .tk-eclipsemap [data-field-cells]")
-          .first()
-          .getAttribute("data-field-cells")) ?? 0,
-      ) > 100,
-      "the visibility field survives panning and zooming",
-    );
-
-    // --- picking somewhere else --------------------------------------------
-    // Reset is disabled at full extent, which is where the keyboard test left
-    // the map — clicking a disabled control would hang rather than assert.
-    const resetControl = map.locator(".tk-overlay .tk-map-control[aria-label='Reset the map']");
-    if (await resetControl.isEnabled()) {
-      await resetControl.click();
-      await map.waitForTimeout(400);
+        await map.goBack();
+        await map.waitForTimeout(2000);
+      }
     }
-    const summaryBefore = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
-
-    const frameBox = await map.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
-    // Well inside the map and away from the controls in the bottom right.
-    await map.mouse.click(frameBox.x + frameBox.width * 0.62, frameBox.y + frameBox.height * 0.62);
-    await map.waitForTimeout(900);
-
-    check(
-      (await map.locator(".tk-overlay .tk-geomap-selected").count()) === 1,
-      "picking a point marks it, distinctly from the observer's own pin",
-    );
-    const summaryAfter = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
-    check(
-      summaryAfter.length > summaryBefore.length && summaryAfter !== summaryBefore,
-      "picking a point adds its circumstances in words, not only on the drawing",
-    );
-    check(
-      /From [-\d.]+°, [-\d.]+°/.test(summaryAfter),
-      "the picked point is named by its coordinates",
-    );
-    check(
-      /moon|eclipse|horizon/i.test(summaryAfter.split("\n").slice(-1)[0]),
-      "the picked point gets a real local circumstance",
-    );
-    check(
-      summaryAfter.includes(PLACES.portland.name),
-      "the reader's own circumstances stay alongside the picked point's",
-    );
-    await shot(map, "20-map-location-inspection", "asking about somewhere else");
-
-    // --- and the saved place is untouched -----------------------------------
-    const storedPlace = await map.evaluate(() => {
-      const raw = localStorage.getItem("orbit-studio:tracker:confirmed-place:v1");
-      return raw ? JSON.parse(raw) : null;
-    });
-    check(
-      storedPlace !== null &&
-        JSON.stringify(storedPlace).includes(PLACES.portland.name),
-      "inspecting a point does not overwrite the saved location",
-    );
-    /**
-     * The reader's own place is still named where they can see it.
-     *
-     * This used to read the app header, which the event page no longer carries:
-     * the map behind it owns the place and the date now. The claim is unchanged
-     * — inspecting a point on a drill-in map must not restate the whole product
-     * around that point — so it is checked against the control that does name
-     * the place, which is the map's own.
-     */
-    check(
-      (await placeControl(map).innerText()).includes(PLACES.portland.name),
-      "the place control still names the reader's own place",
-    );
-
-    // --- Back closes the map, and the pin goes with it ----------------------
-    await map.goBack();
-    await map.waitForTimeout(1400);
-    check((await map.locator(".tk-overlay").count()) === 0, "Back closes the expanded map");
-    check(
-      new URL(map.url()).searchParams.get("drill") === null,
-      "the drill-in leaves the URL when it closes",
-    );
-    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
-    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
-    await map.waitForTimeout(1200);
-    check(
-      (await map.locator(".tk-overlay .tk-geomap-selected").count()) === 0,
-      "a temporary pin does not survive closing the map",
-    );
-    await map.keyboard.press("Escape");
-    await map.waitForTimeout(700);
-  } else {
-    check(false, "the pinned lunar eclipse night renders a map to exercise");
-  }
-
-  if (UPCOMING_IS_ROUTED) {
-  // Solar eclipse pages have no route in today — see the note on
-  // UPCOMING_IS_ROUTED. The lunar case above covers the picked-point
-  // behaviour this repeats for a solar path.
-  // --- the solar map answers for a picked point too -------------------------
-  //
-  // Back to the list first: the lunar block left us on an event page, where
-  // there are no cards to click and the whole block would skip in silence.
-  await map.goto(`${TRACKER}&mode=upcoming&filter=eclipses`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
-  await map.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
-  await map.waitForTimeout(800);
-
-  const solarForMap = map.locator(".tk-upcoming-card", { hasText: /solar eclipse/i }).first();
-  if ((await solarForMap.count()) > 0) {
-    await solarForMap.click();
-    await map.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
-    await map.waitForTimeout(2500);
-    check(
-      (await map.locator(".tracker-safety, .tk-safety").count()) > 0 ||
-        (await map.locator(".tk-page").innerText()).includes("solar filter"),
-      "solar: the safety message is still present on the event page",
-    );
-    await map.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
-    await map.waitForSelector(".tk-overlay .tk-geomap", { timeout: 15_000 });
-    await map.waitForTimeout(2000);
-    check(
-      Number(
-        (await map
-          .locator(".tk-overlay .tk-eclipsemap [data-field-cells]")
-          .first()
-          .getAttribute("data-field-cells")) ?? 0,
-      ) > 50,
-      "solar: the coverage field still renders on the expanded map",
-    );
-    const solarFrame = await map.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
-    await map.mouse.click(
-      solarFrame.x + solarFrame.width * 0.45,
-      solarFrame.y + solarFrame.height * 0.45,
-    );
-    await map.waitForTimeout(1200);
-    const solarSummary = await map.locator(".tk-overlay .tk-geomap-summary").innerText();
-    check(
-      /From [-\d.]+°, [-\d.]+°/.test(solarSummary),
-      "solar: a picked point is answered for",
-    );
-    check(
-      /covered|not visible|below the horizon/i.test(solarSummary),
-      "solar: the picked point gets a coverage answer",
-    );
-    check(
-      !/covered/i.test(solarSummary) || /filter/i.test(solarSummary),
-      "solar: safety travels with a picked point that can see it",
-    );
-    await shot(map, "21-solar-map-inspection", "solar eclipse, asking about somewhere else");
-    await map.keyboard.press("Escape");
-    await map.waitForTimeout(600);
-  } else {
-    check(false, "a solar eclipse is available to exercise the interactive map");
   }
 
   await map.close();
   await mapContext.close();
-
-  // --- a phone --------------------------------------------------------------
-  //
-  // Its own context with touch enabled, rather than a resize of the desktop
-  // one. A resized desktop page still reports a fine pointer and has no touch
-  // API, so `tap` cannot run and the coarse-pointer rules never apply — it
-  // would look like a mobile test and exercise none of what makes mobile
-  // different.
-  const phoneContext = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-    deviceScaleFactor: 3,
-  });
-  await seedPlace(phoneContext, PLACES.portland);
-  const phone = await phoneContext.newPage();
-  await phone.clock.setFixedTime(WALK_AT);
-
-  const phoneBox = async () =>
-    (await phone.locator(".tk-overlay .tk-geomap-frame > svg").getAttribute("viewBox"))
-      .split(" ")
-      .map(Number);
-
-  if (await openLunarEclipse(phone)) {
-    await shot(phone, "22-mobile-event", "eclipse event page on a phone");
-
-    /**
-     * The open, measured rather than merely awaited.
-     *
-     * This tap used to be the check: press it, wait for a map, pass. A map that
-     * arrives after three seconds of a frozen interface satisfies that exactly
-     * as well as one that arrives in fifty milliseconds, which is how a
-     * two-second block survived a full verification pass.
-     *
-     * What is recorded instead is what a reader actually experiences — how long
-     * the main thread was unavailable, and how much document the browser was
-     * asked to build. Neither moves with machine load the way wall-clock time
-     * does, so both are safe to assert on. `scripts/verify/tracker-map-profile.mjs`
-     * is the same measurement as a standalone profiler.
-     */
-    await phone.evaluate(() => {
-      window.__tkTasks = [];
-      window.__tkObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) window.__tkTasks.push(Math.round(entry.duration));
-      });
-      window.__tkObserver.observe({ entryTypes: ["longtask"] });
-    });
-    await phone
-      .locator(".tk-viz-open", { hasText: /open full map/i })
-      .first()
-      .tap({ timeout: 90_000 });
-    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
-    await phone.waitForTimeout(1200);
-
-    const openCost = await phone.evaluate(() => {
-      window.__tkObserver.disconnect();
-      const map = document.querySelector(".tk-overlay .tk-geomap");
-      return {
-        longest: window.__tkTasks.length ? Math.max(...window.__tkTasks) : 0,
-        blocked: window.__tkTasks.reduce((a, b) => a + b, 0),
-        svgNodes: map ? map.querySelectorAll("svg *").length : 0,
-      };
-    });
-
-    /**
-     * The two numbers, and why these thresholds.
-     *
-     * 16 330 SVG nodes was the field drawn one rectangle per sampled cell. The
-     * same field as merged runs is about fifty, so 500 is far above the fixed
-     * design and far below any return of per-cell drawing — it catches the
-     * regression without pinning the exact node count of a map that may
-     * legitimately gain a marker.
-     *
-     * 600 ms for a single task is likewise nowhere near the 105 ms this
-     * measures today, and well under the 300 ms the per-cell version spent on a
-     * headless machine that is faster than a phone. A tighter bound would start
-     * failing on a loaded CI box for reasons that have nothing to do with the
-     * code.
-     */
-    check(
-      openCost.svgNodes > 0 && openCost.svgNodes < 500,
-      `mobile: the expanded field is drawn as merged runs (${openCost.svgNodes} svg nodes)`,
-    );
-    check(
-      openCost.longest < 600,
-      `mobile: opening the map has no multi-second block (longest task ${openCost.longest} ms, ${openCost.blocked} ms total)`,
-    );
-    await phone.waitForTimeout(1800);
-
-    const controlBox = await phone
-      .locator(".tk-overlay .tk-map-control[aria-label='Zoom in']")
-      .boundingBox();
-    check(
-      controlBox !== null && controlBox.width >= 40 && controlBox.height >= 40,
-      `mobile: map controls are thumb-sized (${Math.round(controlBox?.width ?? 0)}px)`,
-    );
-    check(
-      (await phone.evaluate(
-        () => getComputedStyle(document.querySelector(".tk-overlay .tk-geomap-frame")).touchAction,
-      )) === "none",
-      "mobile: the map owns its gestures rather than scrolling the page",
-    );
-
-    // Controls must not sit on top of each other or run off the frame.
-    const frameRect = await phone.locator(".tk-overlay .tk-geomap-frame").boundingBox();
-    check(
-      controlBox !== null &&
-        frameRect !== null &&
-        controlBox.x >= frameRect.x &&
-        controlBox.x + controlBox.width <= frameRect.x + frameRect.width + 1,
-      "mobile: the controls stay inside the map frame",
-    );
-
-    const mobileBefore = await phoneBox();
-    await phone.locator(".tk-overlay .tk-map-control[aria-label='Zoom in']").tap();
-    await phone.waitForTimeout(600);
-    check((await phoneBox())[2] < mobileBefore[2], "mobile: tapping zoom in works");
-
-    // A one-finger drag, with real touch events.
-    const mFrame = await phone.locator(".tk-overlay .tk-geomap-frame > svg").boundingBox();
-    const panBefore = await phoneBox();
-    await phone.touchscreen.tap(mFrame.x + 10, mFrame.y + 10);
-    await phone.waitForTimeout(200);
-    await phone.mouse.move(mFrame.x + mFrame.width / 2, mFrame.y + mFrame.height / 2);
-    await phone.mouse.down();
-    await phone.mouse.move(
-      mFrame.x + mFrame.width / 2 - 70,
-      mFrame.y + mFrame.height / 2,
-      { steps: 10 },
-    );
-    await phone.mouse.up();
-    await phone.waitForTimeout(600);
-    check((await phoneBox())[0] > panBefore[0], "mobile: dragging pans the map");
-
-    check(
-      await phone.evaluate(
-        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
-      ),
-      "mobile: the expanded map does not scroll the page sideways",
-    );
-
-    // Tapping the map picks a place, the same as clicking it does.
-    await phone.touchscreen.tap(mFrame.x + mFrame.width * 0.4, mFrame.y + mFrame.height * 0.4);
-    await phone.waitForTimeout(900);
-    check(
-      (await phone.locator(".tk-overlay .tk-geomap-selected").count()) === 1,
-      "mobile: tapping the map picks a place",
-    );
-    const phoneSummary = await phone.locator(".tk-overlay .tk-geomap-summary").innerText();
-    check(
-      /From [-\d.]+°, [-\d.]+°/.test(phoneSummary),
-      "mobile: the picked place is answered for in words",
-    );
-    await shot(phone, "23-mobile-full-map", "expanded map on a phone");
-
-    /**
-     * Closing and reopening must not rebuild the hemisphere.
-     *
-     * It did, because the memo behind it was keyed on whether the overlay was
-     * open — and the second open measured worse than the first, since the
-     * browser was tearing the old field down while the new one was computed.
-     * Nothing about the geometry depends on the overlay's state, so a reopen
-     * should be a cache read and should cost essentially nothing.
-     */
-    await phone.locator(".tk-overlay .tk-icon-button").first().tap();
-    await phone.waitForSelector(".tk-overlay", { state: "detached", timeout: 20_000 });
-    await phone.waitForTimeout(500);
-    await phone.evaluate(() => {
-      window.__tkTasks = [];
-      window.__tkObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) window.__tkTasks.push(Math.round(entry.duration));
-      });
-      window.__tkObserver.observe({ entryTypes: ["longtask"] });
-    });
-    await phone
-      .locator(".tk-viz-open", { hasText: /open full map/i })
-      .first()
-      .tap({ timeout: 90_000 });
-    await phone.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
-    await phone.waitForTimeout(1200);
-    const reopenCost = await phone.evaluate(() => {
-      window.__tkObserver.disconnect();
-      return {
-        longest: window.__tkTasks.length ? Math.max(...window.__tkTasks) : 0,
-        blocked: window.__tkTasks.reduce((a, b) => a + b, 0),
-      };
-    });
-    check(
-      reopenCost.longest < 250,
-      `mobile: reopening the same map reuses its geometry (longest task ${reopenCost.longest} ms)`,
-    );
-
-    // Back, from the browser, on a phone.
-    await phone.goBack();
-    await phone.waitForTimeout(1500);
-    check(
-      (await phone.locator(".tk-overlay").count()) === 0,
-      "mobile: Back closes the expanded map",
-    );
-    check(
-      (await phone.locator(".tk-page").count()) > 0,
-      "mobile: Back returns to the event page rather than leaving Tracker",
-    );
-    /**
-     * The boundary, on a phone.
-     *
-     * The eclipse was opened by URL, so there is exactly one Tracker entry
-     * behind the drill-in. One Back closes the map and lands on the event; a
-     * second has no Tracker history left to consume and correctly leaves.
-     * That is the rule the brief states — Back leaves Tracker only after
-     * Tracker's own history is exhausted — and asserting it here is what stops
-     * a future "stop Back from leaving" hack from passing.
-     */
-    check(
-      new URL(phone.url()).searchParams.get("drill") === null &&
-        new URL(phone.url()).searchParams.get("date") === LUNAR_ECLIPSE_NIGHT,
-      "mobile: one Back closes the map and leaves the event page standing",
-    );
-  } else {
-    check(false, "mobile: the pinned lunar eclipse night renders a map to exercise");
-  }
-
-  /**
-   * Upcoming, filtered, on a phone.
-   *
-   * Split out from the map sequence above rather than folded into it. Those
-   * checks open the eclipse by date, straight into Tonight, so there is no
-   * filtered list anywhere in that history — an assertion about a surviving
-   * filter there was checking a state the phone had never been in, and passing
-   * or failing for reasons unrelated to the filter.
-   *
-   * Restoring browse state is a mobile question in its own right: the phone
-   * lays Upcoming out differently, so "Back put me where I was" has to be
-   * demonstrated here and not inferred from the desktop.
-   */
-  await phone.goto(`${TRACKER}&mode=upcoming&filter=eclipses`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
-  await phone.waitForSelector(".tk-upcoming", { timeout: 30_000 });
-  await phone.waitForTimeout(2500);
-  const phoneCard = phone.locator(".tk-upcoming-card").first();
-  if ((await phoneCard.count()) > 0) {
-    await phoneCard.tap();
-    await phone.waitForSelector(".tk-page", { timeout: 30_000 });
-    await phone.waitForTimeout(1500);
-    check(
-      new URL(phone.url()).searchParams.get("event") !== null,
-      "mobile: opening an event from Upcoming is a history step",
-    );
-    await phone.goBack();
-    await phone.waitForTimeout(1500);
-    const back = new URL(phone.url()).searchParams;
-    check(
-      // `mode`, not `view`: the map model names the question being asked.
-      back.get("filter") === "eclipses" && back.get("mode") === "upcoming",
-      "mobile: Back to the list keeps the filter",
-    );
-    check(
-      (await phone.locator(".tk-upcoming").count()) > 0,
-      "mobile: Back renders the list it restored rather than an empty shell",
-    );
-  } else {
-    check(false, "mobile: the filtered Upcoming list has something to open");
-  }
-
-  await phone.close();
-  await phoneContext.close();
-
-
-  }
 
   /* --- 6. re-ranking when the place changes ------------------------------ */
   //

@@ -60,8 +60,15 @@ export interface TrackerMapLocation {
    * the map. This is the only field that takes the map off the screen.
    */
   detail: string | null;
-  /** A drill-in inside the detail view: the sky chart, or the geographic map. */
-  drill: "sky" | "field" | null;
+  /**
+   * A drill-in inside the detail view.
+   *
+   * Only the sky chart now. "View visibility map" used to be a second one —
+   * a modal holding a larger copy of the panel beside it — and goes to the map
+   * itself instead, where the geography actually lives. An old link carrying
+   * `drill=field` lands on the event page, which is where its geography now is.
+   */
+  drill: "sky" | null;
   /**
    * The environment layers that are on, as ids.
    *
@@ -93,7 +100,8 @@ export interface TrackerMapLocation {
 export const TRACKER_APP_PARAM = "app";
 export const TRACKER_APP_VALUE = "tracker";
 
-const DRILLS = new Set(["sky", "field"]);
+/** `field` is deliberately absent: see `drill` above. */
+const DRILLS = new Set(["sky"]);
 
 /**
  * The zoom range, in MapLibre's convention: level 0 is the whole world in one

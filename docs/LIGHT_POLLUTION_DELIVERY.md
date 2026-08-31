@@ -77,13 +77,24 @@ should carry, and everything needed to reproduce it — the source URL, the
 checksum, the transformation and this document — is tracked. The index is
 tracked, because it is small and changes with the code that reads it.
 
-**The blob is not in the deployment bundle either.** Cloudflare Pages rejects
-single assets over 25 MiB, and a file that changes once a year has no business
-being re-uploaded on every deploy. Production serves both objects from
-Cloudflare R2.
+**The blob is therefore not in the deployment either.** The site is built from
+the repository, so a file the repository does not carry is a file the deploy
+does not have — which is exactly what a deployed Tracker shows today: the index
+loads, every range request 404s, and the Layers panel says
+`Measurements unavailable` rather than drawing a field it has no data for.
+
+That is the honest failure, not the fix. The fix is to serve the archive from
+object storage and point the build at it. Cloudflare R2 is what this project
+uses, and it is independent of where the site itself is hosted — R2 is just a
+public HTTPS origin that honours byte ranges, so it works the same behind
+Netlify, Cloudflare Pages, or anything else. Hosting the archive *in* the site
+bundle is the thing to avoid: it is 47.8 MB in git forever, re-uploaded on every
+deploy, for data that changes once a year.
 
 Development needs no configuration: with `VITE_LIGHT_POLLUTION_BASE` unset the
-app reads `/tracker/`, which is the copy on disk.
+app reads `/tracker/`, which is the copy on disk. That is why the layer works
+locally and not on the deployment — the local copy is real and the deployed one
+was never there.
 
 ## Publishing a new archive
 
@@ -118,8 +129,12 @@ current file names, sizes and checksums filled in.
    client: these are public, read-only, CC BY 4.0 measurements, and no key of
    any kind is shipped to the browser.
 
-4. **Set the CORS policy**, in the bucket's settings. Range requests need the
-   request header allowed *and* the response headers exposed.
+4. **Set the CORS policy**, in the bucket's settings. This is not optional
+   here: the archive is on a different origin from the site, so the browser
+   will make the range request and then throw the answer away unless the
+   policy both allows the `Range` request header and exposes `Content-Range`.
+   Include every origin the site is served from — Netlify's deploy previews use
+   per-deploy subdomains, so add those too if the layer should work in them.
 
    ```json
    [
@@ -133,11 +148,18 @@ current file names, sizes and checksums filled in.
    ]
    ```
 
-5. **Point the build at it.** In the Pages project's build environment:
+5. **Point the build at it**, in the site host's build environment. On
+   Netlify that is *Site configuration → Environment variables*; the variable
+   is read at build time by Vite, so a **redeploy is required** after setting
+   it — changing it does not affect an existing deploy.
 
    ```
    VITE_LIGHT_POLLUTION_BASE=https://<your-r2-public-domain>/tracker/
    ```
+
+   The trailing slash matters: the index is read from this base and the blob is
+   resolved relative to the index, which is what keeps the two objects
+   together.
 
 6. **Prove it arrived.**
 

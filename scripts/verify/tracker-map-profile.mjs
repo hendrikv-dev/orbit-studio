@@ -56,14 +56,16 @@ async function measureOpen(page) {
     window.__tk.t0 = performance.now();
   });
 
-  await page.locator(".tk-viz-open", { hasText: /open full map/i }).first().click();
-  await page.waitForSelector(".tk-overlay .tk-geomap", { timeout: 60_000 });
+  // "View visibility map" goes to the map itself now; the modal it used to open
+  // is gone, and so is the second renderer this profile was written against.
+  await page.getByRole("button", { name: "View visibility map" }).first().click();
+  await page.waitForSelector(".tk-rail-card", { timeout: 60_000 });
   // Let anything the open scheduled actually run before the tally is read.
   await page.waitForTimeout(1200);
 
   return page.evaluate(() => {
     window.__tkObserver.disconnect();
-    const overlay = document.querySelector(".tk-overlay .tk-geomap");
+    const overlay = document.querySelector(".tk-map-canvas");
     return {
       elapsedMs: Math.round(performance.now() - window.__tk.t0),
       longTasks: window.__tk.tasks,

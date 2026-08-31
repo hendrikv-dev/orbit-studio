@@ -173,9 +173,12 @@ See `.env.example`.
 Tracker's light-pollution layer reads measured VIIRS radiance from a 47.8 MB
 numeric archive. It is generated data: the repository carries the index, the
 build script, the source and its checksum, and `.gitignore` excludes the blob.
-Production serves it from Cloudflare R2 rather than the static bundle — set
-`VITE_LIGHT_POLLUTION_BASE` to the bucket's public base URL at build time, and
-leave it unset for development, which reads the copy in `public/tracker/`.
+Because the blob is not in the repository, a deployed build does not have one:
+the layer reports `Measurements unavailable` until an archive is served to it.
+Serve it from object storage — Cloudflare R2 — and set
+`VITE_LIGHT_POLLUTION_BASE` to the bucket's public base URL in the site host's
+build environment, then redeploy. Leave it unset for development, which reads
+the copy in `public/tracker/`.
 `docs/LIGHT_POLLUTION_DELIVERY.md` has the format, the build, the upload and
 CORS steps, and how to verify a published archive.
 
