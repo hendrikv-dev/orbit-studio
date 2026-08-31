@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
-import { MEDIA_CLAIM_LABEL, type HeroImagery } from "../../data/tracker/imagery";
+import type { HeroImagery } from "../../data/tracker/imagery";
 import { TrackerScene, TrackerCredit } from "./TrackerScene";
 
 /**
@@ -43,8 +43,14 @@ export type HeroMedia =
   | {
       kind: "drawn";
       node: ReactNode;
-      /** What the drawing is claiming to be. Never "photograph". */
-      claim: string;
+      /**
+       * The note under the drawing.
+       *
+       * This is the place for anything that stops the picture misleading —
+       * chiefly that discs are enlarged while separations are to scale. It is
+       * not the place for what kind of asset this is: "Computed for this event"
+       * described Tracker's internals, not the sky.
+       */
       credit: string | null;
     };
 
@@ -172,15 +178,15 @@ export function EventHero({
               illuminatedFraction={media.illuminatedFraction}
               waning={media.waning}
             />
-            <figcaption className="tk-hero-media-claim">
-              {MEDIA_CLAIM_LABEL[media.imagery.claim]}
-            </figcaption>
+            {/* No claim badge. "Representative example" told the reader which
+                bucket the asset came from, which is a fact about how Tracker is
+                built rather than about the night. What the image is *of*, and
+                who made it, stay — those are attribution and they are real. */}
             <TrackerCredit imagery={media.imagery} />
           </>
         ) : (
           <>
             {media.node}
-            <figcaption className="tk-hero-media-claim">{media.claim}</figcaption>
             {media.credit ? <p className="tracker-credit">{media.credit}</p> : null}
           </>
         )}

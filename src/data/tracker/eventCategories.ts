@@ -48,6 +48,7 @@ export interface EventCategory {
   /** The page heading. Always in the same place, at the same size. */
   heading: string;
   /** The line under it, for the immediate observing night. */
+  /** Template. `{night}` is filled with the night on screen. */
   tonightSubtitle: string;
   /** The line under it, for anything beyond tonight. */
   upcomingSubtitle: string;
@@ -60,7 +61,7 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
   meteors: {
     id: "meteors",
     heading: "Meteor showers",
-    tonightSubtitle: "Ranked for your location tonight",
+    tonightSubtitle: "Ranked for your location {night}",
     upcomingSubtitle: "Peaks worth planning around",
     visualization: "night-activity",
     tone: "meteor",
@@ -68,7 +69,7 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
   auroras: {
     id: "auroras",
     heading: "Auroras",
-    tonightSubtitle: "Forecast for your location tonight",
+    tonightSubtitle: "Forecast for your location {night}",
     upcomingSubtitle: "Only as far ahead as the forecast reaches",
     visualization: "geo-forecast",
     tone: "aurora",
@@ -84,7 +85,7 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
   planets: {
     id: "planets",
     heading: "Planets",
-    tonightSubtitle: "Where they are from your location tonight",
+    tonightSubtitle: "Where they are from your location {night}",
     upcomingSubtitle: "Best placements ahead",
     visualization: "sky-path",
     tone: "planet",
@@ -92,7 +93,7 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
   moon: {
     id: "moon",
     heading: "The Moon",
-    tonightSubtitle: "Tonight's phase from your location",
+    tonightSubtitle: "The phase from your location {night}",
     upcomingSubtitle: "Phases worth timing an evening around",
     visualization: "sky-path",
     tone: "moon",
@@ -108,7 +109,7 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
   "deep-sky": {
     id: "deep-sky",
     heading: "Deep sky",
-    tonightSubtitle: "Faint targets from your location tonight",
+    tonightSubtitle: "Faint targets from your location {night}",
     upcomingSubtitle: "Best placements ahead",
     visualization: "sky-path",
     tone: "neutral",
@@ -121,6 +122,7 @@ const KIND_TO_CATEGORY: Record<OpportunityKind, EventCategoryId> = {
   planet: "planets",
   conjunction: "pairings",
   "lunar-eclipse": "eclipses",
+  "solar-eclipse": "eclipses",
   "deep-sky": "deep-sky",
 };
 
@@ -140,7 +142,16 @@ export function categoryOf(id: EventCategoryId): EventCategory {
  * be a small lie told by a layout constant, which is exactly the kind that
  * survives review.
  */
-export function subtitleFor(id: EventCategoryId, mode: "tonight" | "upcoming"): string {
+export function subtitleFor(id: EventCategoryId, nightWord: string): string {
   const category = EVENT_CATEGORIES[id];
-  return mode === "tonight" ? category.tonightSubtitle : category.upcomingSubtitle;
+  /**
+   * The night on screen, not the night the copy was written for.
+   *
+   * The subtitles are templates now. They used to be constants ending in
+   * "tonight", which is the small lie the note above warns about: a page
+   * showing 12 September introduced itself as "Where they are from your
+   * location tonight". `describeDate` supplies "tonight", "tomorrow",
+   * "last night" or "on 12 Sep", and the sentence reads in all four.
+   */
+  return category.tonightSubtitle.replace("{night}", nightWord);
 }

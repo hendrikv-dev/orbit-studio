@@ -343,6 +343,27 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/index-*.js`
 - Restrictions and notes: Natural Earth does not require attribution; Orbit Studio includes the recommended citation.
 
+## Natural Earth 1:110m cultural and physical vectors: land boundaries, state and province lines, lakes, and populated places
+
+- Inventory ID: `natural-earth-110m-reference-layers`
+- Category: geographic-boundary-data
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors
+- Version or snapshot: 110m cultural and physical vectors, trimmed for the eclipse map's reference geography
+- Retrieval date: 2026-08-28
+- Authoritative source: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
+- Authoritative source: https://github.com/nvkelso/natural-earth-vector/tree/master/geojson
+- Rights basis: Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.
+- Rights evidence: https://www.naturalearthdata.com/about/terms-of-use/
+- Attribution: Made with Natural Earth.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted
+- Repository paths: `src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json`, `src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json`, `src/data/natural-earth/ne_110m_lakes.json`, `src/data/natural-earth/ne_110m_places.json`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Natural Earth does not require attribution; Orbit Studio includes the recommended citation.
+
 ## npm dependency graph
 
 - Inventory ID: `npm-lockfile-dependencies`
@@ -405,6 +426,30 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/explorerCatalog.ts`, `src/data/explorerConstellationArchitecture.ts`, `src/data/explorerEducation.ts`, `src/lib/scenario.ts`
 - Production paths: `assets/index-*.js`
 - Restrictions and notes: Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive.
+
+## Screenshots and renders of Orbit Studio's own interfaces, framed for the homepage product list
+
+- Inventory ID: `orbit-studio-home-product-imagery`
+- Category: image-texture
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Orbit Studio (this project)
+- Version or snapshot: Regenerated 2026-08-30 for the vertical product-row layout
+- Retrieval date: 2026-08-30
+- Authoritative source: https://github.com/hendrikv-dev/orbit-studio
+- Authoritative source: https://github.com/hendrikv-dev/orbit-studio
+- Rights basis: The imagery is this project's own output and is redistributed under the project's licence. The third-party data visible inside tracker-home.webp is open and permits the rendering and redistribution of derived map images with attribution, which is recorded above and rendered live in Tracker; the Earth texture in the other two is NASA imagery, which is not subject to copyright in the United States.
+- Rights evidence: https://www.openstreetmap.org/copyright
+- Rights evidence: https://opendatacommons.org/licenses/odbl/1-0/
+- Rights evidence: https://mapterhorn.com/attribution
+- Rights evidence: https://visibleearth.nasa.gov/collection/1484/blue-marble
+- Attribution: Orbit Studio. Tracker's map contains OpenStreetMap data via OpenFreeMap and OpenMapTiles, and terrain from Mapterhorn.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/home/tracker-home.webp`, `public/home/explorer-home.webp`, `public/home/playground-home.webp`
+- Production paths: `home/tracker-home.webp`, `home/explorer-home.webp`, `home/playground-home.webp`
+- Restrictions and notes: If the Tracker screenshot is replaced, the replacement inherits the same basemap and terrain attributions for as long as it shows rendered map data.
 
 ## Orbit Studio Tracker imagery policy and lunar phase composite
 
@@ -490,6 +535,77 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence. The derived horizon-visibility angle and look direction are Tracker's own geometry, not a NOAA product, and must not be presented as NOAA's viewline.
 
+## OpenFreeMap public vector tile service, serving the OpenMapTiles schema over OpenStreetMap data
+
+- Inventory ID: `tracker-basemap-tiles`
+- Category: runtime-external-service
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: OpenFreeMap (service); OpenMapTiles (schema); OpenStreetMap contributors (data)
+- Version or snapshot: Runtime tile service, not a pinned snapshot; style and tiles fetched per session
+- Retrieval date: 2026-08-28
+- Authoritative source: https://openfreemap.org/
+- Authoritative source: https://tiles.openfreemap.org/styles/dark
+- Rights basis: The underlying data is OpenStreetMap under ODbL 1.0 and the OpenMapTiles schema and OpenFreeMap's own stack are openly licensed, so rendering and redistribution of map images are not in question, and the required attribution is rendered in the map's attribution control. What is unresolved is exactly what is unresolved for place search: production reliance on a courtesy public endpoint with no usage agreement. Resolving it means serving our own tiles, which is the recorded plan rather than an aspiration.
+- Rights evidence: https://openfreemap.org/
+- Rights evidence: https://github.com/hyperknot/openfreemap/blob/main/LICENSE
+- Rights evidence: https://openmaptiles.org/
+- Rights evidence: https://www.openstreetmap.org/copyright
+- Rights evidence: https://opendatacommons.org/licenses/odbl/1-0/
+- Attribution: © OpenStreetMap contributors · OpenFreeMap · OpenMapTiles.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/basemapSource.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The OpenStreetMap, OpenFreeMap and OpenMapTiles attribution must remain visible on the map. This entry must not be marked verified while the public instance is the tile source: it is a development and prototyping source, and shipping it as the permanent one was explicitly ruled out.
+
+## Earth Observation Group Annual VIIRS Nighttime Lights V2.1, annual average, 2024, 15 arc-second
+
+- Inventory ID: `tracker-light-pollution-viirs`
+- Category: scientific-dataset
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Earth Observation Group, Payne Institute for Public Policy, Colorado School of Mines (data); obtained through the OpenLandMap redistribution on Zenodo (T. Hengl), record 17294744
+- Version or snapshot: nightlights.average_viirs.v21_m_500m_s_20240101_20241231_go_epsg4326_v20250904.tif
+- Retrieval date: 2026-08-30
+- Authoritative source: https://eogdata.mines.edu/products/vnl/
+- Authoritative source: https://zenodo.org/records/17294744
+- Rights basis: The Zenodo record carries CC BY 4.0 and the underlying EOG VIIRS Nighttime Lights products are released under CC BY 4.0. Attribution is required and is satisfied two ways: the map's attribution control names the Earth Observation Group, and the archive's own index file carries the Elvidge et al. (2021) citation the publisher asks for. Redistribution of a derived, resampled product is permitted with that attribution.
+- Rights evidence: https://zenodo.org/records/17294744
+- Rights evidence: https://eogdata.mines.edu/products/vnl/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Rights evidence: https://doi.org/10.3390/rs13050922
+- Attribution: Night-time lights: Earth Observation Group, Colorado School of Mines - Annual VIIRS Nighttime Lights V2.1 (Elvidge, Zhizhin, Ghosh, Hsu & Taneja 2021), CC BY 4.0.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/tracker/light-pollution-v21-2024.bin`, `public/tracker/light-pollution-v21-2024.json`, `scripts/build-light-pollution-tiles.py`, `src/data/tracker/lightPollution.ts`
+- Production paths: `tracker/light-pollution-v21-2024.bin`, `tracker/light-pollution-v21-2024.json`
+- Restrictions and notes: The Earth Observation Group credit and the Elvidge et al. (2021) citation must remain, both being conditions of CC BY 4.0. The value must not be presented as a Bortle class, an SQM reading, a limiting magnitude, or as a prediction of what will be visible overhead.
+
+## MapLibre GL JS, an open-source WebGL renderer for vector map tiles
+
+- Inventory ID: `tracker-map-renderer`
+- Category: software-dependencies
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: MapLibre contributors
+- Version or snapshot: 6.6.0, from the npm registry and pinned in package-lock.json
+- Retrieval date: 2026-08-28
+- Authoritative source: https://github.com/maplibre/maplibre-gl-js
+- Authoritative source: https://maplibre.org/
+- Rights basis: MapLibre GL JS is published under the 3-Clause BSD licence, which permits use, modification and redistribution in source and binary form with the copyright notice and disclaimer retained. The notice travels in the bundled licence banner and in THIRD_PARTY_NOTICES.md.
+- Rights evidence: https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt
+- Rights evidence: https://opensource.org/license/bsd-3-clause
+- Attribution: Map rendering by MapLibre GL JS, 3-Clause BSD.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/components/tracker/map/TrackerMapCanvas.tsx`
+- Production paths: `assets/TrackerApp-*.js`, `assets/maplibre-gl-worker-*.js`
+- Restrictions and notes: The BSD copyright notice and disclaimer must remain in the distributed bundle and in THIRD_PARTY_NOTICES.md.
+
 ## Photon geocoder over OpenStreetMap data
 
 - Inventory ID: `tracker-place-search-adapter`
@@ -512,6 +628,31 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/tracker/geocoding.ts`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to.
+
+## Mapterhorn public terrain tiles, Terrarium-encoded elevation built from 148 open elevation datasets
+
+- Inventory ID: `tracker-terrain-elevation`
+- Category: runtime-external-service
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Mapterhorn (tile build and service); the 148 national, regional and agency producers listed at mapterhorn.com/attribution (data)
+- Version or snapshot: Runtime tile service, not a pinned snapshot; TileJSON read per session, tiles fetched on demand
+- Retrieval date: 2026-08-30
+- Authoritative source: https://mapterhorn.com/attribution
+- Authoritative source: https://tiles.mapterhorn.com/tilejson.json
+- Rights basis: Mapterhorn's own code is BSD-3-Clause and its published source catalogue lists 148 datasets, every one of them open: 37 CC BY 4.0, 34 US Government public domain, 21 Licence Ouverte 2.0, the Copernicus full, free and open licence, and the remainder open government or CC0/CC-BY variants. Nothing in the catalogue is non-commercial, share-alike or research-only, so drawing and redistributing derived map images is not in question. Most of those licences do require attribution and no map corner can carry 148 credits; the publisher's own mechanism, which those licences accept, is a link to the full list, and Tracker's attribution control renders that link. What is unresolved is the same thing that is unresolved for the basemap and for place search: production reliance on a free public endpoint with no usage agreement, on a service that is measurably rate-limited.
+- Rights evidence: https://mapterhorn.com/attribution
+- Rights evidence: https://download.mapterhorn.com/attribution.json
+- Rights evidence: https://github.com/mapterhorn/mapterhorn/blob/main/LICENSE
+- Rights evidence: https://www.usgs.gov/3d-elevation-program
+- Rights evidence: https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+- Attribution: Terrain © Mapterhorn, from USGS 3DEP, Copernicus DEM and other open elevation sources, linked to the full source list at mapterhorn.com/attribution.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/terrainSource.ts`, `src/data/tracker/terrainHorizon.ts`, `src/data/tracker/demService.ts`, `src/data/tracker/eventTerrain.ts`, `src/data/tracker/geodesy.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The Mapterhorn credit must remain a live link to mapterhorn.com/attribution: that link is what satisfies the attribution terms of the CC BY and open-government datasets underneath, and replacing it with plain text would leave those credits undischarged. This entry must not be marked verified while the public instance is the tile source.
 
 ## MET Norway Locationforecast 2.0 and the US National Weather Service API
 

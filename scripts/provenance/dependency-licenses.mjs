@@ -15,7 +15,18 @@ const supportedLicenses = new Set([
   // react-aria-components (tslib, via @swc/helpers and aria-hidden).
   "0BSD",
   "Apache-2.0",
+  // BSD 2-Clause: BSD-3-Clause without the non-endorsement clause, so it grants
+  // the same rights under strictly fewer conditions than a licence already on
+  // this list. Reached the tree through maplibre-gl, via @mapbox/unitbezier —
+  // Apple's cubic-bezier solver, which MapLibre uses for camera easing.
+  "BSD-2-Clause",
   "BSD-3-Clause",
+  // A dual licence offering the choice of MIT or Apache-2.0, both of which are
+  // already allowed on their own. Taking either satisfies the whole obligation,
+  // so this is not a new set of terms to review — it is two reviewed sets with
+  // an "or" between them. Reached the tree through maplibre-gl, via
+  // @maplibre/mlt (the MapLibre Tile specification).
+  "(MIT OR Apache-2.0)",
   // CC0 1.0 Universal: a public-domain dedication rather than a licence. The
   // owner relinquishes copyright and related rights entirely, so it imposes no
   // condition at all — weaker than CC-BY-4.0, which is already allowed and does

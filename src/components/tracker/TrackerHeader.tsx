@@ -39,7 +39,13 @@ interface Props {
    * Beside the place, because date and place are the two things every answer
    * depends on and a reader changing one usually wants to see the other.
    */
-  date?: { value: string; today: string; onSelect: (date: string) => void };
+  date?: {
+    value: string;
+    today: string;
+    /** The observer's zone, for the calendar's event marks. */
+    timeZone: string | null;
+    onSelect: (date: string) => void;
+  };
 }
 
 const VIEWS: { id: TrackerView; label: string }[] = [
@@ -92,7 +98,12 @@ export function TrackerHeader({
             {date ? (
               <>
                 <span className="tk-header-divider" aria-hidden />
-                <TrackerDate date={date.value} today={date.today} onSelect={date.onSelect} />
+                <TrackerDate
+                  date={date.value}
+                  today={date.today}
+                  timeZone={date.timeZone}
+                  onSelect={date.onSelect}
+                />
               </>
             ) : null}
           </>

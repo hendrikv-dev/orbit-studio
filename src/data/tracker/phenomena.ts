@@ -19,10 +19,12 @@ import type { Opportunity, PhenomenonGeometry } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 import { lunarPhaseAt } from "./lunarPhase";
 import { lunarEclipseTiming } from "./lunarEclipse";
+import { localSolarCircumstances, nextSolarEclipses } from "./solarEclipse";
 import { angularSeparation, nearestOpposition, oppositionDuring } from "./planetaryEvents";
 import {
   conjunctionSignificance,
   lunarEclipseSignificance,
+  solarEclipseSignificance,
   meteorSignificance,
   moonPhaseSignificance,
   planetSignificance,
@@ -820,6 +822,175 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
   return opportunities;
 }
 
+/* --------------------------------------------------------- solar eclipses */
+
+/**
+ * A solar eclipse on this date, if one reaches this place.
+ *
+ * ## Why the gate is the date rather than the night
+ *
+ * Every other opportunity here qualifies by being above the horizon during the
+ * observing window, which is the right rule for everything that happens at
+ * night and the wrong one for the single most spectacular thing in observational
+ * astronomy. A total solar eclipse over the reader's own house was invisible to
+ * Tracker because it happens at lunchtime.
+ *
+ * So this one is gated the way the phenomenon actually works: does it happen on
+ * the calendar date being shown, and is the Sun above the horizon here while it
+ * does. Observability is not weakened — an eclipse below the horizon, or one
+ * whose shadow never reaches this place, still returns null.
+ */
+function solarEclipseOpportunity(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  period: ObservationPeriod,
+): Opportunity | null {
+  // The local day the period belongs to, which is the day the reader is asking
+  // about. Sunset starts the period, so the eclipse is looked for in the
+  // daylight before it as well as the daylight after.
+  const anchor = new Date(period.startUtc);
+  const dayStart = new Date(anchor.getTime() - 18 * 3_600_000);
+  const found = nextSolarEclipses(dayStart, 2).find((entry) => {
+    const gap = Date.parse(entry.peakUtc) - anchor.getTime();
+    return gap > -18 * 3_600_000 && gap < 12 * 3_600_000;
+  });
+  if (!found) return null;
+
+  const local = localSolarCircumstances(found, latitudeDeg, longitudeDeg);
+  if (local.kind === "none" || local.obscurationFraction <= 0.01) return null;
+  // Below the horizon here: the eclipse happens, and not for this reader.
+  if (local.sunAltitudeAtPeakDeg <= 0) return null;
+
+  const central = local.kind === "total" || local.kind === "annular";
+  const percent = Math.round(local.obscurationFraction * 100);
+  const peakUtc = local.peakUtc ?? found.peakUtc;
+
+  return {
+    id: "solar-eclipse",
+    kind: "solar-eclipse",
+    title:
+      local.kind === "total"
+        ? "Total solar eclipse"
+        : local.kind === "annular"
+          ? "Annular solar eclipse"
+          : "Partial solar eclipse",
+    summary: central
+      ? "The Moon covers the Sun from here. This is the rarest thing on any observing calendar."
+      : `The Moon covers ${percent}% of the Sun from here.`,
+    qualities: {
+      observability: Math.min(1, altitudeObservability(local.sunAltitudeAtPeakDeg) + 0.4),
+      spectacle: central ? 1 : 0.2 + 0.5 * local.obscurationFraction,
+      recognisability: central ? 1 : 0.3 + 0.5 * local.obscurationFraction,
+      ease: 0.9,
+      confidence: 1,
+      rarity: local.kind === "total" ? 1 : local.kind === "annular" ? 0.92 : 0.55,
+    },
+    significance: solarEclipseSignificance(
+      local.kind === "total" ? "total" : local.kind === "annular" ? "annular" : "partial",
+      local.obscurationFraction,
+    ),
+    guidance: {
+      appearance: central
+        ? "Totality is not a brighter partial eclipse — it is a different event. The corona appears, the horizon goes orange all the way round, and the temperature drops."
+        : "Nothing looks different to the unaided eye until well past half covered. The change is in the quality of the light, not its amount.",
+      whenUtc: peakUtc,
+      durationMinutes:
+        local.partialBeginUtc && local.partialEndUtc
+          ? Math.round((Date.parse(local.partialEndUtc) - Date.parse(local.partialBeginUtc)) / 60_000)
+          : 0,
+      direction: compassPoint(local.sunAzimuthAtPeakDeg),
+      elevation: `${elevationInFists(local.sunAltitudeAtPeakDeg)[0].toUpperCase()}${elevationInFists(local.sunAltitudeAtPeakDeg).slice(1)}, at maximum.`,
+      howLong: central
+        ? "Be in place well before totality. The central phase is measured in minutes and does not wait."
+        : "The whole partial phase runs for a couple of hours; the middle of it is the most covered.",
+      equipment: "eyes",
+      technique: "A certified solar filter, or projection onto card. Never sunglasses, exposed film or a smoked glass.",
+      /**
+       * Non-negotiable, and stated first.
+       *
+       * Every other safety note in Tracker is advice. This one is the
+       * difference between an afternoon out and permanent retinal damage, and
+       * it is carried on the opportunity itself so that no view can render this
+       * event without it.
+       */
+      safety: central
+        ? "Looking at any part of the uneclipsed Sun without a certified solar filter will cause permanent eye damage. Filters come off only during totality itself, and go back on the instant the Sun reappears."
+        : "Looking at the Sun without a certified solar filter will cause permanent eye damage. There is no moment during a partial eclipse when it is safe to look without one.",
+    },
+    phenomenon:
+      "The Moon passes exactly between Earth and the Sun, and its shadow falls on the ground. Where the dark inner shadow lands the Sun is covered completely; everywhere the outer shadow reaches sees part of it.",
+    tonight: central
+      ? `Maximum at ${formatTime(peakUtc)}, with the Sun ${Math.round(local.sunAltitudeAtPeakDeg)}° above the ${compassPoint(local.sunAzimuthAtPeakDeg)} horizon from where you are.`
+      : `Up to ${percent}% covered at ${formatTime(peakUtc)}, with the Sun ${Math.round(local.sunAltitudeAtPeakDeg)}° above the ${compassPoint(local.sunAzimuthAtPeakDeg)} horizon.`,
+    missingInputs: [],
+    limitations: [
+      "Local circumstances are computed from the engine's own disc geometry for this coordinate. The central band's edges are traced from the shadow axis and are accurate to a few kilometres, not to the metre.",
+    ],
+    profile: solarEclipseProfile(new Observer(latitudeDeg, longitudeDeg, 0), local, peakUtc),
+    geometry: {
+      kind: "target",
+      riseUtc: null,
+      // The one moment that matters, marked as the culmination so every view
+      // that draws a path puts its emphasis in the right place.
+      culminationUtc: peakUtc,
+      setUtc: null,
+    },
+    transparency: "low",
+    science: {
+      kind: "solar-eclipse",
+      obscuration: local.obscurationFraction,
+      eclipseKind: local.kind,
+      peakUtc,
+      centralDurationSeconds: local.centralDurationSeconds,
+    },
+  };
+}
+
+/**
+ * Where the Sun actually is, across the eclipse.
+ *
+ * This used to be an empty array, on the reasoning that an eclipse is a moment
+ * rather than a night. That was wrong in a way the interface made visible: with
+ * no samples there is no sky path, with no sky path there is no observing
+ * instruction, and a total solar eclipse — the least ambiguous pointing problem
+ * in the whole product — printed "No direction" on its card while the Sun's
+ * azimuth sat unused in its own guidance two fields away.
+ *
+ * The path is the Sun's, because during an eclipse that is the thing being
+ * looked at. It runs across the partial phase where the timings are known, and
+ * falls back to an hour either side of maximum where they are not; `relative`
+ * peaks at maximum so any view that shades a path by quality emphasises the
+ * moment rather than the ends.
+ */
+function solarEclipseProfile(
+  observer: Observer,
+  local: { partialBeginUtc?: string | null; partialEndUtc?: string | null },
+  peakUtc: string,
+): OpportunitySample[] {
+  const peak = Date.parse(peakUtc);
+  const begin = local.partialBeginUtc ? Date.parse(local.partialBeginUtc) : peak - 3_600_000;
+  const end = local.partialEndUtc ? Date.parse(local.partialEndUtc) : peak + 3_600_000;
+  if (!Number.isFinite(begin) || !Number.isFinite(end) || end <= begin) return [];
+
+  const STEPS = 24;
+  const samples: OpportunitySample[] = [];
+  for (let index = 0; index <= STEPS; index += 1) {
+    const at = new Date(begin + ((end - begin) * index) / STEPS);
+    const position = horizontal(observer, Body.Sun, at);
+    if (position.altitude <= 0) continue;
+    // Triangular in time about maximum: nearest the peak is nearest the point.
+    const span = Math.max(peak - begin, end - peak);
+    const relative = Math.max(0, 1 - Math.abs(at.getTime() - peak) / span);
+    samples.push({
+      atUtc: at.toISOString(),
+      altitudeDeg: position.altitude,
+      azimuthDeg: position.azimuth,
+      relative,
+    });
+  }
+  return samples;
+}
+
 /* --------------------------------------------------------- lunar eclipses */
 
 function lunarEclipseOpportunity(
@@ -988,6 +1159,10 @@ export function tonightsOpportunities(
 
   const eclipse = lunarEclipseOpportunity(observer, period);
   if (eclipse) opportunities.push(eclipse);
+
+  // Daylight, and therefore gated by the date rather than by the night.
+  const solar = solarEclipseOpportunity(latitudeDeg, longitudeDeg, period);
+  if (solar) opportunities.push(solar);
 
   const moon = moonOpportunity(observer, period);
   if (moon) opportunities.push(moon);

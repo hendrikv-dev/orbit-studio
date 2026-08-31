@@ -337,6 +337,15 @@ export function App() {
   const openExplorer = useCallback(() => goToProductMode("explorer"), [goToProductMode]);
   const openStudio = useCallback(() => goToProductMode("playground"), [goToProductMode]);
   const openHome = useCallback(() => goToProductMode("home"), [goToProductMode]);
+  /**
+   * Tracker has its own entry point rather than a product mode, so reaching it
+   * is a navigation. The homepage already did this inline; the app menu needs
+   * the same route.
+   */
+  const openTracker = useCallback(
+    () => window.location.assign(`${window.location.pathname}?app=tracker`),
+    [],
+  );
 
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
@@ -448,7 +457,7 @@ export function App() {
         onOpenPlayground={openStudio}
         // A real navigation: Tracker is a separate bundle entry, so it cannot be
         // reached by changing state inside this one.
-        onOpenTracker={() => window.location.assign(`${window.location.pathname}?app=tracker`)}
+        onOpenTracker={openTracker}
         supportUrl={import.meta.env.VITE_SUPPORT_URL}
       />
     );
@@ -519,6 +528,7 @@ export function App() {
               onOpenExplorer={openExplorer}
               onOpenHome={openHome}
               onOpenPlayground={openStudio}
+              onOpenTracker={openTracker}
             />
           </div>
           <button

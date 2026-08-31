@@ -2909,6 +2909,9 @@ export function ExplorerView({
             onHideInterface={onHideInterface}
             onOpenExplorer={onOpenExplorer}
             onOpenHome={onOpenHome}
+            onOpenTracker={() =>
+              window.location.assign(`${window.location.pathname}?app=tracker`)
+            }
             onOpenPlayground={onOpenPlayground}
           />
         </div>

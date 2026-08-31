@@ -121,7 +121,32 @@ function forecastFixture() {
 }
 
 /** Installs the stubs on a context, before any page in it loads. */
+/**
+ * A valid MapLibre style with nothing in it.
+ *
+ * The gate is about whether the interface can be operated, not about what the
+ * cartography looks like, and a real basemap costs it the two things a gate
+ * most needs: determinism and an end. Tiles stream continuously, so the network
+ * never falls idle and the run never finishes; they also come from somebody
+ * else's server, which is the dependency that has broken this project's gates
+ * before. A background layer is enough for the map to load, fire its events and
+ * settle, which is all the assertions below actually rest on.
+ */
+const EMPTY_BASEMAP_STYLE = {
+  version: 8,
+  name: "gate",
+  sources: {},
+  layers: [{ id: "background", type: "background", paint: { "background-color": "#11151f" } }],
+};
+
 async function stubProviders(context) {
+  await context.route("**/tiles.openfreemap.org/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(EMPTY_BASEMAP_STYLE),
+    }),
+  );
   await context.route("**/photon.komoot.io/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(PLACE_FIXTURE) }),
   );
@@ -166,6 +191,21 @@ const TRACKER = `${PREVIEW_ORIGIN}/?app=tracker`;
 
 /** WCAG 2.1 A and AA, which is the level the interface claims. */
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
+/**
+ * Whether anything in the product routes to the Upcoming browse.
+ *
+ * Nothing does. The date control replaced it: a future night is this night with
+ * a different date, on the same map. The blocks below that scan its list and
+ * its calendar are kept rather than deleted — the view still exists, its
+ * accessibility work was real, and the decision to retire it as a destination
+ * is one the product may revisit — but they cannot run against an interface
+ * that has no way in, and a gate that dies halfway through tests nothing after
+ * the point it stopped.
+ *
+ * Flip this to `true` the day something routes to Upcoming again.
+ */
+const UPCOMING_IS_ROUTED = false;
 
 const failures = [];
 const checked = [];
@@ -327,11 +367,50 @@ async function chooseFirstResult(page, query) {
   }
 
   await page.keyboard.press("Enter");
-  await page.waitForSelector(".tracker-place-confirm", { timeout: 10_000 });
-  await scan(page, "place confirmation");
+  /**
+   * Straight to the map's panel; there is no confirmation step any more.
+   *
+   * Selecting a place used to ask "use this place?" before computing anything.
+   * On a map the pin is the location, a wrong one costs a click, and Back
+   * returns to the previous one — so the extra press ratified a decision that
+   * was never hard to reverse, and it disagreed with a click on the map, which
+   * had always committed immediately.
+   */
+  await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+  // The place itself now lives in the top bar rather than at the head of a
+  // panel, so that is where "a place is selected" is proved.
+  await page.waitForSelector(".tk-map-topbar-lead", { timeout: 30_000 });
+}
 
-  await page.keyboard.press("Enter");
+/**
+ * The one deliberate step from the map into the full event page.
+ *
+ * The page-based views did not go away when the map arrived — they are what the
+ * drill-in opens — so the assertions about them below are still the assertions
+ * this gate should be making. What changed is only how a reader reaches them.
+ */
+async function openDetail(page) {
+  // A rail card is a summary until it is opened, and the link into the full
+  // event page lives inside the expanded card. That is one more click than the
+  // panel needed, and it is the point: the rail answers most questions without
+  // leaving the map, so the page is reached deliberately.
+  //
+  // The head is a toggle, so a card that is already open must not be clicked
+  // again — returning from a detail view restores the card that was open, and
+  // a blind click there would close it and then wait forever for its link.
+  await page.waitForSelector(".tk-rail-card", { timeout: 30_000 });
+  if ((await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0) {
+    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
+  }
+  await page.waitForSelector(".tk-rail-details", { timeout: 30_000 });
+  await page.locator(".tk-rail-details").first().click();
   await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
+}
+
+/** Back out of the event page to the map that opened it. */
+async function backToMap(page) {
+  await page.goBack();
+  await page.waitForSelector(".tk-rail", { timeout: 30_000 });
 }
 
 /** Waits for the worker-backed future view to finish without mistaking its
@@ -348,6 +427,12 @@ async function visibleBounds(page) {
     const selectors = [
       ".tracker-bar",
       ".tracker-shell",
+      // The map's own furniture. The surface fills the viewport by design, so
+      // what is worth measuring is the rail and the things floating on it.
+      ".tk-rail",
+      ".tk-map-topbar",
+      ".tk-map-controls-view",
+      ".tk-callout",
       ".tk-page-heading",
       ".tk-hero",
       ".tk-viz-slot",
@@ -404,22 +489,141 @@ async function run() {
     await stubProviders(desktop);
     const page = await desktop.newPage();
     await page.clock.setFixedTime(RUN_AT);
-    await page.goto(TRACKER, { waitUntil: "networkidle" });
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded" });
     await scan(page, "entry");
 
-    // The entry screen must show something before a place is known. An empty
-    // frame with a search box in it was the state this replaced.
+    /**
+     * The entry screen is the map, and it has to be usable before Tracker knows
+     * anything about the reader.
+     *
+     * This replaces a check that the entry previewed a ranked list. That screen
+     * is gone: the map is the workspace now, and what has to be true on arrival
+     * is that there is something to look at, a way to say where you are, and a
+     * way to move around — none of which may wait on a place being chosen.
+     */
+    await page.waitForSelector('.tk-map-canvas[data-map-settled="true"]', { timeout: 60_000 });
     expect(
-      (await page.locator(".tk-preview-card").count()) > 0,
-      "the entry screen should preview the ranked list before a place is chosen",
+      (await page.locator(".tk-map-surface").count()) === 1,
+      "the entry screen should be the map itself",
+    );
+    expect(
+      (await page.locator(".tracker-place-current").count()) === 1,
+      "the map should offer a way to say where you are before any place is known",
+    );
+    expect(
+      (await page.locator(".tk-map-control").count()) >= 3,
+      "the map's own controls should be present on arrival",
+    );
+
+    /* --- the date control, which replaced the Tonight/Upcoming tabs --------
+     *
+     * Time is a parameter of the map now rather than a destination, so the
+     * control that changes it has to be operable without a mouse and has to
+     * say which night it is showing. The tabs it replaced must be gone: two
+     * ways to express "when", one of them a navigation, is the ambiguity this
+     * form factor exists to remove.
+     */
+    expect(
+      (await page.locator(".tk-map-shell .tk-date").count()) === 1,
+      "the map should carry a single date control",
+    );
+    expect(
+      (await page.locator(".tk-map-shell .tk-map-modes").count()) === 0,
+      "the map shell should no longer carry Tonight/Upcoming tabs",
+    );
+    for (const name of ["Previous night", "Next night"]) {
+      expect(
+        (await page.locator(`.tk-map-shell [aria-label="${name}"]`).count()) === 1,
+        `the date control needs a labelled ${name} action`,
+      );
+    }
+    /* --- the month calendar -------------------------------------------------
+     *
+     * The date used to be a label with a transparent `<input type="date">`
+     * stretched over it, and this checked that input's `max`. The input is
+     * gone: the date is a button that opens Tracker's own month, so the bound
+     * is now expressed by the cells themselves and by the paging controls.
+     */
+    expect(
+      (await page.locator(".tk-date-field[aria-haspopup='dialog']").count()) === 1,
+      "the date itself should open the calendar",
+    );
+    await page.locator(".tk-date-field").click();
+    await page.waitForSelector(".tk-cal", { timeout: 5_000 });
+    await scan(page, "month calendar open");
+    expect(
+      (await page.locator(".tk-cal[role='dialog'][aria-label]").count()) === 1,
+      "the calendar needs an accessible name",
+    );
+    expect(
+      (await page.locator(".tk-cal-day").count()) === 42,
+      "the calendar shows six whole weeks, so its height never changes",
+    );
+    expect(
+      (await page.locator('.tk-cal-day[tabindex="0"]').count()) === 1,
+      "the grid is one tab stop, with a roving focus inside it",
+    );
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains("tk-cal-day")),
+      "opening the calendar should put focus on a day",
+    );
+    // Every cell carries a full date, so the range bound is expressible.
+    expect(
+      (await page.locator(".tk-cal-day[aria-label]").count()) === 42,
+      "every day needs its own accessible name",
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    expect((await page.locator(".tk-cal").count()) === 0, "Escape should close the calendar");
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains("tk-date-field")),
+      "closing the calendar should hand focus back to the control that opened it",
+    );
+
+    /* --- the layer control -------------------------------------------------
+     *
+     * One control that opens a panel, rather than a chip per layer. The rows
+     * inside are switches, so they report state rather than merely looking
+     * pressed, and each is named in text rather than by icon alone.
+     */
+    expect(
+      (await page.locator(".tk-layers-trigger").count()) === 1,
+      "the map should offer one layer control",
+    );
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5_000 });
+    const rows = page.locator(".tk-layers-item");
+    expect((await rows.count()) > 0, "the layer panel should list layers");
+    for (let index = 0; index < (await rows.count()); index += 1) {
+      const row = rows.nth(index);
+      expect(
+        ["true", "false"].includes((await row.getAttribute("aria-checked")) ?? ""),
+        "every layer row should report whether it is on",
+      );
+      expect(
+        ((await row.textContent()) ?? "").trim().length > 0,
+        "every layer row should be named in text, not by icon alone",
+      );
+    }
+    await scan(page, "layer panel open");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    expect(
+      (await page.locator(".tk-rail").count()) === 0,
+      "nothing should claim to be a selected location before one is selected",
     );
 
     await chooseFirstResult(page, "Joshua Tree Village Campground");
-    await scan(page, "recommendation");
+    await scan(page, "map with a location selected");
 
-    // Escape must close the panel and give focus back, which it did not before
-    // the picker was rebuilt. Checked on the header popover, which is where the
-    // panel still opens once a place has been chosen.
+    /* --- the picker, on the map ------------------------------------------
+     *
+     * Checked here rather than after the drill-in: there are two of these on a
+     * page once an event is open, the map's and the event header's, and the
+     * event page covers the map. Testing `.first()` from inside the detail
+     * view was therefore clicking at a control behind an overlay, which
+     * Playwright correctly refuses to do.
+     */
     await page.locator(".tracker-place-current").first().click();
     await page.waitForSelector(".tracker-place-panel");
     await scan(page, "header picker open");
@@ -451,6 +655,30 @@ async function run() {
       ),
       "Escape should return focus to the picker trigger",
     );
+
+    assertNoHorizontalClipping(await visibleBounds(page), "1440px map with panel");
+
+    await openDetail(page);
+    await scan(page, "recommendation");
+
+    /* --- Back is the browser's Back ---------------------------------------
+     *
+     * Drilling into an event pushes one entry, and going back returns to the
+     * map with the same location still selected. Asserted here rather than only
+     * in the walkthrough because a product that breaks the back button is an
+     * accessibility problem before it is anything else: Back is how a great
+     * many people undo, and a swallowed one strands them.
+     */
+    await backToMap(page);
+    expect(
+      (await page.locator(".tracker-hero .tk-hero-name").count()) === 0,
+      "Back should leave the event page",
+    );
+    expect(
+      (await page.locator(".tk-map-topbar-lead").count()) > 0,
+      "Back should return to the map with the same location still selected",
+    );
+    await openDetail(page);
 
     // Decision support must precede the reminder in the document as well as
     // visually. The old verifier clicked a disclosure removed by the Phase 1
@@ -486,6 +714,7 @@ async function run() {
 
     // Exercise both worker-backed future views, including their current filter
     // contract. Unsupported categories must not appear as selectable promises.
+    if (UPCOMING_IS_ROUTED) {
     await page.getByRole("button", { name: "Upcoming" }).click();
     await waitForPlanning(page, ".tk-highlights");
     await scan(page, "Upcoming list ready");
@@ -523,9 +752,14 @@ async function run() {
       );
       await scan(page, "Upcoming Calendar selected event");
     }
-
     await page.getByRole("button", { name: "Tonight" }).click();
-    await page.waitForSelector(".tracker-hero .tk-hero-name");
+    }
+    // The ranked row this next block inspects lives on the event page, which is
+    // one deliberate step in from the panel.
+    if ((await page.locator(".tracker-hero .tk-hero-name").count()) === 0) {
+      await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+      await openDetail(page);
+    }
 
     // "Already set" cards are styled differently and were the source of every
     // contrast violation the audit found, so the state is forced rather than
@@ -550,18 +784,31 @@ async function run() {
      * cannot see the drawing. None of that is exercised by scanning the page
      * behind it.
      */
-    await page.goto(`${TRACKER}&view=upcoming&filter=eclipses`, {
+    /**
+     * The map model's own parameters: `mode`, not `view`, and a pin.
+     *
+     * Upcoming opens over a selected place, so a URL that names the view but no
+     * location lands on the bare map — which is what this line used to do, and
+     * why it then waited ninety seconds for a list that was never going to
+     * render.
+     */
+    /**
+     * Reached by date rather than through Upcoming.
+     *
+     * The expanded map is a property of the eclipse page, not of the browse
+     * that used to lead to it — and the date control is how a reader gets to a
+     * future night now. 11 January 2028 carries a partial lunar eclipse visible
+     * from Portland, so the date and the place together pin the phenomenon and
+     * the assertions below stay about the code rather than about the sky.
+     */
+    await page.goto(`${TRACKER}&date=2028-01-11&pin=45.5152,-122.6784`, {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
-    await page.waitForSelector('.tk-highlights[data-planning-state="ready"]', { timeout: 90_000 });
-    await page.waitForTimeout(600);
-    const eclipseCard = page.locator(".tk-upcoming-card").first();
-    if ((await eclipseCard.count()) > 0) {
-      await eclipseCard.click();
-      await page.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 });
-      await page.waitForTimeout(2_500);
-    }
+    await page.waitForSelector(".tk-rail", { timeout: 60_000 });
+    await openDetail(page);
+    await page.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2_500);
     const mapOpener = page.locator(".tk-viz-open", { hasText: /open full map/i }).first();
     if ((await mapOpener.count()) > 0) {
       await mapOpener.click();
@@ -614,12 +861,68 @@ async function run() {
     await stubProviders(mobile);
     const phone = await mobile.newPage();
     await phone.clock.setFixedTime(RUN_AT);
-    await phone.goto(TRACKER, { waitUntil: "networkidle" });
+    await phone.goto(TRACKER, { waitUntil: "domcontentloaded" });
     await scan(phone, "entry on a phone");
     await chooseFirstResult(phone, "Joshua Tree Village Campground");
+    await scan(phone, "map with a location selected on a phone");
+
+    /* --- the rail, which is what a phone gets instead of a sheet ----------
+     *
+     * There used to be a bottom sheet here: a collapsed strip with a button
+     * that expanded it over most of the screen. The rail replaced it, and the
+     * sheet went with it rather than being kept alongside.
+     *
+     * The reason is that the sheet and the rail answer the same question in
+     * ways that cannot both be right. A sheet says "the details are somewhere
+     * else, here is a handle"; the rail says "the details are in the card you
+     * tapped". Two mechanisms for opening the same content on the same screen
+     * is exactly the duplication this pass exists to remove — and the rail is
+     * the better of the two on a phone, because expanding a card keeps the map
+     * visible where expanding the sheet covered it.
+     *
+     * So what is asserted here is the rail's own contract: it is present, its
+     * cards are reachable, exactly one opens at a time, and opening one does
+     * not cover the map.
+     */
+    await phone.waitForSelector(".tk-rail-card", { timeout: 30_000 });
+    expect(
+      (await phone.locator(".tk-map-sheet-handle").count()) === 0,
+      "the bottom sheet should be gone, not living alongside the rail",
+    );
+    const railHead = phone.locator(".tk-rail-card .tk-rail-card-head").first();
+    expect(
+      (await railHead.getAttribute("aria-expanded")) === "false",
+      "a rail card should say whether it is open",
+    );
+    await railHead.click();
+    await phone.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5_000 });
+    expect(
+      (await railHead.getAttribute("aria-expanded")) === "true",
+      "a rail card should report its expanded state",
+    );
+    expect(
+      (await phone.locator('.tk-rail-card[data-expanded="true"]').count()) === 1,
+      "only one rail card should be open at a time on a phone",
+    );
+    expect(
+      await phone.evaluate(() => {
+        const rail = document.querySelector(".tk-rail");
+        if (!rail) return false;
+        // The map has to stay the larger half of the screen: a card that grows
+        // to cover it has become the sheet it replaced.
+        return rail.getBoundingClientRect().height < window.innerHeight * 0.6;
+      }),
+      "an expanded rail card should leave most of the map visible",
+    );
+    await scan(phone, "rail card expanded on a phone");
+    await railHead.click();
+    await phone.waitForSelector('.tk-rail-card[data-expanded="false"]', { timeout: 5_000 });
+
+    await openDetail(phone);
     await scan(phone, "recommendation on a phone");
     assertNoHorizontalClipping(await visibleBounds(phone), "390px Tonight");
 
+    if (UPCOMING_IS_ROUTED) {
     await phone.getByRole("button", { name: "Upcoming" }).click();
     await waitForPlanning(phone, ".tk-highlights");
     await scan(phone, "Upcoming Highlights on a phone");
@@ -635,6 +938,7 @@ async function run() {
       "390px Calendar must expose one selected agenda event at most",
     );
     assertNoHorizontalClipping(await visibleBounds(phone), "390px Calendar");
+    }
     await mobile.close();
 
     // 320 CSS px is the narrow end of the explicit Phase 2 support range.
@@ -660,8 +964,11 @@ async function run() {
     });
     const narrowPage = await narrow.newPage();
     await narrowPage.clock.setFixedTime(RUN_AT);
-    await narrowPage.goto(TRACKER, { waitUntil: "networkidle" });
-    await narrowPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
+    await narrowPage.goto(TRACKER, { waitUntil: "domcontentloaded" });
+    // A stored place opens the map on that place, so the event page is one
+    // deliberate step in rather than the landing screen.
+    await narrowPage.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await openDetail(narrowPage);
     await scan(narrowPage, "recommendation at 320 CSS pixels");
     assertNoHorizontalClipping(await visibleBounds(narrowPage), "320px Tonight");
     await narrow.close();
@@ -688,8 +995,11 @@ async function run() {
     });
     const reducedPage = await reduced.newPage();
     await reducedPage.clock.setFixedTime(RUN_AT);
-    await reducedPage.goto(TRACKER, { waitUntil: "networkidle" });
-    await reducedPage.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
+    await reducedPage.goto(TRACKER, { waitUntil: "domcontentloaded" });
+    // A stored place opens the map on that place, so the event page is one
+    // deliberate step in rather than the landing screen.
+    await reducedPage.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await openDetail(reducedPage);
     expect(
       await reducedPage.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),
       "the reduced-motion production context should expose the requested preference",

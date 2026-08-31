@@ -24,7 +24,8 @@ import { RelevantEventsList, type RelevantEventRow } from "./RelevantEventsList"
 
 interface Props {
   categoryId: EventCategoryId;
-  mode: "tonight" | "upcoming";
+  /** The night on screen, as words: "tonight", "tomorrow", "on 12 Sep". */
+  nightWord: string;
   presentation: EventPresentation;
   media: HeroMedia;
   /** Whatever belongs in the fixed slot for this phenomenon. */
@@ -51,7 +52,7 @@ interface Props {
 
 export function PhenomenonPage({
   categoryId,
-  mode,
+  nightWord,
   presentation,
   media,
   visualization,
@@ -81,7 +82,7 @@ export function PhenomenonPage({
           </button>
         ) : null}
         <h1>{category.heading}</h1>
-        <p>{subtitleFor(categoryId, mode)}</p>
+        <p>{subtitleFor(categoryId, nightWord)}</p>
       </div>
 
       <div className="tk-main-row">
@@ -103,6 +104,8 @@ export function PhenomenonPage({
         cards={conditions}
         caption={conditionsCaption}
         evidenceStatus={evidenceStatus}
+        // The moment the recommendation is for, which is what the row is about.
+        atUtc={presentation.atUtc}
       />
 
       <RelevantEventsList

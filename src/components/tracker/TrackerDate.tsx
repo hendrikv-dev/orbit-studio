@@ -1,14 +1,14 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  EARLIEST_SUPPORTED_DATE,
-  LATEST_SUPPORTED_DATE,
   daysBetween,
   describeDate,
   isSupportedDate,
   shiftDate,
   type LocalDate,
 } from "../../data/tracker/skyContext";
+import { TrackerCalendar } from "./TrackerCalendar";
+import { useDismissableSurface } from "../../data/tracker/dismissable";
 
 /**
  * Which night Tracker is showing.
@@ -20,25 +20,29 @@ import {
  * Past, no Future and no Archive, only a control that says which night is on
  * screen and lets the reader change it.
  *
- * ## Why it never says "Tonight"
+ * ## Why it names the day again
  *
- * It did, and that put `‹ Tonight ›` in the header three centimetres from the
- * `Tonight | Upcoming` tabs. Two controls, the same word, different jobs: one
- * chooses a date and the other chooses between two views. A reader cannot tell
- * from the interface which of them the word belongs to, and the arrows either
- * side of it imply — wrongly — that Upcoming is one step to the right of
- * Tonight.
+ * It used to show a bare date, deliberately: saying "Tonight" here put the word
+ * three centimetres from the `Tonight | Upcoming` tabs, where a reader could
+ * not tell which control it belonged to and the arrows implied — wrongly — that
+ * Upcoming was one step to the right of Tonight.
  *
- * So the date control always shows a date. "Tonight" belongs to the primary
- * navigation and appears in exactly one place.
+ * Those tabs are gone. Time is a parameter of the map now, not a destination,
+ * and with nothing left to collide with, the relative word is simply the most
+ * useful thing the control can say: "Today · 28 Aug 2026" answers both which
+ * night this is and where it sits relative to now, which a bare date does not.
  *
- * ## Why the year is typed rather than paged
+ * ## Why the date itself opens a calendar
  *
- * Reaching 1999 by clicking a month arrow is three hundred clicks. The control
- * offers a native date field, which every platform already renders as a proper
- * calendar with month and year navigation the reader knows, plus single-day
- * arrows for the common case of nudging one night either way and a way back to
- * today that is always visible when it would do something.
+ * The arrows serve the common case — one night either way — and only that case:
+ * an eclipse eleven months out is three hundred and thirty clicks away. This
+ * used to hand that job to a native `<input type="date">`, which does open a
+ * real calendar and opens a different one on every platform, drawn by the
+ * operating system in the middle of a dark map.
+ *
+ * The date is now a button, and it opens Tracker's own month. Everything else
+ * about the control is unchanged: the arrows, the way back to today, and the
+ * compact reading of which night is on screen.
  */
 
 interface Props {
@@ -46,24 +50,40 @@ interface Props {
   date: LocalDate;
   /** Today in the observer's own zone, so "Today" means their today. */
   today: LocalDate;
+  /** The observer's zone, so a calendar mark lands on the night they'd name. */
+  timeZone: string | null;
   onSelect: (date: LocalDate) => void;
 }
 
-export function TrackerDate({ date, today, onSelect }: Props) {
-  const [draft, setDraft] = useState(date);
+export function TrackerDate({ date, today, timeZone, onSelect }: Props) {
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const closeCalendar = useCallback(() => setCalendarOpen(false), []);
+  // While the month is open, a click on the map closes it rather than moving
+  // the reader's observing location.
+  useDismissableSurface(calendarOpen, closeCalendar);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const description = useMemo(() => describeDate(date, today), [date, today]);
   const isToday = date === today;
 
-  // Always a date, never a mode word. The year is dropped in the current year
-  // and kept outside it, because "12 Aug" is unambiguous this year and useless
-  // for 1999.
+  /**
+   * The night, named the way somebody would say it out loud.
+   *
+   * The relative word only appears for the three days it is genuinely clearer
+   * than the date; past that, "in 9 days" is arithmetic the reader has to
+   * reverse, and the date itself is the plainer answer. The year is always
+   * carried because this control reaches decades either way.
+   */
   const shortDate = useMemo(() => {
     const [year, month, day] = date.split("-").map(Number);
-    return new Intl.DateTimeFormat(undefined, {
+    const formatted = new Intl.DateTimeFormat(undefined, {
       day: "numeric",
       month: "short",
-      ...(date.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }),
+      year: "numeric",
     }).format(new Date(year, month - 1, day));
+    const offset = daysBetween(today, date);
+    const relative =
+      offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : offset === -1 ? "Yesterday" : null;
+    return relative ? `${relative} · ${formatted}` : formatted;
   }, [date, today]);
 
   // The arrows stop at the edges of what the ephemeris is trusted for rather
@@ -83,26 +103,21 @@ export function TrackerDate({ date, today, onSelect }: Props) {
         <ChevronLeft size={15} aria-hidden />
       </button>
 
-      <label className="tk-date-field">
-        {/* The visible text is the reader's language for the night; the input
-            underneath is the machine-readable date the platform's own calendar
-            edits. Both describe the same value, which is what keeps the
-            accessible name and the visible label saying the same thing. */}
-        <span className="tk-visually-hidden">Night to display</span>
-        <span className="tk-date-label" aria-hidden>
-          {shortDate}
-        </span>
-        <input
-          type="date"
-          value={draft}
-          min={EARLIEST_SUPPORTED_DATE}
-          max={LATEST_SUPPORTED_DATE}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            if (isSupportedDate(event.target.value)) onSelect(event.target.value);
-          }}
-        />
-      </label>
+      {/* The date is the control. Its accessible name says both what it shows
+          and what pressing it does, because the visible text alone reads as a
+          label rather than a button. */}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="tk-date-field"
+        aria-haspopup="dialog"
+        aria-expanded={calendarOpen}
+        onClick={() => setCalendarOpen((open) => !open)}
+      >
+        <CalendarDays size={14} aria-hidden />
+        <span className="tk-visually-hidden">Choose a night — showing </span>
+        <span className="tk-date-label">{shortDate}</span>
+      </button>
 
       <button
         type="button"
@@ -127,6 +142,17 @@ export function TrackerDate({ date, today, onSelect }: Props) {
           </span>
         </button>
       )}
+
+      {calendarOpen ? (
+        <TrackerCalendar
+          date={date}
+          today={today}
+          timeZone={timeZone}
+          onSelect={onSelect}
+          onClose={() => setCalendarOpen(false)}
+          returnFocusTo={triggerRef}
+        />
+      ) : null}
     </div>
   );
 }

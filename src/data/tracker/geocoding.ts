@@ -39,9 +39,38 @@ export interface GeocodingSourceInfo {
   cost: "public-no-fee" | "cost-bearing";
 }
 
+/**
+ * What a point on the map turns out to be.
+ *
+ * Deliberately not a `PlaceResult`. A search result is a place the reader asked
+ * for by name and can be selected; this is a description of somewhere they
+ * pointed at, which may be the middle of an ocean. The two are used
+ * differently and separating them keeps a reverse lookup from being fed back
+ * into the search list as though the reader had chosen it.
+ */
+export interface PlaceContext {
+  /** "Mount Hood", "Portland". Null when nothing recognisable is near. */
+  name: string | null;
+  /** "Hood River County, Oregon". Empty when the source offers none. */
+  context: string;
+  /** How far the named thing is from the point asked about, in km. */
+  distanceKm: number | null;
+}
+
 export interface GeocodingAdapter {
   source: GeocodingSourceInfo;
   search(query: string, signal?: AbortSignal): Promise<PlaceResult[]>;
+  /**
+   * What is at a point.
+   *
+   * Optional: an adapter that cannot answer simply does not, and the interface
+   * falls back to coordinates rather than to a guess.
+   */
+  reverse?(
+    latitudeDeg: number,
+    longitudeDeg: number,
+    signal?: AbortSignal,
+  ): Promise<PlaceContext | null>;
 }
 
 /**
@@ -200,7 +229,176 @@ export const photonAdapter: GeocodingAdapter = {
       .map((entry) => entry.place)
       .slice(0, 8);
   },
+
+  /**
+   * What is at a point on the map.
+   *
+   * ## Why this exists
+   *
+   * "45.52° N 122.68° W" is a correct answer to a question nobody asked. A
+   * reader who taps the map wants to know they landed near Portland, and
+   * coordinates are the fallback for when nothing recognisable is there — not
+   * the headline.
+   *
+   * ## The honesty rule
+   *
+   * Photon returns the nearest named feature at any distance, so a tap in the
+   * middle of the Pacific comes back with an island six hundred kilometres
+   * away. The distance is measured and returned, and the caller decides: past a
+   * threshold the honest answer is the coordinates, because naming a place that
+   * far off would be inventing context rather than resolving it.
+   */
+  async reverse(latitudeDeg, longitudeDeg, signal) {
+    const url =
+      `https://photon.komoot.io/reverse?lat=${latitudeDeg.toFixed(4)}` +
+      `&lon=${longitudeDeg.toFixed(4)}&limit=1`;
+    const response = await fetch(url, { signal });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const feature = body?.features?.[0];
+    if (!feature) return null;
+    const properties = feature.properties as Record<string, unknown>;
+    const described = describePoint(properties);
+    if (!described) return null;
+    const [lon, lat] = feature.geometry.coordinates as [number, number];
+    return {
+      ...described,
+      distanceKm: greatCircleKm(latitudeDeg, longitudeDeg, lat, lon),
+    };
+  },
 };
+
+/**
+ * Features worth naming a place after.
+ *
+ * A reverse lookup returns the nearest *object*, and in a city centre that is a
+ * bus stop. Naming the reader's location "Southwest Madison & 4th" is precise,
+ * useless and slightly absurd — they pointed at Portland.
+ *
+ * These are the categories where the nearest object genuinely is the best
+ * description: you are at Mount Hood, or in Deschutes National Forest, and no
+ * administrative name says it better. Everything else falls through to the
+ * settlement.
+ */
+/**
+ * Features worth naming a point after, whatever grain the geocoder matched at.
+ *
+ * These are geography: they are on the map because of what the land is, so the
+ * nearest one really is the best answer to "where am I".
+ */
+const NAMEABLE_FEATURES = new Set([
+  "national_park",
+  "nature_reserve",
+  "protected_area",
+  "peak",
+  "volcano",
+  "glacier",
+  "island",
+  "islet",
+  "forest",
+  "wood",
+  "beach",
+  "bay",
+  "cape",
+  "desert",
+  "valley",
+  "ridge",
+  "water",
+  "lake",
+  "reservoir",
+]);
+
+/**
+ * Features worth naming a point after only when they are not a single property.
+ *
+ * A campground, a viewpoint or a park can be the landmark that defines a place
+ * — or it can be one business with a sign. The geocoder already tells the two
+ * apart: it reports the grain it matched at, and `house` means it found an
+ * individual address-level object. Naming a rural clearing after the private
+ * campground nearest to it is how the panel came to announce "Mountindale Sun
+ * Resort" to somebody who had clicked on a hillside.
+ */
+const NAMEABLE_WHEN_NOT_A_SINGLE_PROPERTY = new Set([
+  "park",
+  "viewpoint",
+  "camp_site",
+  "wilderness_hut",
+]);
+/**
+ * What to call a point, at the grain a person would use.
+ *
+ * Named landmark first where there is one, then the settlement, then the
+ * administrative area — because the question behind a reverse lookup is "where
+ * am I", and the answer to that is "Portland", not the nearest street furniture.
+ *
+ * Returns null when nothing above a country is known, which is the honest
+ * outcome for the middle of an ocean and is what sends the caller back to
+ * coordinates.
+ */
+function describePoint(
+  properties: Record<string, unknown>,
+): { name: string; context: string } | null {
+  const text = (key: string) =>
+    typeof properties[key] === "string" && (properties[key] as string).trim().length > 0
+      ? (properties[key] as string).trim()
+      : null;
+
+  const value = text("osm_value");
+  const name = text("name");
+  const city = text("city");
+  const county = text("county");
+  const state = text("state");
+  const country = text("country");
+  const district = text("district");
+  // How fine a thing the geocoder matched. `house` is an individual property.
+  const grain = text("type");
+
+  // A landmark, where the nearest thing really is the best description.
+  const namesThePlace =
+    name &&
+    value &&
+    (NAMEABLE_FEATURES.has(value) ||
+      (NAMEABLE_WHEN_NOT_A_SINGLE_PROPERTY.has(value) && grain !== "house"));
+  if (namesThePlace) {
+    return {
+      name,
+      context: [city, state, country].filter(Boolean).slice(0, 2).join(", "),
+    };
+  }
+
+  if (city) {
+    return {
+      name: city,
+      // The neighbourhood is worth having where it is known; it is how somebody
+      // would actually place a point inside a city they know.
+      context: [district, state, country].filter(Boolean).slice(0, 2).join(", "),
+    };
+  }
+  // Out where there is no city, the locality is still the name people use, and
+  // it is a great deal more use than a county called Washington in Oregon.
+  if (district) return { name: district, context: [county, state].filter(Boolean).slice(0, 2).join(", ") };
+  if (county) return { name: county, context: [state, country].filter(Boolean).join(", ") };
+  if (state) return { name: state, context: country ?? "" };
+  // A country alone is too coarse to be worth showing over the coordinates the
+  // reader can already see on the pin.
+  return null;
+}
+
+/** Straight-line distance between two points, for the honesty rule above. */
+function greatCircleKm(
+  aLatDeg: number,
+  aLonDeg: number,
+  bLatDeg: number,
+  bLonDeg: number,
+): number {
+  const toRad = Math.PI / 180;
+  const dLat = (bLatDeg - aLatDeg) * toRad;
+  const dLon = (bLonDeg - aLonDeg) * toRad;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aLatDeg * toRad) * Math.cos(bLatDeg * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
 
 export const GEOCODING_ADAPTERS: GeocodingAdapter[] = [photonAdapter];
 

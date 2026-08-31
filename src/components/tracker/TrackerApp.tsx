@@ -35,6 +35,7 @@ import {
 } from "../../data/tracker/airQuality";
 import { heroImageryFor } from "../../data/tracker/imagery";
 import { conditionCards } from "../../data/tracker/conditionCards";
+import { geocoderFor } from "../../data/tracker/geocoding";
 import {
   VISIBILITY_LABEL,
   presentAuroraEvent,
@@ -56,7 +57,7 @@ import {
   loadConfirmedPlace,
   persistConfirmedPlace,
 } from "../../data/tracker/trackerPersistence";
-import { TrackerHeader, type TrackerView } from "./TrackerHeader";
+import type { TrackerView } from "./TrackerHeader";
 import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
@@ -74,12 +75,57 @@ import {
 } from "../../data/tracker/skyContext";
 import { rankTonight, visibleRanked } from "../../data/tracker/tonightRanking";
 import { auroraSignificance, priorityFor } from "../../data/tracker/significance";
+import {
+  MAP_MAX_ZOOM,
+  MAP_MIN_ZOOM,
+  type TrackerMapLocation,
+} from "../../data/tracker/mapNavigation";
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
-import { useTrackerHistory } from "./useTrackerHistory";
+import { useTrackerMapHistory } from "./useTrackerMapHistory";
+import { TrackerMapCanvas } from "./map/TrackerMapCanvas";
+import {
+  MAP_LAYER_IDS,
+  TrackerMapLayers,
+  type MapLayerId,
+} from "./map/TrackerMapLayers";
+import { TrackerEventFinder } from "./map/TrackerEventFinder";
+import {
+  catalogue,
+  eventDate,
+  type CatalogueEvent,
+} from "../../data/tracker/eventCatalogue";
+import {
+  buildEventOverlay,
+  overlayTitle,
+  readEventAt,
+} from "../../data/tracker/eventOverlay";
+import { TrackerDate } from "./TrackerDate";
+import { auroraProbabilityAt } from "../../data/tracker/aurora";
+import {
+  coverageField,
+  localSolarCircumstances,
+  mapExtentFor,
+  nextSolarEclipses,
+  traceCentralPath,
+} from "../../data/tracker/solarEclipse";
+import {
+  describeLightPollution,
+  loadLightPollution,
+} from "../../data/tracker/lightPollution";
+import { TrackerObservingRail, type RailFacts } from "./map/TrackerObservingRail";
+import { OrbitAppMenu } from "../layout/OrbitAppMenu";
+import { TrackerCallout } from "./onboarding/TrackerCallout";
+import { useOnboarding, type Tour } from "./onboarding/useOnboarding";
+import { buildRail, type RailCandidate } from "../../data/tracker/observingRail";
+import { cardMediaFor } from "../../data/tracker/cardMedia";
+import { useDismissableSurface } from "../../data/tracker/dismissable";
+import { EclipseFigure } from "./media/CardFigures";
+import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTerrain";
+import { compassPoint } from "../../data/tracker/meteorActivity";
+import { TrackerMapControls } from "./map/TrackerMapControls";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
-import { TrackerUpcoming } from "./TrackerUpcoming";
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
 import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
 /**
@@ -241,6 +287,123 @@ function useAurora(enabled: boolean): { data: AuroraConditions | null } {
   }, [grid.data, grid.isError, index.data, index.isError]);
 }
 
+/**
+ * Which conditions belong in the panel, in the order they help.
+ *
+ * A whitelist rather than a slice: the panel is an answer, and the answer is
+ * "can I see it and how good will it look", which is cloud and transparency.
+ * Temperature belongs on the event page, where there is room for it to be
+ * context rather than one of three things competing for the reader's eye.
+ */
+const PANEL_CONDITION_IDS = ["cloud", "transparency", "air-quality"] as const;
+
+/**
+ * The first-run tour: four stops on the shell, and nothing else.
+ *
+ * Short on purpose. Onboarding that explains the whole product is a manual
+ * nobody reads; four callouts on the four controls a reader has to find is a
+ * label on each. Everything past that is better taught at the moment it becomes
+ * relevant, which is what the same mechanism does for contextual callouts.
+ *
+ * Every anchor is a control that is genuinely on screen. The rail step is
+ * skipped rather than faked when no place has been chosen yet — the hook drops
+ * steps whose anchor is not rendered, so nothing here has to pretend.
+ */
+const FIRST_RUN_TOUR: Tour = {
+  id: "first-run-v1",
+  steps: [
+    {
+      id: "place",
+      anchor: ".tk-map-topbar-lead",
+      title: "Choose a place",
+      body: "Search, use your location, or tap the map.",
+      placement: "bottom",
+    },
+    {
+      id: "rail",
+      anchor: ".tk-rail",
+      title: "What to look for",
+      body: "The strongest opportunities from this place, best first. Open one for timing, direction and conditions.",
+      placement: "top",
+    },
+    {
+      id: "date",
+      anchor: ".tk-map-topbar-centre",
+      title: "Change the date",
+      body: "Arrows step a night either way. Tap the date itself for a month, with eclipses and shower peaks marked.",
+      placement: "bottom",
+    },
+    {
+      id: "layers",
+      anchor: ".tk-layers",
+      title: "Layers",
+      body: "Add light pollution, darkness, aurora, and an event's own geography.",
+      placement: "bottom",
+    },
+  ],
+};
+
+/**
+ * Which observing card an event of each kind arrives in.
+ *
+ * The rail names its event cards after the kind, so this is the inverse of
+ * `catalogueEventForCard` and the two must not drift apart.
+ */
+const CARD_FOR_EVENT: Record<string, string> = {
+  "solar-eclipse": "solar-eclipse",
+  "lunar-eclipse": "lunar-eclipse",
+  "meteor-shower": "meteors",
+};
+
+/**
+ * Leaving Tracker for the rest of Orbit Studio.
+ *
+ * Explorer and Playground switch products inside one React tree; Tracker is
+ * mounted from its own entry point behind `?app=tracker`, so the way out is a
+ * real navigation rather than a state change. The destinations are the same
+ * three the other two offer, spelled the way this entry point understands them.
+ */
+const suite = {
+  home: () => window.location.assign(window.location.pathname),
+  explorer: () => window.location.assign(`${window.location.pathname}?app=explorer`),
+  playground: () => window.location.assign(`${window.location.pathname}?app=playground`),
+};
+
+/**
+ * The brand mark, which is also the way home.
+ *
+ * Explorer and Playground both put their logo at the top left and make it the
+ * button that returns to Orbit Studio. Tracker had neither the mark nor the
+ * route: once a reader was on the map there was no way back to the suite short
+ * of editing the URL. This is the same control they already know, and it
+ * collapses to the icon where the full mark will not fit.
+ */
+function TrackerBrand() {
+  return (
+    <button
+      type="button"
+      className="tk-brand"
+      aria-label="Open Orbit Studio home"
+      onClick={suite.home}
+    >
+      <img className="tk-brand-full" src="/brand/orbit-studio-tracker-logo-dark.png" alt="Orbit Studio Tracker" />
+      <img className="tk-brand-icon" src="/brand/orbit-studio-tracker-icon.png" alt="" aria-hidden />
+    </button>
+  );
+}
+
+function TrackerSuiteMenu() {
+  return (
+    <OrbitAppMenu
+      activeApp="tracker"
+      onOpenHome={suite.home}
+      onOpenExplorer={suite.explorer}
+      onOpenPlayground={suite.playground}
+      onOpenTracker={suite.home}
+    />
+  );
+}
+
 export function TrackerApp() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -305,21 +468,151 @@ function shortPlaceName(place: SelectedPlace): string {
 }
 
 function TrackerScreen() {
-  const [place, setPlace] = useState<SelectedPlace | null>(() => loadConfirmedPlace());
   /**
-   * Every navigable thing about this screen, in the browser's history.
+   * Where the reader is on the map, in the browser's history.
    *
-   * Was three `useState` calls here and four more in the children, none of
-   * which the browser knew about — so Back left Tracker rather than walking
-   * back through it. See `useTrackerHistory`.
+   * `navigate` pushes and `settle` replaces — see `useTrackerMapHistory` for
+   * why a map needs both. Panning must not fill the back stack, and Back from a
+   * drill-in must still land on the viewport that was on screen.
    */
-  const { location, navigate, back } = useTrackerHistory();
-  const view: TrackerView = location.view;
-  const selectedId = location.view === "tonight" ? location.eventId : null;
+  const { location, navigate, settle, back, returnTo } = useTrackerMapHistory();
+  /** One view. The date says which night; there is nothing else to choose. */
+  const view: TrackerView = "tonight";
+
+  /**
+   * The pin is the observing location.
+   *
+   * Not a separate "inspected" point beside a confirmed home: one pin, one
+   * meaning, so "what can I see from here" has exactly one answer. The stored
+   * confirmed place seeds the first pin and is otherwise just a memory of where
+   * the reader was last.
+   */
+  const [placeName, setPlaceName] = useState<SelectedPlace | null>(() => loadConfirmedPlace());
+  const place = useMemo<SelectedPlace | null>(() => {
+    if (!location.pin) return null;
+    // A named place is only the same place while the pin has not moved off it.
+    const named =
+      placeName &&
+      Math.abs(placeName.latitude - location.pin.latitudeDeg) < 0.01 &&
+      Math.abs(placeName.longitude - location.pin.longitudeDeg) < 0.01
+        ? placeName
+        : null;
+    return (
+      named ?? {
+        // No comma: `shortPlaceName` takes the part before the first one, which
+        // is the right rule for "Portland, Oregon, United States" and would cut
+        // a coordinate pair in half.
+        name: `${location.pin.latitudeDeg.toFixed(2)}° ${location.pin.latitudeDeg >= 0 ? "N" : "S"} ${Math.abs(location.pin.longitudeDeg).toFixed(2)}° ${location.pin.longitudeDeg >= 0 ? "E" : "W"}`,
+        context: "Picked on the map",
+        latitude: location.pin.latitudeDeg,
+        longitude: location.pin.longitudeDeg,
+        fromDevice: false,
+      }
+    );
+  }, [location.pin, placeName]);
+
+  /**
+   * Whether the reader named this place themselves.
+   *
+   * The precedence the product needs, in order: a place the reader searched for
+   * and chose; a place resolved from their device; a reverse lookup for a point
+   * they simply tapped; and coordinates when none of those is honest.
+   *
+   * Only the third of those should ever be overwritten by a geocoder. Search
+   * for "Wood Village" and Tracker was calling it "Troutdale" a moment later,
+   * because Photon reports the nearest settlement to those coordinates and the
+   * panel took that answer over the reader's own. A reverse lookup is a good
+   * guess about a point nobody named; it is not a correction to a name somebody
+   * chose on purpose.
+   */
+  const placeWasChosen = useMemo(
+    () =>
+      Boolean(
+        location.pin &&
+          placeName &&
+          Math.abs(placeName.latitude - location.pin.latitudeDeg) < 0.01 &&
+          Math.abs(placeName.longitude - location.pin.longitudeDeg) < 0.01,
+      ),
+    [location.pin, placeName],
+  );
+
+  /**
+   * What the pinned point turns out to be.
+   *
+   * ## Why it is a query rather than part of the pin
+   *
+   * The pin is a coordinate and is authoritative immediately; the *name* is a
+   * network round trip that may fail. Keeping them apart is what lets the panel
+   * open with the point already selected and fill the name in when it arrives,
+   * instead of waiting on a geocoder before showing anything.
+   *
+   * Keyed on the rounded pin so panning within a hundred metres does not
+   * re-ask, and cached for the session because a place does not move.
+   */
+  const pinKey = location.pin
+    ? `${location.pin.latitudeDeg.toFixed(3)},${location.pin.longitudeDeg.toFixed(3)}`
+    : null;
+  const pinContext = useQuery({
+    queryKey: ["tracker", "reverse", pinKey],
+    enabled: pinKey !== null,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async ({ signal }) => {
+      if (!location.pin) return null;
+      const adapter = geocoderFor();
+      if (!adapter?.reverse) return null;
+      const found = await adapter.reverse(
+        location.pin.latitudeDeg,
+        location.pin.longitudeDeg,
+        signal,
+      );
+      // Past this the nearest named thing is not a description of where the
+      // reader pointed. Ocean taps come back with an island four hundred
+      // kilometres away, and naming it would be inventing context.
+      if (!found || (found.distanceKm !== null && found.distanceKm > 60)) return null;
+      return found;
+    },
+  });
+
+  /**
+   * Choosing a place through the picker or the device.
+   *
+   * Both the name and the pin move together, and the pin is what everything
+   * downstream reads — so a search result and a tap on the map arrive at
+   * exactly the same state.
+   */
+  const selectPlace = useCallback(
+    (next: SelectedPlace) => {
+      setPlaceName(next);
+      navigate({
+        pin: { latitudeDeg: next.latitude, longitudeDeg: next.longitude },
+        centre: { latitudeDeg: next.latitude, longitudeDeg: next.longitude },
+        /**
+         * Close enough to see the region, far enough to see where else to go.
+         *
+         * The floor was 2.6, which meant something on the hand-built map's
+         * 1–4 scale and means "most of a continent" in MapLibre's. Searching
+         * for Wood Village put the reader in orbit over North America. At 8.5
+         * the answer arrives with Portland, Gresham, the Columbia and the road
+         * out to Mount Hood around it, which is the context that makes a
+         * location worth choosing.
+         *
+         * A floor rather than an assignment, so somebody already looking
+         * closely at a valley is not pulled back out by naming a place in it.
+         */
+        zoom: Math.max(location.zoom, 8.5),
+        detail: null,
+        drill: null,
+      });
+    },
+    [location.zoom, navigate],
+  );
+
+  const selectedId = location.detail;
   const overlay: Overlay =
-    location.view === "tonight" && location.drill === "sky"
+    location.detail && location.drill === "sky"
       ? "sky-map"
-      : location.view === "tonight" && location.drill === "field"
+      : location.detail && location.drill === "field"
         ? "field-map"
         : null;
 
@@ -342,10 +635,8 @@ function TrackerScreen() {
   // picks a different event — only when the night itself changes.
   const selectedIdRef = useRef(selectedId);
   const drillRef = useRef(location.drill);
-  const viewRef = useRef(location.view);
   selectedIdRef.current = selectedId;
   drillRef.current = location.drill;
-  viewRef.current = location.view;
   const [now, setNow] = useState(() => new Date());
   /**
    * The instant "today" rolls over on, kept separate from the chosen date.
@@ -457,12 +748,10 @@ function TrackerScreen() {
     const previous = settledPlan.current;
     if (key !== null) settledPlan.current = key;
     const rolledOver = previous !== null && key !== null && previous !== key;
-    if (
-      rolledOver &&
-      viewRef.current === "tonight" &&
-      (selectedIdRef.current !== null || drillRef.current !== null)
-    ) {
-      navigate({ eventId: null, drill: null }, { replace: true });
+    // The guard used to also ask whether the reader was in Tonight rather than
+    // Upcoming. There is only one view now, so the question has no content.
+    if (rolledOver && (selectedIdRef.current !== null || drillRef.current !== null)) {
+      settle({ detail: null, drill: null });
     }
     if (!night) return;
     const delay = Math.min(
@@ -635,11 +924,26 @@ function TrackerScreen() {
                   direction={entry.opportunity.guidance.direction ?? "the horizon"}
                 />
               ),
-              claim: "Computed for this event",
               credit:
                 "Drawn from this pairing's own positions at the recommended moment. Discs are enlarged to be legible; the separation between them is to scale.",
             }
-          : {
+          : /**
+             * A solar eclipse is drawn too, for the same reason.
+             *
+             * It used to fall through to a generic long exposure of a dark sky
+             * at Paranal — an image with no eclipse in it, under a heading
+             * announcing an annular one. What the reader needs is how much of
+             * the Sun is covered *here*, which the event already knows, so the
+             * hero draws that number instead of illustrating the wrong thing.
+             */
+            science?.kind === "solar-eclipse"
+            ? {
+                kind: "drawn" as const,
+                node: <EclipseFigure media={cardMediaFor(entry.opportunity) as never} />,
+                credit:
+                  "Drawn from this eclipse's own local circumstances: the Sun's disc, and how much of it the Moon covers from the selected place at maximum.",
+              }
+            : {
               kind: "imagery" as const,
               imagery,
               illuminatedFraction:
@@ -655,10 +959,20 @@ function TrackerScreen() {
         // The photograph's caption does not describe a diagram. Left as it
         // was, a computed conjunction carried the night-sky image's note about
         // long exposures and observatory sites.
+        /**
+         * What the reader will actually see, matched to what is being shown.
+         *
+         * Taken from the imagery's own note only when imagery is what is on
+         * screen. A drawn eclipse inherited the night-sky photograph's caption
+         * — "a long exposure from a dark observatory site" — under a picture of
+         * a corona, describing an image that was no longer there.
+         */
         expectation:
           media.kind === "drawn" && science?.kind === "conjunction"
             ? "Two points of light close together, and nothing like this size. The drawing enlarges both so they can be told apart; what your eyes see is the Moon at this phase with a steady point beside it, separated by about the width shown."
-            : imagery.eyeExpectation,
+            : media.kind === "drawn" && science?.kind === "solar-eclipse"
+              ? entry.opportunity.guidance.appearance
+              : imagery.eyeExpectation,
         safety: entry.opportunity.guidance.safety,
         // Passed events sink rather than disappear: "the Moon is already down"
         // is worth being able to see, and it is not a recommendation.
@@ -799,7 +1113,9 @@ function TrackerScreen() {
                 probabilityPercent={auroraAssessment.probabilityPercent}
               />
             ),
-            claim: "Forecast visualisation",
+            // The credit already says what this is and where it came from,
+            // which is the part that matters; "Forecast visualisation" only
+            // named the asset category.
             credit: "Drawn from the NOAA OVATION nowcast — not a photograph.",
           },
           expectation:
@@ -1063,18 +1379,10 @@ function TrackerScreen() {
     // Named for the night actually on screen. "Saturn tonight" is wrong in a
     // tab showing 7 September, and the tab title is how this page is found
     // again in a row of tabs, in history and in a shared link.
-    //
-    // And wrong in a tab showing Upcoming, which is where it was: this effect
-    // only knows about the Tonight hero, so opening a solar eclipse from the
-    // calendar left the tab still called "Saturn tonight". Upcoming names
-    // itself instead of inheriting a title from a view the reader has left —
-    // the event's own name is set by `UpcomingEventPage`, which is the only
-    // component that knows it.
-    if (view === "upcoming") return;
     document.title = heroEvent
       ? `${heroEvent.presentation.title} ${describeDate(selectedDate, today).heading} — Orbit Studio Tracker`
       : "Orbit Studio Tracker";
-  }, [heroEvent, selectedDate, today, view]);
+  }, [heroEvent, selectedDate, today]);
 
   const remind = useCallback((presentation: EventPresentation) => {
     downloadCalendarFile({
@@ -1241,6 +1549,31 @@ function TrackerScreen() {
   ]);
 
   /**
+   * A solar eclipse's geography, for the page and its drill-in.
+   *
+   * Built only when the night's hero actually is one, because tracing the path
+   * and sampling the coverage is real work and no other event needs it.
+   */
+  const solarEclipseField = useMemo(() => {
+    if (!place || !heroEvent || heroEvent.presentation.categoryId !== "eclipses") return null;
+    const science = heroEvent.entry?.opportunity.science;
+    if (!science || science.kind !== "solar-eclipse") return null;
+    const found = nextSolarEclipses(new Date(Date.parse(science.peakUtc) - 86_400_000), 2).find(
+      (entry) => Math.abs(Date.parse(entry.peakUtc) - Date.parse(science.peakUtc)) < 86_400_000,
+    );
+    if (!found) return null;
+    const centralPath = traceCentralPath(found, 6, 240, true);
+    const bounds = mapExtentFor(place.latitude, place.longitude, centralPath, 26, 72);
+    return {
+      event: found,
+      centralPath,
+      bounds,
+      coverage: coverageField(found, bounds, 1.5),
+      local: localSolarCircumstances(found, place.latitude, place.longitude, centralPath),
+    };
+  }, [heroEvent, place]);
+
+  /**
    * The eclipse map at hemisphere scale, for the drill-in.
    *
    * Interactive here and inert on the card, for the reason the aurora map is:
@@ -1394,6 +1727,42 @@ function TrackerScreen() {
      * still one control away, under "Where to look", where it answers the
      * question it is actually good at.
      */
+    /**
+     * A solar eclipse leads with where on Earth, exactly as a lunar one does.
+     *
+     * This branch is new because solar eclipses are new to this page. They used
+     * to reach a page only through the Upcoming browse, which built their
+     * visualisation itself; now that they surface on their own date in the
+     * ordinary ranking, the page they land on has to draw them. Without this
+     * the reader got an eclipse page with a sky chart on it — a chart that
+     * cannot answer the only question a solar eclipse raises, which is whether
+     * the shadow reaches where they are standing.
+     */
+    if (solarEclipseField) {
+      return (
+        <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
+          <TrackerEclipseMap
+            kind="solar"
+            event={solarEclipseField.event}
+            coverage={solarEclipseField.coverage}
+            centralPath={solarEclipseField.centralPath}
+            local={solarEclipseField.local}
+            bounds={solarEclipseField.bounds}
+            observer={{
+              latitudeDeg: place.latitude,
+              longitudeDeg: place.longitude,
+              label: place.name,
+            }}
+            clock={clock}
+            onOpenFullMap={() => navigate({ drill: "field" })}
+            interactive={false}
+            inspection={null}
+            destinations={null}
+          />
+        </Suspense>
+      );
+    }
+
     if (lunarEclipseField) {
       return (
         <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
@@ -1492,63 +1861,722 @@ function TrackerScreen() {
     today,
   ]);
 
-  if (!place) {
+
+  /**
+   * The map, always. Everything else is over it or instead of it.
+   *
+   * ## What changed, and why the old shape could not be adjusted
+   *
+   * This returned a `<main>` containing a header and then one of three
+   * destinations — Upcoming, an event page, or a quiet-night notice. The map
+   * existed inside one of them, as a panel, one click from the edge of the
+   * product. Every question started with "which page", which is the interaction
+   * model this pass exists to remove.
+   *
+   * Now there is one canvas. The controls float on it, the panel opens over it
+   * when a point is picked, and the only thing that takes it off the screen is
+   * a deliberate drill-in that the reader asked for and can Back out of.
+   */
+  /**
+   * Which environment layers are on, narrowed to the ones that exist.
+   *
+   * The URL can carry anything; a stale link naming a layer that has since been
+   * removed should open the map without it rather than with a broken one.
+   */
+  const activeLayers = useMemo(() => {
+    const known = new Set<string>(MAP_LAYER_IDS);
+    return new Set(location.layers.filter((entry) => known.has(entry)));
+  }, [location.layers]);
+
+  /**
+   * The notable event the map is drawing, if any.
+   *
+   * Resolved from the catalogue rather than stored whole, so a shared link
+   * carries an id and the geometry is recomputed from the ephemeris — nothing
+   * about an eclipse is ever read back out of a URL.
+   */
+  const selectedEvent = useMemo<CatalogueEvent | null>(() => {
+    if (!location.event) return null;
+    // A generous window back, because a link to an event is often opened on the
+    // day itself, by which time the search's own "from" has passed the peak.
+    const from = new Date(Date.now() - 400 * 86_400_000);
+    return catalogue(from).find((entry) => entry.id === location.event) ?? null;
+  }, [location.event]);
+
+  /**
+   * The event's geography.
+   *
+   * Deliberately keyed on the event alone. These fields are global and depend
+   * on nothing about where the reader is looking, so panning and zooming must
+   * never recompute them — that lesson came from the eclipse map, and it is the
+   * difference between a map that pans smoothly with an eclipse on it and one
+   * that stutters.
+   */
+  const eventOverlay = useMemo(
+    () => (selectedEvent ? buildEventOverlay(selectedEvent) : null),
+    [selectedEvent],
+  );
+
+  /** Choosing an event sets the date to its night and draws it. */
+  /**
+   * Changing the night, and clearing what the night invalidates.
+   *
+   * The pin, the viewport and the active layers all survive: none of them is a
+   * statement about a date, and moving the reader's map because they asked
+   * about tomorrow would be a strange answer to the question. A drill-in is
+   * dropped, because a sky chart drawn for one night's event is not a chart for
+   * the next one.
+   *
+   * The selected event is dropped only when the new night is not its night. An
+   * eclipse overlay belongs to the day the eclipse happens; left drawn over a
+   * date three weeks later it is a path across the ground for something that is
+   * not going to happen, which is worse than showing nothing. Where the event
+   * does span the chosen night — a shower's peak date is its own — it stays,
+   * so stepping a day either side of a peak does not throw the event away.
+   *
+   * Today is stored as null so a shared link does not pin somebody else's
+   * "today" to the day it was copied.
+   */
+  const selectDate = useCallback(
+    (next: string) => {
+      const stale =
+        selectedEvent !== null && eventDate(selectedEvent, clock.timeZone) !== next;
+      navigate({
+        date: next === today ? null : next,
+        drill: null,
+        ...(stale ? { event: null, card: null } : {}),
+      });
+    },
+    [clock.timeZone, navigate, selectedEvent, today],
+  );
+
+  const selectEvent = useCallback(
+    (event: CatalogueEvent) => {
+      const date = eventDate(event, clock.timeZone);
+      navigate({
+        event: event.id,
+        date: date === today ? null : date,
+        detail: null,
+        drill: null,
+        // Open the card for it, so a search lands the reader on the answer
+        // rather than on a highlighted map they now have to read. If that
+        // event is not observable from here, the rail will not contain the
+        // card and `expandedCardId` drops it — the map still moves, and no
+        // empty card is forced open to explain an absence.
+        card: CARD_FOR_EVENT[event.kind] ?? null,
+      });
+    },
+    [clock.timeZone, navigate, today],
+  );
+
+  /**
+   * The vendored light-pollution composite, decoded once and only when wanted.
+   *
+   * A megabyte of PNG and a full decode is not something to spend on a reader
+   * who never opens the layer, so it is fetched the first time the layer is
+   * switched on and kept for the session afterwards.
+   */
+  const lightPollution = useQuery({
+    queryKey: ["tracker", "light-pollution"],
+    enabled: location.layers.includes("light-pollution"),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    queryFn: () => loadLightPollution(),
+  });
+
+  /**
+   * The measurement at the selected place.
+   *
+   * A separate query from the archive itself because it is a different thing to
+   * wait for: opening the archive fetches a 400 KB index once per session, and
+   * this fetches the single 256×256 tile that covers the reader's own point.
+   * Keyed on the place at three decimals — about 100 m, finer than the archive
+   * resolves — so panning the map never triggers a fetch and only a genuine
+   * change of place does.
+   */
+  const lightHere = useQuery({
+    queryKey: [
+      "tracker",
+      "light-pollution",
+      "at",
+      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+    ],
+    enabled: Boolean(place) && Boolean(lightPollution.data),
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
+  });
+
+  /** The nowcast grid itself, which is what the map draws from. */
+  const auroraGrid = aurora.data?.grid ?? null;
+
+  /**
+   * The place as the reader should see it named, everywhere it is named.
+   *
+   * The map's picker and the event header's picker are the same control in two
+   * places, and they were being handed different values: the map got the
+   * reverse-geocoded name and the header got the raw record, so one said
+   * "Fairbanks" while the other said "64.84° N 147.72° W · Picked on the map".
+   * One point cannot have two names on one screen.
+   */
+  const namedPlace = useMemo(
+    () =>
+      place && !placeWasChosen && pinContext.data?.name
+        ? { ...place, name: pinContext.data.name, context: pinContext.data.context }
+        : place,
+    [place, placeWasChosen, pinContext.data],
+  );
+
+  /**
+   * Whether the map has been dragged far enough from the selection to be worth
+   * offering a way back. Half a screen at the current scale, roughly — close
+   * enough and the button would be a no-op with a different label.
+   */
+  const awayFromPin = useMemo(() => {
+    if (!location.pin) return false;
+    const degreesAcross = 360 / 2 ** location.zoom;
     return (
-      <main className="tracker-shell">
-        <TrackerHeader
-          place={null}
-          onSelectPlace={setPlace}
-          view={view}
-          onSelectView={(next) => navigate({ view: next, eventId: null, drill: null })}
-          freshnessMinutes={null}
-          sources={[]}
-        />
-        <TrackerEntry onSelect={setPlace} />
-      </main>
+      Math.abs(location.centre.latitudeDeg - location.pin.latitudeDeg) > degreesAcross * 0.25 ||
+      Math.abs(location.centre.longitudeDeg - location.pin.longitudeDeg) > degreesAcross * 0.25
     );
+  }, [location.centre, location.pin, location.zoom]);
+
+  /**
+   * What each active layer says at the selected point, in words.
+   *
+   * Reading a value off a colour ramp is the reader's job only if the product
+   * has failed: whatever is drawn has to be interpretable at the one point they
+   * care about. A list rather than one value, because several layers can be on.
+   */
+  /**
+   * What each active layer reads at the selected point.
+   *
+   * Keyed by layer rather than listed, because these are now rendered under the
+   * switch that turned each one on. They used to sit in a stack at the foot of
+   * the location panel; when the rail replaced that panel the readings had
+   * nowhere to go, and a layer that draws a continent-wide field with no
+   * statement of what it says *here* leaves the reader matching a colour
+   * against a legend — which is the work a map exists to do for them.
+   */
+  const layerReadings = useMemo(() => {
+    if (!place) return undefined;
+    const readings: Partial<Record<string, { value: string; detail: string | null }>> = {};
+    if (activeLayers.has("light-pollution") && lightHere.data !== undefined) {
+      const words = describeLightPollution(lightHere.data);
+      readings["light-pollution"] = {
+        // The measurement is quoted alongside the band, because the band is a
+        // judgement and the number is the fact it was made from.
+        value: `${words.label} · ${lightHere.data.toFixed(1)} nW/cm²/sr`,
+        detail: words.detail,
+      };
+    }
+    if (activeLayers.has("aurora") && auroraGrid) {
+      const percent = auroraProbabilityAt(auroraGrid, place.latitude, place.longitude);
+      readings.aurora = {
+        value: percent > 0 ? `${percent}% chance here` : "Below 1% here",
+        detail:
+          percent >= 30
+            ? "Worth watching the northern horizon."
+            : percent >= 10
+              ? "Possible low on the horizon from a dark site."
+              : "Not expected from this latitude tonight.",
+      };
+    }
+    return readings;
+  }, [activeLayers, auroraGrid, lightHere.data, place]);
+
+  /**
+   * What the selected event means *here*.
+   *
+   * Computed at the exact coordinate rather than looked up in the drawn field:
+   * the field is sampled at whatever step draws well, and for an eclipse a cell
+   * four degrees away is the difference between totality and a partial.
+   */
+  /**
+   * The rail: what is worth looking at from here, and in what order.
+   *
+   * Built from the same ranking the event page uses — two authorities
+   * disagreeing about what is best is a defect this project has already fixed
+   * once — with a floor applied so a quiet night shows two cards rather than
+   * five, three of which are "something is above the horizon".
+   */
+  const railCards = useMemo(() => {
+    const toCandidate = (event: (typeof tonightEvents)[number]): RailCandidate[] =>
+      event.entry
+        ? [
+            {
+              id: event.id,
+              presentation: event.presentation,
+              opportunity: event.entry.opportunity,
+              rank: event.rank,
+              significance: event.entry.opportunity.significance,
+              media: cardMediaFor(event.entry.opportunity),
+              window: event.window,
+            },
+          ]
+        : [];
+
+    const candidates: RailCandidate[] = bestTonight.flatMap(toCandidate);
+
+    /**
+     * The Moon, whether or not it was recommended.
+     *
+     * `bestTonight` is the *recommendation* list and it filters on eligibility,
+     * which a routine phase does not pass — correctly, because "the Moon is up"
+     * is not a reason to go outside. But its phase and its timing decide what
+     * else is possible every single night, so the rail carries it regardless
+     * and lets the reader decide. It is the one object that is always worth
+     * knowing about.
+     *
+     * Skipped when an eclipse of it is already a candidate: the same body twice
+     * is the duplication the rail's Moon rule exists to prevent.
+     */
+    const hasMoon = candidates.some((candidate) =>
+      ["moon", "lunar-eclipse"].includes(candidate.opportunity.kind),
+    );
+    if (!hasMoon) {
+      const moon = tonightEvents.find((event) => event.entry?.opportunity.kind === "moon");
+      if (moon) candidates.push(...toCandidate(moon));
+    }
+
+    return buildRail(candidates);
+  }, [bestTonight, tonightEvents]);
+
+  /**
+   * The catalogue event a rail card corresponds to, where there is one.
+   *
+   * This is what makes expanding a card change the map rather than merely
+   * highlight the card. An eclipse card and the eclipse overlay are the same
+   * subject reached two ways — through the rail or through event search — so
+   * selecting either has to produce the same state, and the rail resolves its
+   * card to the catalogue entry for the night on screen.
+   *
+   * Objects that are simply up have no catalogue entry and no overlay, which is
+   * correct: there is no geography to Saturn being visible.
+   */
+  const catalogueEventForCard = useCallback(
+    (cardId: string): string | null => {
+      const kinds: Record<string, "solar-eclipse" | "lunar-eclipse" | "meteor-shower"> = {
+        "solar-eclipse": "solar-eclipse",
+        "lunar-eclipse": "lunar-eclipse",
+        meteors: "meteor-shower",
+      };
+      const kind = kinds[cardId];
+      if (!kind) return null;
+      const from = new Date(Date.now() - 400 * 86_400_000);
+      const match = catalogue(from).find(
+        (entry) => entry.kind === kind && eventDate(entry, clock.timeZone) === selectedDate,
+      );
+      return match?.id ?? null;
+    },
+    [clock.timeZone, selectedDate],
+  );
+
+  /** The card the reader has open, narrowed to one that still exists. */
+  const expandedCardId = useMemo(
+    () => (railCards.some((card) => card.id === location.card) ? location.card : null),
+    [location.card, railCards],
+  );
+  const expandedCard = railCards.find((card) => card.id === expandedCardId) ?? null;
+
+  /**
+   * An open card is a transient surface, so the map dismisses it like any other.
+   *
+   * It was the one overlay that ignored the convention: clicking the map left
+   * the card open *and* moved the observing location, which is the worst of
+   * both — the reader lost the place they had chosen and still had to find the
+   * close button. Registering it here rather than in the rail because the open
+   * card lives in the URL, not in the rail's own state.
+   *
+   * Dismissing this way does exactly what the card's own close button does, so
+   * Back behaves the same however the reader closed it.
+   */
+  const collapseCard = useCallback(() => navigate({ card: null }), [navigate]);
+  useDismissableSurface(expandedCardId !== null, collapseCard);
+
+  /**
+   * Terrain for the expanded card, and only for it.
+   *
+   * Keyed on the card and the place, so panning and zooming never trigger a
+   * DEM fetch and switching cards cancels the previous one. This is the whole
+   * of the "do not compute terrain during pan" requirement: nothing here
+   * depends on the viewport.
+   */
+  const terrain = useQuery({
+    /**
+     * Keyed on what the answer actually depends on, and nothing that ticks.
+     *
+     * The instant was in here, and it moves: the clock advances, the ranking
+     * recomputes, the key changes, and the query restarts — aborting the one
+     * that was almost finished. The card sat on "checking the terrain horizon"
+     * for ever, having computed the right answer several times over and thrown
+     * each one away. Terrain depends on the place, the bearing sector and the
+     * night, not on the second.
+     */
+    queryKey: [
+      "tracker",
+      "terrain",
+      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+      expandedCard?.id ?? null,
+      selectedDate,
+    ],
+    enabled: Boolean(place && expandedCard),
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    retry: false,
+    queryFn: async ({ signal }) => {
+      if (!place || !expandedCard) return null;
+      const path = skyPathFor(expandedCard.opportunity, expandedCard.window);
+      /**
+       * Nothing to check where the phenomenon has no direction.
+       *
+       * A meteor shower's radiant has one, but the meteors do not: they arrive
+       * over the whole sky, so a ridge in one direction does not block the
+       * shower. Reporting terrain for it would be answering a question the
+       * phenomenon does not raise.
+       */
+      if (!path || path.kind === "rate") return null;
+      const best =
+        path.points.reduce<typeof path.points[number] | null>(
+          (top, point) => (!top || point.relative > top.relative ? point : top),
+          null,
+        ) ?? path.points[0];
+      if (!best) return null;
+      return assessEventTerrain({
+        observer: { latitudeDeg: place.latitude, longitudeDeg: place.longitude },
+        best: {
+          atUtc: best.atUtc,
+          azimuthDeg: best.azimuthDeg,
+          altitudeDeg: best.altitudeDeg,
+        },
+        // Thinned: a point every few minutes is far finer than the terrain, and
+        // each distinct bearing costs DEM tiles.
+        track: path.points.filter((_, index) => index % 3 === 0),
+        signal,
+      });
+    },
+  });
+
+  /**
+   * Everything an expanded card shows, for that card.
+   *
+   * Phenomenon-specific by construction: the facts come from the presentation
+   * the ranking already built for *that* event, so an eclipse shows contact
+   * times and a planet shows an altitude without this function knowing which is
+   * which. Conditions are the two that explain the observation; the terrain
+   * line is only present once it has been computed.
+   */
+  const eventReading = useMemo(() => {
+    if (!place || !selectedEvent || !eventOverlay) return null;
+    return readEventAt(
+      selectedEvent,
+      eventOverlay,
+      place.latitude,
+      place.longitude,
+      clock.timeZone ?? undefined,
+    );
+  }, [clock.timeZone, eventOverlay, place, selectedEvent]);
+
+  const railFactsFor = useCallback(
+    (card: (typeof railCards)[number]): RailFacts => {
+      const expanded = card.id === expandedCardId;
+      const [when, what, where] = card.presentation.metrics;
+      const facts = [when, what, where]
+        .filter((metric) => metric && metric.value)
+        .map((metric) => ({ label: metric.label, value: metric.value }));
+      const terrainResult = expanded ? terrain.data : undefined;
+      return {
+        facts,
+        terrain:
+          terrainResult
+            ? describeTerrain(terrainResult, compassPoint(terrainResult.bearingDeg), (utc) =>
+                formatClockTime(utc, clock),
+              )
+            : null,
+        terrainPending: expanded && terrain.isFetching,
+        conditions: PANEL_CONDITION_IDS.flatMap(
+          (id) => conditions.find((entry) => entry.id === id) ?? [],
+        ).slice(0, 2),
+        /**
+         * Why this is notable, in the significance model's own words.
+         *
+         * Its `reasons` are facts a reader could check — "37 days from
+         * opposition" — which is exactly what the brief asks for in place of a
+         * grade or a score.
+         */
+        note: card.significance?.reasons?.[0] ?? null,
+        /**
+         * Attached to the card the overlay is actually about.
+         *
+         * `CARD_FOR_EVENT` is the same mapping the event search uses, so a
+         * reading can never surface on a card describing a different event.
+         */
+        event:
+          selectedEvent && CARD_FOR_EVENT[selectedEvent.kind] === card.id ? eventReading : null,
+      };
+    },
+    [clock, conditions, eventReading, expandedCardId, selectedEvent, terrain.data, terrain.isFetching],
+  );
+
+
+
+
+  /**
+   * Upcoming is not a destination any more.
+   *
+   * It was a second place to be, with its own browse modes, its own calendar
+   * and its own idea of time — built when Tracker navigated between Tonight and
+   * Upcoming. The date control replaced that: a future night is this night with
+   * a different date, reached by the same control, on the same map, without
+   * going anywhere. Keeping a parallel destination alive beside it meant two
+   * answers to "when", one of which nothing in the interface pointed at.
+   *
+   * `TrackerUpcoming` and the future-event data behind it are left in the tree
+   * rather than deleted — the ranking and the horizon logic are worth keeping
+   * and may well be wanted again — but nothing routes to them, and the URL no
+   * longer carries a mode.
+   */
+  /**
+   * The tour, offered once and never in the way.
+   *
+   * Started after the map has settled rather than on mount: a callout pointing
+   * at a control while the map behind it is still blank teaches nothing, and
+   * the rail step needs the rail to exist before it can point at it.
+   */
+  const onboarding = useOnboarding();
+  const offeredTour = useRef(false);
+  useEffect(() => {
+    if (offeredTour.current || !place || !night) return;
+    offeredTour.current = true;
+    const timer = window.setTimeout(() => onboarding.offer(FIRST_RUN_TOUR), 1200);
+    return () => window.clearTimeout(timer);
+    // Offered once per session; `onboarding` is recreated each render and is
+    // deliberately not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [night, place]);
+
+  const detailOpen = Boolean(place && location.detail);
+
+  /**
+   * The map as it was when the reader last left it for a full-screen page.
+   *
+   * "Back to the map" is a destination, not a step. Whatever the reader did
+   * while they were away — changed the date, opened a drill-in, opened a
+   * different event from the ranked list — the way back is to the map they
+   * came from, in one press. Captured on the transition into the detail view
+   * rather than read from history, because history is exactly the thing that
+   * has moved on.
+   */
+  const mapBeforeDetail = useRef<TrackerMapLocation | null>(null);
+  const wasDetailOpen = useRef(false);
+  if (detailOpen && !wasDetailOpen.current) {
+    mapBeforeDetail.current = { ...location, detail: null, drill: null };
   }
+  wasDetailOpen.current = detailOpen;
+
+  const backToMap = useCallback(() => {
+    const remembered = mapBeforeDetail.current;
+    // Nothing remembered means the reader arrived on a detail URL directly, so
+    // the map they "came from" is the one this location describes without it.
+    returnTo(remembered ?? { ...location, detail: null, drill: null });
+  }, [location, returnTo]);
+  /** Narrowed for the detail branch, which only renders when both exist. */
+  const detailPlace = place;
 
   return (
-    <main className="tracker-shell">
-      <a className="tracker-skip" href="#tracker-more">
-        Skip to tonight&rsquo;s list
+    <main className="tracker-shell tk-map-shell" data-map-state={detailOpen ? "detail" : "map"}>
+      {/* Search is the accessible route to a location: the map must never be
+          the only way in, and a reader who cannot drag can still type. */}
+      <a className="tracker-skip" href="#tk-map-search">
+        Skip to place search
       </a>
-      <TrackerHeader
-        place={place}
-        onSelectPlace={setPlace}
-        view={view}
-        onSelectView={(next) => navigate({ view: next, eventId: null, drill: null })}
-        date={{
-          value: selectedDate,
-          today,
-          // Today is stored as null so a shared link opens on the reader's own
-          // tonight rather than the day it was copied. Changing the date clears
-          // the selected event: it belonged to a different night.
-          onSelect: (next) =>
-            navigate({ date: next === today ? null : next, eventId: null, drill: null }),
-        }}
-        freshnessMinutes={freshnessMinutes}
-        sources={sources}
+
+      <TrackerMapCanvas
+        centre={location.centre}
+        zoom={location.zoom}
+        // Looking around. Replaces the current entry, so a drag leaves one.
+        onMove={(centre, zoom) => settle({ centre, zoom })}
+        // A decision. Pushes, so Back undoes it.
+        onPick={(point) =>
+          navigate({
+            pin: point,
+            detail: null,
+            drill: null,
+          })
+        }
+        pin={location.pin}
+        pinLabel={namedPlace ? shortPlaceName(namedPlace) : null}
+        daylightAt={now}
+        auroraGrid={auroraGrid}
+        lightPollution={lightPollution.data ?? null}
+        layers={activeLayers}
+        eventOverlay={eventOverlay}
+        label="Map of observing locations"
       />
 
-      {view === "upcoming" ? (
-        <TrackerUpcoming
-          place={place}
-          clock={clock}
-          planAnchor={planAnchor}
-          now={now}
-          auroraConditions={aurora.data ?? null}
-          snapshots={snapshots}
-          evidenceStatus={environment.status}
-          location={location}
-          onNavigate={navigate}
-          onBack={back}
+      {/* --- the furniture, placed by kind -------------------------------
+       *
+       * What you are looking at goes top left, when goes top centre, what is
+       * drawn over it goes top right, what you do to the view goes bottom
+       * right, and context that is only sometimes worth having goes bottom
+       * left. A reader who finds one control can guess where the others are,
+       * which is the whole of what makes this a system rather than five
+       * widgets that happen to float.
+       */}
+      <div className="tk-map-topbar">
+        {/* Inside the lead, not beside it: the bar is a three-column grid whose
+            centre column must stay centred on the viewport, and a fourth child
+            wrapped onto its own row and stretched across the width. */}
+        <div className="tk-map-topbar-lead" id="tk-map-search">
+          <TrackerBrand />
+          {/* The trigger names what the panel names. Two labels for one point —
+              a resolved place in the panel and raw coordinates in the header —
+              is the interface arguing with itself. */}
+          <TrackerPlace place={namedPlace} onSelect={selectPlace} />
+        </div>
+
+        {/* Time is a parameter of the map, not a place to navigate to. The
+            segmented `Tonight | Upcoming` control that used to sit here made it
+            a destination, which meant the reader had to leave the thing they
+            were looking at in order to ask about a different night. */}
+        <div className="tk-map-topbar-centre">
+          <TrackerDate
+            date={selectedDate}
+            today={today}
+            timeZone={clock.timeZone}
+            onSelect={(next: string) => selectDate(next)}
+          />
+        </div>
+
+        <div className="tk-map-topbar-end">
+          {/* Product actions only. Choosing what the map draws used to sit
+              here too, which put a map control in the navigation cluster; it
+              now lives on the map's own edge with zoom and recentre. */}
+          <TrackerEventFinder
+            from={now}
+            selected={selectedEvent}
+            onSelect={selectEvent}
+            onClear={() => navigate({ event: null })}
+          />
+          {/* Last in the group, because it leaves Tracker rather than changing
+              what the map shows. It is also the only route home on a phone,
+              where the brand mark does not fit. */}
+          <TrackerSuiteMenu />
+        </div>
+      </div>
+
+      <TrackerMapControls
+        layersControl={
+          <TrackerMapLayers
+            readings={layerReadings}
+            // Only when no rail card exists to carry it, so the reading appears
+            // exactly once wherever the reader is looking.
+            eventReading={
+              eventReading &&
+              !railCards.some(
+                (card) => selectedEvent && CARD_FOR_EVENT[selectedEvent.kind] === card.id,
+              )
+                ? eventReading
+                : null
+            }
+            active={activeLayers}
+            onToggle={(layer) => {
+              // A toggle in a set, so several layers can describe one place.
+              const next = new Set(activeLayers);
+              if (next.has(layer)) next.delete(layer);
+              else next.add(layer);
+              navigate({ layers: [...next] });
+            }}
+            unavailable={{
+              ...(auroraGrid ? {} : { aurora: "Nowcast unavailable right now" }),
+              cloud: "Needs a gridded forecast, not yet fetched",
+              smoke: "Needs a gridded aerosol field, not yet fetched",
+            }}
+            eventOverlayLabel={selectedEvent ? overlayTitle(selectedEvent) : null}
+            onClearEvent={() => navigate({ event: null })}
+          />
+        }
+        onZoom={(steps) =>
+          settle({
+            zoom: Math.min(MAP_MAX_ZOOM, Math.max(MAP_MIN_ZOOM, location.zoom + steps)),
+          })
+        }
+        onRecentre={
+          // Only when the map has actually wandered off the selection. A button
+          // that is usually a no-op teaches the reader the controls are decor.
+          location.pin && awayFromPin
+            ? () => settle({ centre: location.pin as { latitudeDeg: number; longitudeDeg: number } })
+            : null
+        }
+        onLocate={(latitudeDeg, longitudeDeg) =>
+          // The same state a map click produces. One concept, three routes in.
+          selectPlace({
+            name: "Where you are",
+            context: "From your device",
+            latitude: latitudeDeg,
+            longitude: longitudeDeg,
+            fromDevice: true,
+          })
+        }
+      />
+
+      {place && !detailOpen ? (
+        <TrackerObservingRail
+          cards={railCards}
+          expandedId={expandedCardId}
+          /**
+           * Expanding is a decision, so it pushes: Back undoes it, and "Back to
+           * the map" from a detail page comes back to the card that was open.
+           */
+          onExpand={(id) => {
+            // Expanding makes that object the map's active context, so an event
+            // card brings its own geography with it.
+            const event = catalogueEventForCard(id);
+            navigate(event ? { card: id, event } : { card: id });
+          }}
+          onCollapse={() => navigate({ card: null })}
+          onOpenDetail={(id) => navigate({ detail: id, drill: null })}
+          place={placeWasChosen ? shortPlaceName(place) : (pinContext.data?.name ?? shortPlaceName(place))}
+          loading={!night}
+          factsFor={railFactsFor}
         />
-      ) : heroEvent && night ? (
+      ) : null}
+
+      {onboarding.step && !detailOpen ? (
+        <TrackerCallout
+          step={onboarding.step}
+          index={onboarding.index}
+          total={onboarding.total}
+          onNext={onboarding.next}
+          onBack={onboarding.back}
+          onClose={onboarding.close}
+        />
+      ) : null}
+
+      {detailOpen && detailPlace ? (
+        <div className="tk-map-detail">
+          <button
+            type="button"
+            className="tk-back tk-map-detail-back"
+            onClick={backToMap}
+          >
+            ← Back to the map
+          </button>
+          {/**
+            * No header here, deliberately.
+            *
+            * The event page is laid out to fit a viewport exactly — six window
+            * sizes are measured for it — and a full header spends that budget
+            * reproducing a place and a date the reader can see on the map they
+            * just came from. The way back floats over the page instead, and
+            * everything about *when* stays on the map where the brief puts it.
+            */}
+          {heroEvent && night ? (
         <>
           <PhenomenonPage
             categoryId={heroEvent.presentation.categoryId}
-            mode="tonight"
+            nightWord={describeDate(selectedDate, today).heading}
             presentation={heroPresentation ?? heroEvent.presentation}
             media={heroEvent.media}
             visualization={visualization}
@@ -1560,7 +2588,7 @@ function TrackerScreen() {
               // A drill-in belongs to the event it was opened from. Leaving it
               // up while the hero changes underneath shows one event's map over
               // another event's page.
-              navigate({ eventId: id, drill: null });
+              navigate({ detail: id, drill: null });
             }}
             onPrimaryAction={() =>
               navigate({
@@ -1792,7 +2820,9 @@ function TrackerScreen() {
             </p>
           </div>
         </div>
-      )}
+          )}
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -46,7 +46,7 @@ import {
  * viewport size.
  *
  * What stays bespoke is the part that is actually about this product: the
- * geolocation state machine, the address-aware ranking, and the confirmation
+ * geolocation state machine and the address-aware ranking
  * step. Nothing is computed from a place until the reader agrees it is the
  * right one.
  */
@@ -159,11 +159,6 @@ function PlacePanel({
   /** Rendered in the page rather than in a popover. */
   inline?: boolean;
 }) {
-  // Declared with the other hooks rather than beside the element it belongs to.
-  // It started out further down, below the early return for the confirmation
-  // step — so picking a place rendered one hook fewer than the render before it
-  // and React unmounted the whole app. Nothing on screen suggested a hook
-  // problem: the picker simply stopped responding to Enter.
   const fieldRef = useRef<HTMLDivElement>(null);
   const searchVersion = useRef(0);
 
@@ -176,8 +171,6 @@ function PlacePanel({
     outcome: null,
   });
   const [blockedUpFront, setBlockedUpFront] = useState(false);
-  /** A place chosen but not yet confirmed. Nothing is computed from it yet. */
-  const [pending, setPending] = useState<SelectedPlace | null>(null);
 
   // Whether asking can even produce a prompt, known before the button is
   // pressed, so a blocked browser can be told the truth rather than offered a
@@ -246,7 +239,7 @@ function PlacePanel({
     setGeo({ phase: outcome.phase, outcome });
     setBlockedUpFront(outcome.phase === "denied");
     if (outcome.coords) {
-      setPending({
+      onSelect({
         name: "Where you are",
         context: `Within about ${Math.round(outcome.coords.accuracyM)} m`,
         latitude: outcome.coords.latitude,
@@ -254,6 +247,7 @@ function PlacePanel({
         fromDevice: true,
         accuracyM: outcome.coords.accuracyM,
       });
+      close();
     }
   };
 
@@ -280,43 +274,6 @@ function PlacePanel({
     return results;
   }, [pin, results]);
 
-  if (pending) {
-    return (
-      /* Nothing is computed until the reader agrees this is the place. A
-         geocoder returns what is near what was typed, and only the reader knows
-         whether that is where they will be standing. */
-      <div className="tracker-place-confirm" data-search-state="selected">
-        <p className="tracker-place-confirm-lead">Use this place?</p>
-        <p className="tracker-place-confirm-name">{pending.name}</p>
-        {/* The resolved place, not the coordinates. A pair of decimals is the
-            geocoder's answer, not the reader's — it tells them nothing about
-            whether Tracker understood which park they meant. Coordinates stay
-            available in the provenance panel, where precision is the point. */}
-        <p className="tracker-place-confirm-context">
-          {pending.context || "Location found"}
-        </p>
-        <div className="tracker-place-confirm-actions">
-          {/* `autoFocus` rather than a ref and an effect: focusing the node
-              directly took it outside React Aria's focus scope, and Escape then
-              dropped focus onto the body instead of returning it to the
-              trigger. */}
-          <Button
-            autoFocus
-            className="tracker-primary"
-            onPress={() => {
-              onSelect(pending);
-              close();
-            }}
-          >
-            Yes, use this
-          </Button>
-          <Button className="tracker-secondary" onPress={() => setPending(null)}>
-            Choose another
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const resultList = (
     <ListBox<PlaceResult> className="tracker-place-results" renderEmptyState={() => null}>
@@ -431,13 +388,25 @@ function PlacePanel({
         onSelectionChange={(key) => {
           const chosen = options.find((entry) => entry.id === key);
           if (!chosen) return;
-          setPending({
+          /**
+           * Chosen is chosen. There is no "are you sure" step here any more.
+           *
+           * The confirmation existed because selecting a place used to be
+           * expensive to undo: it replaced the whole page and there was no way
+           * back to the list. On a map the pin *is* the location, a wrong one
+           * costs a click to replace, and Back returns to the previous one — so
+           * the extra press asked the reader to ratify a decision that was
+           * never hard to reverse. Leaving it on search while a click on the
+           * map committed immediately made one action feel like two.
+           */
+          onSelect({
             name: chosen.name,
             context: chosen.context,
             latitude: chosen.latitude,
             longitude: chosen.longitude,
             fromDevice: false,
           });
+          close();
         }}
       >
         {/* A real label. The placeholder was doing this job before, which it

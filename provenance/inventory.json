@@ -36,15 +36,22 @@
       "apps.apple.com",
       "assets.science.nasa.gov",
       "atmosphere.copernicus.eu",
+      "build.protomaps.com",
       "cdn.esahubble.org",
       "cdn.eso.org",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
       "commons.wikimedia.org",
       "creativecommons.org",
+      "dataspace.copernicus.eu",
       "docs.airnowapi.org",
       "docs.api.met.no",
       "docs.pmnd.rs",
+      "doi.org",
+      "download.mapterhorn.com",
+      "earthdata.nasa.gov",
+      "earthobservatory.nasa.gov",
+      "eogdata.mines.edu",
       "esahubble.org",
       "eso.org",
       "example.invalid",
@@ -57,8 +64,13 @@
       "images-assets.nasa.gov",
       "images.nasa.gov",
       "localhost",
+      "maplibre.org",
+      "mapterhorn.com",
       "open-meteo.com",
       "opendatacommons.org",
+      "openfreemap.org",
+      "openmaptiles.org",
+      "opensource.org",
       "openweathermap.org",
       "orbitaldebris.jsc.nasa.gov",
       "osm.org",
@@ -77,9 +89,14 @@
       "services.swpc.noaa.gov",
       "ssd-api.jpl.nasa.gov",
       "ssd.jpl.nasa.gov",
+      "svn.webkit.org",
       "svs.gsfc.nasa.gov",
+      "tiles.mapterhorn.com",
+      "tiles.openfreemap.org",
       "upload.wikimedia.org",
+      "visibleearth.nasa.gov",
       "weather-gov.github.io",
+      "wiki.openstreetmap.org",
       "www.apache.org",
       "www.dailymotion.com",
       "www.earthdata.nasa.gov",
@@ -96,9 +113,11 @@
       "www.spaceweather.gov",
       "www.swpc.noaa.gov",
       "www.ta3.sk",
+      "www.usgs.gov",
       "www.ventusky.com",
       "www.w3.org",
-      "www.weather.gov"
+      "www.weather.gov",
+      "zenodo.org"
     ],
     "prohibitedHistoricalChecksums": [
       {
@@ -1002,6 +1021,54 @@
       }
     },
     {
+      "id": "natural-earth-110m-reference-layers",
+      "category": "geographic-boundary-data",
+      "repositoryPaths": [
+        "src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json",
+        "src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json",
+        "src/data/natural-earth/ne_110m_lakes.json",
+        "src/data/natural-earth/ne_110m_places.json"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Natural Earth 1:110m cultural and physical vectors: land boundaries, state and province lines, lakes, and populated places",
+        "url": "https://github.com/nvkelso/natural-earth-vector/tree/master/geojson",
+        "publicationUrl": "https://www.naturalearthdata.com/downloads/110m-cultural-vectors/",
+        "publisher": "Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors",
+        "version": "110m cultural and physical vectors, trimmed for the eclipse map's reference geography",
+        "retrievedAt": "2026-08-28"
+      },
+      "localSha256": {
+        "src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json": "3ba9f607e4ac055a2542875c70dc3f5687fd763143d738291c8a95f8fa933651",
+        "src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json": "ce37690ee6ed6a86ea5aa88fb091af497e13bdc80e76b22439b8c684d1a3390e",
+        "src/data/natural-earth/ne_110m_lakes.json": "6bf0743158a5ea1cd7249ef4aef11edcd25d5933fcf25b7f5ee5c6ee4a79fe54",
+        "src/data/natural-earth/ne_110m_places.json": "7f748fc0592107b3a32c78aa37b2a8b3c1f4a836e62faea7022107671afda2e7"
+      },
+      "processing": [
+        "Trimmed rather than transcribed: geometry is upstream's, with per-feature properties reduced to the few the drawing reads, which is why no upstream checksum is claimed for these files.",
+        "Used by the eclipse geographic map and the Explorer globe texture for coastlines, borders and place labels. They are reference geography drawn by Tracker, not a basemap: the basemap is vector tiles fetched at runtime and has nothing to do with these files.",
+        "Left in the tree when the hand-built basemap was deleted, because both of those consumers still read them."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.",
+        "evidenceUrls": [
+          "https://www.naturalearthdata.com/about/terms-of-use/"
+        ],
+        "attribution": "Made with Natural Earth.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
+      }
+    },
+    {
       "id": "npm-lockfile-dependencies",
       "category": "software-dependencies",
       "repositoryPaths": [
@@ -1019,7 +1086,7 @@
         "retrievedAt": "2026-07-25"
       },
       "localSha256": {
-        "package-lock.json": "b3cf83c5902f735fe58ea85052b4b6be3f7a34202561f6326cc8416bc52a4a9d"
+        "package-lock.json": "1c7bc5dd1a97e590da5ff22d2cc5c3dec818c29b3713f06c87df7a2dd17ab705"
       },
       "processing": [
         "package-lock.json is the source of truth.",
@@ -1126,6 +1193,58 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive."
+      }
+    },
+    {
+      "id": "orbit-studio-home-product-imagery",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/home/tracker-home.webp",
+        "public/home/explorer-home.webp",
+        "public/home/playground-home.webp"
+      ],
+      "productionBundlePaths": [
+        "home/tracker-home.webp",
+        "home/explorer-home.webp",
+        "home/playground-home.webp"
+      ],
+      "originalSource": {
+        "title": "Screenshots and renders of Orbit Studio's own interfaces, framed for the homepage product list",
+        "url": "https://github.com/hendrikv-dev/orbit-studio",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio (this project)",
+        "version": "Regenerated 2026-08-30 for the vertical product-row layout",
+        "retrievedAt": "2026-08-30"
+      },
+      "localSha256": {
+        "public/home/tracker-home.webp": "aec0a640b9b8667573b0f42b5309fa934dd34324a2b7e2830c36837a248c21b4",
+        "public/home/explorer-home.webp": "d2f4b2164023a8c59f2e9fff0940eb2dce19ec70ef978afe5229c72b16ea219a",
+        "public/home/playground-home.webp": "79f7969e7a2a02c9a1b9f945e8d9bc82d5801cd8fb69d883567754a2a7da3cf3"
+      },
+      "processing": [
+        "All three are pictures of this project's own software, produced by running it. They were previously untracked by this inventory, which is why the two older ones show as newly classified rather than newly added.",
+        "tracker-home.webp is a screenshot of Orbit Studio Tracker at Big Sur, California, captured from the production build at zoom 10 with the interface chrome hidden. It therefore contains rendered third-party map data and inherits those attributions: OpenStreetMap contributors under ODbL via OpenFreeMap and the OpenMapTiles schema for the basemap, and Mapterhorn's elevation composite (USGS 3DEP, Copernicus DEM and other open sources, CC BY 4.0 and public-domain components) for the hillshaded relief. The homepage does not reprint those credits under the image; they are rendered in Tracker's own attribution control wherever the same data is shown live, and recorded here.",
+        "explorer-home.webp and playground-home.webp are renders of Orbit Studio's own 3D scenes. They were not re-rendered in this pass: the existing images were recomposited onto a wider canvas so that all three product rows share one framing, with each globe scaled to a common radius and its centre placed on a shared vertical axis. No pixel content was generated or altered beyond scaling, positioning and edge feathering.",
+        "The Earth surface in those two renders is the Blue Marble texture recorded separately under nasa-blue-marble-january-2004; this entry does not restate that provenance, it depends on it."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The imagery is this project's own output and is redistributed under the project's licence. The third-party data visible inside tracker-home.webp is open and permits the rendering and redistribution of derived map images with attribution, which is recorded above and rendered live in Tracker; the Earth texture in the other two is NASA imagery, which is not subject to copyright in the United States.",
+        "evidenceUrls": [
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/",
+          "https://mapterhorn.com/attribution",
+          "https://visibleearth.nasa.gov/collection/1484/blue-marble"
+        ],
+        "attribution": "Orbit Studio. Tracker's map contains OpenStreetMap data via OpenFreeMap and OpenMapTiles, and terrain from Mapterhorn.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "If the Tracker screenshot is replaced, the replacement inherits the same basemap and terrain attributions for as long as it shows rendered map data."
       }
     },
     {
@@ -1305,6 +1424,157 @@
       }
     },
     {
+      "id": "tracker-basemap-tiles",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "src/data/tracker/basemapSource.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "OpenFreeMap public vector tile service, serving the OpenMapTiles schema over OpenStreetMap data",
+        "url": "https://tiles.openfreemap.org/styles/dark",
+        "publicationUrl": "https://openfreemap.org/",
+        "publisher": "OpenFreeMap (service); OpenMapTiles (schema); OpenStreetMap contributors (data)",
+        "version": "Runtime tile service, not a pinned snapshot; style and tiles fetched per session",
+        "retrievedAt": "2026-08-28"
+      },
+      "localSha256": {
+        "src/data/tracker/basemapSource.ts": "5e14196e9c1e1f65e813cba83aa551f018b14993f320010e3aada00f1cf129b6"
+      },
+      "processing": [
+        "The basemap style, its sprites and its vector tiles are fetched from the public OpenFreeMap instance at runtime. No API key is used and no account exists; requests carry the viewport and nothing that identifies the reader.",
+        "The style's own palette is not used as published. Tracker walks the loaded style and repaints it by layer role so the geography recedes far enough for an observing overlay to read on top of it, and so place names appear in ordinary case rather than as uppercase at every rank.",
+        "wiki.openstreetmap.org appears in the bundle inside the style's own attribution string. Tracker does not request it; it is a link the attribution control renders.",
+        "This dependency is temporary and is recorded as such in basemapSource.ts. The intended end state is a Protomaps PMTiles archive on project-controlled static storage, capped at zoom 10, read over HTTP range requests with no third-party tile request at runtime. docs/tracker-spatial-reuse-matrix.md selected that path; the archive and its hosting do not exist yet.",
+        "Measured against the live Protomaps planet build, a whole-world extract is 14 MB to zoom 5 and 179 MB to zoom 7; the chosen zoom-10 ceiling lands near 2.2 GB."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and the OpenMapTiles schema and OpenFreeMap's own stack are openly licensed, so rendering and redistribution of map images are not in question, and the required attribution is rendered in the map's attribution control. What is unresolved is exactly what is unresolved for place search: production reliance on a courtesy public endpoint with no usage agreement. Resolving it means serving our own tiles, which is the recorded plan rather than an aspiration.",
+        "evidenceUrls": [
+          "https://openfreemap.org/",
+          "https://github.com/hyperknot/openfreemap/blob/main/LICENSE",
+          "https://openmaptiles.org/",
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/"
+        ],
+        "attribution": "\u00a9 OpenStreetMap contributors \u00b7 OpenFreeMap \u00b7 OpenMapTiles.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The OpenStreetMap, OpenFreeMap and OpenMapTiles attribution must remain visible on the map. This entry must not be marked verified while the public instance is the tile source: it is a development and prototyping source, and shipping it as the permanent one was explicitly ruled out."
+      }
+    },
+    {
+      "id": "tracker-light-pollution-viirs",
+      "category": "scientific-dataset",
+      "repositoryPaths": [
+        "public/tracker/light-pollution-v21-2024.bin",
+        "public/tracker/light-pollution-v21-2024.json",
+        "scripts/build-light-pollution-tiles.py",
+        "src/data/tracker/lightPollution.ts"
+      ],
+      "productionBundlePaths": [
+        "tracker/light-pollution-v21-2024.bin",
+        "tracker/light-pollution-v21-2024.json"
+      ],
+      "originalSource": {
+        "title": "Earth Observation Group Annual VIIRS Nighttime Lights V2.1, annual average, 2024, 15 arc-second",
+        "url": "https://zenodo.org/records/17294744",
+        "publicationUrl": "https://eogdata.mines.edu/products/vnl/",
+        "publisher": "Earth Observation Group, Payne Institute for Public Policy, Colorado School of Mines (data); obtained through the OpenLandMap redistribution on Zenodo (T. Hengl), record 17294744",
+        "version": "nightlights.average_viirs.v21_m_500m_s_20240101_20241231_go_epsg4326_v20250904.tif",
+        "retrievedAt": "2026-08-30",
+        "originalSha256": "md5:0b976892d40c2d0d99177c727289eaf2 (Zenodo-published checksum, verified on download; 63,713,625 bytes)"
+      },
+      "localSha256": {
+        "public/tracker/light-pollution-v21-2024.bin": "8679b8f1f695e5c2df69c6bf10b54c42f9051aa0801d7ef2d2db77deeb70ec8d",
+        "public/tracker/light-pollution-v21-2024.json": "9f6e212403cb872185a2e6a1e6a2161f0e7d37f5a56445bef3b62e1d1aae1ae2",
+        "scripts/build-light-pollution-tiles.py": "56099ab645b0f932fbed8b7b4824b89f4b2b390b915e43b85232ab67031ce628",
+        "src/data/tracker/lightPollution.ts": "0406bde8b0474894ff7f3ea43547f4d00aeb0a25ea8d84c9258558dc6138d14c"
+      },
+      "processing": [
+        "Obtained from the Zenodo redistribution rather than from EOG directly, because eogdata.mines.edu now requires an account: every path under it, including direct file URLs, 302-redirects to a Keycloak sign-in. The Zenodo record is CC BY 4.0 and states that its 2012-2024 layers are the Annual VNL V2 images of Elvidge et al. (2021); only its pre-2012 layers are extrapolated, and none of those are used here. Swapping in EOG's own average_masked GeoTIFF is a one-argument change to the build script for anyone who holds an account.",
+        "The source is EPSG:4326 at 15 arc-seconds, 86400x35849, int16, holding radiance in nW/cm2/sr multiplied by ten. Verified on download against the publisher's own md5.",
+        "scripts/build-light-pollution-tiles.py resamples it into Web Mercator XYZ tiles, 256px, zoom 0 to 8, and writes them as one sparse archive with a JSON index. Zoom 8 is 611m per pixel at the equator and about 430m at 45 degrees, which is where the source's own grid lands; storing finer tiles would store interpolation rather than data.",
+        "Each output pixel is the mean of the source pixels inside it, computed from a summed-area table. Nearest-neighbour was the first implementation and was replaced: the two grids never align, so it returned whichever neighbour was closest to the output centre, which across a city gradient is a real error - central Portland measures 9.7 nW and its neighbour 14.4, and nearest-neighbour returned the neighbour.",
+        "Tiles are 8-bit RGB PNGs with the value split across red (high byte) and green (low byte). 16-bit greyscale is 8% smaller and was tried first, but a browser cannot read one back: decoding needs a 2D canvas and a canvas is 8 bits per channel, so a 16-bit PNG is silently truncated. This is the same reason Terrarium elevation tiles encode the way they do.",
+        "Only tiles containing light exist - 14,928 of them, 47.8 MB. A missing tile means no artificial light was detected anywhere in it, which is true of most of the planet: 2.6% of the source's valid pixels carry any light at all. The browser reads single tiles by HTTP range request, so a reader fetches the 400 KB index once and then a handful of tiles, not the archive.",
+        "The value is carried as radiance all the way to the interface and quoted there alongside its band. It is NOT presented as a Bortle class, an SQM reading, or a limiting magnitude, and no claim is made about which objects will be visible: those are statements about the sky, and deriving them from upward radiance needs an atmospheric scattering model that Tracker does not have. The bands are fixed thresholds on a log scale - 0.25, 1, 4, 16 and 64 nW/cm2/sr - documented in lightPollution.ts and chosen as round numbers before checking where any particular town fell.",
+        "Replaces a 2048x966 render of NASA's Black Marble, about 14 km per pixel, which could not resolve a city: Bend, Oregon, population 100,000, registered as unlit and was reported to the reader as dark. Validated after the change at central Portland 12.3, Wood Village 3.4, Bend 2.9, Sisters 0.8, Manhattan 47.7 and London 14.4 nW/cm2/sr, with the Alvord Desert and the Atacama at zero. Each of those figures was confirmed against the source raster's own pixels before tiling, so the differences are in the measurement and not in the rendering."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The Zenodo record carries CC BY 4.0 and the underlying EOG VIIRS Nighttime Lights products are released under CC BY 4.0. Attribution is required and is satisfied two ways: the map's attribution control names the Earth Observation Group, and the archive's own index file carries the Elvidge et al. (2021) citation the publisher asks for. Redistribution of a derived, resampled product is permitted with that attribution.",
+        "evidenceUrls": [
+          "https://zenodo.org/records/17294744",
+          "https://eogdata.mines.edu/products/vnl/",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://doi.org/10.3390/rs13050922"
+        ],
+        "attribution": "Night-time lights: Earth Observation Group, Colorado School of Mines - Annual VIIRS Nighttime Lights V2.1 (Elvidge, Zhizhin, Ghosh, Hsu & Taneja 2021), CC BY 4.0.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The Earth Observation Group credit and the Elvidge et al. (2021) citation must remain, both being conditions of CC BY 4.0. The value must not be presented as a Bortle class, an SQM reading, a limiting magnitude, or as a prediction of what will be visible overhead."
+      }
+    },
+    {
+      "id": "tracker-map-renderer",
+      "category": "software-dependencies",
+      "repositoryPaths": [
+        "src/components/tracker/map/TrackerMapCanvas.tsx"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js",
+        "assets/maplibre-gl-worker-*.js"
+      ],
+      "originalSource": {
+        "title": "MapLibre GL JS, an open-source WebGL renderer for vector map tiles",
+        "url": "https://maplibre.org/",
+        "publicationUrl": "https://github.com/maplibre/maplibre-gl-js",
+        "publisher": "MapLibre contributors",
+        "version": "6.6.0, from the npm registry and pinned in package-lock.json",
+        "retrievedAt": "2026-08-28"
+      },
+      "localSha256": {
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "5399212858509842b2dd03d9b32e0e538aeffa71c2102267618bab69a1405ee7"
+      },
+      "processing": [
+        "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
+        "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",
+        "The renderer's own hostname appears in the bundle only inside the library's licence banner and error strings. Tracker makes no request to maplibre.org at runtime.",
+        "World copies are disabled and the minimum zoom is fitted to the container, so there is exactly one Earth and the night drawn over it is not contradicted by an unlit copy beside it."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "MapLibre GL JS is published under the 3-Clause BSD licence, which permits use, modification and redistribution in source and binary form with the copyright notice and disclaimer retained. The notice travels in the bundled licence banner and in THIRD_PARTY_NOTICES.md.",
+        "evidenceUrls": [
+          "https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt",
+          "https://opensource.org/license/bsd-3-clause"
+        ],
+        "attribution": "Map rendering by MapLibre GL JS, 3-Clause BSD.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The BSD copyright notice and disclaimer must remain in the distributed bundle and in THIRD_PARTY_NOTICES.md."
+      }
+    },
+    {
       "id": "tracker-place-search-adapter",
       "category": "runtime-place-search",
       "repositoryPaths": [
@@ -1322,7 +1592,7 @@
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "src/data/tracker/geocoding.ts": "628b8ef9bb72ab5c4b6837e27daa18acbd927b8b3bc091e53285006f577c68a9"
+        "src/data/tracker/geocoding.ts": "0be85757996b87ef17a51860533e5732da39b2be07d1c39e9968c903ca2fad92"
       },
       "processing": [
         "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
@@ -1349,6 +1619,64 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
+      }
+    },
+    {
+      "id": "tracker-terrain-elevation",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "src/data/tracker/terrainSource.ts",
+        "src/data/tracker/terrainHorizon.ts",
+        "src/data/tracker/demService.ts",
+        "src/data/tracker/eventTerrain.ts",
+        "src/data/tracker/geodesy.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Mapterhorn public terrain tiles, Terrarium-encoded elevation built from 148 open elevation datasets",
+        "url": "https://tiles.mapterhorn.com/tilejson.json",
+        "publicationUrl": "https://mapterhorn.com/attribution",
+        "publisher": "Mapterhorn (tile build and service); the 148 national, regional and agency producers listed at mapterhorn.com/attribution (data)",
+        "version": "Runtime tile service, not a pinned snapshot; TileJSON read per session, tiles fetched on demand",
+        "retrievedAt": "2026-08-30"
+      },
+      "localSha256": {
+        "src/data/tracker/terrainSource.ts": "1a47e4c87581c81bacebcac05f39b23366d5e9732feaba729b18e90e6bb51bb5",
+        "src/data/tracker/terrainHorizon.ts": "71e61b09418c0f007de0d5c984ef5bd6e5461ffaba6b73a6e48ed1d5e7edbab5",
+        "src/data/tracker/demService.ts": "2b228b2dd610cca8133fb60a5992e0a34a201333da9e57df3dc18e48ee165002",
+        "src/data/tracker/eventTerrain.ts": "6735e7a81b6cba976bacd01b0b5303faf53429fb05f691f27f37c06c4ae4da26",
+        "src/data/tracker/geodesy.ts": "b1e680275d6dffefd0cf9dcb9dd39997a767001eb9dc720732c20ffe004a68b3"
+      },
+      "processing": [
+        "Terrain tiles are fetched from the public Mapterhorn instance at runtime, as 512px Terrarium-encoded WebP. Requests carry a tile coordinate and nothing that identifies the reader. No API key is used and no account exists.",
+        "The tiles are read twice, for different purposes. The map draws them as a MapLibre hillshade layer for relief. Separately, Tracker decodes them off-screen to elevations and computes a horizon profile along the bearing of the event a reader has opened: elevation = (R*256 + G + B/256) - 32768 metres, then apparent angle tan(a) = (h - d^2/2R) / d against a refracted Earth radius of 7/6 R.",
+        "The analytical read is capped at zoom 11 and 40 km, and at zoom 10 and 18 km for an event's own track. Not for cartographic reasons: the service throttles, and a measured 21-way concurrent fetch returned 11 tiles, 8 timeouts and 2 aborts inside 20 seconds. Four concurrent requests with a 20-second budget completes in about 2 seconds.",
+        "Sampling stops at Mapterhorn's zoom 15, which is where the service stops serving distinct data. Asking for more returns an overzoomed tile with the same posts resampled, which would manufacture precision the terrain does not have.",
+        "The horizon result is reported in half-degree steps and can return 'unknown'. The underlying post spacing varies by more than two orders of magnitude across the 148 sources \u2014 0.5 m in parts of France, 30 m where only Copernicus GLO-30 covers \u2014 so a single stated accuracy for the layer would be false anywhere but the source it was measured on.",
+        "This dependency is a courtesy public endpoint on the same terms as the basemap, and is recorded as such in terrainSource.ts.",
+        "Verified against ground truth at four sites: Kansas plains 544 m with a 0-0.1 degree horizon; Portland 21 m with West Hills at 4.2 degrees west; Chamonix 1035 m, matching the town's published elevation exactly, with valley walls at 22.4 degrees east and 20.4 degrees west; Sahara 544 m at 1-2 degrees."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Mapterhorn's own code is BSD-3-Clause and its published source catalogue lists 148 datasets, every one of them open: 37 CC BY 4.0, 34 US Government public domain, 21 Licence Ouverte 2.0, the Copernicus full, free and open licence, and the remainder open government or CC0/CC-BY variants. Nothing in the catalogue is non-commercial, share-alike or research-only, so drawing and redistributing derived map images is not in question. Most of those licences do require attribution and no map corner can carry 148 credits; the publisher's own mechanism, which those licences accept, is a link to the full list, and Tracker's attribution control renders that link. What is unresolved is the same thing that is unresolved for the basemap and for place search: production reliance on a free public endpoint with no usage agreement, on a service that is measurably rate-limited.",
+        "evidenceUrls": [
+          "https://mapterhorn.com/attribution",
+          "https://download.mapterhorn.com/attribution.json",
+          "https://github.com/mapterhorn/mapterhorn/blob/main/LICENSE",
+          "https://www.usgs.gov/3d-elevation-program",
+          "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM"
+        ],
+        "attribution": "Terrain \u00a9 Mapterhorn, from USGS 3DEP, Copernicus DEM and other open elevation sources, linked to the full source list at mapterhorn.com/attribution.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The Mapterhorn credit must remain a live link to mapterhorn.com/attribution: that link is what satisfies the attribution terms of the CC BY and open-government datasets underneath, and replacing it with plain text would leave those credits undischarged. This entry must not be marked verified while the public instance is the tile source."
       }
     },
     {

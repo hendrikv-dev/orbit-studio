@@ -11639,42 +11639,6 @@ button.primary,
 .tracker-place-status-unavailable { border-left-color: #8fbcd8; }
 .tracker-place-status-unsupported { border-left-color: #9aa8b6; }
 
-/* Confirmation. Nothing is computed until the reader agrees this is the place
-   they will actually be standing in. */
-.tracker-place-confirm { padding: 4px 4px 2px; }
-.tracker-place-confirm-lead {
-  margin: 0 0 8px;
-  color: #8ba0b3;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.tracker-place-confirm-name {
-  margin: 0;
-  color: #eaf3fb;
-  font-size: 1.02rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.tracker-place-confirm-context {
-  margin: 4px 0 0;
-  color: #8ba0b3;
-  font-size: 0.78rem;
-  line-height: 1.5;
-}
-.tracker-place-confirm-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-.tracker-place-confirm-actions .tracker-primary,
-.tracker-place-confirm-actions .tracker-secondary {
-  min-height: 38px;
-  padding: 0 16px;
-  font-size: 0.84rem;
-}
-
 .tracker-place-count { color: #9fb6c8; }
 
 /* The welcome screen carries the picker inline, so it opens downward into the
@@ -11770,7 +11734,7 @@ button.primary,
   background: rgba(122, 141, 158, 0.16);
 }
 .tracker-place-result[data-focus-visible] {
-  outline: 2px solid #3fd6a8;
+  outline: 2px solid var(--tk-focus);
   outline-offset: -2px;
 }
 .tracker-place-result[data-selected] { background: rgba(63, 214, 168, 0.12); }
@@ -11798,9 +11762,10 @@ button.primary,
    where they were. */
 
 .tracker-shell :is(a, button, input, [role="option"], [tabindex]):focus-visible {
-  outline: 2px solid #7fe3c0;
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
   border-radius: 6px;
+  box-shadow: 0 0 0 5px var(--tk-focus-halo);
 }
 
 
@@ -11808,8 +11773,9 @@ button.primary,
    heuristic inside a popover. */
 .tracker-shell [data-focus-visible],
 .tracker-place-popover [data-focus-visible] {
-  outline: 2px solid #7fe3c0;
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--tk-focus-halo);
 }
 
 /* The image credit is a link, and a 12px-tall target fails the 24x24 minimum.
@@ -11908,6 +11874,23 @@ button.primary,
 
   /* Action and selection. Nothing else. */
   --tk-accent: #4fd8b0;
+  /**
+   * Focus has its own colour, deliberately not the brand accent.
+   *
+   * Every focus ring in Tracker used to resolve to `--tk-accent`, a mint green
+   * — including the rules written as `var(--tk-accent, #7c8cf8)`, whose indigo
+   * fallback never applied because the token is always defined. The result was
+   * a bright mint ring on the search field, the date control and every React
+   * Aria dialog, in a product whose entire palette is cool blue and violet.
+   *
+   * Focus is now its own concern: a periwinkle drawn from the same family as
+   * the map's own indigo, with a soft halo so the ring survives on a pale
+   * hillshade or a lit light-pollution field as well as on a dark panel. It is
+   * never used for anything but focus, so it cannot drift into meaning
+   * "selected" or "primary" the way an accent does.
+   */
+  --tk-focus: #93a7ff;
+  --tk-focus-halo: rgba(103, 122, 232, 0.32);
   --tk-accent-lift: #6ce4c2;
   --tk-accent-ink: #04241c;
 
@@ -12223,13 +12206,9 @@ button.primary,
 .tk-locate .tracker-place-results:empty { display: none; }
 .tk-locate .tracker-place-messages { order: 3; }
 .tk-locate .tracker-place-status { order: 4; }
-.tk-locate .tracker-place-confirm {
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 12px;
-  background: var(--tk-panel-lift);
-  padding: 15px 16px;
-}
 
+/* Confirmation. Nothing is computed until the reader agrees this is the place
+   they will actually be standing in. */
 /* --- photography and annotation in one frame ------------------------------
    The instrument sits on a real photograph of a real sky — the direction asked
    for, and the reason the arc had to stay legible against it rather than being
@@ -13292,7 +13271,7 @@ button.primary,
 
 .tracker-shell :is(button, a, select, input, summary):focus-visible,
 .tk-month-detail:focus-visible {
-  outline: 3px solid var(--tk-accent);
+  outline: 3px solid var(--tk-focus);
   outline-offset: 3px;
 }
 
@@ -13974,7 +13953,7 @@ button.primary,
 }
 .tk-geomap-frame[data-interactive="true"]:active { cursor: grabbing; }
 .tk-geomap-frame[data-interactive="true"]:focus-visible {
-  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 .tk-geomap-controls {
@@ -14005,7 +13984,7 @@ button.primary,
 .tk-map-control:hover:not(:disabled) { background: rgba(26, 36, 58, 0.94); }
 .tk-map-control:disabled { opacity: 0.4; cursor: default; }
 .tk-map-control:focus-visible {
-  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 /* Touch targets: 34px is comfortable with a mouse and small for a thumb.
@@ -14650,7 +14629,7 @@ button.primary,
 }
 .tk-uplist-name button:hover { text-decoration: underline; }
 .tk-uplist-name button:focus-visible {
-  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 .tk-uplist-why {
@@ -15025,7 +15004,7 @@ button.primary,
 }
 .tk-hero-expect[open] > summary::before { content: "－"; }
 .tk-hero-expect > summary:focus-visible {
-  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 .tk-hero-expect > p {
@@ -15243,7 +15222,6 @@ button.primary,
   .tk-howto-row { grid-template-columns: minmax(0, 1fr); }
 }
 
-}
 
 /* The expectation note is clamped rather than hidden.
    It was briefly behind a disclosure, which bought 56px and cost the reader the
@@ -15269,12 +15247,20 @@ button.primary,
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
+  /* Two lines, not one.
+  
+     The support line carries the limiting condition — it is where "cloud is
+     forecast to cover most of the sky" and "Saturn is 36 days from opposition"
+     live, having been moved out of the recommendation paragraph precisely so a
+     warning would stop being clamped. At one line it was clamped again, losing
+     seventeen pixels of a sentence whose second half is the part that changes
+     the decision. The row has the height for it. */
   .tk-page.tk-tonight .tk-hero-support,
   .tk-page[data-mode="upcoming"] .tk-hero-support {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -15348,19 +15334,22 @@ button.primary,
 .tk-date-step:focus-visible,
 .tk-date-today:focus-visible,
 .tk-date-field:focus-within {
-  outline: 2px solid var(--tk-focus, #8fa6ff);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 1px;
   border-radius: 999px;
 }
-/* The visible label and the native picker occupy the same space: the label is
-   what a reader reads, the input is what their platform opens as a calendar —
-   with the month and year navigation they already know, so reaching 1999 is not
-   three hundred clicks on a month arrow. */
+/* The date is a button that opens Tracker's own month. It used to be a label
+   with a transparent `<input type="date">` stretched over it, which opened
+   whatever calendar the operating system felt like drawing on top of the map. */
 .tk-date-field {
-  position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
   padding: 0 8px;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 .tk-date-label {
@@ -15369,19 +15358,7 @@ button.primary,
   font-size: 0.8rem;
   white-space: nowrap;
 }
-.tk-date-field input[type="date"] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: transparent;
-  font: inherit;
-  opacity: 0;
-  cursor: pointer;
-}
+
 .tk-date-today {
   padding: 3px 10px;
   border: 0;
@@ -15436,3 +15413,2017 @@ button.primary,
 }
 /* The distance disclaimer travels with every distance shown. */
 .tk-dest-note { color: var(--tk-ink-faint, var(--tk-ink-dim)); }
+
+
+/* --------------------------------------------------- Tracker, map-first ---
+
+   The map is the product's canvas rather than a figure on a page, so the shell
+   stops being a column of stacked regions and becomes a single surface with
+   things floating on it. Everything below is scoped to `.tk-map-shell`; the
+   page-based Tracker styles above are untouched, because the detail view still
+   renders those exact components.
+
+   Placement is by kind, and it is the whole of what makes this a system rather
+   than five widgets that happen to float:
+
+     top left      where you are
+     top centre    when
+     top right     what is drawn over the geography
+     bottom right  what you do to the view
+     bottom left   context, only when there is any
+     left          the answer for the selected point
+
+   The palette is charcoal and blue-black land over near-navy water, with every
+   floating surface sharing one radius, one translucent fill and one border. The
+   map is never bright, at noon or at midnight; day and night differ by depth of
+   shade rather than by theme. */
+
+.tk-map-shell {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #070a11;
+
+  /* One set of tokens for every floating surface. Changing the glass here
+     changes the topbar, the panel, the layer chips and the controls together,
+     which is what stops them drifting apart over time. */
+  --tk-glass: rgba(11, 15, 25, 0.82);
+  --tk-glass-solid: rgba(13, 17, 28, 0.95);
+  --tk-glass-line: rgba(126, 152, 190, 0.16);
+  --tk-glass-line-strong: rgba(126, 152, 190, 0.26);
+  --tk-glass-blur: blur(16px) saturate(1.1);
+  --tk-radius: 14px;
+}
+
+.tk-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Sized rather than inset. MapLibre's own stylesheet sets `position: relative`
+   on the container it takes over, at the same specificity as this rule, so
+   whichever sheet loads last wins — and under `relative`, `inset: 0` does
+   nothing and the element collapses to a zero-height box with an unsized GL
+   canvas inside it. Width and height hold either way. */
+.tk-map-canvas .tk-map-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* The renderer owns its gestures. Without this a drag scrolls the page
+     behind it and a pinch zooms the document. */
+  touch-action: none;
+  cursor: crosshair;
+}
+.tk-map-surface:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -3px;
+}
+
+/* MapLibre paints its own canvas and puts its own furniture on top. The
+   attribution is required by the data licence and stays; everything else is
+   pulled down to the shell's weight so it does not compete with the map. */
+.tk-map-canvas .maplibregl-map { font: inherit; }
+/* Attribution is required and stays. What it does not need to be is one of the
+   brightest objects on a dark map: a full-width bar in near-white was competing
+   with the geography and with everything drawn over it. Dimmed to the weight of
+   a caption, with the full text still present, still selectable, still legible,
+   and brightening on hover for anyone who wants to read it properly. */
+.tk-map-canvas .maplibregl-ctrl-bottom-right { margin: 0 4px 4px 0; }
+.tk-map-canvas .maplibregl-ctrl-attrib {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: rgba(8, 11, 18, 0.5);
+  font-size: 0.58rem;
+  line-height: 1.5;
+  color: rgba(150, 166, 194, 0.42);
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.tk-map-canvas .maplibregl-ctrl-attrib:hover {
+  background: rgba(8, 11, 18, 0.86);
+  color: rgba(190, 205, 230, 0.88);
+}
+.tk-map-canvas .maplibregl-ctrl-attrib a { color: inherit; text-decoration: none; }
+.tk-map-canvas .maplibregl-ctrl-attrib a:hover { text-decoration: underline; }
+.tk-map-canvas .maplibregl-ctrl-attrib-button { filter: invert(1) opacity(0.32); }
+@media (prefers-reduced-motion: reduce) {
+  .tk-map-canvas .maplibregl-ctrl-attrib { transition: none; }
+}
+
+.tk-map-basemap-failed {
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  max-width: min(34rem, calc(100% - 2rem));
+  border-radius: 8px;
+  background: var(--tk-glass-solid);
+  border: 1px solid var(--tk-glass-line);
+  color: #b7c3d8;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* --- the selected point -------------------------------------------------- */
+
+/* A target, not a pin. A teardrop says "there is something here" and points at
+   a spot below itself; concentric rings around a centre dot say "this exact
+   point is selected", which is the only thing this marker is for. It sits on
+   the coordinate rather than above it, so the geography underneath stays
+   readable and nothing is hidden by the marker's own body. */
+.tk-map-target {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+}
+.tk-map-target-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(96, 132, 255, 0.42) 0%,
+    rgba(96, 132, 255, 0.16) 45%,
+    rgba(96, 132, 255, 0) 70%
+  );
+}
+.tk-map-target-ring {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(226, 234, 255, 0.92);
+  box-shadow:
+    0 0 12px rgba(110, 145, 255, 0.75),
+    inset 0 0 8px rgba(110, 145, 255, 0.4);
+}
+.tk-map-target-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(180, 205, 255, 0.9);
+}
+
+/* --- the top bar --------------------------------------------------------- */
+
+.tk-map-topbar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 5;
+  display: grid;
+  /* The centre column is the one that must stay centred on the viewport rather
+     than between its neighbours, so the outer columns are equal and free. */
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 12px;
+  /* The bar is a layout, not a surface: clicks fall through to the map between
+     its children, which is most of its width. */
+  pointer-events: none;
+}
+.tk-map-topbar > * { pointer-events: auto; }
+.tk-map-topbar-lead {
+  min-width: 0;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tk-map-topbar-centre { justify-self: center; }
+/* The finder and the layer control sit side by side, not stacked: both answer
+   "what am I looking at", and two rows of one button each is a row wasted. */
+.tk-map-topbar-end {
+  justify-self: end;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* The place picker, sharing the glass with everything else on the map. */
+.tk-map-shell .tracker-place-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: var(--tk-radius);
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+/* The date control. Named the same glass, sized for the thumb, and with the
+   day it is showing carried in the middle rather than in a tooltip. */
+.tk-map-shell .tk-date {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: var(--tk-radius);
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-map-shell .tk-date-step {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--tk-ink-dim, #b6c3da);
+  cursor: pointer;
+}
+.tk-map-shell .tk-date-step:hover:not(:disabled) { background: rgba(126, 152, 190, 0.12); }
+.tk-map-shell .tk-date-step:disabled { opacity: 0.3; cursor: default; }
+.tk-map-shell .tk-date-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tk-map-shell .tk-date-field:hover { background: rgba(126, 152, 190, 0.1); }
+.tk-map-shell .tk-date-field svg { color: var(--tk-ink-faint, #8fa0bb); flex: none; }
+/* The native picker is the control; the text beside it is the label. Kept
+   focusable and full-size so the platform's own calendar is what opens. */
+.tk-map-shell .tk-date-field input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  cursor: pointer;
+}
+.tk-map-shell .tk-date-field:focus-within {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-map-shell .tk-date-today {
+  height: 34px;
+  margin-left: 2px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(108, 128, 245, 0.18);
+  color: #c3ccff;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.tk-map-shell .tk-date-today:hover { background: rgba(108, 128, 245, 0.28); }
+
+/* --- the layer control --------------------------------------------------- */
+
+/* Compact and map-native: chips rather than a legend, because choosing what is
+   drawn and reading what it means are different jobs. The reading lives in the
+   panel, in words, at the point the reader actually selected. */
+.tk-map-layers {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: var(--tk-radius);
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-map-layer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--tk-ink-dim, #b6c3da);
+  font: inherit;
+  font-size: 0.83rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tk-map-layer-chip svg { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-map-layer-chip:hover:not(:disabled) { background: rgba(126, 152, 190, 0.1); }
+/* On is unmistakable. A chip that only brightens its text reads as a hover
+   state, and the reader cannot tell what is currently drawn on the map. */
+.tk-map-layer-chip[aria-pressed="true"] {
+  background: rgba(108, 128, 245, 0.22);
+  color: #dfe4ff;
+  box-shadow: inset 0 0 0 1px rgba(124, 140, 248, 0.45);
+}
+.tk-map-layer-chip[aria-pressed="true"] svg { color: #a9b6ff; }
+.tk-map-layer-chip:disabled { opacity: 0.35; cursor: not-allowed; }
+.tk-map-layer-chip:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-map-layers-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 34px;
+  margin-left: 2px;
+  border-left: 1px solid var(--tk-glass-line);
+  color: var(--tk-ink-faint, #8fa0bb);
+}
+
+/* --- the location panel -------------------------------------------------- */
+
+.tk-map-panel {
+  position: absolute;
+  top: 72px;
+  left: 14px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  width: min(376px, calc(100% - 28px));
+  max-height: calc(100dvh - 104px);
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 18px;
+  background: var(--tk-glass-solid);
+  backdrop-filter: var(--tk-glass-blur);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: tk-panel-in 200ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes tk-panel-in {
+  from { transform: translateY(-6px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-map-panel { animation: none; }
+}
+
+.tk-map-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 0;
+}
+.tk-map-panel-where { min-width: 0; }
+.tk-map-panel-head h2 {
+  margin: 0;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 1.32rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.tk-map-panel-sub {
+  margin: 5px 0 0;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.82rem;
+}
+.tk-map-panel-sub.is-pending { min-height: 14px; }
+
+.tk-map-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 18px 0;
+}
+
+.tk-map-section + .tk-map-section { margin-top: 6px; }
+
+/* The eyebrow names the rank rather than shouting it. Small, spaced, and in
+   the accent so the two sections read as a hierarchy at a glance. */
+.tk-map-eyebrow {
+  margin: 16px 0 8px;
+  color: #8d9bf0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.tk-map-panel-empty {
+  margin: 14px 0 18px;
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* The answer, not a row: bigger than everything under it, with the three facts
+   somebody standing outside actually needs. */
+.tk-map-lead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 4px 0 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-map-lead-image {
+  width: 62px;
+  height: 62px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #05070d;
+}
+.tk-map-lead-text { display: block; min-width: 0; }
+.tk-map-lead-name {
+  display: block;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 1.42rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.tk-map-lead-when {
+  display: block;
+  margin-top: 5px;
+  color: var(--tk-ink-dim, #c3cee2);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-map-lead-where {
+  display: block;
+  margin-top: 2px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.86rem;
+}
+.tk-map-lead-go { color: var(--tk-ink-faint, #8fa0bb); flex: none; }
+.tk-map-lead:hover .tk-map-lead-go { color: var(--tk-ink, #e8ecf6); }
+.tk-map-lead:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.tk-map-lead.is-loading { pointer-events: none; display: block; padding-top: 14px; }
+
+.tk-map-skeleton {
+  display: block;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    rgba(126, 152, 190, 0.1),
+    rgba(126, 152, 190, 0.2),
+    rgba(126, 152, 190, 0.1)
+  );
+  background-size: 220% 100%;
+  animation: tk-skeleton 1.3s ease-in-out infinite;
+}
+.tk-map-skeleton.is-title { width: 62%; height: 20px; margin-bottom: 9px; }
+.tk-map-skeleton.is-line { width: 44%; height: 11px; }
+@keyframes tk-skeleton {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-map-skeleton { animation: none; }
+}
+
+.tk-map-also {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tk-glass-line);
+}
+.tk-map-also > li + li { border-top: 1px solid rgba(126, 152, 190, 0.09); }
+.tk-map-also button {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-map-also-image {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  background: #05070d;
+}
+.tk-map-also-image.is-blank { background: rgba(126, 152, 190, 0.1); }
+.tk-map-also-name {
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.tk-map-also-facts { text-align: right; }
+.tk-map-also-when {
+  display: block;
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-map-also-where {
+  display: block;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.74rem;
+}
+.tk-map-also button svg { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-map-also button:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+/* What the active overlay says at this exact point, in words, so nobody has to
+   read a colour off a gradient and guess. */
+.tk-map-layer-reading {
+  display: grid;
+  gap: 3px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid rgba(108, 128, 245, 0.24);
+  border-radius: 12px;
+  background: rgba(108, 128, 245, 0.09);
+}
+.tk-map-layer-label {
+  color: #9aa7f2;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-map-layer-value {
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+.tk-map-layer-detail {
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+
+.tk-map-conditions-pending { margin: 14px 0 0; }
+
+/* Only the conditions that would change the decision, side by side rather than
+   as a table: two or three facts, not a dashboard. */
+/* Rows, not columns.
+  
+   Three conditions across a 376px panel gave each about a hundred pixels, and
+   "Waning Gibbous · 98%" does not fit in a hundred pixels — it wrapped to three
+   lines, pushed the panel past its own height and slid under the Moon card. A
+   label on the left and its value on the right reads faster anyway, and it does
+   not care how long the value is. */
+.tk-map-panel-conditions {
+  display: grid;
+  gap: 0;
+  margin: 16px 0 4px;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tk-glass-line);
+}
+.tk-map-panel-conditions li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+}
+.tk-map-panel-conditions li + li { border-top: 1px solid rgba(126, 152, 190, 0.09); }
+.tk-map-condition-value { text-align: right; }
+.tk-map-condition-label {
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.74rem;
+}
+.tk-map-condition-value {
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+.tk-map-panel-conditions .is-poor .tk-map-condition-value { color: #e6a2a2; }
+.tk-map-panel-conditions .is-fair .tk-map-condition-value { color: #e0c79a; }
+
+.tk-map-panel-foot { padding: 14px 18px 18px; }
+.tk-map-panel-foot .tk-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 13px;
+  background: #5a63f0;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tk-map-panel-foot .tk-action:hover { background: #6a72f5; }
+.tk-map-panel-foot .tk-action:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 2px;
+}
+
+.tk-icon-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 10px;
+  background: none;
+  color: var(--tk-ink-faint, #8fa0bb);
+  cursor: pointer;
+}
+.tk-icon-button:hover { background: rgba(126, 152, 190, 0.12); color: var(--tk-ink, #e8ecf6); }
+.tk-icon-button:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 1px;
+}
+
+/* --- the contextual card, lower left ------------------------------------- */
+
+/* Only rendered when the Moon actually decides the night — see `moonCard.ts`.
+   An empty corner is a legitimate state; a card that is always there and
+   usually irrelevant teaches the reader to stop looking at it. */
+.tk-moon-card {
+  position: absolute;
+  left: 14px;
+  /* Above the rail, which now owns the bottom of the map. The Moon stays
+     context rather than a card, per the rule in `observingRail.ts`: it is on
+     the rail only when it is itself the event. */
+  bottom: 136px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(320px, calc(100% - 28px));
+  padding: 11px 14px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: var(--tk-radius);
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-moon-card-face {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.tk-moon-card-face.is-drawn {
+  background: radial-gradient(circle at 36% 34%, #e7ecf6 0%, #b9c2d4 52%, #6d7690 100%);
+  box-shadow: inset -6px -3px 12px rgba(0, 0, 0, 0.45);
+}
+.tk-moon-card-text { min-width: 0; }
+.tk-moon-card-phase {
+  margin: 0;
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.tk-moon-card-timing {
+  margin: 3px 0 0;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- the control system, lower right ------------------------------------- */
+
+/* One geometry for every control: the same radius, fill, border and hit size,
+   so a reader who has found one can guess where the rest are. The gap between
+   the two stacks is deliberate — zooming is idle and reversible, asking the
+   browser for a location is neither, and they should not sit in one run. */
+.tk-map-controls-view {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.tk-map-controlgroup {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 12px;
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-map-control {
+  display: grid;
+  place-items: center;
+  /* 44px: a thumb target, and the same square on every platform. */
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--tk-ink, #e8ecf6);
+  cursor: pointer;
+}
+.tk-map-control + .tk-map-control { border-top: 1px solid rgba(126, 152, 190, 0.14); }
+.tk-map-control:hover { background: rgba(126, 152, 190, 0.12); }
+.tk-map-control:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-map-control[data-state="busy"] { opacity: 0.55; }
+
+/* A refusal is not a dead end: the notice says what happened and points at the
+   two routes that still work. Tracker never blocks on this permission. */
+.tk-map-notice {
+  position: absolute;
+  right: 14px;
+  bottom: 132px;
+  z-index: 5;
+  width: min(300px, calc(100% - 28px));
+  padding: 11px 13px;
+  border: 1px solid var(--tk-glass-line-strong);
+  border-radius: 12px;
+  background: var(--tk-glass-solid);
+  backdrop-filter: var(--tk-glass-blur);
+  font-size: 0.8rem;
+}
+.tk-map-notice p { margin: 0 0 5px; }
+.tk-map-notice-alt { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-map-notice-close {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tk-accent, #7c8cf8);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- the drill-in -------------------------------------------------------- */
+
+.tk-map-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow-y: auto;
+  background: var(--tk-surface, #080b12);
+}
+
+/**
+ * The way back sits beside the heading, not on top of it.
+ *
+ * It floats rather than sitting in the flow, because the event page is laid out
+ * to fit a viewport exactly and a control in the flow above it pushed the last
+ * ranked row off every screen. But floating it over the top-left corner put it
+ * squarely on the category heading — "Planets" was underneath "Back to the
+ * map". Indenting the heading past it turns a collision into the ordinary
+ * back-then-title pattern, and costs no height at all.
+ */
+.tk-map-detail-back {
+  position: absolute;
+  top: 20px;
+  left: clamp(12px, 2vw, 24px);
+  z-index: 2;
+  margin: 0;
+  padding: 6px 11px;
+  border-radius: 9px;
+  background: var(--tk-glass-solid, rgba(13, 17, 28, 0.95));
+  border: 1px solid var(--tk-glass-line, rgba(126, 152, 190, 0.16));
+  backdrop-filter: blur(10px);
+  font-size: 0.82rem;
+}
+.tk-map-detail .tk-page-heading { padding-left: 168px; }
+@media (max-width: 720px) {
+  /* On a phone the heading gets the row to itself; there is not width for both. */
+  .tk-map-detail .tk-page-heading { padding-left: 0; padding-top: 34px; }
+}
+
+/* --- narrow screens: the panel becomes a sheet, the map stays the base ---- */
+
+.tk-map-sheet-handle { display: none; }
+
+@media (max-width: 720px) {
+  /**
+   * Two rows, not three, and the map gets the rest.
+   *
+   * Place, then date, then layers stacked three deep took roughly a fifth of a
+   * phone screen before the map started — on a product whose whole premise is
+   * that the map is the workspace. The place and the layer control share the
+   * top row now, because the layer control is a set of icons and the place name
+   * can take whatever is left; the date keeps its own row because it is the
+   * control people actually reach for and it needs a real target either side.
+   *
+   * Nothing here shrinks a touch target. The chips lose their labels, not their
+   * size: 34px of glyph is the same 34px it was with a word beside it.
+   */
+  .tk-map-topbar {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "place layers"
+      "date  date";
+    gap: 8px;
+  }
+  .tk-map-topbar-lead { grid-area: place; justify-self: stretch; min-width: 0; }
+  .tk-map-topbar-end { grid-area: layers; justify-self: end; }
+  /* Both controls collapse to their glyphs, so the pair costs one button's
+     width rather than two labels'. Nothing shrinks below a thumb: the glyph
+     gets smaller, the target does not. */
+  .tk-map-topbar-end .tk-eventfinder-trigger { min-height: 44px; min-width: 44px; }
+  /* The day steps sit either side of the date and are the control most likely
+     to be tapped repeatedly, so they get a full-size target even though the
+     chevron inside them is small. */
+  .tk-map-shell .tk-date-step { min-height: 44px; min-width: 44px; }
+  .tk-map-topbar-centre { grid-area: date; justify-self: stretch; }
+  .tk-map-shell .tracker-place-current {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 42px;
+  }
+  .tk-map-shell .tk-date { justify-content: center; }
+  .tk-map-shell .tk-date-field { flex: 1 1 auto; justify-content: center; }
+
+  /* Icons only. The name is in the title and in the accessible name, so nothing
+     is lost to anyone who needs it — and the row stops being wider than the
+     phone. */
+  .tk-map-layer-chip { padding: 0 10px; gap: 0; }
+  .tk-map-layer-chip > span:not(.tk-visually-hidden) { display: none; }
+  .tk-map-layer-chip svg { width: 17px; height: 17px; }
+  .tk-map-layers-mark { display: none; }
+
+  /* The page header's own mobile rule sets `.tracker-nav { width: 100% }`,
+     which is right for a header grid and wrong for a floating control.
+     Overridden here rather than changed there, because the header still uses
+     it on the detail view. */
+  .tk-map-shell .tracker-nav { width: auto; }
+
+  /* The panel becomes a bottom sheet: the map stays the base canvas, and the
+     collapsed height is chosen to show the place and the one best thing, which
+     is the whole answer most of the time. */
+  .tk-map-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 82dvh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    animation-name: tk-sheet-in;
+  }
+  @keyframes tk-sheet-in {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  /* Collapsed shows the place and the one best thing, which is the whole
+     answer most of the time. Whole sections go, not just their contents: an
+     "Other opportunities" heading with nothing under it is worse than no
+     heading, and each eyebrow is the first of its type inside its own section,
+     so hiding them individually by position does not work. */
+  .tk-map-panel[data-sheet="collapsed"] .tk-map-section + .tk-map-section,
+  .tk-map-panel[data-sheet="collapsed"] .tk-map-panel-conditions,
+  .tk-map-panel[data-sheet="collapsed"] .tk-map-conditions-pending,
+
+  .tk-map-sheet-handle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: rgba(140, 165, 200, 0.55);
+    cursor: pointer;
+  }
+  .tk-map-sheet-handle::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    width: 34px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(140, 165, 200, 0.35);
+  }
+  .tk-map-sheet-handle svg {
+    margin-top: 8px;
+    transition: transform 160ms ease;
+  }
+  .tk-map-panel[data-sheet="expanded"] .tk-map-sheet-handle svg { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .tk-map-sheet-handle svg { transition: none; }
+  }
+
+  /**
+   * The controls ride above the sheet, whichever height it is.
+   *
+   * Pinned to the collapsed height, they were correct until the reader opened
+   * the sheet — and then the zoom buttons sat on top of it. The sheet reports
+   * its own state, so the controls can follow it, and they move with the same
+   * easing so the two read as one gesture rather than two things twitching.
+   */
+  .tk-map-controls-view {
+    bottom: calc(var(--tk-sheet-height, 34dvh) + 14px);
+    transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .tk-map-shell:has(.tk-map-panel[data-sheet="expanded"]) {
+    --tk-sheet-height: 76dvh;
+  }
+  .tk-map-notice { bottom: calc(var(--tk-sheet-height, 34dvh) + 128px); }
+  @media (prefers-reduced-motion: reduce) {
+    .tk-map-controls-view { transition: none; }
+  }
+
+  /* The Moon card yields: the sheet already occupies the lower half, and two
+     stacked cards there is more furniture than map. */
+  .tk-moon-card { display: none; }
+}
+
+/* The selected place, named on the map beside its own target. Offset to the
+   right so it never sits on the point it is labelling, and haloed so it stays
+   legible over water, land and any overlay drawn between them. */
+.tk-map-target-label {
+  position: absolute;
+  left: calc(50% + 22px);
+  white-space: nowrap;
+  color: #f2f5fc;
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-shadow:
+    0 0 3px rgba(5, 7, 12, 0.95),
+    0 0 8px rgba(5, 7, 12, 0.85);
+  pointer-events: none;
+}
+.tk-map-target-label:empty { display: none; }
+
+/* --- the layer control, and finding an event ----------------------------- */
+
+/* One control that opens a panel, rather than a chip per layer. A row of chips
+   was already the widest thing on a phone at three, and the honest list is
+   eight or more. Every mature map does this the same way and there is no reason
+   for Tracker to invent a different answer to a solved problem. */
+.tk-layers { position: relative; }
+.tk-eventfinder-trigger,
+.tk-eventfinder-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: var(--tk-radius);
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+  color: var(--tk-ink, #e8ecf6);
+  font: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tk-eventfinder-trigger:hover { background: rgba(20, 26, 40, 0.9); }
+.tk-eventfinder-trigger svg,
+.tk-eventfinder-trigger svg { color: var(--tk-ink-faint, #8fa0bb); }
+
+/* What is on, without opening anything. A control that hides its own state
+   makes the reader open it to find out what they already did. */
+.tk-layers-count {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #5a63f0;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.tk-layers-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 6;
+  width: min(320px, calc(100vw - 28px));
+  /* Tall enough for every layer plus a selected event's reading, which is the
+     panel's fullest state and the one that was being cut off mid-sentence —
+     the reading is the answer to "why can I not see this from here", so it
+     should not need a scroll to find. Still bounded by the viewport, so a short
+     window scrolls rather than overflowing. */
+  max-height: min(76dvh, 700px);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--tk-glass-line-strong);
+  border-radius: 16px;
+  background: var(--tk-glass-solid);
+  backdrop-filter: var(--tk-glass-blur);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.55);
+  animation: tk-panel-in 160ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-layers-panel { animation: none; }
+}
+.tk-layers-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 4px 12px;
+}
+.tk-layers-panel-head h2 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--tk-ink, #e8ecf6);
+}
+.tk-layers-group { padding: 6px 0; }
+.tk-layers-group h3 {
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-layers-group ul { margin: 0; padding: 0; list-style: none; }
+
+.tk-layers-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  /* A real target, not a checkbox hit area. */
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-layers-item:hover:not(:disabled) { background: rgba(126, 152, 190, 0.1); }
+.tk-layers-item:disabled { opacity: 0.42; cursor: not-allowed; }
+.tk-layers-item:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-layers-item svg { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-layers-item[aria-checked="true"] svg { color: #a9b6ff; }
+.tk-layers-item-text { display: block; min-width: 0; }
+.tk-layers-item-name {
+  display: block;
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.88rem;
+}
+.tk-layers-item-blurb {
+  display: block;
+  margin-top: 1px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+.tk-layers-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: #fff;
+}
+.tk-layers-item[aria-checked="true"] .tk-layers-check { background: #5a63f0; }
+.tk-layers-item[aria-checked="false"] .tk-layers-check {
+  box-shadow: inset 0 0 0 1px rgba(126, 152, 190, 0.3);
+}
+
+/* The selected event is named here so everything currently drawn is listed in
+   one place — but as a statement of what is on the map, not as another layer. */
+.tk-layers-group.is-event { border-top: 1px solid var(--tk-glass-line); }
+.tk-layers-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 12px 8px;
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.84rem;
+}
+.tk-layers-clear {
+  border: 0;
+  background: none;
+  color: var(--tk-accent, #7c8cf8);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* --- finding an event ---------------------------------------------------- */
+
+.tk-eventfinder { position: relative; }
+.tk-eventfinder.is-selected { display: flex; align-items: center; gap: 2px; }
+.tk-eventfinder-current { border-radius: var(--tk-radius) 0 0 var(--tk-radius); }
+.tk-eventfinder-current-name { max-width: 15ch; overflow: hidden; text-overflow: ellipsis; }
+.tk-eventfinder-clear {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-height: 40px;
+  border: 1px solid var(--tk-glass-line);
+  border-left: 0;
+  border-radius: 0 var(--tk-radius) var(--tk-radius) 0;
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+  color: var(--tk-ink-faint, #8fa0bb);
+  cursor: pointer;
+}
+.tk-eventfinder-clear:hover { color: var(--tk-ink, #e8ecf6); }
+
+.tk-eventfinder-open {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 7;
+  width: min(330px, calc(100vw - 28px));
+  padding: 6px;
+  border: 1px solid var(--tk-glass-line-strong);
+  border-radius: 16px;
+  background: var(--tk-glass-solid);
+  backdrop-filter: var(--tk-glass-blur);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.55);
+}
+.tk-eventfinder-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+.tk-eventfinder-field svg { color: var(--tk-ink-faint, #8fa0bb); flex: none; }
+.tk-eventfinder-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--tk-ink, #e8ecf6);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.tk-eventfinder-field input:focus { outline: none; }
+.tk-eventfinder-suggestions,
+.tk-eventfinder-results {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-eventfinder-suggestions button,
+.tk-eventfinder-results button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-eventfinder-suggestions button { color: var(--tk-ink-dim, #b6c3da); font-size: 0.85rem; }
+.tk-eventfinder-suggestions button:hover,
+.tk-eventfinder-results button:hover { background: rgba(126, 152, 190, 0.1); }
+.tk-eventfinder-title {
+  display: block;
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.9rem;
+}
+.tk-eventfinder-when {
+  display: block;
+  margin-top: 1px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.76rem;
+}
+.tk-eventfinder-empty {
+  margin: 10px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.82rem;
+}
+
+/* --- the event's reading in the panel ------------------------------------ */
+
+/* Above the layer readings and visually distinct from them: it answers a
+   different question. The layers say what this place is like; this says what
+   the selected event does here. */
+.tk-map-event-reading {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 12px 13px;
+  border: 1px solid rgba(150, 132, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(120, 104, 240, 0.12);
+}
+.tk-map-event-value {
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 1.06rem;
+  font-weight: 600;
+}
+.tk-map-event-facts {
+  margin: 6px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(150, 132, 255, 0.2);
+  display: grid;
+  gap: 5px;
+}
+.tk-map-event-facts li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.79rem;
+}
+.tk-map-event-facts li > span:first-child { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-map-event-facts li > span:last-child {
+  color: var(--tk-ink-dim, #c3cee2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  /* The layer panel and the event finder become sheets from the top rather than
+     dropdowns, so neither fights the selected-location sheet at the bottom. */
+  .tk-layers-panel,
+  .tk-eventfinder-open {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 62dvh;
+  }
+  .tk-layers-trigger { padding: 0 11px; }
+  .tk-eventfinder-trigger span:not(.tk-visually-hidden) { display: none; }
+  .tk-eventfinder-trigger { padding: 0 11px; }
+  .tk-eventfinder-current-name { max-width: 10ch; }
+}
+
+/* --- the observing rail -------------------------------------------------- */
+
+/* A strip along the bottom instead of a panel down the side. The map keeps the
+   space; the options are all visible at once; choosing one expands it where it
+   already is rather than opening something. */
+.tk-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 0 14px 16px;
+  /* The strip is a layout, not a surface: the map takes clicks between cards. */
+  pointer-events: none;
+}
+.tk-rail-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Cards snap so a flick lands on one rather than between two. */
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /*
+    The strip is transparent to the pointer; only the cards are not.
+    This container runs the full width of the map, so while it took events
+    itself, a click in the empty space beside a card hit the rail and stopped
+    there — the map never saw it, and an open card could not be dismissed by
+    clicking next to it. Scrolling still works: a wheel or a drag over a card
+    scrolls the strip it belongs to.
+  */
+  pointer-events: none;
+  /* Room for the shadow, which a clipped overflow would cut off. */
+  padding: 10px 0;
+  margin: -10px 0;
+}
+.tk-rail-scroll::-webkit-scrollbar { display: none; }
+.tk-rail-list {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  width: max-content;
+}
+
+.tk-rail-card {
+  /* The only part of the strip that takes the pointer. Everything around it is
+     transparent, so a click beside a card reaches the map and dismisses it. */
+  pointer-events: auto;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 15px;
+  background: var(--tk-glass-solid);
+  backdrop-filter: var(--tk-glass-blur);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.44);
+  /**
+   * The expansion.
+   *
+   * Width and the body's height animate together over 260 ms on a standard
+   * ease-out. No spring and no bounce: this is a panel opening, not an object
+   * with mass, and overshoot on a control the reader is about to read from is
+   * just motion for its own sake. The neighbours reposition because they are
+   * flex items sharing the same transition, so nothing is animated twice.
+   */
+  transition:
+    width 260ms cubic-bezier(0.2, 0.8, 0.25, 1),
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+.tk-rail-card[data-expanded="true"] {
+  width: 344px;
+  border-color: rgba(124, 140, 248, 0.5);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+}
+.tk-rail-card.is-loading {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  width: 232px;
+}
+
+.tk-rail-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 15px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-rail-card-head:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-rail-card-image {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  object-fit: cover;
+  background: #05070d;
+}
+.tk-rail-card-image.is-blank { background: rgba(126, 152, 190, 0.1); }
+.tk-rail-card-text { display: block; min-width: 0; }
+.tk-rail-card-name {
+  display: block;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-rail-card-when {
+  display: block;
+  margin-top: 2px;
+  color: var(--tk-ink-dim, #c3cee2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-rail-card-where {
+  display: block;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.75rem;
+}
+.tk-rail-card-toggle { color: var(--tk-ink-faint, #8fa0bb); }
+
+/* The body grows from nothing. `grid-template-rows: 0fr → 1fr` is what lets a
+   height transition work without knowing the content's height in advance. */
+.tk-rail-card-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  padding: 0 12px 12px;
+  animation: tk-rail-open 260ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+@keyframes tk-rail-open {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+
+.tk-rail-note {
+  margin: 0 0 10px;
+  color: var(--tk-ink-dim, #c3cee2);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.tk-rail-facts,
+.tk-rail-conditions {
+  margin: 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--tk-glass-line);
+  display: grid;
+  gap: 5px;
+}
+.tk-rail-facts li,
+.tk-rail-conditions li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.79rem;
+}
+.tk-rail-facts li > span:first-child,
+.tk-rail-conditions li > span:first-child { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-rail-facts li > span:last-child,
+.tk-rail-conditions li > span:last-child {
+  color: var(--tk-ink-dim, #c3cee2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tk-rail-conditions { margin-top: 8px; }
+.tk-rail-conditions .is-poor > span:last-child { color: #e6a2a2; }
+.tk-rail-conditions .is-fair > span:last-child { color: #e0c79a; }
+
+/* Terrain, always named as terrain. A DEM is bare earth and says nothing about
+   the trees at the end of the garden. */
+.tk-rail-terrain {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(126, 152, 190, 0.09);
+  font-size: 0.78rem;
+}
+.tk-rail-terrain svg { color: var(--tk-ink-faint, #8fa0bb); flex: none; margin-top: 1px; }
+.tk-rail-terrain-head { display: block; color: var(--tk-ink, #e8ecf6); }
+.tk-rail-terrain-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  line-height: 1.4;
+}
+.tk-rail-terrain.is-pending { color: var(--tk-ink-faint, #8fa0bb); }
+
+.tk-rail-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 8px 0 0;
+  border: 0;
+  background: none;
+  color: var(--tk-accent, #7c8cf8);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.tk-rail-details:hover { text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-rail-card { transition: none; }
+  .tk-rail-card-body { animation: none; }
+  .tk-rail-scroll { scroll-behavior: auto; }
+}
+
+@media (max-width: 720px) {
+  /* The rail is the bottom surface on a phone — there is no second sheet, so
+     there is nothing for it to fight with. */
+  .tk-rail { padding: 0 10px 12px; }
+  .tk-rail-card { width: 200px; }
+  .tk-rail-card[data-expanded="true"] { width: min(320px, calc(100vw - 40px)); }
+  .tk-rail-card-body { max-height: 46dvh; overflow-y: auto; }
+  /* Controls ride above the rail rather than under it. The rail measures
+     itself and publishes `--tk-rail-height`, so this stays true when a card is
+     expanded and the rail is three times its resting height. The fallback is
+     the collapsed height, for the frame before the first measurement. */
+  .tk-map-controls-view { bottom: calc(var(--tk-rail-height, 106px) + 12px); }
+  .tk-map-notice { bottom: calc(var(--tk-rail-height, 106px) + 126px); }
+}
+
+/* --- where the map controls sit ------------------------------------------
+
+   On a wide screen the rail is a row of cards at the bottom *left* and the
+   controls are at the bottom *right*: they never overlap, so the controls have
+   no reason to move when a card opens. They used to track the rail's measured
+   height, which meant expanding a card slid the whole control stack — and the
+   layer panel with it — a couple of hundred pixels up the screen for no reason
+   the reader could see.
+
+   A fixed offset that clears the resting rail is what this needs. The measured
+   height still governs on narrow screens, where the rail really does span the
+   width and an expanded card really would cover the controls. */
+@media (min-width: 721px) {
+  .tk-map-controls-view { bottom: 136px; }
+  .tk-map-notice { bottom: 250px; }
+}
+
+/* --- onboarding callouts ------------------------------------------------- */
+
+/* Hopscotch's model: one bubble, anchored to a real control, with the product
+   visible and usable behind it. No mask, no slideshow, no modal. */
+.tk-callout-ring {
+  position: fixed;
+  z-index: 40;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 2px rgba(124, 140, 248, 0.85),
+    0 0 0 8px rgba(124, 140, 248, 0.18);
+  pointer-events: none;
+  animation: tk-callout-ring-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes tk-callout-ring-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.tk-callout {
+  position: fixed;
+  z-index: 41;
+  padding: 14px 15px 12px;
+  border: 1px solid var(--tk-glass-line-strong, rgba(126, 152, 190, 0.26));
+  border-radius: 14px;
+  background: var(--tk-glass-solid, rgba(13, 17, 28, 0.97));
+  backdrop-filter: blur(16px) saturate(1.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: tk-callout-in 200ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes tk-callout-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.tk-callout:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 2px; }
+.tk-callout-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tk-callout-head h2 {
+  margin: 0;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 0.96rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.tk-callout-body {
+  margin: 7px 0 0;
+  color: var(--tk-ink-dim, #c3cee2);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.tk-callout-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+}
+.tk-callout-count {
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-callout-actions { display: flex; align-items: center; gap: 6px; }
+.tk-callout-back,
+.tk-callout-next {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.tk-callout-back { background: none; color: var(--tk-ink-dim, #b6c3da); }
+.tk-callout-back:hover { background: rgba(126, 152, 190, 0.12); }
+.tk-callout-next { background: #5a63f0; color: #fff; font-weight: 500; }
+.tk-callout-next:hover { background: #6a72f5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-callout,
+  .tk-callout-ring { animation: none; }
+}
+
+/* --- layer and event readings in their new homes ------------------------- */
+
+/* Both readings were written for a 360px panel. In a rail card and in the
+   layers menu they have roughly half that width, so the type comes down and the
+   box tightens. The colours stay: they are what says "this is what the map is
+   drawing, read at your point" rather than another fact about the night. */
+.tk-layers-panel .tk-map-layer-reading {
+  margin: 2px 0 6px 42px;
+  padding: 8px 10px;
+  gap: 2px;
+}
+.tk-layers-panel .tk-map-layer-value { font-size: 0.86rem; }
+.tk-layers-panel .tk-map-layer-detail { font-size: 0.74rem; }
+
+.tk-rail-card-body .tk-map-event-reading {
+  margin-top: 10px;
+  padding: 9px 11px;
+  gap: 3px;
+}
+.tk-rail-card-body .tk-map-event-value { font-size: 0.92rem; }
+.tk-rail-card-body .tk-map-layer-label { font-size: 0.63rem; }
+.tk-rail-card-body .tk-map-layer-detail { font-size: 0.75rem; }
+.tk-rail-card-body .tk-map-event-facts { font-size: 0.75rem; }
+
+/* The fallback reading in the layers menu: same identity, panel proportions. */
+.tk-layers-group.is-event .tk-map-event-reading {
+  margin-top: 8px;
+  padding: 9px 11px;
+  gap: 3px;
+}
+.tk-layers-group.is-event .tk-map-event-value { font-size: 0.88rem; }
+.tk-layers-group.is-event .tk-map-layer-detail { font-size: 0.74rem; }
+
+/* The drawn Moon sits in the same square a photograph would. */
+.tk-rail-card-image.is-moon { display: block; border-radius: 50%; background: #070b12; }
+
+/* --- the way back to Orbit Studio ----------------------------------------
+
+   Explorer and Playground both put the product mark top-left and make it the
+   route home. Tracker had neither: once the map was open there was no way back
+   to the suite short of editing the URL. Same control, same label, same place.
+   It collapses to the icon on narrow screens, where the top bar's place, date
+   and layer controls already compete for the width. */
+
+.tk-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0.92;
+}
+.tk-brand:hover { opacity: 1; }
+.tk-brand:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 3px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 5px var(--tk-focus-halo);
+}
+/* Both variants are scoped to `.tk-brand` so the two rules have equal
+   specificity and the later one wins. `.tk-brand img` alone was more specific
+   than `.tk-brand-icon`, so `display: block` beat `display: none` and the mark
+   rendered twice — wordmark and icon side by side. */
+.tk-brand img { width: auto; object-fit: contain; }
+.tk-brand .tk-brand-full { display: block; height: 30px; }
+.tk-brand .tk-brand-icon { display: none; height: 26px; }
+
+@media (max-width: 1180px) {
+  .tk-brand .tk-brand-full { display: none; }
+  .tk-brand .tk-brand-icon { display: block; }
+}
+@media (max-width: 720px) {
+  /* On a phone the top bar is a three-area grid and there is no room for a
+     fourth thing; the route home lives in the app menu instead. */
+  .tk-brand { display: none; }
+}
+
+/* --- the month calendar ---------------------------------------------------
+
+   One month, opened from the date. Deliberately small: it answers "which
+   night", and nothing else. No events are drawn on it — the rail and the event
+   search already do discovery, and a calendar that also did it would be a
+   second ranking system to keep honest. */
+
+.tk-date { position: relative; }
+
+.tk-cal {
+  position: fixed;
+  z-index: 60;
+  width: 288px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--tk-glass-line-strong, rgba(126, 152, 190, 0.26));
+  border-radius: 16px;
+  /* Opaque, not glass. A grid of two-digit numbers over a map of place names is
+     unreadable at any blur — the labels behind it read as extra digits. */
+  background: #0c111b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  animation: tk-cal-in 150ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes tk-cal-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tk-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tk-cal-month {
+  margin: 0;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.tk-cal-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--tk-ink-dim, #c3cee2);
+  cursor: pointer;
+}
+.tk-cal-page:hover:not(:disabled) { background: rgba(126, 152, 190, 0.14); }
+.tk-cal-page:disabled { opacity: 0.3; cursor: default; }
+.tk-cal-page:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--tk-focus-halo);
+}
+
+.tk-cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.tk-cal-weekday {
+  padding: 2px 0 6px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.tk-cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--tk-ink-dim, #c3cee2);
+  font: inherit;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.tk-cal-day:hover:not(:disabled) { background: rgba(126, 152, 190, 0.16); }
+.tk-cal-day:disabled { opacity: 0.22; cursor: default; }
+/* Borrowed from the neighbouring month: dimmer, but still a real day that can
+   be chosen, because a reader looking at the last row of August is often
+   looking for the first of September. */
+.tk-cal-day[data-outside="true"] { color: var(--tk-ink-faint, #7d8aa3); }
+/* Today is marked, and marked differently from the chosen night, so a reader
+   can see at a glance both where they are and where now is. */
+.tk-cal-day[data-today="true"] {
+  box-shadow: inset 0 0 0 1px rgba(147, 167, 255, 0.55);
+  color: var(--tk-ink, #eaf0ff);
+}
+.tk-cal-day[data-selected="true"] {
+  background: #5a63f0;
+  color: #fff;
+  font-weight: 600;
+}
+.tk-cal-day[data-selected="true"]:hover { background: #6a72f5; }
+.tk-cal-day:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -1px;
+  box-shadow: 0 0 0 4px var(--tk-focus-halo);
+}
+
+.tk-cal-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--tk-glass-line, rgba(126, 152, 190, 0.16));
+}
+.tk-cal-today {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tk-violet-soft, rgba(99, 102, 232, 0.18));
+  color: var(--tk-violet-lift, #aab2ff);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.tk-cal-today:hover:not(:disabled) { background: rgba(99, 102, 232, 0.28); }
+.tk-cal-today:disabled { opacity: 0.35; cursor: default; }
+.tk-cal-today:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--tk-focus-halo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-cal { animation: none; }
+}
+
+/* Roomier day targets on a phone; the panel's own placement is measured, so it
+   needs no separate mobile positioning. */
+@media (max-width: 560px) {
+  .tk-cal { width: min(320px, calc(100vw - 20px)); }
+  .tk-cal-day { height: 42px; font-size: 0.9rem; }
+}
+
+/* --- event marks ----------------------------------------------------------
+
+   A day that carries an eclipse or a shower peak says so, and says nothing
+   else: no ranking, no quality, no local circumstances. Those are the rail's
+   job, and choosing the day is still what tells the reader whether the event is
+   worth anything from where they are.
+
+   Glyphs rather than coloured dots, because three dots would need a legend and
+   there is nowhere in a 288px popover to put one. */
+
+.tk-cal-marks {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 9px;
+  color: var(--tk-ink-faint, #8fa0bb);
+  line-height: 0;
+}
+.tk-cal-marks svg[data-kind="solar-eclipse"] { color: #e0a45f; }
+.tk-cal-marks svg[data-kind="lunar-eclipse"] { color: #9fb3d9; }
+.tk-cal-marks svg[data-kind="meteor-shower"] { color: #7fd2c4; }
+/* On the chosen day the tile is solid indigo, so the marks take its ink. */
+.tk-cal-day[data-selected="true"] .tk-cal-marks svg { color: rgba(255, 255, 255, 0.92); }
+.tk-cal-day[data-outside="true"] .tk-cal-marks { opacity: 0.55; }
+.tk-cal-day:disabled .tk-cal-marks { opacity: 0.4; }
+
+/* --- card figures ---------------------------------------------------------
+
+   A rail card's media slot, whatever is in it: a photograph, a drawing made
+   from the event's own numbers, or a deliberate mark. They share a box so the
+   cards line up regardless of which one a phenomenon resolves to. */
+
+.tk-rail-card-image .tk-figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+/* A mark is a symbol, not a picture, so it sits on a panel rather than bleeding
+   to the edges of the tile the way a photograph does. */
+.tk-rail-card-image .tk-figure.is-mark {
+  background: rgba(126, 152, 190, 0.1);
+  padding: 3px;
+}
+
+/* --- Layers, as a map control --------------------------------------------
+
+   It used to sit in the top bar beside Find an event, which grouped a map
+   control with the product's navigation. Choosing what the map draws is the
+   same kind of act as zooming or recentring, so it belongs in the same family
+   on the map's own edge — which is where every mature map product puts it.
+
+   The button therefore takes `.tk-map-control` wholesale: same 44px square,
+   same colour, same hover, same focus. Only the grouping differs, by a gap. */
+
+.tk-map-controls-view .tk-layers { position: relative; display: block; }
+
+.tk-map-controlgroup.is-layers {
+  /* A little air, so "what is drawn" reads as its own group rather than as a
+     third zoom button. */
+  margin-bottom: 10px;
+  /* The group clips its children so stacked buttons take its rounded corners.
+     With one button that clipping has nothing to do and one victim: the layer
+     panel, which is a child of this group and was being cut down to the 44px
+     square of the button that opens it. It measured correctly and drew nothing. */
+  overflow: visible;
+  /* No glass on the wrapper. `backdrop-filter` makes an element the containing
+     block for `position: fixed` descendants, so the panel's mobile layout —
+     which pins it to the viewport — was resolving against this 44px box and
+     landing off the top of the screen. The button wears the glass instead. */
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+}
+/* The button carries the group's own surface, now that the group has none. */
+.tk-map-controlgroup.is-layers .tk-layers-trigger.tk-map-control {
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 12px;
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+
+.tk-layers-trigger.tk-map-control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: inherit;
+}
+.tk-layers-trigger.tk-map-control:hover { background: rgba(126, 152, 190, 0.12); }
+/* Open, or carrying layers: the control says so without being opened. */
+.tk-layers-trigger.tk-map-control[aria-expanded="true"] {
+  background: rgba(99, 110, 240, 0.26);
+  color: #dfe4ff;
+}
+
+/* The count is genuinely useful — it is the only way to know a layer is on
+   without opening the panel — so it stays, as a small badge rather than a
+   number set beside a word. */
+.tk-map-controls-view .tk-layers-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #5a63f0;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 15px;
+  text-align: center;
+}
+
+/* The panel opens to the left of the button and grows upward from it.
+   Anchored to the top it hung 200px below the viewport, because the control
+   stack sits near the bottom of the map — there is room above it and none
+   below. */
+.tk-map-controls-view .tk-layers-panel {
+  top: auto;
+  bottom: 0;
+  right: calc(100% + 10px);
+  /* Bounded by the room actually above the button, not just by the viewport:
+     the panel grows upward from a control that sits near the bottom, so on a
+     short window an unbounded panel runs off the top. */
+  /* The space above the button, not the height of the window: the control
+     stack sits 136px off the bottom and carries ~150px of buttons below this
+     one, so that is what the panel has to grow into. */
+  max-height: min(70dvh, calc(100dvh - 304px));
+}
+
+@media (max-width: 720px) {
+  /* On a phone the panel would run off the left edge, so it anchors to the
+     viewport instead and the button keeps its place in the stack. */
+  .tk-map-controls-view .tk-layers-panel {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 62dvh;
+  }
+}

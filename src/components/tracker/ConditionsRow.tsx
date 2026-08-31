@@ -54,6 +54,7 @@ export function ConditionsRow({
   cards,
   caption,
   evidenceStatus,
+  atUtc,
 }: {
   cards: ConditionCard[];
   /** Where the numbers came from, stated once for the whole row. */
@@ -68,12 +69,24 @@ export function ConditionsRow({
    * separate warnings about five separate forecasts.
    */
   evidenceStatus?: string;
+  /**
+   * The instant these numbers describe.
+   *
+   * The row is not about now. It is about the moment the recommendation is for,
+   * which is some hours into the night — and that is not visible from the
+   * outside, so a harness stubbing an hourly feed had no way to know which hour
+   * the page would actually read. It anchored its fixture to the wall clock
+   * instead, and quietly tested nothing on any night whose best event fell at a
+   * different hour. Exposed for the same reason `data-evidence-status` is.
+   */
+  atUtc?: string;
 }) {
   return (
     <section
       className="tk-conditions tracker-condition"
       aria-label="Conditions"
       data-evidence-status={evidenceStatus}
+      data-at-utc={atUtc}
     >
       <ul className="tk-conditions-row">
         {cards.map((card) => {

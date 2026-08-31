@@ -51,6 +51,18 @@ export type OpportunityKind =
   | "planet"
   | "conjunction"
   | "lunar-eclipse"
+  /**
+   * Solar eclipses, which happen in daylight.
+   *
+   * Their own kind rather than a variant of the lunar one, because everything
+   * about how they are gated is different: a lunar eclipse is a night event and
+   * qualifies by the Moon being up during the observing window, while a solar
+   * eclipse qualifies by happening on this calendar date with the Sun above the
+   * horizon. Ranking a date's opportunities by "is it up tonight" excluded them
+   * entirely, which meant Tracker could not show a reader the total eclipse
+   * passing over their own house.
+   */
+  | "solar-eclipse"
   | "deep-sky";
 
 /** What you need to see it. Ordered: each tier includes the ones before it. */
@@ -166,6 +178,15 @@ export interface Opportunity {
    */
   science?:
     | { kind: "lunar-phase"; phase: LunarPhase }
+    | {
+        kind: "solar-eclipse";
+        /** Greatest fraction of the Sun covered from here, 0–1. */
+        obscuration: number;
+        /** `total`, `annular`, `partial`. */
+        eclipseKind: string;
+        peakUtc: string;
+        centralDurationSeconds: number | null;
+      }
     | {
         kind: "lunar-eclipse";
         timing: LunarEclipseTiming;
