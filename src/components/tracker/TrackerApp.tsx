@@ -119,6 +119,7 @@ import { TrackerCallout } from "./onboarding/TrackerCallout";
 import { useOnboarding, type Tour } from "./onboarding/useOnboarding";
 import { buildRail, type RailCandidate } from "../../data/tracker/observingRail";
 import { cardMediaFor } from "../../data/tracker/cardMedia";
+import { cameraForEvent } from "../../data/tracker/eventCamera";
 import { useDismissableSurface } from "../../data/tracker/dismissable";
 import { EclipseFigure } from "./media/CardFigures";
 import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTerrain";
@@ -646,6 +647,8 @@ function TrackerScreen() {
    * through.
    */
   const [layersOpen, setLayersOpen] = useState(false);
+  /** The place control's trigger, so a local search can send the reader to it. */
+  const placeTrigger = useRef<HTMLButtonElement>(null);
   const [now, setNow] = useState(() => new Date());
   /**
    * The instant "today" rolls over on, kept separate from the chosen date.
@@ -1926,6 +1929,29 @@ function TrackerScreen() {
     [selectedEvent],
   );
 
+  /**
+   * Where the map should be looking for the selected event.
+   *
+   * Read from a ref rather than depending on the live centre: the frame is
+   * computed for the copy of the world the reader is currently on, and that is
+   * a fact about the moment the event is chosen, not something to recompute
+   * every time they pan. Depending on the centre would rebuild the target on
+   * every drag and hand the camera a new answer mid-gesture.
+   */
+  const viewLongitude = useRef(location.centre.longitudeDeg);
+  viewLongitude.current = location.centre.longitudeDeg;
+  const cameraTarget = useMemo(
+    () =>
+      eventOverlay
+        ? cameraForEvent(
+            eventOverlay,
+            place ? { latitudeDeg: place.latitude, longitudeDeg: place.longitude } : null,
+            viewLongitude.current,
+          )
+        : null,
+    [eventOverlay, place?.latitude, place?.longitude],
+  );
+
   /** Choosing an event sets the date to its night and draws it. */
   /**
    * Changing the night, and clearing what the night invalidates.
@@ -2459,6 +2485,9 @@ function TrackerScreen() {
         pin={location.pin}
         pinLabel={namedPlace ? shortPlaceName(namedPlace) : null}
         bearingDeg={observingBearing}
+        // Framed once per event, so panning afterwards is the reader's.
+        cameraTarget={cameraTarget}
+        cameraKey={selectedEvent?.id ?? null}
         daylightAt={now}
         auroraGrid={auroraGrid}
         lightPollution={lightPollution.data ?? null}
@@ -2485,7 +2514,7 @@ function TrackerScreen() {
           {/* The trigger names what the panel names. Two labels for one point —
               a resolved place in the panel and raw coordinates in the header —
               is the interface arguing with itself. */}
-          <TrackerPlace place={namedPlace} onSelect={selectPlace} />
+          <TrackerPlace place={namedPlace} onSelect={selectPlace} triggerRef={placeTrigger} />
         </div>
 
         {/* Time is a parameter of the map, not a place to navigate to. The
@@ -2508,8 +2537,12 @@ function TrackerScreen() {
           <TrackerEventFinder
             from={now}
             selected={selectedEvent}
+            // "Here" is the confirmed place and nothing else — never the map's
+            // centre, never an IP guess.
+            place={place ? { latitude: place.latitude, longitude: place.longitude } : null}
             onSelect={selectEvent}
             onClear={() => navigate({ event: null })}
+            onChoosePlace={() => placeTrigger.current?.click()}
           />
           {/* Last in the group, because it leaves Tracker rather than changing
               what the map shows. It is also the only route home on a phone,

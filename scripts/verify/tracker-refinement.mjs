@@ -838,6 +838,155 @@ async function main() {
     await context.close();
   }
 
+  /* --- the camera on selecting an event ----------------------------------- */
+  console.log("\nEvent search and the camera");
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 1500);
+
+    const camera = () =>
+      page.evaluate(() => {
+        const map = window.__trackerMap;
+        const centre = map.getCenter();
+        return { lat: centre.lat, lng: centre.lng, zoom: map.getZoom() };
+      });
+    const search = async (text) => {
+      const trigger = page.locator(".tk-eventfinder-trigger, .tk-eventfinder-current").first();
+      await trigger.click();
+      const field = page.locator(".tk-eventfinder-field input");
+      await field.fill("");
+      await field.type(text, { delay: 5 });
+      await page.waitForTimeout(900);
+    };
+
+    /**
+     * A global question, answered with the reader's own stake in it.
+     *
+     * "The next total solar eclipse" is a question about the sky; the row still
+     * has to say what it does at the reader's coordinates, because that is the
+     * fact that decides whether the answer matters to them.
+     */
+    await search("total solar eclipse");
+    const labels = await page.locator(".tk-eventfinder-local").allInnerTexts();
+    check(labels.length > 0, "a global search labels each result for the reader's own place");
+    check(
+      labels.every((label) => /here|horizon/i.test(label)),
+      `and says it in local terms (${labels.slice(0, 2).join(", ")})`,
+    );
+
+    const before = await camera();
+    await page.locator(".tk-eventfinder-results button").first().click();
+    await page.waitForTimeout(2600);
+    const after = await camera();
+
+    /**
+     * The map goes to the event.
+     *
+     * Selecting the 2027 totality used to change the date, draw a band across
+     * North Africa, and leave the reader looking at Oregon: the overlay was
+     * correct and entirely invisible.
+     */
+    check(
+      Math.abs(after.lng - before.lng) > 20 || Math.abs(after.zoom - before.zoom) > 1,
+      `selecting an eclipse moves the map to it (${before.lng.toFixed(1)}, z${before.zoom.toFixed(1)} → ${after.lng.toFixed(1)}, z${after.zoom.toFixed(1)})`,
+    );
+    check(
+      after.zoom < before.zoom,
+      "and pulls back far enough to hold the track rather than diving into it",
+    );
+    /* The viewport is URL state, so the flight has to end up recorded there —
+       otherwise Back returns to an entry that never learned where it looked. */
+    const recorded = await page.evaluate(() => new URLSearchParams(location.search).get("at"));
+    const [recordedLat, recordedLng] = (recorded ?? "0,0").split(",").map(Number);
+    check(
+      Math.abs(recordedLng - after.lng) < 0.5 && Math.abs(recordedLat - after.lat) < 0.5,
+      "and the URL records where it arrived",
+    );
+
+    /**
+     * Selecting the event that is already selected does not fly again.
+     *
+     * The frame is recomputed whenever the overlay or the place changes, and
+     * re-running the flight each time would take the map away from a reader who
+     * had just panned it somewhere.
+     */
+    await page.evaluate(() => window.__trackerMap.jumpTo({ center: [10, 20], zoom: 3 }));
+    await page.waitForTimeout(900);
+    const moved = await camera();
+    // Re-pick the event that is already showing, which is the thing that must
+    // not re-run the flight.
+    await search("total solar eclipse");
+    await page.locator(".tk-eventfinder-results button").first().click();
+    await page.waitForTimeout(2400);
+    const still = await camera();
+    check(
+      Math.abs(still.lng - moved.lng) < 1 && Math.abs(still.zoom - moved.zoom) < 0.3,
+      `and choosing the same event again leaves the map where the reader put it (${moved.lng.toFixed(1)}, z${moved.zoom.toFixed(1)} → ${still.lng.toFixed(1)}, z${still.zoom.toFixed(1)})`,
+    );
+
+    /**
+     * A shower is framed around the reader, not around the planet.
+     *
+     * The Perseids at maximum are worth seeing from every longitude in the
+     * northern mid-latitudes, so "the region worth going out in" is a band that
+     * circles the Earth. Fitting that is a picture of the world.
+     */
+    await search("perseids");
+    await page.locator(".tk-eventfinder-results button").first().click();
+    await page.waitForTimeout(2600);
+    const shower = await camera();
+    check(
+      Math.abs(shower.lng - (-122.7)) < 25 && shower.zoom > 2,
+      `a shower frames the reader's own share of the band (${shower.lng.toFixed(1)}, z${shower.zoom.toFixed(1)})`,
+    );
+
+    await context.close();
+  }
+
+  /* --- local intent ------------------------------------------------------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 1500);
+
+    await page.locator(".tk-eventfinder-trigger").first().click();
+    const field = page.locator(".tk-eventfinder-field input");
+    await field.type("next lunar eclipse visible here", { delay: 5 });
+    await page.waitForTimeout(1200);
+    const local = await page.locator(".tk-eventfinder-local").allInnerTexts();
+    check(local.length > 0, "a local search returns something");
+    check(
+      local.every((label) => !/not visible/i.test(label)),
+      `and returns only what can be seen from here (${local.slice(0, 2).join(", ")})`,
+    );
+
+    /**
+     * A limit of the catalogue is a limit of the catalogue.
+     *
+     * Totality returns to a given town about once every three or four
+     * centuries and the catalogue looks forward four years, so "none in range"
+     * is the ordinary answer to a reasonable question — and it must not be
+     * phrased as "there is no such event".
+     */
+    await field.fill("");
+    await field.type("next total solar eclipse here", { delay: 5 });
+    await page.waitForTimeout(1200);
+    const empty = await page.locator(".tk-eventfinder-empty").innerText();
+    check(
+      /catalogue|covers/i.test(empty),
+      `and names the catalogue's horizon when it runs out ("${empty}")`,
+    );
+
+    await context.close();
+  }
+
   /* --- which way to face ------------------------------------------------- */
   console.log("\nObserving direction");
   {

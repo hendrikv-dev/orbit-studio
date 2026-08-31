@@ -27,6 +27,7 @@ import {
 } from "../../../data/tracker/fieldRaster";
 import type { AuroraGrid } from "../../../data/tracker/aurora";
 import type { EventOverlay } from "../../../data/tracker/eventOverlay";
+import type { CameraTarget } from "../../../data/tracker/eventCamera";
 import {
   LIGHT_POLLUTION_ATTRIBUTION,
   lightPollutionRamp,
@@ -115,6 +116,17 @@ interface Props {
    * the horizon, or a meteor shower, whose meteors arrive over the whole sky.
    */
   bearingDeg?: number | null;
+  /**
+   * Where the map should be looking for the selected event, and a key that
+   * changes only when the answer is about a different event.
+   *
+   * Two fields rather than one because the target is recomputed whenever
+   * anything it depends on changes, and flying the camera every time that
+   * happens would fight the reader for control of their own map. The key is
+   * what says "this is a new question".
+   */
+  cameraTarget?: CameraTarget | null;
+  cameraKey?: string | null;
   /** What to call the selected point, beside the target. Null while unknown. */
   pinLabel: string | null;
   /** When to draw the night for, or null to leave the map undarkened. */
@@ -167,6 +179,8 @@ export function TrackerMapCanvas({
   pin,
   pinLabel,
   bearingDeg = null,
+  cameraTarget = null,
+  cameraKey = null,
   daylightAt,
   auroraGrid,
   lightPollution,
@@ -416,6 +430,74 @@ export function TrackerMapCanvas({
     if (km > 400) instance.flyTo({ center: target, zoom, duration: 900, essential: true });
     else instance.easeTo({ center: target, zoom, duration: 360, essential: true });
   }, [centre.latitudeDeg, centre.longitudeDeg, zoom]);
+
+  /**
+   * Frame the selected event, once per event.
+   *
+   * ## Why this is a real camera move and not a state write
+   *
+   * The viewport lives in the URL, and everything else that moves this map
+   * writes there first and lets the effect above follow. This one moves the
+   * camera directly, because `fitBounds` is the only thing that knows how a
+   * geographic frame becomes a centre and a zoom in *this* container at *this*
+   * size — and because the reader should see the flight rather than arrive.
+   * The resulting position is then reported by the ordinary `moveend` handler,
+   * which `settle`s it into the current history entry: the event selection
+   * pushed the entry, and the viewport catching up replaces it, which is the
+   * contract the rest of the map already follows.
+   *
+   * `programmatic` is deliberately *not* set for this move, for the same
+   * reason: this position must be recorded, or Back would return to an entry
+   * that never learned where it was looking.
+   *
+   * ## Why it is keyed
+   *
+   * Because the target is recomputed whenever the overlay or the place
+   * changes, and re-running the flight each time would take the map away from
+   * a reader who had just panned it somewhere. Selecting the event that is
+   * already selected does nothing at all.
+   */
+  const framedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || epoch === 0) return;
+    if (cameraKey === null) {
+      // Clearing the event leaves the map where it is. The reader was looking
+      // at something; taking it away is not the same as taking them away.
+      framedFor.current = null;
+      return;
+    }
+    if (!cameraTarget || framedFor.current === cameraKey) return;
+    framedFor.current = cameraKey;
+
+    /**
+     * Room for the furniture, so the subject is not framed under a panel.
+     *
+     * The rail sits along the bottom and the top bar along the top, and a fit
+     * that ignores them centres an eclipse track underneath the observing
+     * cards. Narrow screens give the rail the full width and get more.
+     */
+    const narrow = instance.getContainer().clientWidth < 721;
+    const padding = narrow
+      ? { top: 116, bottom: 180, left: 16, right: 16 }
+      : { top: 84, bottom: 168, left: 28, right: 96 };
+
+    instance.fitBounds(
+      [
+        [cameraTarget.bounds.west, cameraTarget.bounds.south],
+        [cameraTarget.bounds.east, cameraTarget.bounds.north],
+      ],
+      {
+        padding,
+        maxZoom: cameraTarget.maxZoom,
+        // Reduced motion gets the answer, not the journey.
+        duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1100,
+        // `essential` so it is not discarded by that same preference: the
+        // reader asked for this, and arriving instantly is the accommodation.
+        essential: true,
+      },
+    );
+  }, [cameraKey, cameraTarget, epoch]);
 
   /** The pin, as a marker the renderer keeps in place for us. */
   useEffect(() => {

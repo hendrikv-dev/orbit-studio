@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
   Button,
   ComboBox,
@@ -68,6 +68,14 @@ interface Props {
   place: SelectedPlace | null;
   onSelect: (place: SelectedPlace) => void;
   /**
+   * The trigger, so another control can send the reader here.
+   *
+   * A local event search — "next eclipse visible here" — needs a place before
+   * it means anything, and the right answer to having none is this flow rather
+   * than a second copy of it or a guess from an IP address.
+   */
+  triggerRef?: RefObject<HTMLButtonElement>;
+  /**
    * `bar` is the compact trigger that opens a popover, used once a place is
    * chosen. `inline` is the entry state's own control: the same panel, rendered
    * open and in the page.
@@ -113,7 +121,7 @@ function PlaceSearchInput({ autoFocus }: { autoFocus: boolean }) {
   );
 }
 
-export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
+export function TrackerPlace({ place, onSelect, variant = "bar", triggerRef }: Props) {
   if (variant === "inline") {
     return (
       <div className="tk-locate">
@@ -124,7 +132,11 @@ export function TrackerPlace({ place, onSelect, variant = "bar" }: Props) {
 
   return (
     <DialogTrigger>
-      <Button className="tracker-place-current" data-location-authority="confirmed">
+      <Button
+        ref={triggerRef}
+        className="tracker-place-current"
+        data-location-authority="confirmed"
+      >
         <MapPin size={15} aria-hidden />
         <span className="tracker-place-name">{place ? place.name : "Choose where you are"}</span>
         {place?.context ? <span className="tracker-place-context">{place.context}</span> : null}

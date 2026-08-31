@@ -16723,6 +16723,44 @@ button.primary,
   color: var(--tk-ink-faint, #8fa0bb);
   font-size: 0.82rem;
 }
+/* What the event does at the reader's own coordinates. Set apart from the date
+   because it answers the other half of the question, and toned so "not visible
+   here" can be read without reading it — that row is usually the whole answer. */
+.tk-eventfinder-local {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  background: rgba(126, 152, 190, 0.13);
+  color: var(--tk-ink-dim, #b6c3da);
+}
+.tk-eventfinder-local[data-visible="true"] {
+  background: rgba(79, 216, 176, 0.14);
+  color: #8fe0c6;
+}
+.tk-eventfinder-needs-place {
+  margin: 8px 10px 10px;
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.82rem;
+}
+.tk-eventfinder-needs-place p { margin: 0 0 8px; }
+.tk-eventfinder-needs-place button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 999px;
+  background: none;
+  color: var(--tk-ink, #e8ecf6);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.tk-eventfinder-needs-place button:hover { background: rgba(126, 152, 190, 0.12); }
 
 /* --- the event's reading in the panel ------------------------------------ */
 

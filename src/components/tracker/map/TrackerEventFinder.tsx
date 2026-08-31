@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback} from "react";
-import { CalendarSearch, Search, X } from "lucide-react";
-import { searchEvents, type CatalogueEvent } from "../../../data/tracker/eventCatalogue";
+import { CalendarSearch, MapPin, Search, X } from "lucide-react";
+import { type CatalogueEvent } from "../../../data/tracker/eventCatalogue";
+import { searchEventsNear, type SearchPlace } from "../../../data/tracker/eventSearch";
 import { useDismissableSurface } from "../../../data/tracker/dismissable";
 
 /**
@@ -26,14 +27,35 @@ interface Props {
   /** The instant to search forward from. */
   from: Date;
   selected: CatalogueEvent | null;
+  /** The reader's chosen coordinates, which is the only thing "here" means. */
+  place: SearchPlace | null;
   onSelect: (event: CatalogueEvent) => void;
   onClear: () => void;
+  /** Opens the existing place flow, for a local query with no place chosen. */
+  onChoosePlace?: () => void;
 }
 
-/** Offered before anything is typed, because a blank box teaches nothing. */
-const SUGGESTIONS = ["Next solar eclipse", "Next lunar eclipse", "Perseids", "Geminids"];
+/**
+ * Offered before anything is typed, because a blank box teaches nothing.
+ *
+ * Two of the four say `here`, which is how the reader finds out the word does
+ * anything at all. A feature nobody discovers is a feature nobody has.
+ */
+const SUGGESTIONS = [
+  "Next solar eclipse",
+  "Next solar eclipse here",
+  "Next lunar eclipse visible here",
+  "Perseids",
+];
 
-export function TrackerEventFinder({ from, selected, onSelect, onClear }: Props) {
+export function TrackerEventFinder({
+  from,
+  selected,
+  place,
+  onSelect,
+  onClear,
+  onChoosePlace,
+}: Props) {
   const [open, setOpen] = useState(false);
   const closeSurface = useCallback(() => setOpen(false), []);
   // While this is open, a click on the map dismisses it rather than
@@ -41,10 +63,13 @@ export function TrackerEventFinder({ from, selected, onSelect, onClear }: Props)
   useDismissableSurface(open, closeSurface);
   const [query, setQuery] = useState("");
 
-  const results = useMemo(() => {
-    if (query.trim().length === 0) return [];
-    return searchEvents(query, from, 8);
-  }, [query, from]);
+  const search = useMemo(
+    () => searchEventsNear(query, from, place, 8),
+    [query, from, place],
+  );
+  const results = search.results;
+  /** A local query with nowhere to be local to: the one case that needs asking. */
+  const needsPlace = search.scope === "here" && !place;
 
   if (selected && !open) {
     return (
@@ -92,7 +117,7 @@ export function TrackerEventFinder({ from, selected, onSelect, onClear }: Props)
                   setQuery("");
                 }
                 if (event.key === "Enter" && results.length > 0) {
-                  onSelect(results[0]);
+                  onSelect(results[0].event);
                   setOpen(false);
                   setQuery("");
                 }
@@ -121,24 +146,59 @@ export function TrackerEventFinder({ from, selected, onSelect, onClear }: Props)
                 </li>
               ))}
             </ul>
+          ) : needsPlace ? (
+            /* "Here" has to be somewhere. Rather than guessing from an IP
+               address, this hands the reader back to the flow that already
+               exists for choosing a place. */
+            <div className="tk-eventfinder-needs-place">
+              <p>Choose a place first, and “here” will mean that place.</p>
+              {onChoosePlace ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onChoosePlace();
+                  }}
+                >
+                  <MapPin size={13} aria-hidden />
+                  Choose a place
+                </button>
+              ) : null}
+            </div>
           ) : results.length === 0 ? (
             <p className="tk-eventfinder-empty">
-              Nothing matching in the next four years.
+              {search.exhausted
+                ? /* Not "there is no such event". Totality returns to a given
+                     town about once every three or four centuries, and the
+                     catalogue looks forward four years — so the honest answer
+                     names the limit rather than implying the sky is empty. */
+                  "None visible from here within the four years this catalogue covers."
+                : "Nothing matching in the next four years."}
             </p>
           ) : (
             <ul className="tk-eventfinder-results">
-              {results.map((event) => (
-                <li key={event.id}>
+              {results.map((result) => (
+                <li key={result.event.id}>
                   <button
                     type="button"
                     onClick={() => {
-                      onSelect(event);
+                      onSelect(result.event);
                       setOpen(false);
                       setQuery("");
                     }}
                   >
-                    <span className="tk-eventfinder-title">{event.title}</span>
-                    <span className="tk-eventfinder-when">{whenWords(event)}</span>
+                    <span className="tk-eventfinder-title">{result.event.title}</span>
+                    <span className="tk-eventfinder-when">{whenWords(result.event)}</span>
+                    {/* What it does at the reader's own coordinates, which is
+                        the fact that decides whether the row matters. */}
+                    {result.local ? (
+                      <span
+                        className="tk-eventfinder-local"
+                        data-visible={result.local.visible ? "true" : "false"}
+                      >
+                        {result.local.label}
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               ))}
