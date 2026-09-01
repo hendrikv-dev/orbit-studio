@@ -15948,6 +15948,9 @@ button.primary,
    so a reader who has found one can guess where the rest are. The gap between
    the two stacks is deliberate — zooming is idle and reversible, asking the
    browser for a location is neither, and they should not sit in one run. */
+/* How much of the right edge the control stack owns, so an expanded card can
+   be told to stop before it. Named here, beside the thing it describes. */
+:root { --tk-control-gutter: 62px; }
 .tk-map-controls-view {
   position: absolute;
   right: 14px;
@@ -16610,15 +16613,22 @@ button.primary,
   /* Cards snap so a flick lands on one rather than between two. */
   scroll-snap-type: x proximity;
   scrollbar-width: none;
+  /* Horizontal only: a vertical swipe belongs to the map behind, not to a
+     strip one card tall. */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
   /*
-    The strip is transparent to the pointer; only the cards are not.
-    This container runs the full width of the map, so while it took events
-    itself, a click in the empty space beside a card hit the rail and stopped
-    there — the map never saw it, and an open card could not be dismissed by
-    clicking next to it. Scrolling still works: a wheel or a drag over a card
-    scrolls the strip it belongs to.
+    The strip takes the pointer, and hands back what is not its own.
+
+    It was transparent to the pointer for a while, so that a click beside a
+    card reached the map and dismissed the card. That worked for the mouse and
+    broke touch: a browser will not begin a scroll gesture on an element that
+    does not receive pointer events, so a swipe starting anywhere but exactly
+    on a card did nothing — and with a card expanded there is very little
+    "exactly on a card" left on a phone. The component runs the dismissal
+    contract for clicks that land on the strip instead.
   */
-  pointer-events: none;
+  pointer-events: auto;
   /* Room for the shadow, which a clipped overflow would cut off. */
   padding: 10px 0;
   margin: -10px 0;
@@ -16706,6 +16716,22 @@ button.primary,
   font-size: 0.98rem;
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* One line each, always.
+
+   A compact card is three facts in three lines, and its height has to be a
+   property of the card rather than of the string that landed in it: a time
+   range like "11:48 PM–4:18 AM" wraps in the 95 pixels a 200-pixel card leaves
+   for text and one that wraps is seventeen pixels taller than its neighbours.
+   With the cards bottom-aligned that reads as one card being bigger than the
+   others for no reason the reader can see — and which card it is depends on
+   the night. */
+.tk-rail-card-name,
+.tk-rail-card-when,
+.tk-rail-card-where {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -16820,13 +16846,42 @@ button.primary,
      there is nothing for it to fight with. */
   .tk-rail { padding: 0 10px 12px; }
   .tk-rail-card { width: 200px; }
-  .tk-rail-card[data-expanded="true"] { width: min(320px, calc(100vw - 40px)); }
+  /* Wide enough to read, and never wide enough to reach the control stack.
+
+     `100vw - 40px` was the old cap, which at 375 CSS pixels produced a 320-wide
+     card ending fifteen pixels *inside* the zoom buttons. The card is what
+     yields: the controls are the map's, they are in the same place on every
+     screen, and a panel that covers them is a panel that takes the map away. */
+  .tk-rail-card[data-expanded="true"] {
+    width: min(320px, calc(100vw - 40px - var(--tk-control-gutter)));
+  }
   .tk-rail-card-body { max-height: 46dvh; overflow-y: auto; }
-  /* Controls ride above the rail rather than under it. The rail measures
-     itself and publishes `--tk-rail-height`, so this stays true when a card is
-     expanded and the rail is three times its resting height. The fallback is
-     the collapsed height, for the frame before the first measurement. */
-  .tk-map-controls-view { bottom: calc(var(--tk-rail-height, 106px) + 12px); }
+  /**
+   * Room past the last card, so any card can lead.
+   *
+   * Selecting a card brings it to the front of the strip, and without this the
+   * last one cannot get there: a scroller stops when its content runs out, so
+   * the final card came to rest wherever the end of the list left it — which on
+   * a phone is halfway under the control stack. The spacer is the width of the
+   * strip less one card, which is exactly the distance the last card needs.
+   */
+  .tk-rail-list::after {
+    content: "";
+    flex: 0 0 auto;
+    inline-size: calc(100vw - 220px);
+  }
+  /**
+   * The controls do not move when a card opens.
+   *
+   * They used to track the rail's measured height, so expanding a card slid
+   * the whole stack — Layers, zoom, recentre — two hundred and forty pixels up
+   * the screen, on the one interaction where the reader most wants them to
+   * stay where they were. The rail still publishes its height, because the
+   * notice above the controls has nothing to the side of it and genuinely must
+   * clear the rail; the controls now sit at a fixed offset that clears the
+   * resting rail, and the expanded card is capped so it never reaches them.
+   */
+  .tk-map-controls-view { bottom: 118px; }
   .tk-map-notice { bottom: calc(var(--tk-rail-height, 106px) + 126px); }
 
   /* Two sheets, one phone.

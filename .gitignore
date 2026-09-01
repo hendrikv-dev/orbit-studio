@@ -27,6 +27,8 @@ Thumbs.db
 .vscode/
 # Local dev-server configuration for the preview tool, not project policy.
 .claude/launch.json
+# Wrangler's local state and R2 cache, written when publishing the archive.
+.wrangler/
 *.swp
 *.swo
 

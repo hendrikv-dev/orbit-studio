@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { ChevronRight, Mountain, X } from "lucide-react";
 
 import { CardFigure } from "../media/CardFigures";
+import { dismissOpenSurfaces } from "../../../data/tracker/dismissable";
 import type { ConditionCard } from "../../../data/tracker/conditionCards";
 import type { RailCard } from "../../../data/tracker/observingRail";
 
@@ -130,21 +131,31 @@ export function TrackerObservingRail({
   const expandedRef = useRef<HTMLLIElement>(null);
 
   /**
-   * Keep the expanded card in view without yanking the rail around.
+   * The selected card comes to the front of the rail.
    *
-   * `nearest` rather than `center`: a card that is already fully visible should
-   * not move at all when it expands, and one that is half off the edge should
-   * come in by the least that works. Centring everything makes the rail lurch
-   * on every selection.
+   * `nearest` was the old behaviour and it is wrong on a phone. An expanded
+   * card is most of the screen's width, so a card selected from the middle of
+   * the strip opens half off the edge and the reader has to scroll to read the
+   * thing they just chose — while the cards they did not choose sit where they
+   * were. Bringing it to the start puts the answer where the eye already is and
+   * leaves the rest reachable to the right of it.
+   *
+   * `scrollTo` on the strip rather than `scrollIntoView` on the card: the card
+   * is inside a horizontally scrolling container inside a page, and
+   * `scrollIntoView` is entitled to scroll every ancestor — which on a narrow
+   * screen scrolled the document itself.
    */
   useEffect(() => {
-    if (!expandedId || !expandedRef.current) return;
-    expandedRef.current.scrollIntoView({
+    const strip = scroller.current;
+    const card = expandedRef.current;
+    if (!expandedId || !strip || !card) return;
+    const left = card.offsetLeft - strip.offsetLeft;
+    if (Math.abs(strip.scrollLeft - left) < 2) return;
+    strip.scrollTo({
+      left,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "auto"
         : "smooth",
-      block: "nearest",
-      inline: "nearest",
     });
   }, [expandedId]);
 
@@ -172,7 +183,29 @@ export function TrackerObservingRail({
       <p className="tk-visually-hidden" role="status" aria-live="polite">
         {`${cards.length} things to look for from ${place}`}
       </p>
-      <div className="tk-rail-scroll" ref={scroller}>
+      {/*
+        The strip takes the pointer so it can be scrolled, and hands back what
+        is not its own.
+
+        It used to be transparent to the pointer entirely, so that a click
+        beside a card reached the map and dismissed the card. That worked for
+        the mouse and broke touch: a browser will not start a scroll gesture on
+        an element that does not receive pointer events, so a swipe that began
+        anywhere but exactly on a card did nothing at all — and with a card
+        expanded there is very little "exactly on a card" left on a phone.
+
+        So the strip is scrollable, and a click that lands on the strip rather
+        than on a card runs the same dismissal contract the map runs. One
+        contract, two entry points; nothing is trapped.
+      */}
+      <div
+        className="tk-rail-scroll"
+        ref={scroller}
+        onPointerDown={(event) => {
+          if ((event.target as HTMLElement).closest(".tk-rail-card")) return;
+          dismissOpenSurfaces();
+        }}
+      >
         <ul className="tk-rail-list">
           {cards.map((card) => {
             const expanded = card.id === expandedId;

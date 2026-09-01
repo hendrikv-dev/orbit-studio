@@ -613,12 +613,46 @@ async function main() {
         const rail = document.querySelector(".tk-rail").getBoundingClientRect();
         return controls.bottom <= rail.top + 2;
       });
-    check(await clearOf(), "the controls clear the rail");
-    // Expanding a card grows the rail upwards, which is the case that could
-    // push it under the controls.
+    check(await clearOf(), "the controls clear the resting rail");
+
+    /**
+     * Expanding a card must not move the controls, or cover them.
+     *
+     * This used to assert that the controls sat entirely above the rail, and
+     * the way that was kept true was by sliding the whole stack up as the rail
+     * grew — two hundred and forty pixels on a phone, on the one interaction
+     * where a reader most wants Layers and zoom to stay where they were. The
+     * controls hold their position now and the card is capped so it stops short
+     * of them, so what has to be checked is the thing that actually matters:
+     * they have not moved, they are still on screen, and nothing is over them.
+     */
+    const stackAt = () =>
+      page.evaluate(() => {
+        const controls = document.querySelector(".tk-map-controls-view").getBoundingClientRect();
+        const card = document
+          .querySelector('.tk-rail-card[data-expanded="true"]')
+          ?.getBoundingClientRect();
+        return {
+          top: Math.round(controls.top),
+          left: Math.round(controls.left),
+          bottom: Math.round(controls.bottom),
+          onScreen: controls.top >= 0 && controls.bottom <= window.innerHeight,
+          cardRight: card ? Math.round(card.right) : null,
+        };
+      });
+    const before = await stackAt();
     await page.click(".tk-rail-card .tk-rail-card-head");
-    await page.waitForTimeout(900);
-    check(await clearOf(), "the controls clear an expanded card too");
+    await page.waitForTimeout(1400);
+    const after = await stackAt();
+    check(
+      after.top === before.top,
+      `expanding a card does not move the controls (${before.top} → ${after.top})`,
+    );
+    check(after.onScreen, "and leaves them on screen");
+    check(
+      after.cardRight !== null && after.cardRight <= after.left,
+      `and the card stops short of them (${after.cardRight} vs ${after.left})`,
+    );
     check(
       await page.locator(".tk-layers-trigger").isVisible(),
       "the layer control stays reachable with a card open",
@@ -878,6 +912,182 @@ async function main() {
     check(
       /solar eclipse/i.test(lead),
       `a daytime eclipse leads the ranking on its own date ("${lead}")`,
+    );
+    await context.close();
+  }
+
+  /* --- the rail on a real phone ------------------------------------------- */
+  //
+  // Measured at three narrow sizes rather than at a generous responsive width,
+  // because every one of these defects only appears when the rail and the map
+  // controls are actually competing for the same few hundred pixels.
+  console.log("\nMobile rail");
+  for (const [label, viewport] of [
+    ["375x667", { width: 375, height: 667 }],
+    ["360x740", { width: 360, height: 740 }],
+    ["390x844", { width: 390, height: 844 }],
+  ]) {
+    const context = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    // A night with three cards, including one whose time range is long enough
+    // to have wrapped before.
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&date=2027-08-12`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+
+    const snap = () =>
+      page.evaluate(() => {
+        const box = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          return { x: Math.round(rect.x), y: Math.round(rect.y), right: Math.round(rect.right) };
+        };
+        const strip = document.querySelector(".tk-rail-scroll");
+        return {
+          controls: box(".tk-map-controls-view"),
+          layers: box(".tk-layers"),
+          cards: [...document.querySelectorAll(".tk-rail-card")].map((card) => ({
+            id: card.dataset.card ?? "",
+            x: Math.round(card.getBoundingClientRect().x),
+            right: Math.round(card.getBoundingClientRect().right),
+            height: Math.round(card.getBoundingClientRect().height),
+            expanded: card.dataset.expanded === "true",
+          })),
+          scrollLeft: Math.round(strip?.scrollLeft ?? -1),
+          scrollable: strip ? strip.scrollWidth > strip.clientWidth : false,
+          sideways:
+            document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        };
+      });
+
+    const resting = await snap();
+    /**
+     * A compact card's height is a property of the card, not of its content.
+     *
+     * A time range like "11:48 PM–4:18 AM" wrapped in the width a 200-pixel
+     * card leaves for text, and a wrapped card is seventeen pixels taller than
+     * its neighbours. With the cards bottom-aligned that reads as one card
+     * being bigger than the rest for no reason — and which card it is depends
+     * on what is in the sky.
+     */
+    const heights = [...new Set(resting.cards.filter((c) => !c.expanded).map((c) => c.height))];
+    check(
+      heights.length === 1,
+      `${label}: every compact card is the same height (${heights.join(", ")})`,
+    );
+    check(!resting.sideways, `${label}: the page itself does not scroll sideways`);
+    check(resting.scrollable, `${label}: the rail has more cards than fit, and can scroll`);
+
+    /**
+     * A swipe that starts between two cards still scrolls the strip.
+     *
+     * The strip was transparent to the pointer so that a click beside a card
+     * could reach the map. A browser will not begin a scroll gesture on an
+     * element that receives no pointer events, so every swipe that did not
+     * begin exactly on a card did nothing at all.
+     */
+    const first = resting.cards[0];
+    const strip = await page.locator(".tk-rail-scroll").boundingBox();
+    const session = await page.context().newCDPSession(page);
+    const y = strip.y + strip.height / 2;
+    const from = first.right + 5;
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: from, y }],
+    });
+    for (let step = 1; step <= 10; step += 1) {
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: from - step * 18, y }],
+      });
+    }
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.waitForTimeout(900);
+    const scrolled = await page.evaluate(() =>
+      Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
+    );
+    check(
+      scrolled > 40,
+      `${label}: a swipe starting between cards scrolls the rail (${scrolled}px)`,
+    );
+    check(
+      (await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0,
+      `${label}: and scrolling does not open a card`,
+    );
+
+    /**
+     * Selecting any card brings it to the front, and the controls stay put.
+     *
+     * The last card is the one that proves it: a scroller stops when its
+     * content runs out, so without room past the end the final card came to
+     * rest halfway under the control stack.
+     */
+    const cards = page.locator(".tk-rail-card");
+    const count = await cards.count();
+    for (const index of [count - 1, 0]) {
+      await cards.nth(index).locator(".tk-rail-card-head").click();
+      await page.waitForTimeout(1600);
+      const open = await snap();
+      const card = open.cards.find((entry) => entry.expanded);
+      check(
+        card !== undefined && Math.abs(card.x - resting.cards[0].x) <= 4,
+        `${label}: selecting card ${index + 1} brings it to the front (x=${card?.x} vs ${resting.cards[0].x})`,
+      );
+      check(
+        card !== undefined && open.controls !== null && card.right <= open.controls.x,
+        `${label}: and the expanded card stops short of the controls (${card?.right} vs ${open.controls?.x})`,
+      );
+      check(
+        open.controls?.y === resting.controls?.y && open.layers?.y === resting.layers?.y,
+        `${label}: and the controls have not moved (${resting.controls?.y} → ${open.controls?.y})`,
+      );
+      check(
+        open.cards.filter((entry) => entry.expanded).length === 1,
+        `${label}: exactly one card is open`,
+      );
+      await cards.nth(index).locator(".tk-rail-card-head").click();
+      await page.waitForTimeout(800);
+    }
+
+    await context.close();
+  }
+
+  /* --- the same, with motion turned off ----------------------------------- */
+  {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      reducedMotion: "reduce",
+    });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&date=2027-08-12`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    const cards = page.locator(".tk-rail-card");
+    const count = await cards.count();
+    await cards.nth(count - 1).locator(".tk-rail-card-head").click();
+    // Deliberately short: with motion off the rail should already be there
+    // rather than still gliding.
+    await page.waitForTimeout(500);
+    const card = await page.evaluate(() => {
+      const open = document.querySelector('.tk-rail-card[data-expanded="true"]');
+      return open ? Math.round(open.getBoundingClientRect().x) : null;
+    });
+    check(
+      card !== null && card <= 14,
+      `reduced motion: the selected card is already at the front (x=${card})`,
     );
     await context.close();
   }

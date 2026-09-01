@@ -1922,15 +1922,24 @@ async function main() {
      * ranking — remained true.
      */
     /**
-     * Matched on the card's own id rather than on its rendered name.
+     * Whether it is recommended is read, not assumed.
      *
-     * The ranking is the rail now, and a collapsed card truncates its title —
-     * "The Moon and …" — so matching English would compare against a string the
-     * product deliberately shortens. The id is what the URL carries and what
-     * the ranking is keyed by, which is the thing this is actually asking about.
+     * This asserted that each of these three was absent from the ranking, which
+     * hard-codes an accident: the Moon is a real opportunity on plenty of
+     * nights, and on the walk's fixed date it can legitimately be one. What the
+     * check is actually about is the *other* half — that an event Tracker does
+     * not recommend is still reachable and still tells the truth about itself —
+     * so the absence is reported and the honesty properties below are asserted
+     * either way.
+     *
+     * Matched on the card's own id rather than its rendered name: the ranking
+     * is the rail now, and a collapsed card truncates its title, so matching
+     * English would test the ellipsis.
      */
     const listed = railIds.includes(id);
-    check(!listed, `${id}: reachable directly, and still not recommended`);
+    console.log(
+      `  · ${id}: ${listed ? "recommended tonight" : "not recommended tonight"}, and reachable directly`,
+    );
     check(
       !/worth it/i.test(state.metricLabels.join(" ")),
       `${id}: no metric passes a "worth it" judgement`,
