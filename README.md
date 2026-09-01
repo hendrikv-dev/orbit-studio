@@ -1,10 +1,13 @@
 # Orbit Studio
 
-Orbit Studio is an open-source platform for exploring orbital data and building space simulations. The current release includes two apps:
+Orbit Studio is a platform for exploring orbital data, building space simulations, and planning what
+to observe from Earth. The current release includes three apps:
 
-- **Explorer**: review the publicly available catalog over time, inspect objects, and understand
-  catalog sources and historical reconstruction quality.
-- **Playground**: change orbital elements and see how each parameter affects an orbit.
+- **Explorer** (open source): review the publicly available catalog over time, inspect objects, and
+  understand catalog sources and historical reconstruction quality.
+- **Playground** (open source): change orbital elements and see how each parameter affects an orbit.
+- **Tracker**: pick a place and a date, and see what is worth observing from there, with timing,
+  direction and conditions. Source-available; see `LICENSES.md`.
 
 ## Core Features
 
@@ -154,8 +157,10 @@ public/             Static assets served by Vite
 
 ## Source use and proposed changes
 
-The source may be inspected, adapted, forked, and used as a foundation for other projects under the
-MIT License. The official Orbit Studio repository, roadmap, releases, and brand remain
+Explorer, Playground, the shared shell and the tooling may be inspected, adapted, forked, and used
+as a foundation for other projects under the MIT License. Tracker is source-available rather than
+open source: it may be read, run and verified, and `LICENSES.md` says exactly which paths that
+covers. The official Orbit Studio repository, roadmap, releases, and brand remain
 maintainer-controlled. Issues and pull requests are proposals and may be accepted, revised, or
 declined. Read `CONTRIBUTING.md`, `AGENTS.md`, `docs/ORBIT_CONSTITUTION.md`, and
 `docs/MAINTAINER_HANDOFF.md` before proposing a change.
@@ -184,12 +189,21 @@ CORS steps, and how to verify a published archive.
 
 ## License
 
-Source code is released under the MIT License. See `LICENSE`.
+This repository has two licences, and `LICENSES.md` is the map of which applies where.
 
-The MIT license applies to Orbit Studio's original source code, not to third-party material governed
-by separate terms. Required attribution, rights bases, restrictions, and inclusion decisions are in
-`ATTRIBUTION.md`, `THIRD_PARTY_NOTICES.md`, and `provenance/inventory.json`. Locally acquired current
-or historical catalogs are not part of the public release.
+- **MIT** (`LICENSE`) for everything by default — Explorer, Playground, the shared application
+  shell, and the build and verification tooling.
+- **All rights reserved** (`LICENSE-TRACKER`) for Tracker's own code, listed by path in
+  `LICENSES.md`. It stays public and readable: a product that makes claims about the sky should be
+  checkable. It is not offered for reuse.
+
+Nothing there is retroactive. Files published previously under the MIT License remain available
+under the MIT License at the commits where they were published.
+
+Neither licence applies to third-party material, which keeps its own terms wherever it appears.
+Required attribution, rights bases, restrictions, and inclusion decisions are in `ATTRIBUTION.md`,
+`THIRD_PARTY_NOTICES.md`, and `provenance/inventory.json`. Locally acquired current or historical
+catalogs are not part of the public release.
 
 ## Use Orbit Studio as a website
 

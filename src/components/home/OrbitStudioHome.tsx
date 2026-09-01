@@ -170,9 +170,18 @@ export function OrbitStudioHome({
 
       <section className="orbit-home-intro" id="top" aria-labelledby="orbit-home-title">
         <h1 id="orbit-home-title">Orbit Studio</h1>
+        {/*
+          No suite-wide licence claim here.
+
+          This said "Open-source tools for…", which is a statement about all
+          three products made in one sentence, and it stopped being true when
+          Tracker stopped being open source. Where a product's licence is worth
+          saying, it is said on that product's own row — which is also the only
+          place it can be said accurately.
+        */}
         <p>
-          Open-source tools for exploring orbital data, understanding orbital mechanics, and
-          planning what to observe from Earth.
+          Tools for exploring orbital data, understanding orbital mechanics, and planning what to
+          observe from Earth.
         </p>
       </section>
 
@@ -183,9 +192,10 @@ export function OrbitStudioHome({
       <section className="orbit-home-about" aria-labelledby="orbit-home-about-title">
         <h2 id="orbit-home-about-title">About Orbit Studio</h2>
         <p>
-          Orbit Studio is an independent, open-source project. Each tool states where its data
-          comes from and what it cannot answer. The source is available to inspect, adapt, and
-          use as a foundation for your own work.
+          Orbit Studio is an independent project. Each tool states where its data comes from and
+          what it cannot answer, and the source of all three is public to read and check. Explorer
+          and Playground are open source and can be adapted and reused; Tracker's own code is not
+          offered for reuse.
         </p>
       </section>
 

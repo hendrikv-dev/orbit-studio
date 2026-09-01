@@ -23,6 +23,32 @@ function productRows(html: string): string[] {
 }
 
 describe("OrbitStudioHome", () => {
+  /**
+   * No suite-wide licence claim reaches the page.
+   *
+   * The hero said "Open-source tools for exploring orbital data…", which is one
+   * sentence making a licence claim about every product in the suite. It was
+   * true when there were two of them and became wrong the day Tracker shipped
+   * under different terms — and nothing breaks when a sentence like that comes
+   * back. It renders perfectly and grants a licence nobody meant to grant.
+   */
+  it("makes no open-source claim about Orbit Studio as a whole", () => {
+    const html = renderHome();
+    expect(html).not.toMatch(/Open-source tools/i);
+    expect(html).not.toMatch(/Orbit Studio is an[^.]*open-source/i);
+  });
+
+  it("says which products are open source, and labels Tracker as neither", () => {
+    const html = renderHome();
+    // Explorer and Playground are, and saying so is the point of the exercise.
+    expect(html).toMatch(/Explorer[\s\S]{0,80}Playground are open source/i);
+    // Tracker gets no badge in either direction.
+    expect(html).not.toMatch(/proprietary/i);
+    const tracker = productRows(html)[0];
+    expect(tracker).toContain("Orbit Studio Tracker");
+    expect(tracker).not.toMatch(/open source|proprietary|all rights reserved/i);
+  });
+
   it("presents the three products as peer rows in a list, Tracker first", () => {
     const html = renderHome();
     const rows = productRows(html);
