@@ -1,3 +1,4 @@
+import { catalogueImageFor } from "./imagery";
 import type { Opportunity } from "./opportunity";
 
 /**
@@ -82,6 +83,7 @@ const PLANETS: { match: string; src: string; alt: string }[] = [
     alt: "Jupiter, with Europa crossing in front of it",
   },
   { match: "mars", src: "/sky/esahubble-heic1609a-mars.webp", alt: "Mars, showing its polar cap" },
+  { match: "venus", src: "/sky/nasa-PIA23791-planet-venus.webp", alt: "Venus, a featureless white disc of cloud" },
 ];
 
 export function cardMediaFor(opportunity: Opportunity): CardMedia {
@@ -139,7 +141,20 @@ export function cardMediaFor(opportunity: Opportunity): CardMedia {
     return { kind: "mark", phenomenon: "sky" };
   }
 
-  if (kind === "deep-sky") return { kind: "mark", phenomenon: "deep-sky" };
+  /**
+   * A deep-sky card shows the object, not a symbol for its class.
+   *
+   * The mark was the right answer while Tracker had no picture of any of these
+   * — better to draw a shorthand than to put a photograph of a different
+   * object on the card. It has pictures now, verified against the archives'
+   * own record of what each one shows, so the shorthand is no longer the
+   * honest option: it is just less than the card can say.
+   */
+  if (kind === "deep-sky") {
+    const catalogued = catalogueImageFor(id.replace(/^deep-sky-/, ""));
+    if (catalogued) return { kind: "photo", ...catalogued };
+    return { kind: "mark", phenomenon: "deep-sky" };
+  }
 
   return { kind: "mark", phenomenon: "sky" };
 }

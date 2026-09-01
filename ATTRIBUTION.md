@@ -26,6 +26,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission.
 
+## ESA/Hubble deep-sky photographs used as Tracker hero imagery
+
+- Inventory ID: `esa-hubble-deep-sky-photography`
+- Category: deep-sky-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: ESA/Hubble and NASA
+- Version or snapshot: Public release images, retrieved 2026-09-01
+- Retrieval date: 2026-09-01
+- Authoritative source: https://esahubble.org/images/
+- Authoritative source: https://esahubble.org/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.
+- Rights evidence: https://esahubble.org/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/esahubble-heic0401e-m81-thumb.webp`, `public/sky/esahubble-heic0401e-m81.webp`, `public/sky/esahubble-heic0414b-ngc6543-thumb.webp`, `public/sky/esahubble-heic0414b-ngc6543.webp`, `public/sky/esahubble-heic0506a-m51-thumb.webp`, `public/sky/esahubble-heic0506a-m51.webp`, `public/sky/esahubble-heic0515a-m1-thumb.webp`, `public/sky/esahubble-heic0515a-m1.webp`, `public/sky/esahubble-heic0604a-m82-thumb.webp`, `public/sky/esahubble-heic0604a-m82.webp`, `public/sky/esahubble-heic1310a-m57-thumb.webp`, `public/sky/esahubble-heic1310a-m57.webp`, `public/sky/esahubble-heic1321b-m15-thumb.webp`, `public/sky/esahubble-heic1321b-m15.webp`, `public/sky/esahubble-opo0328a-m104-thumb.webp`, `public/sky/esahubble-opo0328a-m104.webp`, `public/sky/esahubble-potw1514a-m22-thumb.webp`, `public/sky/esahubble-potw1514a-m22.webp`
+- Production paths: `sky/esahubble-heic0401e-m81-thumb.webp`, `sky/esahubble-heic0401e-m81.webp`, `sky/esahubble-heic0414b-ngc6543-thumb.webp`, `sky/esahubble-heic0414b-ngc6543.webp`, `sky/esahubble-heic0506a-m51-thumb.webp`, `sky/esahubble-heic0506a-m51.webp`, `sky/esahubble-heic0515a-m1-thumb.webp`, `sky/esahubble-heic0515a-m1.webp`, `sky/esahubble-heic0604a-m82-thumb.webp`, `sky/esahubble-heic0604a-m82.webp`, `sky/esahubble-heic1310a-m57-thumb.webp`, `sky/esahubble-heic1310a-m57.webp`, `sky/esahubble-heic1321b-m15-thumb.webp`, `sky/esahubble-heic1321b-m15.webp`, `sky/esahubble-opo0328a-m104-thumb.webp`, `sky/esahubble-opo0328a-m104.webp`, `sky/esahubble-potw1514a-m22-thumb.webp`, `sky/esahubble-potw1514a-m22.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
+
 ## ESA/Hubble planetary portraits used as Tracker hero photography
 
 - Inventory ID: `esa-hubble-planetary-photography`
@@ -47,6 +69,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `public/sky/esahubble-heic1917a-saturn.webp`, `public/sky/esahubble-heic2017a-jupiter-and-europa.webp`, `public/sky/esahubble-heic1609a-mars.webp`
 - Production paths: `sky/esahubble-heic1917a-saturn.webp`, `sky/esahubble-heic2017a-jupiter-and-europa.webp`, `sky/esahubble-heic1609a-mars.webp`
 - Restrictions and notes: The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how.
+
+## ESO deep-sky photographs used as Tracker hero imagery
+
+- Inventory ID: `eso-deep-sky-photography`
+- Category: deep-sky-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: ESO
+- Version or snapshot: Public release images, retrieved 2026-09-01
+- Retrieval date: 2026-09-01
+- Authoritative source: https://www.eso.org/public/images/
+- Authoritative source: https://www.eso.org/public/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.
+- Rights evidence: https://www.eso.org/public/outreach/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: ESO. Full per-image credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/eso-eso1103a-m42-thumb.webp`, `public/sky/eso-eso1103a-m42.webp`, `public/sky/eso-eso1403a-m8-thumb.webp`, `public/sky/eso-eso1403a-m8.webp`, `public/sky/eso-eso1406a-m7-thumb.webp`, `public/sky/eso-eso1406a-m7.webp`
+- Production paths: `sky/eso-eso1103a-m42-thumb.webp`, `sky/eso-eso1103a-m42.webp`, `sky/eso-eso1403a-m8-thumb.webp`, `sky/eso-eso1403a-m8.webp`, `sky/eso-eso1406a-m7-thumb.webp`, `sky/eso-eso1406a-m7.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
 
 ## ESO public image releases used as Tracker hero photography
 
@@ -300,6 +344,27 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: No NASA logos or identifiable-person promotional use; no endorsement. Remote availability is not guaranteed.
 
+## NASA Photojournal PIA23791, Venus from Mariner 10
+
+- Inventory ID: `nasa-photojournal-venus`
+- Category: planetary-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: NASA/JPL-Caltech
+- Version or snapshot: Public release images, retrieved 2026-09-01
+- Retrieval date: 2026-09-01
+- Authoritative source: https://photojournal.jpl.nasa.gov/catalog/PIA23791
+- Authoritative source: https://photojournal.jpl.nasa.gov/catalog/PIA23791
+- Rights basis: NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes; the credit line is retained and no endorsement is implied.
+- Rights evidence: https://www.nasa.gov/nasa-brand-center/images-and-media/
+- Attribution: NASA/JPL-Caltech. The per-image credit is rendered on the image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/nasa-PIA23791-planet-venus-thumb.webp`, `public/sky/nasa-PIA23791-planet-venus.webp`
+- Production paths: `sky/nasa-PIA23791-planet-venus-thumb.webp`, `sky/nasa-PIA23791-planet-venus.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
+
 ## CGI Moon Kit: LROC WAC Color Mosaic
 
 - Inventory ID: `nasa-svs-lroc-color-moon-1k`
@@ -364,6 +429,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Natural Earth does not require attribution; Orbit Studio includes the recommended citation.
 
+## NSF NOIRLab deep-sky photographs used as Tracker hero imagery
+
+- Inventory ID: `noirlab-deep-sky-photography`
+- Category: deep-sky-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: NSF NOIRLab/AURA
+- Version or snapshot: Public release images, retrieved 2026-09-01
+- Retrieval date: 2026-09-01
+- Authoritative source: https://noirlab.edu/public/images/
+- Authoritative source: https://noirlab.edu/public/images/
+- Rights basis: Creative Commons Attribution 4.0 International (CC BY 4.0). NOIRLab releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.
+- Rights evidence: https://noirlab.edu/public/copyright/
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Attribution: NSF NOIRLab/NSF/AURA. Full per-image credits are rendered on each image in the interface.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/noirlab-noao-02211-ngc7009-thumb.webp`, `public/sky/noirlab-noao-02211-ngc7009.webp`, `public/sky/noirlab-noao-02464-ngc457-thumb.webp`, `public/sky/noirlab-noao-02464-ngc457.webp`, `public/sky/noirlab-noao-02637-m6-thumb.webp`, `public/sky/noirlab-noao-02637-m6.webp`, `public/sky/noirlab-noao-04086-m16-thumb.webp`, `public/sky/noirlab-noao-04086-m16.webp`, `public/sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `public/sky/noirlab-noao-hcper-double-cluster.webp`, `public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `public/sky/noirlab-noao-m13kpno4m-m13.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `public/sky/noirlab-noao-m35-m35-thumb.webp`, `public/sky/noirlab-noao-m35-m35.webp`, `public/sky/noirlab-noao-m44bash-m44-thumb.webp`, `public/sky/noirlab-noao-m44bash-m44.webp`, `public/sky/noirlab-noao-m45-m45-thumb.webp`, `public/sky/noirlab-noao-m45-m45.webp`, `public/sky/noirlab-noao-m92-m92-thumb.webp`, `public/sky/noirlab-noao-m92-m92.webp`, `public/sky/noirlab-noao0001a-m31-thumb.webp`, `public/sky/noirlab-noao0001a-m31.webp`, `scripts/build-tracker-imagery.mjs`, `src/data/tracker/heroImagery.json`
+- Production paths: `assets/TrackerApp-*.js`, `sky/noirlab-noao-02211-ngc7009-thumb.webp`, `sky/noirlab-noao-02211-ngc7009.webp`, `sky/noirlab-noao-02464-ngc457-thumb.webp`, `sky/noirlab-noao-02464-ngc457.webp`, `sky/noirlab-noao-02637-m6-thumb.webp`, `sky/noirlab-noao-02637-m6.webp`, `sky/noirlab-noao-04086-m16-thumb.webp`, `sky/noirlab-noao-04086-m16.webp`, `sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `sky/noirlab-noao-hcper-double-cluster.webp`, `sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `sky/noirlab-noao-m13kpno4m-m13.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `sky/noirlab-noao-m35-m35-thumb.webp`, `sky/noirlab-noao-m35-m35.webp`, `sky/noirlab-noao-m44bash-m44-thumb.webp`, `sky/noirlab-noao-m44bash-m44.webp`, `sky/noirlab-noao-m45-m45-thumb.webp`, `sky/noirlab-noao-m45-m45.webp`, `sky/noirlab-noao-m92-m92-thumb.webp`, `sky/noirlab-noao-m92-m92.webp`, `sky/noirlab-noao0001a-m31-thumb.webp`, `sky/noirlab-noao0001a-m31.webp`
+- Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
+
 ## npm dependency graph
 
 - Inventory ID: `npm-lockfile-dependencies`
@@ -383,6 +470,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `package-lock.json`
 - Production paths: `assets/*.js`, `assets/*.css`
 - Restrictions and notes: node_modules is excluded. Dependency changes require an intentional lockfile and notice update.
+
+## OpenNGC
+
+- Inventory ID: `openngc-deep-sky-showpieces`
+- Category: astronomical-catalog-data
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Mattia Verga
+- Version or snapshot: master, database_files/NGC.csv and database_files/addendum.csv
+- Retrieval date: 2026-09-01
+- Authoritative source: https://github.com/mattiaverga/OpenNGC
+- Authoritative source: https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv
+- Rights basis: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+- Rights evidence: https://github.com/mattiaverga/OpenNGC#license
+- Rights evidence: https://creativecommons.org/licenses/by-sa/4.0/
+- Attribution: OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-share-alike
+- Repository paths: `src/data/deep-sky/showpieces.json`, `src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt`, `src/data/deep-sky/README.md`, `scripts/build-deep-sky-showpieces.mjs`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary.
 
 ## OpenWeather API placeholder
 
@@ -719,28 +828,6 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `public/media/perseids-realtime-bautsch-cc0.webm`, `public/media/perseids-realtime-bautsch-cc0-poster.webp`
 - Production paths: `media/perseids-realtime-bautsch-cc0.webm`, `media/perseids-realtime-bautsch-cc0-poster.webp`
 - Restrictions and notes: This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support.
-
-## OpenNGC
-
-- Inventory ID: `openngc-deep-sky-showpieces`
-- Category: astronomical-catalog-data
-- Release status: retained
-- Release 1.0 included: yes
-- Publisher or rights holder: Mattia Verga
-- Version or snapshot: master, database_files/NGC.csv and database_files/addendum.csv
-- Retrieval date: 2026-09-01
-- Authoritative source: https://github.com/mattiaverga/OpenNGC
-- Authoritative source: https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv
-- Rights basis: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
-- Rights evidence: https://github.com/mattiaverga/OpenNGC#license
-- Rights evidence: https://creativecommons.org/licenses/by-sa/4.0/
-- Attribution: OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.
-- Public source redistribution: source-safe
-- Public deployment redistribution: deployment-safe
-- Modification status: permitted-share-alike
-- Repository paths: `src/data/deep-sky/showpieces.json`, `src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt`, `src/data/deep-sky/README.md`, `scripts/build-deep-sky-showpieces.mjs`
-- Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary.
 
 ## Software dependencies
 

@@ -16493,6 +16493,25 @@ button.primary,
   list-style: none;
   width: max-content;
 }
+/**
+ * Room past the last card, so any card can lead.
+ *
+ * Selecting a card brings it to the front of the strip, and without this the
+ * cards near the end cannot get there: a scroller stops when its content runs
+ * out, so they come to rest wherever the end of the list leaves them — which is
+ * under the zoom and recentre buttons at the right-hand edge. The spacer is the
+ * strip's width less one expanded card and the control stack, which is exactly
+ * the distance the last card needs.
+ *
+ * The phone has its own, narrower, version below; this is the wide one.
+ */
+.tk-rail-list::after {
+  content: "";
+  flex: 0 0 auto;
+  /* The strip's width less one expanded card: 100vw, less the rail's 14px of
+     padding either side, less the 344px an open card takes. */
+  inline-size: calc(100vw - 372px);
+}
 
 .tk-rail-card {
   /* The only part of the strip that takes the pointer. Everything around it is

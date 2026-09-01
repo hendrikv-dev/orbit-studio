@@ -1,5 +1,6 @@
 import { Horizon, MakeTime, Observer } from "astronomy-engine";
 import showpieces from "../deep-sky/showpieces.json";
+import { hasCataloguedImagery } from "./imagery";
 import type { Opportunity } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 import { compassPoint } from "./meteorActivity";
@@ -98,6 +99,18 @@ export function deepSkyOpportunities(
   const opportunities: Opportunity[] = [];
 
   for (const object of CATALOGUE.objects) {
+    /**
+     * Nothing is offered that cannot be shown.
+     *
+     * The event page leads with a photograph of the object, and an object with
+     * no picture would fall through to a generic night sky — a picture of
+     * somewhere else, presented as the thing the reader is being sent out to
+     * find. Better to leave it out of the night's list than to illustrate it
+     * with the wrong sky. NGC 752 is the one showpiece this currently drops:
+     * no observatory archive Tracker draws on publishes an image of it.
+     */
+    if (!hasCataloguedImagery(object.id)) continue;
+
     const profile: OpportunitySample[] = [];
     let best: { atUtc: string; altitudeDeg: number; azimuthDeg: number } | null = null;
 

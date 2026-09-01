@@ -1359,6 +1359,99 @@ async function main() {
       await page.waitForTimeout(800);
     }
 
+    /**
+     * And choosing one card straight after another, without closing the first.
+     *
+     * The defect: cards animate their width over 260 ms, so choosing a card
+     * while another is open *to its left* left the open one shrinking by a
+     * hundred-odd pixels underneath a scroll that was already running.
+     * Everything to its right slid left by that much, and the card the reader
+     * had just chosen ended up off the left edge with its neighbours standing
+     * where it should have been.
+     *
+     * The loop above never caught it because it closed each card before opening
+     * the next, which is the one order in which nothing is shrinking.
+     */
+    for (const index of [1, count - 1, 2, 0]) {
+      await cards.nth(index).locator(".tk-rail-card-head").click();
+      await page.waitForTimeout(1400);
+      const framing = await page.evaluate(() => {
+        const strip = document.querySelector(".tk-rail-scroll");
+        const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
+        if (!strip || !card) return null;
+        const s = strip.getBoundingClientRect();
+        const c = card.getBoundingClientRect();
+        return {
+          name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
+          clippedLeft: Math.round(Math.max(0, s.left - c.left)),
+          clippedRight: Math.round(Math.max(0, c.right - s.right)),
+        };
+      });
+      check(
+        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+        `${label}: choosing ${framing?.name} while another is open leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
+      );
+    }
+
+    await context.close();
+  }
+
+  /* --- and the same on a desktop rail ------------------------------------- */
+  //
+  // Reported on both: the strip is wider, so more cards fit and more of them
+  // are to the left of whichever one is chosen next.
+  {
+    const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&date=2027-08-12`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    const cards = page.locator(".tk-rail-card");
+    const count = await cards.count();
+    for (const index of [0, 1, count - 1, 2]) {
+      await cards.nth(index).locator(".tk-rail-card-head").click();
+      await page.waitForTimeout(1400);
+      const framing = await page.evaluate(() => {
+        const strip = document.querySelector(".tk-rail-scroll");
+        const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
+        if (!strip || !card) return null;
+        const s = strip.getBoundingClientRect();
+        const c = card.getBoundingClientRect();
+        const controls = document.querySelector(".tk-map-controls-view");
+        return {
+          name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
+          clipped: Math.round(Math.max(0, s.left - c.left) + Math.max(0, c.right - s.right)),
+          fromStart: Math.round(c.left - s.left),
+          right: Math.round(c.right),
+          controlsLeft: Math.round(controls?.getBoundingClientRect().left ?? Infinity),
+        };
+      });
+      check(
+        framing !== null && framing.clipped === 0,
+        `desktop rail: ${framing?.name} stays whole when chosen after another (${framing?.clipped}px clipped)`,
+      );
+      /**
+       * And it leads the strip, rather than resting where the list ran out.
+       *
+       * A scroller stops when its content does, so without room past the last
+       * card the ones near the end come to rest under the zoom and recentre
+       * buttons at the right-hand edge. The phone rail had a spacer for this;
+       * the wide one did not.
+       */
+      check(
+        framing !== null && framing.fromStart <= 4,
+        `desktop rail: and comes to the front (${framing?.fromStart}px in)`,
+      );
+      check(
+        framing !== null && framing.right <= framing.controlsLeft,
+        `desktop rail: and stops short of the controls (${framing?.right} vs ${framing?.controlsLeft})`,
+      );
+    }
     await context.close();
   }
 

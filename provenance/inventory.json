@@ -66,6 +66,7 @@
       "localhost",
       "maplibre.org",
       "mapterhorn.com",
+      "noirlab.edu",
       "open-meteo.com",
       "opendatacommons.org",
       "openfreemap.org",
@@ -74,6 +75,7 @@
       "openweathermap.org",
       "orbitaldebris.jsc.nasa.gov",
       "osm.org",
+      "photojournal.jpl.nasa.gov",
       "photon.komoot.io",
       "piotrwitek.github.io",
       "planet4589.org",
@@ -270,6 +272,109 @@
       }
     },
     {
+      "id": "esa-hubble-deep-sky-photography",
+      "category": "deep-sky-photography",
+      "repositoryPaths": [
+        "public/sky/esahubble-heic0401e-m81-thumb.webp",
+        "public/sky/esahubble-heic0401e-m81.webp",
+        "public/sky/esahubble-heic0414b-ngc6543-thumb.webp",
+        "public/sky/esahubble-heic0414b-ngc6543.webp",
+        "public/sky/esahubble-heic0506a-m51-thumb.webp",
+        "public/sky/esahubble-heic0506a-m51.webp",
+        "public/sky/esahubble-heic0515a-m1-thumb.webp",
+        "public/sky/esahubble-heic0515a-m1.webp",
+        "public/sky/esahubble-heic0604a-m82-thumb.webp",
+        "public/sky/esahubble-heic0604a-m82.webp",
+        "public/sky/esahubble-heic1310a-m57-thumb.webp",
+        "public/sky/esahubble-heic1310a-m57.webp",
+        "public/sky/esahubble-heic1321b-m15-thumb.webp",
+        "public/sky/esahubble-heic1321b-m15.webp",
+        "public/sky/esahubble-opo0328a-m104-thumb.webp",
+        "public/sky/esahubble-opo0328a-m104.webp",
+        "public/sky/esahubble-potw1514a-m22-thumb.webp",
+        "public/sky/esahubble-potw1514a-m22.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/esahubble-heic0401e-m81-thumb.webp",
+        "sky/esahubble-heic0401e-m81.webp",
+        "sky/esahubble-heic0414b-ngc6543-thumb.webp",
+        "sky/esahubble-heic0414b-ngc6543.webp",
+        "sky/esahubble-heic0506a-m51-thumb.webp",
+        "sky/esahubble-heic0506a-m51.webp",
+        "sky/esahubble-heic0515a-m1-thumb.webp",
+        "sky/esahubble-heic0515a-m1.webp",
+        "sky/esahubble-heic0604a-m82-thumb.webp",
+        "sky/esahubble-heic0604a-m82.webp",
+        "sky/esahubble-heic1310a-m57-thumb.webp",
+        "sky/esahubble-heic1310a-m57.webp",
+        "sky/esahubble-heic1321b-m15-thumb.webp",
+        "sky/esahubble-heic1321b-m15.webp",
+        "sky/esahubble-opo0328a-m104-thumb.webp",
+        "sky/esahubble-opo0328a-m104.webp",
+        "sky/esahubble-potw1514a-m22-thumb.webp",
+        "sky/esahubble-potw1514a-m22.webp"
+      ],
+      "originalSource": {
+        "title": "ESA/Hubble deep-sky photographs used as Tracker hero imagery",
+        "url": "https://esahubble.org/images/",
+        "publicationUrl": "https://esahubble.org/images/",
+        "publisher": "ESA/Hubble and NASA",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/esahubble-heic0401e-m81-thumb.webp": "2c2f9f9b2edc4b23fa05d702553730e7fe3d3a0bf4d8e66ac4c104a4af7392ba",
+        "public/sky/esahubble-heic0401e-m81.webp": "0fafe1fa35604533643c23cf81a4a3bcd700527f93398cc0773557960e5e8687",
+        "public/sky/esahubble-heic0414b-ngc6543-thumb.webp": "c7ca8bd7296fba2ddefc75ff2aa0e2671e74dd2bd7e786530d8e7cae531590a6",
+        "public/sky/esahubble-heic0414b-ngc6543.webp": "3fa9a3369d877a800aa28fd1dbc910dcf8734f04c5c5e17829c7566333f790d2",
+        "public/sky/esahubble-heic0506a-m51-thumb.webp": "7920ca5c6065949a03b8bd3cc7854272a847303c444f40f620865ee684e37790",
+        "public/sky/esahubble-heic0506a-m51.webp": "f5661c0f5b4607420fae5bc019ac8bd94a6eb989574e14e09997b18d638a99bc",
+        "public/sky/esahubble-heic0515a-m1-thumb.webp": "6f09d9499b4490fd59848ee95187a9cf33a501a1fe6f137922f56863da35312d",
+        "public/sky/esahubble-heic0515a-m1.webp": "2dc6de00d45df397834ad175076ae4588688349f349a0c5cd6078f2ee30a1599",
+        "public/sky/esahubble-heic0604a-m82-thumb.webp": "946c45b9e212fc5377720f0bd0d417785ac4335306248a633e9803e609464e10",
+        "public/sky/esahubble-heic0604a-m82.webp": "55fd6a74cc379088deabfc24f456c828deef51c182ffcf38c37008386572fcd9",
+        "public/sky/esahubble-heic1310a-m57-thumb.webp": "f910c4fc91ee4260fb1e1dab2fc1a3f303e1d1270c1c2c5299f7f5949600d149",
+        "public/sky/esahubble-heic1310a-m57.webp": "df12d4b53bdcf8f68bc18f96529cf180bea4428a2649ced996b55bca0ce5f384",
+        "public/sky/esahubble-heic1321b-m15-thumb.webp": "7c1fa38a2a07b4c9abfb95b41637e525ea7660ffaeb9263a8e237b8ce226ba1b",
+        "public/sky/esahubble-heic1321b-m15.webp": "05d0e899225e403c9c336d55108841f70f0ac8994cdc8f1afd29dede0f3070fe",
+        "public/sky/esahubble-opo0328a-m104-thumb.webp": "08e78400cc087a326ce16cf754bb482ba76ea539e00db25bac580fdb4346d9d8",
+        "public/sky/esahubble-opo0328a-m104.webp": "b29af4d49bd0f1f905c87046fb29ae3359905852c63b8bbc3baad65c11175a91",
+        "public/sky/esahubble-potw1514a-m22-thumb.webp": "11d9660f13089be3532a1521a7ea75f11a2bd5a0393ae63f641213cc7ff10b26",
+        "public/sky/esahubble-potw1514a-m22.webp": "989f4de835694303a6eab2849f79211ce5bdaacff837d37d7a4866152df82199"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "esahubble-heic0401e-m81.webp — \"Grand Spiral Messier 81 (ground-based)\", credit: ESA /INT/DSS2, source: https://esahubble.org/images/heic0401e/, presented in the interface as a long-exposure photograph.",
+        "esahubble-heic0414b-ngc6543.webp — \"The Cat’s Eye Nebula imaged with the Nordic Optical Telescope\", credit: Nordic Optical Telescope and Romano Corradi (Isaac Newton Group of Telescopes, Spain), source: https://esahubble.org/images/heic0414b/, presented in the interface as a long-exposure photograph.",
+        "esahubble-heic0506a-m51.webp — \"Out of this whirl: The Whirlpool Galaxy (M51) and companion galaxy\", credit: NASA , ESA , S. Beckwith ( STScI ), and The Hubble Heritage Team ( STScI / AURA ), source: https://esahubble.org/images/heic0506a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic0515a-m1.webp — \"Most detailed image of the Crab Nebula\", credit: NASA , ESA and Allison Loll/Jeff Hester (Arizona State University). Acknowledgement: Davide De Martin ( ESA / Hubble ), source: https://esahubble.org/images/heic0515a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic0604a-m82.webp — \"The magnificent starburst galaxy Messier 82\", credit: NASA , ESA and the Hubble Heritage Team ( STScI / AURA ). Acknowledgment: J. Gallagher (University of Wisconsin), M. Mountain ( STScI ) and P. Puxley (NSF)., source: https://esahubble.org/images/heic0604a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1310a-m57.webp — \"Hubble image of the Ring Nebula (Messier 57)\", credit: NASA, ESA, and C. Robert O’Dell (Vanderbilt University)., source: https://esahubble.org/images/heic1310a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1321b-m15.webp — \"Wide field image of star cluster Messier 15 (ground-based view)\", credit: NASA, ESA, Digitized Sky Survey 2, source: https://esahubble.org/images/heic1321b/, presented in the interface as a long-exposure photograph.",
+        "esahubble-opo0328a-m104.webp — \"Hubble mosaic of the majestic Sombrero Galaxy\", credit: NASA / ESA and The Hubble Heritage Team ( STScI / AURA ), source: https://esahubble.org/images/opo0328a/, presented in the interface as a space-telescope image.",
+        "esahubble-potw1514a-m22.webp — \"The crammed centre of Messier 22\", credit: ESA/Hubble & NASA, source: https://esahubble.org/images/potw1514a/, presented in the interface as a space-telescope image.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
+        "evidenceUrls": [
+          "https://esahubble.org/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
       "id": "esa-hubble-planetary-photography",
       "category": "planetary-photography",
       "repositoryPaths": [
@@ -291,9 +396,9 @@
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
+        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b",
         "public/sky/esahubble-heic1917a-saturn.webp": "3d67752df20339b6f48e3da5f80569ebcce34cb0b59b6b05ec6bdf37a05d0224",
-        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc",
-        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b"
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc"
       },
       "processing": [
         "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
@@ -321,6 +426,67 @@
       }
     },
     {
+      "id": "eso-deep-sky-photography",
+      "category": "deep-sky-photography",
+      "repositoryPaths": [
+        "public/sky/eso-eso1103a-m42-thumb.webp",
+        "public/sky/eso-eso1103a-m42.webp",
+        "public/sky/eso-eso1403a-m8-thumb.webp",
+        "public/sky/eso-eso1403a-m8.webp",
+        "public/sky/eso-eso1406a-m7-thumb.webp",
+        "public/sky/eso-eso1406a-m7.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/eso-eso1103a-m42-thumb.webp",
+        "sky/eso-eso1103a-m42.webp",
+        "sky/eso-eso1403a-m8-thumb.webp",
+        "sky/eso-eso1403a-m8.webp",
+        "sky/eso-eso1406a-m7-thumb.webp",
+        "sky/eso-eso1406a-m7.webp"
+      ],
+      "originalSource": {
+        "title": "ESO deep-sky photographs used as Tracker hero imagery",
+        "url": "https://www.eso.org/public/images/",
+        "publicationUrl": "https://www.eso.org/public/images/",
+        "publisher": "ESO",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/eso-eso1103a-m42-thumb.webp": "609a4a44d7fe744f3d95b094eec46cb5e2e7dcc6419c2f9b2f1d0066eb18338e",
+        "public/sky/eso-eso1103a-m42.webp": "52978e85cca8ad3f50b8c7e582114690d5a9abc326262ef33b473473d5b2b0c7",
+        "public/sky/eso-eso1403a-m8-thumb.webp": "e0f5f491a7a5a302b05b6a5e5391c10cc041f9b803290ac7063a41a1ea0bb761",
+        "public/sky/eso-eso1403a-m8.webp": "f1b5a40809a78eb4714a73f1fac917f3414dfb686b3bb3372cd0c56db3f0f152",
+        "public/sky/eso-eso1406a-m7-thumb.webp": "d59cd8020eb03a722956c55e163f112159242373c5dae13f6f8cd172e9a25791",
+        "public/sky/eso-eso1406a-m7.webp": "6caa41c68be2bcca4110913f91a3dba9f16a413c40f1f6c9c53e4cc1a3930ecb"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "eso-eso1103a-m42.webp — \"The Orion Nebula*\", credit: ESO/Igor Chekalin, source: https://www.eso.org/public/images/eso1103a/, presented in the interface as a long-exposure photograph.",
+        "eso-eso1403a-m8.webp — \"VST images the Lagoon Nebula\", credit: ESO/VPHAS+ team, source: https://www.eso.org/public/images/eso1403a/, presented in the interface as a long-exposure photograph.",
+        "eso-eso1406a-m7.webp — \"The star cluster Messier 7\", credit: ESO, source: https://www.eso.org/public/images/eso1406a/, presented in the interface as a long-exposure photograph.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.",
+        "evidenceUrls": [
+          "https://www.eso.org/public/outreach/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESO. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
       "id": "eso-night-sky-photography",
       "category": "night-sky-photography",
       "repositoryPaths": [
@@ -344,10 +510,10 @@
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp": "e6394e8be8d7718e5bf9545ebfe5d60632d650b3b7e77c60b6e4ae1efcaab3a7",
         "public/sky/eso-potw1033a-night-sky-detail.webp": "9560c9de312e5505ef2ab08c6d68718112b72b5823fcef048c2664698348d0da",
-        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec",
-        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp": "4f5ac2a551f7a318be94dad5e0d06719713e4f49270e7de0ff87c1884f1a5e35"
+        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp": "e6394e8be8d7718e5bf9545ebfe5d60632d650b3b7e77c60b6e4ae1efcaab3a7",
+        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp": "4f5ac2a551f7a318be94dad5e0d06719713e4f49270e7de0ff87c1884f1a5e35",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec"
       },
       "processing": [
         "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. Three files are rectangular crops of their source frame, listed individually below with the crop that was taken; the rest are whole frames. No recolouring, retouching or compositing was applied to any of them, and every crop is a plain rectangular selection that removes content without altering what remains. Further cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
@@ -558,8 +724,8 @@
         "originalSha256": "d9f69fd8ed39072a9562d54c89ff0747728817dc2f1242c2062704ec52f4ad0a"
       },
       "localSha256": {
-        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937",
-        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f"
+        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937"
       },
       "processing": [
         "scripts/build-hyg-bright-stars.mjs selects nonzero HYG identifiers with apparent magnitude <= 5.1.",
@@ -930,6 +1096,53 @@
       }
     },
     {
+      "id": "nasa-photojournal-venus",
+      "category": "planetary-photography",
+      "repositoryPaths": [
+        "public/sky/nasa-PIA23791-planet-venus-thumb.webp",
+        "public/sky/nasa-PIA23791-planet-venus.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/nasa-PIA23791-planet-venus-thumb.webp",
+        "sky/nasa-PIA23791-planet-venus.webp"
+      ],
+      "originalSource": {
+        "title": "NASA Photojournal PIA23791, Venus from Mariner 10",
+        "url": "https://photojournal.jpl.nasa.gov/catalog/PIA23791",
+        "publicationUrl": "https://photojournal.jpl.nasa.gov/catalog/PIA23791",
+        "publisher": "NASA/JPL-Caltech",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/nasa-PIA23791-planet-venus-thumb.webp": "03e747d0719acc9e70e3bb7a68452c56dad7f769c9c3ae39661c7058654f43a9",
+        "public/sky/nasa-PIA23791-planet-venus.webp": "bb73e10a8b9bc77b9c6752e0b2d1318d59d853cf6519d81e482359b03c524468"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "The published frame is two panels — natural colour and contrast-enhanced — which as a hero reads as two planets. Cropped to the left, natural-colour panel; nothing else was altered.",
+        "nasa-PIA23791-planet-venus.webp — \"Venus from Mariner 10\", credit: NASA/JPL-Caltech, source: https://photojournal.jpl.nasa.gov/catalog/PIA23791, presented in the interface as a spacecraft mosaic.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes; the credit line is retained and no endorsement is implied.",
+        "evidenceUrls": [
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "NASA/JPL-Caltech. The per-image credit is rendered on the image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
       "id": "nasa-svs-lroc-color-moon-1k",
       "category": "image-texture",
       "repositoryPaths": [
@@ -1069,6 +1282,135 @@
       }
     },
     {
+      "id": "noirlab-deep-sky-photography",
+      "category": "deep-sky-photography",
+      "repositoryPaths": [
+        "public/sky/noirlab-noao-02211-ngc7009-thumb.webp",
+        "public/sky/noirlab-noao-02211-ngc7009.webp",
+        "public/sky/noirlab-noao-02464-ngc457-thumb.webp",
+        "public/sky/noirlab-noao-02464-ngc457.webp",
+        "public/sky/noirlab-noao-02637-m6-thumb.webp",
+        "public/sky/noirlab-noao-02637-m6.webp",
+        "public/sky/noirlab-noao-04086-m16-thumb.webp",
+        "public/sky/noirlab-noao-04086-m16.webp",
+        "public/sky/noirlab-noao-hcper-double-cluster-thumb.webp",
+        "public/sky/noirlab-noao-hcper-double-cluster.webp",
+        "public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp",
+        "public/sky/noirlab-noao-m13kpno4m-m13.webp",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp",
+        "public/sky/noirlab-noao-m35-m35-thumb.webp",
+        "public/sky/noirlab-noao-m35-m35.webp",
+        "public/sky/noirlab-noao-m44bash-m44-thumb.webp",
+        "public/sky/noirlab-noao-m44bash-m44.webp",
+        "public/sky/noirlab-noao-m45-m45-thumb.webp",
+        "public/sky/noirlab-noao-m45-m45.webp",
+        "public/sky/noirlab-noao-m92-m92-thumb.webp",
+        "public/sky/noirlab-noao-m92-m92.webp",
+        "public/sky/noirlab-noao0001a-m31-thumb.webp",
+        "public/sky/noirlab-noao0001a-m31.webp",
+        "scripts/build-tracker-imagery.mjs",
+        "src/data/tracker/heroImagery.json"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js",
+        "sky/noirlab-noao-02211-ngc7009-thumb.webp",
+        "sky/noirlab-noao-02211-ngc7009.webp",
+        "sky/noirlab-noao-02464-ngc457-thumb.webp",
+        "sky/noirlab-noao-02464-ngc457.webp",
+        "sky/noirlab-noao-02637-m6-thumb.webp",
+        "sky/noirlab-noao-02637-m6.webp",
+        "sky/noirlab-noao-04086-m16-thumb.webp",
+        "sky/noirlab-noao-04086-m16.webp",
+        "sky/noirlab-noao-hcper-double-cluster-thumb.webp",
+        "sky/noirlab-noao-hcper-double-cluster.webp",
+        "sky/noirlab-noao-m13kpno4m-m13-thumb.webp",
+        "sky/noirlab-noao-m13kpno4m-m13.webp",
+        "sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp",
+        "sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp",
+        "sky/noirlab-noao-m35-m35-thumb.webp",
+        "sky/noirlab-noao-m35-m35.webp",
+        "sky/noirlab-noao-m44bash-m44-thumb.webp",
+        "sky/noirlab-noao-m44bash-m44.webp",
+        "sky/noirlab-noao-m45-m45-thumb.webp",
+        "sky/noirlab-noao-m45-m45.webp",
+        "sky/noirlab-noao-m92-m92-thumb.webp",
+        "sky/noirlab-noao-m92-m92.webp",
+        "sky/noirlab-noao0001a-m31-thumb.webp",
+        "sky/noirlab-noao0001a-m31.webp"
+      ],
+      "originalSource": {
+        "title": "NSF NOIRLab deep-sky photographs used as Tracker hero imagery",
+        "url": "https://noirlab.edu/public/images/",
+        "publicationUrl": "https://noirlab.edu/public/images/",
+        "publisher": "NSF NOIRLab/AURA",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/noirlab-noao-02211-ngc7009-thumb.webp": "ae2eacdd764ae40b0d95af71c23b24a2a56eaa4feb2b7379ba58dd656bbc7ec0",
+        "public/sky/noirlab-noao-02211-ngc7009.webp": "25c588a86c005417f8b7d472c35134a12d7cdf58c0f73b731f84a63c36b88753",
+        "public/sky/noirlab-noao-02464-ngc457-thumb.webp": "1e13edab06f65c9bdb349e264d604e7c36ac972da134181c39906866b296b1ed",
+        "public/sky/noirlab-noao-02464-ngc457.webp": "237522594f837cdeeba5765404d81f3ae7e1e9a775917fafd9cd511a1f897ba4",
+        "public/sky/noirlab-noao-02637-m6-thumb.webp": "eb5e5e414a692ce9573ba258491ac27195415d18d40390bf26b4a3cdb849f162",
+        "public/sky/noirlab-noao-02637-m6.webp": "582fb583fa0f9b40a97e2b79059a37bf84a16aebd40b0193331372c175f0f739",
+        "public/sky/noirlab-noao-04086-m16-thumb.webp": "f428b07d8d3c88130c9719429270c355fd2f1afe06a77d3bec9e1b8ff0281417",
+        "public/sky/noirlab-noao-04086-m16.webp": "0af474bbb8c2a6e5aa2e0839d700a3597f236ff66a0afce3e788e8dda637e006",
+        "public/sky/noirlab-noao-hcper-double-cluster-thumb.webp": "5730e052f2e48c5290cfc5d5d892f8f3813651cc529d1992f71919836e0de483",
+        "public/sky/noirlab-noao-hcper-double-cluster.webp": "9ae5a166fcc805d2e6477d1f8f24bc093a2acdc23bf801ccef8fe1828c5663a0",
+        "public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp": "42fec6bf99ab8155bdf6ee07afa79b27ca3f011c6a06d7eb33406bfa41fe6d19",
+        "public/sky/noirlab-noao-m13kpno4m-m13.webp": "021f21b52bb7550a7094a02966d39f3eebcfdf985bd8ae0f08054dc1db423455",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp": "3bbffbfc7314d77be8c9896a3efe8f87fe809ab114c3ab4f681363f364ee9919",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp": "67e28585be4a461ff54da60c36df22c048cb024ff734a0d54c5f3f6f87de3ea0",
+        "public/sky/noirlab-noao-m35-m35-thumb.webp": "28378f6678c56083d4979286bf3618cd0e2274c5f736753803c17d8170e5c7a3",
+        "public/sky/noirlab-noao-m35-m35.webp": "8042ab1e3d7c810727e8c7a5d9e271fe782d021f89e311abc2b47978db872a8d",
+        "public/sky/noirlab-noao-m44bash-m44-thumb.webp": "553b719bbd24be05502c36fcf72e5c61cce29dd8d439ec3b0144bd74d16c872c",
+        "public/sky/noirlab-noao-m44bash-m44.webp": "d6dc0ef055b5814e322d752dc74dcfe0b0782af5d6352ac3ffb7567f3dbc4a61",
+        "public/sky/noirlab-noao-m45-m45-thumb.webp": "67ef1d975b59450f003543843390e848faa17485e9ec17ff649035d06f5f21de",
+        "public/sky/noirlab-noao-m45-m45.webp": "0a3c52ca0d0daeb2f8949b73450b2d05b9153f2333745bfdb688dd00fd31ab01",
+        "public/sky/noirlab-noao-m92-m92-thumb.webp": "1e1c1d22706b3c731fca1719bdbe7a984cf80db917fb31ab0b1d9680d47c5874",
+        "public/sky/noirlab-noao-m92-m92.webp": "d59c692b591bfc69c66c0d769009567fb97b6881338bec8ab116beff7aaa3600",
+        "public/sky/noirlab-noao0001a-m31-thumb.webp": "64c430252e8311e54a25bde94d9f657e6152d1db63f0994551c77d8a2a53730b",
+        "public/sky/noirlab-noao0001a-m31.webp": "85dc12b392a4898b47cffd53d8f840113c3562f9e81d2666f437f8c8627c87d4",
+        "scripts/build-tracker-imagery.mjs": "90a7ce8252b079ad867e9d83217f81bd9ef194a9bfb960f22536fe11b2265c8f",
+        "src/data/tracker/heroImagery.json": "0b81fe193413249fbceb22211785143578d32db0d126fb5b47e2bad80cda5e8f"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "noirlab-noao-02211-ngc7009.webp — \"The Saturn Nebula, NGC 7009\", credit: NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02211/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-02464-ngc457.webp — \"NGC 457 in Cassiopeia\", credit: NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02464/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-02637-m6.webp — \"M6, NGC 6405; Butterfly Cluster\", credit: N.A.Sharp, Mark Hanna, REU program/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02637/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-04086-m16.webp — \"The Eagle Nebula, M16\", credit: T.A.Rector (NRAO/AUI/ NSF and NOIRLab/ NSF /AURA) and B.A.Wolpa (NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-04086/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-hcper-double-cluster.webp — \"h and chi Persei\", credit: N.A.Sharp/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-hcper/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m13kpno4m-m13.webp — \"M13, NGC 6205\", credit: T.A. Rector (University of Alaska Anchorage) and H. Schweiker (WIYN and NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-m13kpno4m/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m27-kpno-mayall-4-m-m27.webp — \"M27 Dumbbell Nebula\", credit: T.A. Rector (University of Alaska Anchorage) and H. Schweiker (WIYN and NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-m27-kpno-mayall-4-m/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m35-m35.webp — \"M35, NGC 2158\", credit: N.A.Sharp/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-m35/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m44bash-m44.webp — \"M44: The Beehive Cluster\", credit: KPNO/NOIRLab/NSF/AURA/Tom Bash and John Fox/Adam Block, source: https://noirlab.edu/public/images/noao-m44bash/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m45-m45.webp — \"M45 Pleiades\", credit: NOIRLab/NSF/AURA/T.A. Rector (University of Alaska Anchorage), R. Cool (University of Arizona) and WIYN, source: https://noirlab.edu/public/images/noao-m45/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m92-m92.webp — \"M92, NGC 6341\", credit: Hillary Mathis, REU program/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-m92/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao0001a-m31.webp — \"The Andromeda Galaxy\", credit: Bill Schoening, Vanessa Harvey/REU program/NOIRLab/ NSF /AURA/, source: https://noirlab.edu/public/images/noao0001a/, presented in the interface as a long-exposure photograph.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). NOIRLab releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.",
+        "evidenceUrls": [
+          "https://noirlab.edu/public/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "NSF NOIRLab/NSF/AURA. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
       "id": "npm-lockfile-dependencies",
       "category": "software-dependencies",
       "repositoryPaths": [
@@ -1108,6 +1450,58 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "node_modules is excluded. Dependency changes require an intentional lockfile and notice update."
+      }
+    },
+    {
+      "id": "openngc-deep-sky-showpieces",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "src/data/deep-sky/showpieces.json",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt",
+        "src/data/deep-sky/README.md",
+        "scripts/build-deep-sky-showpieces.mjs"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "OpenNGC",
+        "url": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
+        "publicationUrl": "https://github.com/mattiaverga/OpenNGC",
+        "publisher": "Mattia Verga",
+        "version": "master, database_files/NGC.csv and database_files/addendum.csv",
+        "retrievedAt": "2026-09-01",
+        "originalSha256": "be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae"
+      },
+      "localSha256": {
+        "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb",
+        "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3"
+      },
+      "processing": [
+        "scripts/build-deep-sky-showpieces.mjs fetches OpenNGC's NGC.csv and addendum.csv, records the SHA-256 of each, and selects twenty-six objects named explicitly in the generator. The addendum is read as well because the Messier list is not a subset of the NGC: the Pleiades is Melotte 22 and has no NGC number.",
+        "Selection is the only editorial step. Every position, magnitude and size in the generated file is OpenNGC's; nothing is remembered or estimated. Sexagesimal right ascension and declination are converted to degrees and rounded to five decimals.",
+        "Each object's equipment tier is derived from its own visual magnitude by one rule applied uniformly: V <= 4.5 the unaided eye, V <= 7.0 binoculars, otherwise a telescope. Objects with no recorded visual magnitude are dropped rather than assigned a tier by judgement, which excludes the Rosette, the Veil and the North America Nebula.",
+        "One sentence per object describing what an observer actually sees is Orbit Studio's own text and is not derived from OpenNGC.",
+        "Output is sorted by magnitude then identifier, so the same source produces the same bytes."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "evidenceUrls": [
+          "https://github.com/mattiaverga/OpenNGC#license",
+          "https://creativecommons.org/licenses/by-sa/4.0/"
+        ],
+        "attribution": "OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-share-alike"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary."
       }
     },
     {
@@ -1217,9 +1611,9 @@
         "retrievedAt": "2026-08-30"
       },
       "localSha256": {
-        "public/home/tracker-home.webp": "aec0a640b9b8667573b0f42b5309fa934dd34324a2b7e2830c36837a248c21b4",
         "public/home/explorer-home.webp": "d2f4b2164023a8c59f2e9fff0940eb2dce19ec70ef978afe5229c72b16ea219a",
-        "public/home/playground-home.webp": "79f7969e7a2a02c9a1b9f945e8d9bc82d5801cd8fb69d883567754a2a7da3cf3"
+        "public/home/playground-home.webp": "79f7969e7a2a02c9a1b9f945e8d9bc82d5801cd8fb69d883567754a2a7da3cf3",
+        "public/home/tracker-home.webp": "aec0a640b9b8667573b0f42b5309fa934dd34324a2b7e2830c36837a248c21b4"
       },
       "processing": [
         "All three are pictures of this project's own software, produced by running it. They were previously untracked by this inventory, which is why the two older ones show as newly classified rather than newly added.",
@@ -1265,7 +1659,7 @@
       },
       "localSha256": {
         "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
-        "src/data/tracker/imagery.ts": "8f96e0e691e74f65a8e83f99f7e84a712c32dc98974ef357d325a10840f02eed"
+        "src/data/tracker/imagery.ts": "e8eead051e1cfd8ee028e9e84939279f68ab87e0d85cba31280ab881fe5af1d8"
       },
       "processing": [
         "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
@@ -1643,11 +2037,11 @@
         "retrievedAt": "2026-08-30"
       },
       "localSha256": {
-        "src/data/tracker/terrainSource.ts": "1a47e4c87581c81bacebcac05f39b23366d5e9732feaba729b18e90e6bb51bb5",
-        "src/data/tracker/terrainHorizon.ts": "71e61b09418c0f007de0d5c984ef5bd6e5461ffaba6b73a6e48ed1d5e7edbab5",
         "src/data/tracker/demService.ts": "2b228b2dd610cca8133fb60a5992e0a34a201333da9e57df3dc18e48ee165002",
         "src/data/tracker/eventTerrain.ts": "6735e7a81b6cba976bacd01b0b5303faf53429fb05f691f27f37c06c4ae4da26",
-        "src/data/tracker/geodesy.ts": "b1e680275d6dffefd0cf9dcb9dd39997a767001eb9dc720732c20ffe004a68b3"
+        "src/data/tracker/geodesy.ts": "b1e680275d6dffefd0cf9dcb9dd39997a767001eb9dc720732c20ffe004a68b3",
+        "src/data/tracker/terrainHorizon.ts": "71e61b09418c0f007de0d5c984ef5bd6e5461ffaba6b73a6e48ed1d5e7edbab5",
+        "src/data/tracker/terrainSource.ts": "1a47e4c87581c81bacebcac05f39b23366d5e9732feaba729b18e90e6bb51bb5"
       },
       "processing": [
         "Terrain tiles are fetched from the public Mapterhorn instance at runtime, as 512px Terrarium-encoded WebP. Requests carry a tile coordinate and nothing that identifies the reader. No API key is used and no account exists.",
@@ -1744,8 +2138,8 @@
       },
       "localSha256": {
         "scripts/report-orbital-population-validation.ts": "66b4e41ee170c394766d96bb3d4c7c28d45ae66d56486c96b7c4d993c40565b6",
-        "src/rendering/catalogPopulationValidation.test.ts": "7efc5acd3a091373f1ec2651c75055c164c1bdb3cd20f24f031a921d1febc1ae",
         "src/rendering/catalogMotion.test.ts": "c126f9ed3c82d8bf1fa97db3b48d229e657d6d4d7cc1bf0dbb533e8aff155cf8",
+        "src/rendering/catalogPopulationValidation.test.ts": "7efc5acd3a091373f1ec2651c75055c164c1bdb3cd20f24f031a921d1febc1ae",
         "src/rendering/orbitPathSampling.test.ts": "4a8ebf6106f94ce24355697d331a12157d2cd9a0b72379564ac1fe7bc71d1268"
       },
       "processing": [
@@ -1790,8 +2184,8 @@
         "retrievedAt": "2026-08-18"
       },
       "localSha256": {
-        "public/media/perseids-realtime-bautsch-cc0.webm": "73fa16841240d546952ab7cbbd3b1b9e52175a8b6de5519b2ebb4f4c0cb0d958",
-        "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da"
+        "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da",
+        "public/media/perseids-realtime-bautsch-cc0.webm": "73fa16841240d546952ab7cbbd3b1b9e52175a8b6de5519b2ebb4f4c0cb0d958"
       },
       "processing": [
         "Downloaded from the Wikimedia upload host at publication resolution (1920×1080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280×720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
@@ -1814,58 +2208,6 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
-      }
-    },
-    {
-      "id": "openngc-deep-sky-showpieces",
-      "category": "astronomical-catalog-data",
-      "repositoryPaths": [
-        "src/data/deep-sky/showpieces.json",
-        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt",
-        "src/data/deep-sky/README.md",
-        "scripts/build-deep-sky-showpieces.mjs"
-      ],
-      "productionBundlePaths": [
-        "assets/TrackerApp-*.js"
-      ],
-      "originalSource": {
-        "title": "OpenNGC",
-        "url": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
-        "publicationUrl": "https://github.com/mattiaverga/OpenNGC",
-        "publisher": "Mattia Verga",
-        "version": "master, database_files/NGC.csv and database_files/addendum.csv",
-        "retrievedAt": "2026-09-01",
-        "originalSha256": "be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae"
-      },
-      "localSha256": {
-        "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3",
-        "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
-        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
-        "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb"
-      },
-      "processing": [
-        "scripts/build-deep-sky-showpieces.mjs fetches OpenNGC's NGC.csv and addendum.csv, records the SHA-256 of each, and selects twenty-six objects named explicitly in the generator. The addendum is read as well because the Messier list is not a subset of the NGC: the Pleiades is Melotte 22 and has no NGC number.",
-        "Selection is the only editorial step. Every position, magnitude and size in the generated file is OpenNGC's; nothing is remembered or estimated. Sexagesimal right ascension and declination are converted to degrees and rounded to five decimals.",
-        "Each object's equipment tier is derived from its own visual magnitude by one rule applied uniformly: V <= 4.5 the unaided eye, V <= 7.0 binoculars, otherwise a telescope. Objects with no recorded visual magnitude are dropped rather than assigned a tier by judgement, which excludes the Rosette, the Veil and the North America Nebula.",
-        "One sentence per object describing what an observer actually sees is Orbit Studio's own text and is not derived from OpenNGC.",
-        "Output is sorted by magnitude then identifier, so the same source produces the same bytes."
-      ],
-      "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
-        "evidenceUrls": [
-          "https://github.com/mattiaverga/OpenNGC#license",
-          "https://creativecommons.org/licenses/by-sa/4.0/"
-        ],
-        "attribution": "OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-share-alike"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary."
       }
     }
   ]

@@ -24,6 +24,8 @@
  * interface says so before you go outside, not after.
  */
 
+import heroImageryManifest from "./heroImagery.json";
+
 export type ImageryClass =
   /** A real photograph through a telescope. Not what an eye sees. */
   | "telescope-image"
@@ -105,6 +107,74 @@ export interface HeroImagery {
 const ESO_LICENCE = "CC BY 4.0";
 const HUBBLE_LICENCE = "CC BY 4.0";
 
+/**
+ * The pictures of the objects themselves, built and verified by
+ * `scripts/build-tracker-imagery.mjs`.
+ *
+ * ## Why they are generated rather than written here
+ *
+ * Because "this is a photograph of M15" is a claim, and a claim in a source
+ * file is only as good as whoever typed it. The build script asks each
+ * observatory archive what its own image is a picture of, refuses to download
+ * one whose record does not name the object, and reads the credit line off the
+ * page rather than inventing it — which is also what CC BY asks for. What lands
+ * here is the result of that check.
+ *
+ * The generic night sky these replaced was the worse failure of the two: every
+ * deep-sky page, and Venus, showed one long exposure of the Milky Way over
+ * Paranal. A picture of somewhere else, presented as the thing you are about to
+ * look at, on the page whose whole job is to say what you are about to see.
+ */
+const CATALOGUED: ReadonlyMap<string, HeroImagery> = new Map(
+  heroImageryManifest.images.map((image) => [
+    image.id,
+    {
+      treatment: image.treatment as HeroImagery["treatment"],
+      src: image.src,
+      focusY: image.focusY,
+      title: image.title,
+      classification: image.classification as ImageryClass,
+      claim: "representative" as const,
+      origin: "historical-capture" as const,
+      // The archives publish a release date, which is not a capture date, and
+      // the difference can be decades. Nothing is claimed rather than the wrong
+      // thing asserted.
+      capturedAt: null,
+      expectedMode: image.expectedMode as ExpectedViewMode,
+      credit: image.credit,
+      licence: image.licence,
+      sourceUrl: image.sourceUrl,
+      eyeExpectation: image.eye,
+    },
+  ]),
+);
+
+/** Whether Tracker has a picture of this object, which is what it needs to offer it. */
+export function hasCataloguedImagery(id: string): boolean {
+  return CATALOGUED.has(id);
+}
+
+/**
+ * The same picture, sized for a rail card.
+ *
+ * A card's picture is forty pixels across and the rail draws eight of them at
+ * once, so this is the small derivative rather than the hero file — the same
+ * photograph of the same object, built from it, so the thumbnail a reader taps
+ * and the picture they land on cannot be of two different things.
+ */
+export function catalogueImageFor(id: string): { src: string; alt: string } | null {
+  const image = THUMBNAILS.get(id);
+  if (!image) return null;
+  return image;
+}
+
+const THUMBNAILS: ReadonlyMap<string, { src: string; alt: string }> = new Map(
+  heroImageryManifest.images.map((image) => [
+    image.id,
+    { src: image.thumb, alt: image.title },
+  ]),
+);
+
 const PERSEIDS: HeroImagery = {
   treatment: "photo",
   // A sky-only crop of the same ESO release. The published frame is composed
@@ -167,6 +237,19 @@ const NIGHT_SKY: HeroImagery = {
 
 export function heroImageryFor(id: string, kind: string): HeroImagery {
   if (kind === "meteors") return PERSEIDS;
+
+  /**
+   * A deep-sky object is illustrated by a photograph of that object.
+   *
+   * The rail's ids carry a `deep-sky-` prefix; the catalogue is keyed by the
+   * object. Anything Tracker cannot illustrate is not offered in the first
+   * place — see `deepSkyOpportunities` — so a miss here means a bug rather
+   * than a gap, and falling back to a picture of somewhere else would hide it.
+   */
+  if (kind === "deep-sky") {
+    const catalogued = CATALOGUED.get(id.replace(/^deep-sky-/, ""));
+    if (catalogued) return catalogued;
+  }
 
   if (kind === "lunar-eclipse") {
     return {
@@ -274,9 +357,16 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
           "Hubble at Mars's closest in a decade. To your eyes Mars is an orange point of light. Even a good telescope shows a small disc with a few smudges — the polar cap is the one feature most people can pick out.",
       };
     }
-    // Venus alone. The Moon-and-Venus frame implies a pairing that is not the
-    // event, so the generic sky is used until a Venus-only image is cleared.
-    if (id.includes("venus")) return NIGHT_SKY;
+    /**
+     * Venus alone, which for a long time meant no picture at all.
+     *
+     * The Moon-and-Venus frame implies a pairing that is not the event, and the
+     * generic sky is a picture of nothing in particular. Neither observatory
+     * archive has a usable disc — Hubble's is 170 pixels across — so this is
+     * Mariner 10's, which is not copyrighted.
+     */
+    const venus = id.includes("venus") ? CATALOGUED.get("planet-venus") : null;
+    if (venus) return venus;
   }
 
   return NIGHT_SKY;
@@ -292,4 +382,5 @@ export const TRACKER_IMAGERY = [
   heroImageryFor("planet-saturn", "planet"),
   heroImageryFor("planet-jupiter", "planet"),
   heroImageryFor("planet-mars", "planet"),
+  ...CATALOGUED.values(),
 ];

@@ -149,14 +149,73 @@ export function TrackerObservingRail({
     const strip = scroller.current;
     const card = expandedRef.current;
     if (!expandedId || !strip || !card) return;
-    const left = card.offsetLeft - strip.offsetLeft;
-    if (Math.abs(strip.scrollLeft - left) < 2) return;
-    strip.scrollTo({
-      left,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
+
+    /**
+     * Measured against the strip, and clamped to what the strip can scroll.
+     *
+     * `offsetLeft` is relative to whichever ancestor happens to be positioned,
+     * which is a property of the stylesheet rather than of this component;
+     * rectangles are relative to the thing actually being scrolled. The clamp
+     * matters because a target past the end is silently truncated by the
+     * browser, and the difference between "we asked for too much" and "we
+     * arrived" is what this effect has to be able to tell.
+     */
+    const align = (behavior: ScrollBehavior) => {
+      const offset = card.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+      const furthest = Math.max(0, strip.scrollWidth - strip.clientWidth);
+      const left = Math.min(Math.max(0, strip.scrollLeft + offset), furthest);
+      if (Math.abs(strip.scrollLeft - left) < 2) return;
+      strip.scrollTo({ left, behavior });
+    };
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    align(reduced ? "auto" : "smooth");
+
+    /**
+     * And again once the widths have finished moving.
+     *
+     * The defect this closes: cards animate their width over 260 ms, so when a
+     * card is chosen while another is open *to its left*, the open one shrinks
+     * by a hundred-odd pixels underneath the scroll that is already running.
+     * Everything to its right slides left by that much, and the card the reader
+     * just picked ends up off the left edge of the strip with its neighbours
+     * standing where it should be. The first alignment starts the motion; this
+     * one corrects it against the layout that actually settled.
+     */
+    let done = false;
+    let frame = 0;
+    const settle = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      strip.removeEventListener("transitionend", onEnd);
+      /**
+       * Stop the smooth scroll before correcting, or it finishes on top of us.
+       *
+       * A smooth scroll runs to the target it was given, and the target it was
+       * given was computed against the layout before the widths moved. Setting
+       * a new position underneath it is not enough: the animation carries on to
+       * its own stale destination and lands a few pixels past the card's edge.
+       * Asking for the current position with `auto` cancels it; the correction
+       * goes in on the next frame, against a strip that has stopped moving.
+       */
+      strip.scrollTo({ left: strip.scrollLeft, behavior: "auto" });
+      frame = window.requestAnimationFrame(() => align("auto"));
+    };
+    const onEnd = (event: TransitionEvent) => {
+      if (event.propertyName === "width") settle();
+    };
+    strip.addEventListener("transitionend", onEnd);
+    // No transition fires when nothing changed width — a card chosen with none
+    // open, or reduced motion — so the correction is not left waiting on one.
+    const timer = window.setTimeout(settle, 400);
+
+    return () => {
+      done = true;
+      window.clearTimeout(timer);
+      window.cancelAnimationFrame(frame);
+      strip.removeEventListener("transitionend", onEnd);
+    };
   }, [expandedId]);
 
   if (loading) {

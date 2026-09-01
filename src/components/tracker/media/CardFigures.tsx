@@ -160,6 +160,12 @@ export function EclipseFigure({ media }: { media: Extract<CardMedia, { kind: "ec
  * Deliberately a symbol rather than a picture: it is better for a card to say
  * "a deep-sky object" in shorthand than to show a photograph of a different
  * object, which is what the generic star field did.
+ *
+ * The deep-sky variant is now a fallback rather than the normal case. Every
+ * showpiece Tracker offers has a photograph of that object, checked against the
+ * archive's own record of what the picture shows, and `cardMediaFor` reaches
+ * for it first — so a card only falls back to the oval when something has gone
+ * wrong, which is a state worth being able to see rather than one to disguise.
  */
 export function MarkFigure({ phenomenon }: { phenomenon: MarkPhenomenon }) {
   return (

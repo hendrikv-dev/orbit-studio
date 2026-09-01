@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import showpieces from "../deep-sky/showpieces.json";
 import { cardMediaFor, type CardMedia } from "./cardMedia";
+import { hasCataloguedImagery } from "./imagery";
 import type { Opportunity, OpportunityKind } from "./opportunity";
 
 /**
@@ -80,14 +82,34 @@ describe("cardMediaFor", () => {
   });
 
   it("photographs a planet only where a real image of it ships", () => {
-    for (const body of ["saturn", "jupiter", "mars"]) {
+    for (const body of ["saturn", "jupiter", "mars", "venus"]) {
       const media = cardMediaFor(opportunity("planet", `planet-${body}`));
       expect(media.kind).toBe("photo");
       expect((media as { src: string }).src).toContain(body);
     }
-    // Venus has no cleared image; a mark is honest, a star field is not.
-    const venus = cardMediaFor(opportunity("planet", "planet-venus"));
-    expect(venus.kind).toBe("mark");
+    // Mercury, Uranus and anything else added later still get the mark, which
+    // is honest about being a symbol where a star field would not be.
+    const unphotographed = cardMediaFor(opportunity("planet", "planet-mercury"));
+    expect(unphotographed.kind).toBe("mark");
+  });
+
+  /**
+   * The defect: every deep-sky card carried the same drawn oval-and-dot, so
+   * eight different objects in one rail were eight identical marks. The mark
+   * was right while Tracker had no picture of any of them; it has one of each
+   * now, verified against the archive's own record of what the picture shows.
+   */
+  it("shows the object itself on a deep-sky card, not a symbol for its class", () => {
+    const objects = showpieces.objects.filter((object) => hasCataloguedImagery(object.id));
+    const sources = new Set<string>();
+    for (const object of objects) {
+      const media = cardMediaFor(opportunity("deep-sky", `deep-sky-${object.id}`));
+      expect(media.kind, object.id).toBe("photo");
+      if (media.kind === "photo") sources.add(media.src);
+    }
+    // The Double Cluster is one photograph of both halves; everything else has
+    // its own, so the rail cannot show the same picture twice under two names.
+    expect(sources.size).toBe(objects.length - 1);
   });
 
   it("carries the Moon's real phase rather than a fixed one", () => {
