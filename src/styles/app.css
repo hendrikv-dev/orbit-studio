@@ -13379,8 +13379,6 @@ button.primary,
   --tk-violet-press: #484bd0;
   --tk-violet-lift: #8b8ef6;
   --tk-violet-soft: rgba(99, 102, 232, 0.16);
-  --tk-eclipse-track: #d9c9ff;
-  --tk-eclipse-band: rgba(217, 201, 255, 0.34);
   --tk-aurora: #4fd8b0;
   --tk-good: #63d9a8;
   --tk-fair: #e3b877;
@@ -13875,51 +13873,10 @@ button.primary,
 .tk-skypath-mark { fill: var(--tk-ink); }
 .tk-skypath-marklabel { fill: var(--tk-ink-dim); font-size: 10px; }
 .tk-skypath-tick { fill: var(--tk-ink-faint); font-size: 11px; font-family: var(--tk-mono); }
-
-/* --- the shared map ------------------------------------------------------- */
-
-.tk-geomap { display: flex; flex: 1; flex-direction: column; gap: 10px; min-height: 0; }
-.tk-geomap-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-.tk-geomap-frame {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--tk-line);
-  border-radius: 10px;
-  background: #060a14;
-}
 /* The interactive map owns its gestures.
    `touch-action: none` is what stops a one-finger drag from scrolling the page
    instead of panning the map, and it is scoped to the interactive frame so the
    glanceable panel beside the hero keeps scrolling normally under a finger. */
-.tk-geomap-frame[data-interactive="true"] {
-  cursor: grab;
-  touch-action: none;
-  /* Tall enough to hold the control stack. Without a floor the frame can be
-     flexed shorter than its own controls, which pushes them above its top edge
-     and under the title bar — where they are visible and untappable. */
-  min-height: 260px;
-}
-.tk-geomap-frame[data-interactive="true"]:active { cursor: grabbing; }
-.tk-geomap-frame[data-interactive="true"]:focus-visible {
-  outline: 2px solid var(--tk-focus);
-  outline-offset: 2px;
-}
-.tk-geomap-controls {
-  position: absolute;
-  /* Clear of the frame's own rounded corner, so the stack is never clipped
-     against it and never sits flush to the boundary. */
-  right: 14px;
-  bottom: 14px;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .tk-map-control {
   display: grid;
   place-items: center;
@@ -13946,100 +13903,6 @@ button.primary,
    laptop with targets sized for a mouse it may not be using. */
 @media (pointer: coarse), (max-width: 640px) {
   .tk-map-control { width: 44px; height: 44px; }
-  .tk-geomap-controls { gap: 8px; }
-}
-.tk-geomap-selected-halo { fill: rgba(255, 226, 190, 0.16); }
-.tk-geomap-selected-dot {
-  fill: #ffe2be;
-  stroke: rgba(10, 14, 24, 0.85);
-  stroke-width: 1.2;
-}
-.tk-geomap-selected-label {
-  fill: #ffe2be;
-  font-size: 10px;
-  font-family: var(--tk-mono, monospace);
-  paint-order: stroke;
-  stroke: rgba(6, 10, 20, 0.9);
-  stroke-width: 3px;
-}
-.tk-geomap-summary {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--tk-line);
-  font-size: 0.84rem;
-  color: var(--tk-ink-dim);
-}
-.tk-geomap-summary dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 14px;
-  margin: 0;
-}
-.tk-geomap-summary dt { color: var(--tk-ink-faint, var(--tk-ink-dim)); }
-.tk-geomap-summary dd { margin: 0; color: var(--tk-ink); }
-.tk-geomap-frame svg { display: block; width: 100%; height: auto; }
-.tk-geomap-sea { fill: #070d1a; }
-.tk-geomap-land {
-  fill: rgba(126, 156, 190, 0.14);
-  stroke: rgba(150, 180, 214, 0.34);
-  stroke-width: 0.7;
-  fill-rule: evenodd;
-}
-.tk-geomap-graticule { stroke: rgba(126, 156, 190, 0.09); stroke-width: 0.6; }
-.tk-geomap-marker-halo { fill: rgba(255, 255, 255, 0.14); }
-.tk-geomap-marker-pin { fill: #ffffff; }
-.tk-geomap-marker-dot { fill: #0b1220; }
-.tk-geomap-marker-label {
-  fill: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
-  paint-order: stroke;
-  stroke: rgba(5, 8, 16, 0.85);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}
-
-/* The measured band of central eclipse. Distinct from the coverage contours
-   beneath it, which say how much of the Sun is covered rather than whether the
-   Moon covers it completely. */
-.tk-eclipse-band {
-  fill: var(--tk-eclipse-band);
-  stroke: rgba(238, 224, 255, 0.45);
-  stroke-width: 0.6;
-}
-.tk-eclipse-track {
-  fill: none;
-  stroke: var(--tk-eclipse-track);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-}
-.tk-eclipse-track-glow {
-  fill: none;
-  stroke: rgba(217, 201, 255, 0.28);
-  stroke-width: 9;
-  stroke-linecap: round;
-}
-
-.tk-geomap-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.tk-geomap-legend li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--tk-ink-faint);
-  font-size: 0.7rem;
-  white-space: nowrap;
-}
-.tk-geomap-legend span {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
 }
 
 .tk-aurora-art,
@@ -14153,7 +14016,6 @@ button.primary,
 .tk-overlay-body { padding: 18px; overflow: auto; max-height: calc(92vh - 82px); }
 .tk-overlay-body > svg,
 .tk-overlay-body .tk-viz-panel > svg,
-.tk-overlay-body .tk-geomap-frame > svg { width: 100%; height: auto; }
 .tk-overlay-map .tk-viz-panel { border: 0; padding: 0; background: transparent; }
 /* The drawing is bounded so the whole tool fits the modal.
    Without this the map kept its natural aspect at full width, which on a
@@ -14161,19 +14023,7 @@ button.primary,
    legend and the selected-location summary all sat below the fold of what
    looks like a fixed panel. `preserveAspectRatio` letterboxes it inside the
    bound, and the click-to-place maths already accounts for the letterbox. */
-.tk-overlay-map .tk-geomap-frame {
-  max-height: min(54vh, 500px);
-}
-.tk-overlay-map .tk-geomap-frame > svg {
-  width: 100%;
-  height: 100%;
-  max-height: min(54vh, 500px);
-}
-/* The map is the tall thing in the overlay; everything under it must stay
-   reachable without scrolling past the controls. */
-.tk-overlay-map .tk-geomap {
-  gap: 8px;
-}
+/* The map is the tall thing in the overlay;
 /* The control that opened this overlay has nothing left to open. */
 .tk-overlay-map .tk-viz-open { display: none; }
 .tk-overlay-footage {
@@ -16920,6 +16770,64 @@ button.primary,
   .tk-map-controls-view { bottom: 136px; }
   .tk-map-notice { bottom: 250px; }
 }
+
+/* --- the event's geography, on the event page -----------------------------
+
+   The map itself, in the fixed visualization slot, rather than a second
+   renderer that looked like a different product. Inert by construction: it
+   answers "roughly where", beside a recommendation, on a page that scrolls, and
+   the reader who wants to work with the geography opens the real map. */
+.tk-eventmap { display: flex; flex-direction: column; min-height: 0; }
+.tk-eventmap .tk-viz-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tk-eventmap .tk-viz-heading { min-width: 0; }
+.tk-eventmap-frame {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  overflow: hidden;
+  border-radius: 12px;
+  /* The map paints its own ground; this is only what shows before it does. */
+  background: #0e1219;
+}
+.tk-eventmap-frame .tk-map-canvas { position: absolute; inset: 0; }
+/* No cursor affordance on something that does not take the pointer. */
+.tk-eventmap-frame .maplibregl-canvas-container { cursor: default; }
+.tk-eventmap-reading {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-eventmap-value {
+  margin: 0;
+  color: var(--tk-ink, #e8ecf6);
+  font-size: 0.95rem;
+}
+.tk-eventmap-detail {
+  margin: 3px 0 0;
+  color: var(--tk-ink-dim, #a9b6cd);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.tk-eventmap-facts {
+  display: grid;
+  gap: 2px 14px;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-eventmap-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tk-eventmap-facts dt { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-eventmap-facts dd { margin: 0; color: var(--tk-ink, #e8ecf6); }
 
 /* --- what the reader is observing with -----------------------------------
 

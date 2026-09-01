@@ -129,6 +129,7 @@ import { TrackerMapControls } from "./map/TrackerMapControls";
 import { TrackerMapLightLegend } from "./map/TrackerMapLegend";
 import { TrackerProjectionToggle } from "./map/TrackerProjectionToggle";
 import { TrackerEquipmentRule } from "./map/TrackerEquipmentRule";
+import { TrackerEventMapPanel } from "./map/TrackerEventMapPanel";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
@@ -140,12 +141,6 @@ import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
  * has no map on it and must not pay for one — the same rule that keeps Tracker
  * out of App's satellite catalogue applies inside Tracker too.
  */
-const TrackerAuroraMap = lazy(() =>
-  import("./viz/TrackerAuroraMap").then((module) => ({ default: module.TrackerAuroraMap })),
-);
-const TrackerEclipseMap = lazy(() =>
-  import("./viz/TrackerEclipseMap").then((module) => ({ default: module.TrackerEclipseMap })),
-);
 import { TrackerAuroraArt } from "./viz/TrackerAuroraArt";
 import {
   lunarGeographicVisibility,
@@ -1615,6 +1610,36 @@ function TrackerScreen() {
     return tonightEvents.every((event) => event.passed);
   }, [night, now, tonightEvents]);
 
+  /**
+   * The hero event's own geography, for the panel beside it.
+   *
+   * Built from the hero rather than from the map's selection, because the two
+   * are not the same question: the page is about the event the reader opened,
+   * and the map behind it may be showing something else entirely. Resolved
+   * through the same card-to-catalogue lookup the rail uses, so the panel, the
+   * rail and the full map are all drawing the same entry.
+   */
+  const heroOverlay = useMemo(() => {
+    if (!heroEvent) return null;
+    const id = catalogueEventForCard(heroEvent.id);
+    if (!id) return null;
+    const from = new Date(Date.now() - 400 * 86_400_000);
+    const entry = catalogue(from).find((candidate) => candidate.id === id);
+    return entry ? buildEventOverlay(entry) : null;
+  }, [catalogueEventForCard, heroEvent]);
+
+  /** What that geography means at the reader's own coordinates. */
+  const heroReading = useMemo(() => {
+    if (!heroOverlay || !place) return null;
+    const id = heroEvent ? catalogueEventForCard(heroEvent.id) : null;
+    if (!id) return null;
+    const from = new Date(Date.now() - 400 * 86_400_000);
+    const entry = catalogue(from).find((candidate) => candidate.id === id);
+    return entry
+      ? readEventAt(entry, heroOverlay, place.latitude, place.longitude, clock.timeZone ?? undefined)
+      : null;
+  }, [catalogueEventForCard, clock.timeZone, heroEvent, heroOverlay, place]);
+
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
     const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
@@ -1641,22 +1666,74 @@ function TrackerScreen() {
 
     if (heroEvent.id === "aurora") {
       if (auroraAssessment && aurora.data?.grid) {
+        /**
+         * Whether the field being drawn still describes now.
+         *
+         * The rest of the page withdraws its conclusions once the nowcast
+         * expires; the map has to withdraw with them or the reader believes the
+         * picture over the sentence. What NOAA last published is still shown,
+         * because it is worth seeing — but faintly, and labelled as history.
+         */
+        const grid = aurora.data.grid;
+        const stale =
+          auroraAssessment.freshness === "stale" ||
+          auroraAssessment.freshness === "unavailable";
+        /**
+         * Whether the field is about the moment being assessed, or merely now.
+         *
+         * OVATION is a half-hour product and the only spatial one there is, so
+         * a page opened in the morning that assesses tonight from the three-day
+         * K-index cannot draw tonight's oval. It draws this one and says what it
+         * is, rather than presenting a mid-morning field as tonight's sky.
+         */
+        const aboutNow = auroraAssessment.horizon === "nowcast";
+        const observed = formatClockTime(grid.observationUtc, clock);
+        const until = formatClockTime(grid.forecastUtc, clock);
+        /**
+         * The oval on the map, as the layer it is.
+         *
+         * It used to have a renderer of its own with a second projection and a
+         * second set of coastlines. The oval is a field over the planet exactly
+         * as darkness and light pollution are, so the panel is the map with the
+         * aurora layer on — the same nowcast grid, drawn the same way, as the
+         * full map draws it.
+         */
         return (
-          <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-          <TrackerAuroraMap
-            grid={aurora.data.grid}
-            assessment={auroraAssessment}
-            bounds={auroraBounds(place.latitude, place.longitude)}
-            observer={{
-              latitudeDeg: place.latitude,
-              longitudeDeg: place.longitude,
-              label: place.name,
-            }}
-            clock={clock}
+          <TrackerEventMapPanel
+            overlay={null}
+            reading={
+              auroraLocalVisibility
+                ? {
+                    label: "Aurora here",
+                    value: auroraAssessment.statement,
+                    detail: auroraAssessment.certainty,
+                    facts: [],
+                  }
+                : null
+            }
+            title={
+              stale
+                ? "Current auroral oval — expired"
+                : aboutNow
+                  ? "Aurora nowcast"
+                  : "Current auroral oval"
+            }
+            timing={
+              stale
+                ? `Last observed ${observed} · expired ${until}`
+                : aboutNow
+                  ? `Observed ${observed} · valid to about ${until}`
+                  : `Observed ${observed} · current conditions, not tonight's oval`
+            }
+            expired={stale}
+            place={{ latitudeDeg: place.latitude, longitudeDeg: place.longitude }}
+            placeLabel={shortPlaceName(place)}
+            lightPollution={null}
+            auroraGrid={grid}
+            layers={new Set(["aurora"])}
+            fallbackBounds={auroraBounds(place.latitude, place.longitude)}
             onOpenFullMap={openFullMap}
-            visibility={auroraLocalVisibility}
           />
-          </Suspense>
         );
       }
       return (
@@ -1694,57 +1771,26 @@ function TrackerScreen() {
      * cannot answer the only question a solar eclipse raises, which is whether
      * the shadow reaches where they are standing.
      */
-    if (solarEclipseField) {
+    /**
+     * Both eclipses draw on the map itself, rather than on a copy of one.
+     *
+     * There used to be a hand-written SVG renderer here with its own
+     * projection, its own coastlines, its own legend and its own colours, and
+     * it looked like a different product from the map the reader had come from.
+     * The panel now uses the Tracker map with the event's own overlay: one
+     * cartography, one event-geometry system, and no way for the two to drift.
+     */
+    if (heroOverlay && (solarEclipseField || lunarEclipseField)) {
       return (
-        <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-          <TrackerEclipseMap
-            kind="solar"
-            event={solarEclipseField.event}
-            coverage={solarEclipseField.coverage}
-            centralPath={solarEclipseField.centralPath}
-            local={solarEclipseField.local}
-            bounds={solarEclipseField.bounds}
-            observer={{
-              latitudeDeg: place.latitude,
-              longitudeDeg: place.longitude,
-              label: place.name,
-            }}
-            clock={clock}
-            onOpenFullMap={openFullMap}
-            interactive={false}
-            inspection={null}
-            destinations={null}
-          />
-        </Suspense>
-      );
-    }
-
-    if (lunarEclipseField) {
-      return (
-        <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-          <TrackerEclipseMap
-            kind="lunar"
-            title={heroEvent.presentation.title}
-            maximumUtc={lunarEclipseField.timing.maximumUtc}
-            visibility={lunarEclipseField.visibility}
-            local={lunarEclipseField.local}
-            bounds={lunarEclipseField.bounds}
-            observer={{
-              latitudeDeg: place.latitude,
-              longitudeDeg: place.longitude,
-              label: place.name,
-            }}
-            clock={clock}
-            // Null on the expanded map itself: a control that reopens the thing
-            // you are already looking at is the inert-button defect in another
-            // costume.
-            onOpenFullMap={openFullMap}
-            interactive={false}
-            inspection={null}
-            timing={lunarEclipseField.timing}
-            observerAltitudeDeg={lunarEclipseField.altitudeDeg}
-          />
-        </Suspense>
+        <TrackerEventMapPanel
+          overlay={heroOverlay}
+          reading={heroReading}
+          title={heroEvent.presentation.title}
+          place={{ latitudeDeg: place.latitude, longitudeDeg: place.longitude }}
+          placeLabel={shortPlaceName(place)}
+          lightPollution={lightPollution.data ?? null}
+          onOpenFullMap={openFullMap}
+        />
       );
     }
 
@@ -2089,8 +2135,22 @@ function TrackerScreen() {
       if (moon) candidates.push(...toCandidate(moon));
     }
 
-    return buildRail(candidates);
-  }, [bestTonight, tonightEvents]);
+    /**
+     * An aided rule asks for more of the rail, because that is what it asked.
+     *
+     * The routine cap keeps an ordinary night short: five things that are
+     * merely up is a list rather than an answer. But the deep sky is routine by
+     * construction — a globular cluster is available for months, which is most
+     * of why it is a showpiece — so a reader who has said "telescope" and been
+     * shown three planets has been given the opposite of what they asked for.
+     */
+    return buildRail(
+      candidates,
+      location.equipment === "eyes"
+        ? {}
+        : { routineLimit: 4, limit: 6, aided: location.equipment },
+    );
+  }, [bestTonight, tonightEvents, location.equipment]);
 
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(

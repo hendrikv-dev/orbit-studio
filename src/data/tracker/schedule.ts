@@ -1,3 +1,4 @@
+import { deepSkyOpportunities } from "./deepSky";
 import { meteorNight } from "./meteorActivity";
 import type { MeteorNight } from "./meteorActivity";
 import type { ObservationPeriod } from "./observationPeriod";
@@ -127,9 +128,23 @@ export function planNight(
 ): NightPlan | null {
   try {
     const period = trackerObservationPeriod(latitudeDeg, longitudeDeg, at);
-    const ranking = rankOpportunities(
-      tonightsOpportunities(latitudeDeg, longitudeDeg, period),
-    );
+    /**
+     * The deep sky joins the same list, through the same ranking.
+     *
+     * Not a separate section and not a second product: a globular cluster is
+     * one more thing that is up tonight, and it competes with Saturn on the
+     * same terms. What keeps it out of a naked-eye reader's rail is the
+     * observing rule, applied later at admission — which is exactly where the
+     * decision belongs, because it is a fact about the reader rather than about
+     * the sky.
+     */
+    const ranking = rankOpportunities([
+      ...tonightsOpportunities(latitudeDeg, longitudeDeg, period),
+      ...deepSkyOpportunities(latitudeDeg, longitudeDeg, {
+        startUtc: period.startUtc,
+        endUtc: period.endUtc,
+      }),
+    ]);
     return {
       identity: planIdentity(latitudeDeg, longitudeDeg, timeZone, period.startUtc),
       dateKey: dateKeyFor(new Date(period.startUtc), timeZone),

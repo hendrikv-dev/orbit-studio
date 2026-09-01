@@ -297,9 +297,9 @@
       },
       "processing": [
         "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
-        "esahubble-heic1917a-saturn.webp \u2014 \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
-        "esahubble-heic2017a-jupiter-and-europa.webp \u2014 \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
-        "esahubble-heic1609a-mars.webp \u2014 \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1917a-saturn.webp — \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic2017a-jupiter-and-europa.webp — \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1609a-mars.webp — \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
         "These are space-telescope images and are the exact case the perception classification exists for: each is labelled a space-telescope image and carries a written naked-eye expectation, so that nothing implies a Hubble portrait is what an observer will see through a garden telescope."
       ],
       "rights": {
@@ -351,11 +351,11 @@
       },
       "processing": [
         "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. Three files are rectangular crops of their source frame, listed individually below with the crop that was taken; the rest are whole frames. No recolouring, retouching or compositing was applied to any of them, and every crop is a plain rectangular selection that removes content without altering what remains. Further cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
-        "Cropping is a licence question as well as a design one. CC BY 4.0 permits adaptation, and ESO's terms require the credit to stay with the image rather than requiring the frame to stay whole, so cropping is allowed \u2014 but a cropped photograph is no longer the photograph the credit line names. Each crop therefore records what was removed, and the interface continues to name the original release and photographer.",
-        "eso-potw1033a-perseid-in-a-dark-sky.webp \u2014 a crop of \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/. Pixels (0, 760) to (2600, 2280) of the 5616\u00d73744 original, resized to 1800px wide. The crop is the sky above the telescope enclosures: it keeps the meteor streak and the surrounding starfield and removes the observatory entirely. Presented in the interface as a long-exposure photograph.",
-        "eso-potw1033a-night-sky-detail.webp \u2014 a second, wider crop of the same release, used as the ground the sky diagram is drawn on. Pixels (0, 0) to (5616, 1500) of the original, resized to 1800px wide. Sky only: no observatory, and no meteor. Presented as a photographic backdrop, not as a depiction of any particular night.",
-        "eso-potw2136a-eclipsed-moon-at-paranal.webp \u2014 \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph. Whole frame: the eclipsed Moon is the subject of this composition rather than the buildings beneath it, so there was nothing to crop away.",
-        "eso-potw2031a-moon-and-venus-at-dusk.webp \u2014 a crop of \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/. Pixels (0, 0) to (4633, 2280) of the 4633\u00d75791 original, resized to 1800px wide. The published frame is composed around a telescope dome with the Moon and Venus above it; the crop keeps the two objects and the twilight gradient and removes the dome and the foreground. Presented in the interface as a long-exposure photograph.",
+        "Cropping is a licence question as well as a design one. CC BY 4.0 permits adaptation, and ESO's terms require the credit to stay with the image rather than requiring the frame to stay whole, so cropping is allowed — but a cropped photograph is no longer the photograph the credit line names. Each crop therefore records what was removed, and the interface continues to name the original release and photographer.",
+        "eso-potw1033a-perseid-in-a-dark-sky.webp — a crop of \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/. Pixels (0, 760) to (2600, 2280) of the 5616×3744 original, resized to 1800px wide. The crop is the sky above the telescope enclosures: it keeps the meteor streak and the surrounding starfield and removes the observatory entirely. Presented in the interface as a long-exposure photograph.",
+        "eso-potw1033a-night-sky-detail.webp — a second, wider crop of the same release, used as the ground the sky diagram is drawn on. Pixels (0, 0) to (5616, 1500) of the original, resized to 1800px wide. Sky only: no observatory, and no meteor. Presented as a photographic backdrop, not as a depiction of any particular night.",
+        "eso-potw2136a-eclipsed-moon-at-paranal.webp — \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph. Whole frame: the eclipsed Moon is the subject of this composition rather than the buildings beneath it, so there was nothing to crop away.",
+        "eso-potw2031a-moon-and-venus-at-dusk.webp — a crop of \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/. Pixels (0, 0) to (4633, 2280) of the 4633×5791 original, resized to 1800px wide. The published frame is composed around a telescope dome with the Moon and Venus above it; the crop keeps the two objects and the twilight gradient and removes the dome and the foreground. Presented in the interface as a long-exposure photograph.",
         "None of these images contains identifiable people, so the licence's restriction on commercial use of such images does not apply."
       ],
       "rights": {
@@ -1271,9 +1271,9 @@
         "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
         "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
         "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
-        "Every image carries an ImageryClass from src/data/tracker/imagery.ts \u2014 telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic \u2014 rendered together with an observation expectation wherever the picture and the eye differ.",
+        "Every image carries an ImageryClass from src/data/tracker/imagery.ts — telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic — rendered together with an observation expectation wherever the picture and the eye differ.",
         "Phase 2 additionally requires and renders an explicit media claim (representative, event-specific, or live), origin (historical capture, current model, or live feed), capture date where applicable, and expected visual mode. None of the current Tracker assets claims to be live.",
-        "Conjunctions no longer receive a photograph. One frame of the Moon beside Venus was served for every pairing, which is the wrong planet for any pairing that is not Moon-and-Venus and the wrong lunar phase for any date but the one it was taken on. Those events are now drawn from their own ephemeris by TrackerConjunctionScene \u2014 real altitudes, azimuths, separation and Moon phase at the recommended instant \u2014 and the imagery layer returns a generic night sky to anything that still asks. The Moon-and-Venus frame still ships and is still attributed; it is simply no longer used to depict events it does not depict."
+        "Conjunctions no longer receive a photograph. One frame of the Moon beside Venus was served for every pairing, which is the wrong planet for any pairing that is not Moon-and-Venus and the wrong lunar phase for any date but the one it was taken on. Those events are now drawn from their own ephemeris by TrackerConjunctionScene — real altitudes, azimuths, separation and Moon phase at the recommended instant — and the imagery layer returns a generic night sky to anything that still asks. The Moon-and-Venus frame still ships and is still attributed; it is simply no longer used to depict events it does not depict."
       ],
       "rights": {
         "verification": "verified",
@@ -1347,9 +1347,9 @@
         "src/data/tracker/airQuality.ts": "7b08a580c9585b2af12699ce53c304d124d37b15d8cd571ac068dc2b11a474d9"
       },
       "processing": [
-        "Fetched from the browser at the observer\u2019s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key. One past day is requested alongside three forecast days because the NowCast below needs the twelve hours preceding the instant being asked about; without it the series begins at 00:00 UTC of the current day and no twelve-hour window exists before noon.",
+        "Fetched from the browser at the observer’s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key. One past day is requested alongside three forecast days because the NowCast below needs the twelve hours preceding the instant being asked about; without it the series begins at 00:00 UTC of the current day and no twelve-hour window exists before noon.",
         "Aerosol optical depth at 550 nm is the value the interface reasons from; it is converted to magnitudes of extinction (1.0857 per unit optical depth) rather than shown as a bare index, because magnitudes are the unit the observing judgement is made in. The conversion is the definition of optical depth, not a calibration.",
-        "Surface PM2.5 is used for one purpose only: a health reading. It is NOT converted directly to an AQI. The US AQI's PM2.5 breakpoints are defined against a 24-hour average, so an index is derived only from an EPA NowCast \u2014 the twelve hourly values ending at the instant in question, weighted by w^i where w = max(0.5, 1 - (max-min)/max) over the available values, summed and divided by the same weights, truncated to one decimal place. EPA's validity rule is applied unchanged: at least two of the three most recent hours must be present, and where it is not met no index is computed and none is displayed. Missing hours are dropped from both sums and are never forward-filled. The AQI category thresholds are a separate function that takes the NowCast concentration as its only input. Where no NowCast is available the interface may still report the hourly concentration as a concentration in \u00b5g/m\u00b3, without an index and without any AQI category name, since those names belong to a scale that has not been evaluated.",
+        "Surface PM2.5 is used for one purpose only: a health reading. It is NOT converted directly to an AQI. The US AQI's PM2.5 breakpoints are defined against a 24-hour average, so an index is derived only from an EPA NowCast — the twelve hourly values ending at the instant in question, weighted by w^i where w = max(0.5, 1 - (max-min)/max) over the available values, summed and divided by the same weights, truncated to one decimal place. EPA's validity rule is applied unchanged: at least two of the three most recent hours must be present, and where it is not met no index is computed and none is displayed. Missing hours are dropped from both sums and are never forward-filled. The AQI category thresholds are a separate function that takes the NowCast concentration as its only input. Where no NowCast is available the interface may still report the hourly concentration as a concentration in µg/m³, without an index and without any AQI category name, since those names belong to a scale that has not been evaluated.",
         "Aerosol optical depth is merged into the weather snapshots by timestamp with a 45-minute tolerance; a snapshot with no aerosol sample within tolerance keeps its nulls and renders as unmeasured rather than as clean air. The PM2.5 series is read separately and in full, because a NowCast cannot be computed from a single merged snapshot value.",
         "Requested as a separate query from the weather providers so that losing it costs one condition card rather than the whole row.",
         "Aerosol optical depth and surface PM2.5 are never combined into a single figure. Where no aerosol model covers a location the interface shows no transparency card rather than substituting the ground-level particulate reading for it.",
@@ -1371,7 +1371,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Attribution must remain visible wherever aerosol figures are shown. Optical depth must not be presented as a smoke concentration, and surface particulate must not be presented as sky transparency. Caching must stay keyed by model cell and never by user. If Orbit Studio ever becomes commercial, Open-Meteo\u2019s non-commercial terms must be re-reviewed before this remains on the free path."
+        "restrictions": "Attribution must remain visible wherever aerosol figures are shown. Optical depth must not be presented as a smoke concentration, and surface particulate must not be presented as sky transparency. Caching must stay keyed by model cell and never by user. If Orbit Studio ever becomes commercial, Open-Meteo’s non-commercial terms must be re-reviewed before this remains on the free path."
       }
     },
     {
@@ -1396,17 +1396,17 @@
       },
       "processing": [
         "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
-        "The OVATION grid is parsed into a typed array indexed by whole degrees. NOAA\u2019s published quantity \u2014 the probability of visible aurora in percent \u2014 is carried through unmodified and is attributed to NOAA wherever it is shown. Tracker applies no model of its own on top of it.",
+        "The OVATION grid is parsed into a typed array indexed by whole degrees. NOAA’s published quantity — the probability of visible aurora in percent — is carried through unmodified and is attributed to NOAA wherever it is shown. Tracker applies no model of its own on top of it.",
         "Three horizons are kept apart rather than merged: the OVATION nowcast (valid roughly half an hour), the three-day planetary K-index forecast, and nothing at all beyond that. The interface refuses to speak past the third.",
         "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only.",
-        "Freshness is read from the product\u2019s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
-        "The ranking weight Tracker derives from NOAA\u2019s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn.",
-        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ \u2014 there is no coordinate form in /json/, /experimental/json/ or /products/ \u2014 so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA.",
+        "Freshness is read from the product’s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
+        "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn.",
+        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ — there is no coordinate form in /json/, /experimental/json/ or /products/ — so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA.",
         "Copy pass: the sentences Tracker builds from this data were rewritten for plainness without changing what they claim. Nowcast-versus-forecast wording, the expiry language, the attribution of NOAA's probability and the disclaimer that the derived horizon angle is Tracker's own are all preserved verbatim in meaning."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Works of the United States government prepared by NOAA employees in the course of their duties are not subject to domestic copyright. NOAA\u2019s data policy and the SWPC service terms permit free use and redistribution of these products with acknowledgment. The endpoints send access-control-allow-origin: * and a one-minute cache header, so direct browser use is the intended access pattern and no proxy or key is required.",
+        "licenseOrBasis": "Works of the United States government prepared by NOAA employees in the course of their duties are not subject to domestic copyright. NOAA’s data policy and the SWPC service terms permit free use and redistribution of these products with acknowledgment. The endpoints send access-control-allow-origin: * and a one-minute cache header, so direct browser use is the intended access pattern and no proxy or key is required.",
         "evidenceUrls": [
           "https://www.swpc.noaa.gov/content/data-access",
           "https://www.nesdis.noaa.gov/about/data-and-information-policy",
@@ -1460,7 +1460,7 @@
           "https://www.openstreetmap.org/copyright",
           "https://opendatacommons.org/licenses/odbl/1-0/"
         ],
-        "attribution": "\u00a9 OpenStreetMap contributors \u00b7 OpenFreeMap \u00b7 OpenMapTiles.",
+        "attribution": "© OpenStreetMap contributors · OpenFreeMap · OpenMapTiles.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
         "modification": "permitted-with-attribution"
@@ -1548,13 +1548,13 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "6e979981e692677b6fa7d44fb5504afe0d05408a5d951bbdd0a8397de3c52895"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "30121c1e036bf7b73e07fce042a64e5e33a41abf4d5d57e87d8dcd19ed161143"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
         "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",
         "The renderer's own hostname appears in the bundle only inside the library's licence banner and error strings. Tracker makes no request to maplibre.org at runtime.",
-        "World copies are disabled and the minimum zoom is fitted to the container, so there is exactly one Earth and the night drawn over it is not contradicted by an unlit copy beside it."
+        "Repeated world copies are on, because the Pacific is one place and a map that stops at the antimeridian makes the reader drag back around to see the other half. Everything Tracker draws over the geography is emitted into the copies either side as well, so a repeated world is never lit where the real one is dark, and a click on any copy is wrapped back to the one longitude that names that place."
       ],
       "rights": {
         "verification": "verified",
@@ -1597,20 +1597,20 @@
       "processing": [
         "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
         "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
-        "Results are re-ranked locally to favour the categories an observer means \u2014 campsites, parks, reserves, summits, viewpoints and trailheads above street addresses \u2014 because the campground case is the one the location contract exists for.",
+        "Results are re-ranked locally to favour the categories an observer means — campsites, parks, reserves, summits, viewpoints and trailheads above street addresses — because the campground case is the one the location contract exists for.",
         "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
         "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather.",
         "Results without a `name` are labelled from housenumber and street rather than discarded. Requiring a name dropped every street address, which is why a valid full address reported no matches while queries near a named building resolved to the building instead."
       ],
       "rights": {
         "verification": "unresolved",
-        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider \u2014 and the last of those is barred from the free path by the cost rule.",
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider — and the last of those is barred from the free path by the cost rule.",
         "evidenceUrls": [
           "https://photon.komoot.io/",
           "https://www.openstreetmap.org/copyright",
           "https://opendatacommons.org/licenses/odbl/1-0/"
         ],
-        "attribution": "Place search \u00a9 OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
+        "attribution": "Place search © OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
         "modification": "permitted-with-attribution"
@@ -1654,7 +1654,7 @@
         "The tiles are read twice, for different purposes. The map draws them as a MapLibre hillshade layer for relief. Separately, Tracker decodes them off-screen to elevations and computes a horizon profile along the bearing of the event a reader has opened: elevation = (R*256 + G + B/256) - 32768 metres, then apparent angle tan(a) = (h - d^2/2R) / d against a refracted Earth radius of 7/6 R.",
         "The analytical read is capped at zoom 11 and 40 km, and at zoom 10 and 18 km for an event's own track. Not for cartographic reasons: the service throttles, and a measured 21-way concurrent fetch returned 11 tiles, 8 timeouts and 2 aborts inside 20 seconds. Four concurrent requests with a 20-second budget completes in about 2 seconds.",
         "Sampling stops at Mapterhorn's zoom 15, which is where the service stops serving distinct data. Asking for more returns an overzoomed tile with the same posts resampled, which would manufacture precision the terrain does not have.",
-        "The horizon result is reported in half-degree steps and can return 'unknown'. The underlying post spacing varies by more than two orders of magnitude across the 148 sources \u2014 0.5 m in parts of France, 30 m where only Copernicus GLO-30 covers \u2014 so a single stated accuracy for the layer would be false anywhere but the source it was measured on.",
+        "The horizon result is reported in half-degree steps and can return 'unknown'. The underlying post spacing varies by more than two orders of magnitude across the 148 sources — 0.5 m in parts of France, 30 m where only Copernicus GLO-30 covers — so a single stated accuracy for the layer would be false anywhere but the source it was measured on.",
         "This dependency is a courtesy public endpoint on the same terms as the basemap, and is recorded as such in terrainSource.ts.",
         "Verified against ground truth at four sites: Kansas plains 544 m with a 0-0.1 degree horizon; Portland 21 m with West Hills at 4.2 degrees west; Chamonix 1035 m, matching the town's published elevation exactly, with valley walls at 22.4 degrees east and 20.4 degrees west; Sahara 544 m at 1-2 degrees."
       ],
@@ -1668,7 +1668,7 @@
           "https://www.usgs.gov/3d-elevation-program",
           "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM"
         ],
-        "attribution": "Terrain \u00a9 Mapterhorn, from USGS 3DEP, Copernicus DEM and other open elevation sources, linked to the full source list at mapterhorn.com/attribution.",
+        "attribution": "Terrain © Mapterhorn, from USGS 3DEP, Copernicus DEM and other open elevation sources, linked to the full source list at mapterhorn.com/attribution.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
         "modification": "permitted-with-attribution"
@@ -1708,7 +1708,7 @@
       ],
       "rights": {
         "verification": "unresolved",
-        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot \u2014 User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
+        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
         "evidenceUrls": [
           "https://api.met.no/doc/TermsOfService",
           "https://www.weather.gov/documentation/services-web-api",
@@ -1786,7 +1786,7 @@
         "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Perseiden.Echtzeit.2020-08-12.webm",
         "publicationUrl": "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
         "publisher": "Wikimedia Commons",
-        "version": "Natural-speed historical Perseid footage recorded 2020-08-12, 1920\u00d71080, retrieved 2026-08-18",
+        "version": "Natural-speed historical Perseid footage recorded 2020-08-12, 1920×1080, retrieved 2026-08-18",
         "retrievedAt": "2026-08-18"
       },
       "localSha256": {
@@ -1794,7 +1794,7 @@
         "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da"
       },
       "processing": [
-        "Downloaded from the Wikimedia upload host at publication resolution (1920\u00d71080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280\u00d7720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
+        "Downloaded from the Wikimedia upload host at publication resolution (1920×1080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280×720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
         "No frames were altered, recoloured, composited or reordered. The footage is a real historical capture and is presented as representative natural-speed footage, never as a live feed or the reader's current sky.",
         "The licence was verified against this individual file rather than inherited from the host. The Commons API returns LicenseShortName CC0, UsageTerms \"Creative Commons Zero, Public Domain Dedication\", Artist Bautsch, Credit \"Own work\". Wikimedia hosts files under many different licences and one file's terms say nothing about the next."
       ],
@@ -1814,6 +1814,58 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
+      }
+    },
+    {
+      "id": "openngc-deep-sky-showpieces",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "src/data/deep-sky/showpieces.json",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt",
+        "src/data/deep-sky/README.md",
+        "scripts/build-deep-sky-showpieces.mjs"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "OpenNGC",
+        "url": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
+        "publicationUrl": "https://github.com/mattiaverga/OpenNGC",
+        "publisher": "Mattia Verga",
+        "version": "master, database_files/NGC.csv and database_files/addendum.csv",
+        "retrievedAt": "2026-09-01",
+        "originalSha256": "be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae"
+      },
+      "localSha256": {
+        "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3",
+        "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb"
+      },
+      "processing": [
+        "scripts/build-deep-sky-showpieces.mjs fetches OpenNGC's NGC.csv and addendum.csv, records the SHA-256 of each, and selects twenty-six objects named explicitly in the generator. The addendum is read as well because the Messier list is not a subset of the NGC: the Pleiades is Melotte 22 and has no NGC number.",
+        "Selection is the only editorial step. Every position, magnitude and size in the generated file is OpenNGC's; nothing is remembered or estimated. Sexagesimal right ascension and declination are converted to degrees and rounded to five decimals.",
+        "Each object's equipment tier is derived from its own visual magnitude by one rule applied uniformly: V <= 4.5 the unaided eye, V <= 7.0 binoculars, otherwise a telescope. Objects with no recorded visual magnitude are dropped rather than assigned a tier by judgement, which excludes the Rosette, the Veil and the North America Nebula.",
+        "One sentence per object describing what an observer actually sees is Orbit Studio's own text and is not derived from OpenNGC.",
+        "Output is sorted by magnitude then identifier, so the same source produces the same bytes."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "evidenceUrls": [
+          "https://github.com/mattiaverga/OpenNGC#license",
+          "https://creativecommons.org/licenses/by-sa/4.0/"
+        ],
+        "attribution": "OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-share-alike"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary."
       }
     }
   ]

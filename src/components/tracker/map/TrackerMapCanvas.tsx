@@ -129,12 +129,34 @@ interface Props {
   cameraKey?: string | null;
   /** Mercator or globe. The same map, drawn on a different surface. */
   projection?: "mercator" | "globe";
+  /**
+   * A panel rather than the workspace.
+   *
+   * The embedded map on an event page answers "roughly where does this happen",
+   * beside a recommendation, on a page that scrolls. It must not take drags —
+   * a map that captured them would fight the page for the same gesture — and it
+   * must not write to history or move the reader's observing location, because
+   * it is not the map they are working in. Everything else is identical: the
+   * same style, the same layers, the same event geometry, which is the whole
+   * point of using it instead of a second renderer.
+   */
+  inert?: boolean;
   /** What to call the selected point, beside the target. Null while unknown. */
   pinLabel: string | null;
   /** When to draw the night for, or null to leave the map undarkened. */
   daylightAt: Date | null;
   /** NOAA's aurora nowcast, drawn when the aurora layer is on. */
   auroraGrid: AuroraGrid | null;
+  /**
+   * Whether that nowcast has passed its validity.
+   *
+   * A picture is a claim and a bright one is a confident claim. When the words
+   * withdraw — "current auroral conditions are unavailable" — a field painted
+   * at full strength underneath them contradicts the sentence, and the picture
+   * is the one a reader believes. What NOAA last published is still worth
+   * seeing, so it is still drawn, but drawn as history.
+   */
+  auroraExpired?: boolean;
   /** The vendored VIIRS composite, once it has decoded. */
   lightPollution: LightPollutionArchive | null;
   /**
@@ -184,8 +206,10 @@ export function TrackerMapCanvas({
   cameraTarget = null,
   cameraKey = null,
   projection = "mercator",
+  inert = false,
   daylightAt,
   auroraGrid,
+  auroraExpired = false,
   lightPollution,
   layers,
   eventOverlay,
@@ -230,6 +254,14 @@ export function TrackerMapCanvas({
    */
   const handlers = useRef({ onMove, onPick });
   handlers.current = { onMove, onPick };
+  /**
+   * Read once, at construction, because MapLibre takes `interactive` there.
+   *
+   * A ref rather than the prop directly so the map-creation effect keeps its
+   * empty dependency list: it is built once, and a panel does not become the
+   * workspace half way through its life.
+   */
+  const inertRef = useRef(inert);
 
   useEffect(() => {
     if (!host.current || map.current) return;
@@ -245,7 +277,8 @@ export function TrackerMapCanvas({
       // the map answers none of them and makes the night harder to read.
       pitchWithRotate: false,
       dragRotate: false,
-      touchZoomRotate: true,
+      touchZoomRotate: !inertRef.current,
+      interactive: !inertRef.current,
       /**
        * Many worlds, so east and west never end.
        *
@@ -276,8 +309,17 @@ export function TrackerMapCanvas({
      *
      * Deliberate and named, not a leftover: it was briefly deleted as debug
      * scaffolding and took the refinement gate with it.
+     *
+     * Two names, because there are two maps. `__trackerMap` is the map the
+     * reader can drive, and every camera assertion means that one. The event
+     * page's panel is a second instance that lives at the same time as it — it
+     * used to overwrite the name on mount and then delete it on unmount, which
+     * left the real map unreachable and the gate reading a camera nobody could
+     * touch. An inert map answers to its own name instead.
      */
-    (window as unknown as { __trackerMap?: MapLibreMap }).__trackerMap = instance;
+    (window as unknown as Record<string, MapLibreMap | undefined>)[
+      inertRef.current ? "__trackerPanelMap" : "__trackerMap"
+    ] = instance;
 
     instance.addControl(
       // No `customAttribution`: the style and every source we add carry their
@@ -382,6 +424,8 @@ export function TrackerMapCanvas({
         programmatic.current = false;
         return;
       }
+      // A panel has no history of its own to keep up to date.
+      if (inertRef.current) return;
       const next = instance.getCenter();
       handlers.current.onMove(
         { latitudeDeg: next.lat, longitudeDeg: next.lng },
@@ -390,6 +434,8 @@ export function TrackerMapCanvas({
     });
 
     instance.on("click", (event) => {
+      // A panel is not where the reader chooses a place.
+      if (inertRef.current) return;
       /**
        * The first click outside an open menu dismisses it, and does nothing
        * else. Without this, closing the event finder by clicking the map also
@@ -407,8 +453,9 @@ export function TrackerMapCanvas({
       watchSize.disconnect();
       instance.remove();
       map.current = null;
-      const global = window as unknown as { __trackerMap?: MapLibreMap };
-      if (global.__trackerMap === instance) delete global.__trackerMap;
+      const global = window as unknown as Record<string, MapLibreMap | undefined>;
+      const name = inertRef.current ? "__trackerPanelMap" : "__trackerMap";
+      if (global[name] === instance) delete global[name];
     };
     // Built once. The handlers read refs and props through closures that are
     // replaced below, so re-running this would tear down a live map for nothing.
@@ -653,8 +700,8 @@ export function TrackerMapCanvas({
       clearField(instance, AURORA_ID);
       return;
     }
-    drawAurora(instance, auroraGrid);
-  }, [auroraGrid, layers, epoch]);
+    drawAurora(instance, auroraGrid, auroraExpired);
+  }, [auroraGrid, auroraExpired, layers, epoch]);
 
   /**
    * Artificial light on the ground.
@@ -1078,6 +1125,8 @@ const AURORA_FLOOR_PERCENT = 8;
  * makes honest: the ramp says "at least this likely".
  */
 const AURORA_CEILING_PERCENT = 45;
+/** How strongly a nowcast that has passed its validity is still shown. */
+const AURORA_EXPIRED_OPACITY = 0.24;
 
 function auroraColour(t: number): [number, number, number, number] {
   const clamped = Math.max(0, Math.min(1, t));
@@ -1102,7 +1151,7 @@ function auroraColour(t: number): [number, number, number, number] {
   return [rgb[0], rgb[1], rgb[2], Math.round(255 * (0.34 + 0.5 * clamped))];
 }
 
-function drawAurora(instance: MapLibreMap, grid: AuroraGrid) {
+function drawAurora(instance: MapLibreMap, grid: AuroraGrid, expired: boolean) {
   const cell = (latitudeDeg: number, longitudeDeg: number) => {
     const lon = ((Math.round(longitudeDeg) % 360) + 360) % 360;
     const lat = Math.max(0, Math.min(grid.latCount - 1, Math.round(latitudeDeg) + 90));
@@ -1115,7 +1164,10 @@ function drawAurora(instance: MapLibreMap, grid: AuroraGrid) {
       (percent - AURORA_FLOOR_PERCENT) / (AURORA_CEILING_PERCENT - AURORA_FLOOR_PERCENT),
     );
   };
-  paintField(instance, AURORA_ID, sample, 0.85);
+  // Faint enough to read as a record rather than a reading. The exact figure is
+  // the gate's business: it asserts the expired field is drawn below half
+  // strength, which is the difference a reader can actually see.
+  paintField(instance, AURORA_ID, sample, expired ? AURORA_EXPIRED_OPACITY : 0.85);
 }
 
 /* ------------------------------------------------------- light pollution */

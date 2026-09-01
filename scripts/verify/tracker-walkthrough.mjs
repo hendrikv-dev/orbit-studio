@@ -1001,9 +1001,17 @@ async function main() {
       (await portland.locator(".tracker-safety").count()) > 0,
       "solar viewing safety renders above all other guidance",
     );
+    const solarLayers = await portland.evaluate(() => {
+      const map = window.__trackerPanelMap;
+      if (!map) return [];
+      return map
+        .getStyle()
+        .layers.filter((layer) => /^tracker-eclipse/.test(layer.id))
+        .map((layer) => layer.id);
+    });
     check(
-      (await portland.locator(".tk-eclipse-track, .tk-eclipsemap svg rect").count()) > 0,
-      "the eclipse map draws real coverage geometry",
+      solarLayers.length > 0,
+      `the eclipse map draws real coverage geometry (${solarLayers.join(", ") || "nothing"})`,
     );
     await checkReminder(portland, "solar eclipse");
     await shot(portland, "08-eclipse-solar", solarState.heroName ?? "");
@@ -1035,13 +1043,30 @@ async function main() {
   if (await openLunarEclipse(portland)) {
     const lunarState = await readPageState(portland);
     assertUniversalGeometry(lunarState, "lunar eclipse");
+    /**
+     * The geography, drawn by the map rather than by a second renderer.
+     *
+     * These used to inspect a hand-written SVG — `.tk-geomap`, and the absence
+     * of an eclipse track inside it. That renderer is gone: the panel is the
+     * Tracker map with the event's own overlay on it, so what is checked is
+     * that the map is there and that the overlay it drew is a lunar one, which
+     * has regions of visibility and no track to draw.
+     */
     check(
-      (await portland.locator(".tk-eclipse-track").count()) === 0,
-      "a lunar eclipse map draws no track, because a lunar eclipse has none",
+      (await portland.locator(".tk-viz-slot .tk-eventmap .maplibregl-canvas").count()) === 1,
+      "a lunar eclipse leads with the map, not the altitude chart",
     );
+    const lunarLayers = await portland.evaluate(() => {
+      const map = window.__trackerPanelMap;
+      if (!map) return [];
+      return map
+        .getStyle()
+        .layers.filter((layer) => /^tracker-e/.test(layer.id))
+        .map((layer) => layer.id);
+    });
     check(
-      (await portland.locator(".tk-viz-slot .tk-geomap").count()) > 0,
-      "a lunar eclipse leads with the geographic map, not the altitude chart",
+      !lunarLayers.includes("tracker-eclipse-path-centre"),
+      `and draws no track, because a lunar eclipse has none (${lunarLayers.join(", ") || "no event layers"})`,
     );
     await shot(portland, "09-eclipse-lunar", lunarState.heroName ?? "");
     captured.lunarEclipse = lunarState;
@@ -1079,22 +1104,46 @@ async function main() {
     await luxor.waitForTimeout(2500);
     const totalState = await readPageState(luxor);
     assertUniversalGeometry(totalState, "total solar eclipse");
+    /**
+     * The umbral band, now drawn as map layers rather than as SVG paths.
+     *
+     * Same geometry, same source: `drawEventOverlay` traces the central path
+     * from the shadow axis and emits the band, the edges and the centre line as
+     * three layers on the map. What changed is the renderer, not the astronomy.
+     */
+    const bandLayers = await luxor.evaluate(() => {
+      const map = window.__trackerPanelMap;
+      if (!map) return [];
+      return map
+        .getStyle()
+        .layers.filter((layer) => /^tracker-eclipse-path/.test(layer.id))
+        .map((layer) => layer.id);
+    });
     check(
-      (await luxor.locator(".tk-eclipse-band").count()) > 0,
-      "a total eclipse draws the measured umbral band, not a nominal one",
+      bandLayers.includes("tracker-eclipse-path-band"),
+      `a total eclipse draws the measured umbral band, not a nominal one (${bandLayers.join(", ") || "none"})`,
     );
-    const verdict = await luxor.locator(".tk-viz-verdict").innerText();
-    // Totality at Luxor is 6m 25s. The check is that a duration is quoted at
-    // all and that it is minutes rather than hours or seconds — the exact
-    // figure is asserted against published circumstances in the unit tests.
-    const duration = verdict.match(/(\d+)m\s*(\d+)s/);
+    /**
+     * The numbers beside the drawing, from the panel's own reading.
+     *
+     * They used to come from the SVG renderer's verdict line; they now come
+     * from `readEventAt`, which is the single place that decides what an event
+     * means at a coordinate — so the panel, the card and the full map quote one
+     * answer instead of three.
+     *
+     * Totality at Luxor is 6m 25s. The check is that a duration is quoted at
+     * all and is minutes rather than hours or seconds; the exact figure is
+     * asserted against published circumstances in the unit tests.
+     */
+    const reading = await luxor.locator(".tk-eventmap-reading").innerText();
+    const duration = reading.match(/(\d+)\s*m\s*(\d+)\s*s/);
     check(
       duration !== null && Number(duration[1]) >= 1 && Number(duration[1]) <= 8,
-      `the verdict quotes the central duration (${duration ? duration[0] : verdict.split("\n")[0]})`,
+      `the panel quotes how long totality lasts here (${duration ? duration[0] : reading.split("\n")[0]})`,
     );
     check(
-      /km/i.test(verdict) || /km/i.test(await luxor.locator(".tk-viz-panel").innerText()),
-      "the path width is stated in kilometres, because it was measured",
+      /total/i.test(reading) && /%/.test(reading),
+      `and what the reader's own position gets (${reading.split("\n")[0]})`,
     );
     await shot(luxor, "15-eclipse-total", totalState.heroName ?? "");
   } else {
@@ -1364,12 +1413,29 @@ async function main() {
         /expired/i.test(mapTitle),
         `stale: the map titles itself as expired (${mapTitle})`,
       );
+      /**
+       * How strongly the oval is painted, asked of the map rather than the DOM.
+       *
+       * The field is a raster layer now, not a group of SVG rectangles, so its
+       * strength is a paint property. There is no other route to it from
+       * outside React, which is what `__trackerPanelMap` exists for — the
+       * panel's own instance, distinct from the map the reader drives.
+       */
       const fieldOpacity = await page
-        .locator(".tk-auroramap svg g[filter]")
-        .first()
-        .getAttribute("opacity");
+        .waitForFunction(
+          () => {
+            const map = window.__trackerPanelMap;
+            if (!map?.getLayer?.("tracker-aurora")) return null;
+            return { value: map.getPaintProperty("tracker-aurora", "raster-opacity") ?? null };
+          },
+          null,
+          { timeout: 15_000 },
+        )
+        .then((handle) => handle.jsonValue())
+        .then((result) => result.value)
+        .catch(() => null);
       check(
-        fieldOpacity !== null && Number(fieldOpacity) < 0.5,
+        typeof fieldOpacity === "number" && fieldOpacity < 0.5,
         `stale: the probability field is drawn as history rather than at full strength (${fieldOpacity})`,
       );
       await shot(page, "14-aurora-stale", "expired nowcast");
@@ -2845,7 +2911,7 @@ async function main() {
     category: document.querySelector(".tk-page")?.getAttribute("data-category") ?? null,
     hero: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? "",
     rows: (window.__rail ?? []).map((card) => card.name),
-    hasGeoMap: Boolean(document.querySelector(".tk-viz-slot .tk-geomap")),
+    hasGeoMap: Boolean(document.querySelector(".tk-viz-slot .tk-eventmap")),
     hasSkyChart: Boolean(document.querySelector(".tk-viz-slot .tk-skypathpanel")),
     actions: [...document.querySelectorAll(".tk-hero-actions .tk-action")].map((n) =>
       n.textContent?.trim(),

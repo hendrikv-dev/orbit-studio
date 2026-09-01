@@ -40,9 +40,6 @@ import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerAuroraArt } from "./viz/TrackerAuroraArt";
 import { TrackerEclipseArt } from "./viz/TrackerEclipseArt";
 /** Lazy for the same reason as the aurora map: it carries the coastlines. */
-const TrackerEclipseMap = lazy(() =>
-  import("./viz/TrackerEclipseMap").then((module) => ({ default: module.TrackerEclipseMap })),
-);
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
 import { TrackerSkyPathPanel } from "./viz/TrackerSkyPathPanel";
 import type { SelectedPlace } from "./TrackerPlace";
@@ -399,38 +396,17 @@ function buildPresentation(
         claim: "Modelled for this event",
         credit: "Drawn from this eclipse's geometry at your location — not a photograph.",
       },
-      visualization: withVisualization ? (
-        <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-        <TrackerEclipseMap
-          kind="solar"
-          event={event.event}
-          coverage={coverage}
-          centralPath={centralPath}
-          local={event.local}
-          bounds={bounds}
-          observer={{
-            latitudeDeg: place.latitude,
-            longitudeDeg: place.longitude,
-            label: place.name,
-          }}
-          clock={clock}
-          onOpenFullMap={onOpenFullMap}
-          interactive={full}
-          inspection={inspection}
-          /**
-           * Where to go, computed only for the expanded map.
-           *
-           * It costs a path trace and a ring search, which is fine for a
-           * deliberate "where should I go" and wasteful for the panel beside
-           * the hero — and the panel is too small to carry three candidates
-           * legibly anyway.
-           */
-          destinations={
-            full ? eclipseDestinations(event.event, place.latitude, place.longitude) : null
-          }
-        />
-        </Suspense>
-      ) : null,
+      /**
+       * No geographic panel on this retired surface.
+       *
+       * Upcoming is not a destination any more — nothing routes to it — and the
+       * hand-written eclipse renderer it used has been deleted along with the
+       * rest of Tracker's second cartography. If this surface is ever revived it
+       * gets `TrackerEventMapPanel` like every other page, rather than a
+       * parallel visual language kept alive for a page nobody can reach.
+       */
+      visualization: null,
+
       mapSubtitle:
         "Where the Moon's shadow falls, computed from the ephemeris. The centre line is the shadow axis; shading is the fraction of the Sun covered.",
       // The Moon is the occulting body, not a competing light. Reporting its
@@ -545,33 +521,8 @@ function buildPresentation(
           east: place.longitude + 70,
         };
     const localVisibility = lunarLocalVisibility(timingModel, place.latitude, place.longitude);
-    visualization = (
-      <Suspense fallback={<div className="tk-viz-panel tk-viz-loading" aria-busy="true" />}>
-      <TrackerEclipseMap
-        kind="lunar"
-        title={opportunity.title}
-        maximumUtc={timingModel.maximumUtc}
-        visibility={lunarGeographicVisibility(timingModel, bounds, full ? 1.4 : 2, full ? 13 : 9)}
-        local={localVisibility}
-        bounds={bounds}
-        observer={{
-          latitudeDeg: place.latitude,
-          longitudeDeg: place.longitude,
-          label: place.name,
-        }}
-        clock={clock}
-        onOpenFullMap={onOpenFullMap}
-        interactive={full}
-        inspection={inspection}
-        timing={timingModel}
-        observerAltitudeDeg={
-          opportunity.science.localContactAltitudesDeg?.maximum ??
-          Object.values(opportunity.science.localContactAltitudesDeg ?? {})[0] ??
-          0
-        }
-      />
-      </Suspense>
-    );
+    visualization = null; // See the note above: no second cartography here.
+
   } else if (opportunity.kind === "meteors") {
     visualization = (
       <TrackerNightActivity

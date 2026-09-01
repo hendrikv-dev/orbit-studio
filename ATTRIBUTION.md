@@ -720,6 +720,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `media/perseids-realtime-bautsch-cc0.webm`, `media/perseids-realtime-bautsch-cc0-poster.webp`
 - Restrictions and notes: This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support.
 
+## OpenNGC
+
+- Inventory ID: `openngc-deep-sky-showpieces`
+- Category: astronomical-catalog-data
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Mattia Verga
+- Version or snapshot: master, database_files/NGC.csv and database_files/addendum.csv
+- Retrieval date: 2026-09-01
+- Authoritative source: https://github.com/mattiaverga/OpenNGC
+- Authoritative source: https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv
+- Rights basis: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+- Rights evidence: https://github.com/mattiaverga/OpenNGC#license
+- Rights evidence: https://creativecommons.org/licenses/by-sa/4.0/
+- Attribution: OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-share-alike
+- Repository paths: `src/data/deep-sky/showpieces.json`, `src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt`, `src/data/deep-sky/README.md`, `scripts/build-deep-sky-showpieces.mjs`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary.
+
 ## Software dependencies
 
 The complete lockfile-derived dependency inventory and runtime notice texts are in

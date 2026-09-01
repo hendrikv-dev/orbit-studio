@@ -86,7 +86,7 @@ describe("the shared schedule layer", () => {
     expect(leads.size).toBeGreaterThan(1);
   });
 
-  it("ranks a rare event above a night whose best thing is a routine Moon", () => {
+  it("ranks a rare event above a night whose best thing is routine", () => {
     // The defect this primitive exists for: ordering nights by their best
     // opportunity's strength put a Moon phase at the top of nearly all thirty
     // and gave a partial lunar eclipse the same standing as a routine Tuesday.
@@ -98,10 +98,21 @@ describe("the shared schedule layer", () => {
     );
     expect(eclipse).toBeDefined();
 
+    /**
+     * A routine night, by the product's own definition of routine.
+     *
+     * This used to look for nights whose distinguishing opportunity was the
+     * Moon, which was true when the Moon was the only thing always available.
+     * The deep-sky showpieces are always available too — a globular cluster is
+     * up for months, which is most of why it is a showpiece — so on many nights
+     * the routine best thing is now a cluster rather than a phase. The property
+     * being tested was never about the Moon: it is that a rare event outranks a
+     * night whose best thing is not rare.
+     */
     const routine = plans.filter(
       (plan) =>
         plan !== eclipse &&
-        distinguishingOpportunity(plan)?.opportunity.kind === "moon",
+        (distinguishingOpportunity(plan)?.opportunity.qualities.rarity ?? 1) < 0.1,
     );
     expect(routine.length).toBeGreaterThan(0);
     for (const plan of routine) {

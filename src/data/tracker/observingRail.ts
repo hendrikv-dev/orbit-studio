@@ -142,7 +142,36 @@ function involvesMoon(candidate: RailCandidate): boolean {
   return false;
 }
 
-export function buildRail(candidates: RailCandidate[]): RailCard[] {
+export interface RailShape {
+  /**
+   * How many routine opportunities to show before stopping.
+   *
+   * Three on an ordinary night: the rail is an answer, and five things that are
+   * merely up is a list rather than an answer. A reader who has said they are
+   * observing with binoculars or a telescope has asked a different question —
+   * the deep sky is routine by construction, available for months at a time,
+   * and it is the entire content of what they asked for — so the cap rises with
+   * the rule rather than the objects pretending to be rare.
+   */
+  routineLimit?: number;
+  /** The most cards to show at all. */
+  limit?: number;
+  /**
+   * Equipment the reader has said they are using, when it is not their eyes.
+   *
+   * The rail then guarantees room for a few things that actually *need* it.
+   * Without that the control does nothing on most nights: a telescope target is
+   * demoted by the ranking for needing a telescope — correctly, because the
+   * default question is what you can see without one — so it sits below the
+   * same three planets the reader sees every night, and "Telescope" produces
+   * the naked-eye answer with a longer tail.
+   */
+  aided?: "binoculars" | "telescope";
+}
+
+export function buildRail(candidates: RailCandidate[], shape: RailShape = {}): RailCard[] {
+  const routineLimit = shape.routineLimit ?? 3;
+  const limit = shape.limit ?? RAIL_SOFT_LIMIT;
   /**
    * The Moon is taken out before the loop, not found during it.
    *
@@ -159,9 +188,42 @@ export function buildRail(candidates: RailCandidate[]): RailCard[] {
   for (const candidate of candidates) {
     if (isPlainMoon(candidate)) continue;
     const reason = reasonFor(candidate);
-    if (reason === "routine" && cards.length >= 3) continue;
+    if (reason === "routine" && cards.length >= routineLimit) continue;
     cards.push({ ...candidate, reason });
-    if (cards.length >= RAIL_SOFT_LIMIT) break;
+    if (cards.length >= limit) break;
+  }
+
+  /**
+   * And what the equipment adds, which is what the reader asked about.
+   *
+   * Appended in rank order rather than promoted into the list: the ranking's
+   * judgement about what is best tonight is not wrong, and a galaxy should not
+   * displace a planet at opposition. What was wrong was the rail stopping
+   * before it reached anything the reader's equipment was for.
+   */
+  if (shape.aided) {
+    const already = new Set(cards.map((card) => card.id));
+    let added = 0;
+    const take = (wanted: (candidate: RailCandidate) => boolean) => {
+      for (const candidate of candidates) {
+        if (added >= 3) return;
+        if (already.has(candidate.id) || !wanted(candidate)) continue;
+        cards.push({ ...candidate, reason: reasonFor(candidate) });
+        already.add(candidate.id);
+        added += 1;
+      }
+    };
+    /**
+     * The tier the reader named first, then anything else their rule admits.
+     *
+     * "What your equipment adds" has to mean the equipment they said. A
+     * telescope reader offered three more binocular objects has been told
+     * nothing about their telescope — and binocular objects outrank telescope
+     * ones by construction, because the ranking demotes for needing equipment,
+     * so first-come order fills with them every time.
+     */
+    take((candidate) => candidate.opportunity.guidance.equipment === shape.aided);
+    take((candidate) => candidate.opportunity.guidance.equipment !== "eyes");
   }
 
   /**

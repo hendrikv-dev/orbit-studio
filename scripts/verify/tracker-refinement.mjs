@@ -937,6 +937,153 @@ async function main() {
     await context.close();
   }
 
+  /* --- what the reader is observing with ---------------------------------- */
+  console.log("\nObserving rules");
+  {
+    const context = await browser.newContext({ viewport: { width: 1300, height: 880 } });
+    await stub(context);
+    // Sisters, Oregon: a real dark-sky town, so the naked-eye rule is not
+    // deciding everything on light pollution alone.
+    await seed(context, { name: "Sisters", context: "Oregon", latitude: 44.29, longitude: -121.55 });
+    const page = await context.newPage();
+
+    const railFor = async (rule) => {
+      await page.goto(
+        `${TRACKER}&at=44.29,-121.55&z=8&date=2027-01-15${rule ? `&with=${rule}` : ""}`,
+        { waitUntil: "domcontentloaded" },
+      );
+      await settled(page, 2500);
+      await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+      await page.waitForTimeout(3000);
+      return page.evaluate(() =>
+        [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      );
+    };
+
+    const eyes = await railFor(null);
+    const telescope = await railFor("telescope");
+    const binoculars = await railFor("binoculars");
+
+    check(eyes.length > 0, `the default rail answers with the unaided eye (${eyes.join(", ")})`);
+    /**
+     * The demonstration this whole rule exists for.
+     *
+     * A telescope object is absent from the naked-eye rail because it needs a
+     * telescope on every night there has ever been — not because it is faint
+     * tonight, which would imply another night would do.
+     */
+    check(
+      eyes.every((id) => !id.startsWith("deep-sky-m57") && !id.startsWith("deep-sky-m51")),
+      "and offers no telescope target in it",
+    );
+    check(
+      telescope.some((id) => id.startsWith("deep-sky-")),
+      `the telescope rule adds deep-sky targets (${telescope.join(", ")})`,
+    );
+    const added = telescope.filter((id) => !eyes.includes(id));
+    check(added.length > 0, `and they are additions rather than replacements (${added.join(", ")})`);
+    for (const id of eyes) {
+      check(
+        telescope.includes(id) || id === "moon",
+        `${id} is still offered under the telescope rule`,
+      );
+    }
+    check(
+      binoculars.some((id) => id.startsWith("deep-sky-")),
+      `binoculars add their own (${binoculars.join(", ")})`,
+    );
+    check(
+      JSON.stringify(binoculars) !== JSON.stringify(telescope),
+      "and the two aided rules do not produce the same answer",
+    );
+
+    // The rule is a state the URL carries, so a shared link reproduces it.
+    check(
+      (await page.evaluate(() => new URLSearchParams(location.search).get("with"))) === "binoculars",
+      "the rule is in the URL",
+    );
+
+    /**
+     * The control is a rule, not a layer and not a mode.
+     *
+     * It sits in the top bar with the place and the date — the three things a
+     * Tracker answer depends on — and not in the map's own control stack.
+     */
+    const placement = await page.evaluate(() => {
+      const control = document.querySelector(".tk-equipment");
+      return control
+        ? {
+            inTopBar: Boolean(control.closest(".tk-map-topbar")),
+            inControlStack: Boolean(control.closest(".tk-map-controls-view")),
+            inLayers: Boolean(control.closest(".tk-layers")),
+          }
+        : null;
+    });
+    check(
+      placement?.inTopBar === true && !placement.inControlStack && !placement.inLayers,
+      `the observing rule sits with the place and the date (${JSON.stringify(placement)})`,
+    );
+
+    await context.close();
+  }
+
+  /* --- the event's geography, drawn by the map ---------------------------- */
+  console.log("\nEmbedded event map");
+  {
+    const context = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&date=2028-01-11`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2500);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    await dismissTour(page);
+    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
+    await page.waitForTimeout(1000);
+    await page.locator(".tk-rail-details").first().click();
+    await page.waitForSelector(".tk-map-detail", { timeout: 30_000 });
+    await page.waitForTimeout(5000);
+
+    /**
+     * One cartography, not two.
+     *
+     * There were three hand-written SVG renderers here — an eclipse map, an
+     * aurora map and a general geographic map — with their own projection,
+     * coastlines, legend and colours, and they looked like a different product
+     * from the map the reader had just come from.
+     */
+    check(
+      (await page.locator(".tk-geomap, .tk-eclipsemap, .tk-auroramap").count()) === 0,
+      "the event page draws no second cartography",
+    );
+    check(
+      (await page.locator(".tk-eventmap .maplibregl-canvas").count()) === 1,
+      "the visualization slot holds the Tracker map itself",
+    );
+    check(
+      (await page.locator(".tk-eventmap .maplibregl-ctrl-attrib").count()) === 1,
+      "with the attribution its sources require",
+    );
+    const reading = await page.locator(".tk-eventmap-reading").innerText().catch(() => "");
+    check(
+      reading.trim().length > 0,
+      `and the words beside it, so the drawing is not the only answer ("${reading.replace(/\n/g, " · ")}")`,
+    );
+    /**
+     * A panel, not a workspace: it must not take the drag the page needs.
+     */
+    const inert = await page.evaluate(() => {
+      const canvas = document.querySelector(".tk-eventmap .maplibregl-canvas-container");
+      return canvas ? !canvas.classList.contains("maplibregl-interactive") : null;
+    });
+    check(inert === true, "and it does not capture the page's own gestures");
+
+    await context.close();
+  }
+
   /* --- 2D and 3D are the same map ----------------------------------------- */
   console.log("\n2D and 3D");
   {
