@@ -120,6 +120,7 @@ import { useOnboarding, type Tour } from "./onboarding/useOnboarding";
 import { buildRail, type RailCandidate } from "../../data/tracker/observingRail";
 import { cardMediaFor } from "../../data/tracker/cardMedia";
 import { cameraForEvent } from "../../data/tracker/eventCamera";
+import { admissible } from "../../data/tracker/observingRules";
 import { useDismissableSurface } from "../../data/tracker/dismissable";
 import { EclipseFigure } from "./media/CardFigures";
 import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTerrain";
@@ -127,6 +128,7 @@ import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerMapControls } from "./map/TrackerMapControls";
 import { TrackerMapLightLegend } from "./map/TrackerMapLegend";
 import { TrackerProjectionToggle } from "./map/TrackerProjectionToggle";
+import { TrackerEquipmentRule } from "./map/TrackerEquipmentRule";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
@@ -898,6 +900,45 @@ function TrackerScreen() {
     [aurora.data, auroraAssessment, place],
   );
 
+  /**
+   * The vendored light-pollution composite, decoded once and only when wanted.
+   *
+   * A megabyte of PNG and a full decode is not something to spend on a reader
+   * who never opens the layer, so it is fetched the first time the layer is
+   * switched on and kept for the session afterwards.
+   */
+  const lightPollution = useQuery({
+    queryKey: ["tracker", "light-pollution"],
+    enabled: location.layers.includes("light-pollution"),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    queryFn: () => loadLightPollution(),
+  });
+
+  /**
+   * The measurement at the selected place.
+   *
+   * A separate query from the archive itself because it is a different thing to
+   * wait for: opening the archive fetches a 400 KB index once per session, and
+   * this fetches the single 256×256 tile that covers the reader's own point.
+   * Keyed on the place at three decimals — about 100 m, finer than the archive
+   * resolves — so panning the map never triggers a fetch and only a genuine
+   * change of place does.
+   */
+  const lightHere = useQuery({
+    queryKey: [
+      "tracker",
+      "light-pollution",
+      "at",
+      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+    ],
+    enabled: Boolean(place) && Boolean(lightPollution.data),
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
+  });
+
   const tonightEvents = useMemo<TonightEvent[]>(() => {
     if (!night || !withSky || !place) return [];
     const context = {
@@ -995,16 +1036,39 @@ function TrackerScreen() {
          */
         eligibility: passed
           ? { eligible: false, reason: "Already set for tonight." }
-          : entry.opportunity.kind === "meteors"
-            ? // The rate this observer would actually see at the best moment,
-              // not the shower's headline ZHR under ideal skies.
-              // The *shower's* contribution, not the total: the sporadic
-              // background is exactly what this gate is trying to exclude, so
-              // counting it towards the threshold would defeat the gate.
-              meteorEligibility(entry.opportunity, night.meteors.best?.showerPerHour ?? null)
-            : entry.opportunity.kind === "moon"
-              ? moonEligibility(entry.opportunity)
-              : generalEligibility(entry.strength),
+          : /**
+             * The observing rule comes first, because it is a different kind of
+             * "no".
+             *
+             * "Above the horizon" was the whole of the geometric test, and it
+             * admits a great deal nobody can see: a galaxy that needs a
+             * telescope on any night, a planet at magnitude 5.8 that needs one
+             * from a suburb, something four degrees above the treeline in the
+             * last of the twilight. The reader's equipment decides the first;
+             * the sky over their own roof decides the second. Only what
+             * survives both is ranked, and the ranking below is unchanged.
+             */
+            (() => {
+              const admission = admissible(location.equipment, entry.opportunity, {
+                latitudeDeg: place.latitude,
+                longitudeDeg: place.longitude,
+                atUtc: window?.peakUtc ?? entry.opportunity.guidance.whenUtc,
+                artificialLightRadiance: lightHere.data ?? null,
+              });
+              if (!admission.admitted) {
+                return { eligible: false, reason: admission.reason };
+              }
+              return entry.opportunity.kind === "meteors"
+                ? // The rate this observer would actually see at the best moment,
+                  // not the shower's headline ZHR under ideal skies.
+                  // The *shower's* contribution, not the total: the sporadic
+                  // background is exactly what this gate is trying to exclude, so
+                  // counting it towards the threshold would defeat the gate.
+                  meteorEligibility(entry.opportunity, night.meteors.best?.showerPerHour ?? null)
+                : entry.opportunity.kind === "moon"
+                  ? moonEligibility(entry.opportunity)
+                  : generalEligibility(entry.strength);
+            })(),
         entry,
         window,
         passed,
@@ -1885,45 +1949,6 @@ function TrackerScreen() {
   );
 
   /**
-   * The vendored light-pollution composite, decoded once and only when wanted.
-   *
-   * A megabyte of PNG and a full decode is not something to spend on a reader
-   * who never opens the layer, so it is fetched the first time the layer is
-   * switched on and kept for the session afterwards.
-   */
-  const lightPollution = useQuery({
-    queryKey: ["tracker", "light-pollution"],
-    enabled: location.layers.includes("light-pollution"),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: 1,
-    queryFn: () => loadLightPollution(),
-  });
-
-  /**
-   * The measurement at the selected place.
-   *
-   * A separate query from the archive itself because it is a different thing to
-   * wait for: opening the archive fetches a 400 KB index once per session, and
-   * this fetches the single 256×256 tile that covers the reader's own point.
-   * Keyed on the place at three decimals — about 100 m, finer than the archive
-   * resolves — so panning the map never triggers a fetch and only a genuine
-   * change of place does.
-   */
-  const lightHere = useQuery({
-    queryKey: [
-      "tracker",
-      "light-pollution",
-      "at",
-      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
-    ],
-    enabled: Boolean(place) && Boolean(lightPollution.data),
-    staleTime: Infinity,
-    gcTime: 30 * 60_000,
-    queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
-  });
-
-  /**
    * The nowcast grid itself, which is what the map draws from.
    *
    * OVATION is a *nowcast*: it describes the next half hour or so, and NOAA
@@ -2385,6 +2410,12 @@ function TrackerScreen() {
           {/* Product actions only. Choosing what the map draws used to sit
               here too, which put a map control in the navigation cluster; it
               now lives on the map's own edge with zoom and recentre. */}
+          {/* An observing rule, beside the place and the date it works with —
+              not in the stack that changes how the map looks. */}
+          <TrackerEquipmentRule
+            rule={location.equipment}
+            onSelect={(equipment) => navigate({ equipment })}
+          />
           <TrackerEventFinder
             from={now}
             selected={selectedEvent}

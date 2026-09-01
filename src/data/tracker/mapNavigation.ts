@@ -106,6 +106,16 @@ export interface TrackerMapLocation {
    * not be a thing the reader loses by pressing Back.
    */
   projection: "mercator" | "globe";
+  /**
+   * What the reader is observing with.
+   *
+   * An observing rule rather than a filter or a layer: it decides what is
+   * eligible, and everything after admission — significance, ranking, cards,
+   * pages — is unchanged. In the URL because a shared link should reproduce the
+   * answer it was showing, and because a reader who has said "telescope" should
+   * not have to say it again after a reload.
+   */
+  equipment: "eyes" | "binoculars" | "telescope";
 }
 
 export const TRACKER_APP_PARAM = "app";
@@ -149,6 +159,7 @@ export function defaultMapLocation(): TrackerMapLocation {
     detail: null,
     drill: null,
     projection: "mercator",
+    equipment: "eyes",
     layers: [],
     event: null,
     card: null,
@@ -215,6 +226,11 @@ export function parseMapLocation(search: string): TrackerMapLocation {
   // opens.
   if (params.get("globe") === "1") location.projection = "globe";
 
+  // The eyes unless the reader says otherwise, which is the default the
+  // product's own question implies.
+  const equipment = params.get("with");
+  if (equipment === "binoculars" || equipment === "telescope") location.equipment = equipment;
+
   const drill = params.get("drill");
   if (drill && DRILLS.has(drill)) location.drill = drill as TrackerMapLocation["drill"];
 
@@ -279,6 +295,7 @@ export function mapLocationToSearch(location: TrackerMapLocation): string {
   if (location.event) params.set("show", location.event);
   if (location.card) params.set("card", location.card);
   if (location.projection === "globe") params.set("globe", "1");
+  if (location.equipment !== "eyes") params.set("with", location.equipment);
 
   return `?${params.toString()}`;
 }
@@ -338,6 +355,7 @@ export function sameMapLocation(a: TrackerMapLocation, b: TrackerMapLocation): b
     a.detail === b.detail &&
     a.drill === b.drill &&
     a.projection === b.projection &&
+    a.equipment === b.equipment &&
     true
   );
 }
