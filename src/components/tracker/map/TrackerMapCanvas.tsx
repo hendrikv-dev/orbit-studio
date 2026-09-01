@@ -127,6 +127,8 @@ interface Props {
    */
   cameraTarget?: CameraTarget | null;
   cameraKey?: string | null;
+  /** Mercator or globe. The same map, drawn on a different surface. */
+  projection?: "mercator" | "globe";
   /** What to call the selected point, beside the target. Null while unknown. */
   pinLabel: string | null;
   /** When to draw the night for, or null to leave the map undarkened. */
@@ -181,6 +183,7 @@ export function TrackerMapCanvas({
   bearingDeg = null,
   cameraTarget = null,
   cameraKey = null,
+  projection = "mercator",
   daylightAt,
   auroraGrid,
   lightPollution,
@@ -498,6 +501,48 @@ export function TrackerMapCanvas({
       },
     );
   }, [cameraKey, cameraTarget, epoch]);
+
+  /**
+   * Mercator or globe, and no weather in between.
+   *
+   * MapLibre draws a globe natively, so this is one call rather than a second
+   * renderer: the same style, the same sources, the same layers, projected onto
+   * a sphere. Everything Tracker draws over the geography — the twilight
+   * terminator, the light-pollution field, an eclipse's coverage, a shower's
+   * potential — is a raster over real coordinates and follows the projection
+   * without knowing about it.
+   *
+   * ## No atmosphere
+   *
+   * MapLibre's globe blends an atmosphere in by default at 0.8, which is a blue
+   * halo and a lit limb. It is handsome and it is a picture of daylight, on a
+   * product whose entire subject is what the sky does after dark — and it puts
+   * a bright ring around the one edge of the map where a low-altitude eclipse
+   * or an aurora oval is being read. Blend goes to zero and the sky is painted
+   * the same ink as the land, so the planet sits on the page rather than
+   * floating in a rendering of air.
+   *
+   * ## World copies
+   *
+   * Repeated worlds are a Mercator answer to a Mercator problem — an edge that
+   * is not really an edge. A sphere has no seam to paper over, so the copies
+   * are switched off with the projection rather than left to be drawn into
+   * nothing.
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || epoch === 0) return;
+    instance.setProjection({ type: projection });
+    instance.setRenderWorldCopies(projection === "mercator");
+    // The same ink either way: Mercator has no sky to paint and the globe's is
+    // set to the ground it sits on, so neither mode renders air.
+    instance.setSky({
+      "sky-color": INK.land,
+      "horizon-color": INK.land,
+      "fog-color": INK.land,
+      "atmosphere-blend": 0,
+    });
+  }, [projection, epoch]);
 
   /** The pin, as a marker the renderer keeps in place for us. */
   useEffect(() => {

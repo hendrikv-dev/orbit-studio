@@ -95,6 +95,17 @@ export interface TrackerMapLocation {
    * returning to the map has to return to the same card, not to a default rail.
    */
   card: string | null;
+  /**
+   * Which projection the map is drawn in.
+   *
+   * Tracker is 2D first and stays that way: the globe is another
+   * representation of the same map, for the readers and the phenomena where a
+   * sphere says something a rectangle cannot — an eclipse track running around
+   * a limb, an aurora oval that really is a ring. It is in the URL because it
+   * is part of what a shared link should reproduce, and because switching must
+   * not be a thing the reader loses by pressing Back.
+   */
+  projection: "mercator" | "globe";
 }
 
 export const TRACKER_APP_PARAM = "app";
@@ -137,6 +148,7 @@ export function defaultMapLocation(): TrackerMapLocation {
     category: "all",
     detail: null,
     drill: null,
+    projection: "mercator",
     layers: [],
     event: null,
     card: null,
@@ -198,6 +210,10 @@ export function parseMapLocation(search: string): TrackerMapLocation {
 
   const card = params.get("card");
   if (card) location.card = card;
+
+  // 2D unless the URL says otherwise, so a link without it opens where Tracker
+  // opens.
+  if (params.get("globe") === "1") location.projection = "globe";
 
   const drill = params.get("drill");
   if (drill && DRILLS.has(drill)) location.drill = drill as TrackerMapLocation["drill"];
@@ -262,6 +278,7 @@ export function mapLocationToSearch(location: TrackerMapLocation): string {
   if (location.layers.length > 0) params.set("layers", [...location.layers].sort().join(","));
   if (location.event) params.set("show", location.event);
   if (location.card) params.set("card", location.card);
+  if (location.projection === "globe") params.set("globe", "1");
 
   return `?${params.toString()}`;
 }
@@ -320,6 +337,7 @@ export function sameMapLocation(a: TrackerMapLocation, b: TrackerMapLocation): b
     a.category === b.category &&
     a.detail === b.detail &&
     a.drill === b.drill &&
+    a.projection === b.projection &&
     true
   );
 }

@@ -126,6 +126,7 @@ import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTer
 import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerMapControls } from "./map/TrackerMapControls";
 import { TrackerMapLightLegend } from "./map/TrackerMapLegend";
+import { TrackerProjectionToggle } from "./map/TrackerProjectionToggle";
 import { TrackerSkyChart } from "./TrackerSkyChart";
 import { TrackerExperience, experienceFor } from "./TrackerExperience";
 import { TrackerNightActivity } from "./viz/TrackerNightActivity";
@@ -2334,6 +2335,7 @@ function TrackerScreen() {
         pin={location.pin}
         pinLabel={namedPlace ? shortPlaceName(namedPlace) : null}
         bearingDeg={observingBearing}
+        projection={location.projection}
         // Framed once per event, so panning afterwards is the reader's.
         cameraTarget={cameraTarget}
         cameraKey={selectedEvent ? `${selectedEvent.id}#${frameRequest}` : null}
@@ -2464,6 +2466,18 @@ function TrackerScreen() {
           })
         }
       />
+
+      {/* Mercator or globe. Under the elements that say what is being looked
+          at, not beside the ones that move the camera — and `settle` rather
+          than `navigate`, because it changes how the map is drawn rather than
+          what it is showing, and a reader pressing Back expects to undo where
+          they went rather than which surface they were looking at. */}
+      {!detailOpen ? (
+        <TrackerProjectionToggle
+          projection={location.projection}
+          onSelect={(projection) => settle({ projection })}
+        />
+      ) : null}
 
       {/* The key to the one layer whose colour is a measured number. Only while
           that layer is on, and never over a detail page. */}

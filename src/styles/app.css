@@ -16921,6 +16921,57 @@ button.primary,
   .tk-map-notice { bottom: 250px; }
 }
 
+/* --- 2D or 3D, top left --------------------------------------------------
+
+   Under the elements that name what the reader is looking at — the brand, the
+   place, the date — rather than beside the ones that move the camera. A
+   projection is not a viewport. */
+.tk-projection {
+  position: absolute;
+  left: 14px;
+  top: 68px;
+  z-index: 5;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 11px;
+  background: var(--tk-glass);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-projection-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  /* 34px tall and comfortably wide: small enough to sit under the top bar
+     without competing with it, large enough to be a real touch target. */
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--tk-ink-dim, #a9b6cd);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.tk-projection-option + .tk-projection-option {
+  border-left: 1px solid rgba(126, 152, 190, 0.14);
+}
+.tk-projection-option:hover { color: var(--tk-ink, #e8ecf6); }
+.tk-projection-option[data-current="true"] {
+  background: rgba(124, 140, 248, 0.16);
+  color: var(--tk-ink, #e8ecf6);
+}
+.tk-projection-option:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+@media (max-width: 720px) {
+  /* The phone's top bar is two rows, so the control clears both. */
+  .tk-projection { top: 108px; left: 10px; }
+}
+
 /* --- the light-pollution key --------------------------------------------
 
    Bottom left, above the rail, and only while the layer is on. It is the one

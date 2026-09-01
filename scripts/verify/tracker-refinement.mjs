@@ -126,6 +126,27 @@ async function closeLayerPanel(page) {
   await page.waitForTimeout(250);
 }
 
+/**
+ * Close the onboarding tour, which is anchored over the top-left controls.
+ *
+ * Seeding "seen" in localStorage does not work here: the tour decides whether
+ * to run after the map settles, and the harness's init script runs before that.
+ * Pressing its own close button is what a reader does, and it is what leaves
+ * the interface in the state the checks are about.
+ */
+async function dismissTour(page) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const close = page
+      .locator(".tk-callout button[aria-label*='lose'], .tk-callout button:has-text('Done')")
+      .first();
+    if ((await close.count()) === 0) break;
+    await close.click().catch(() => {});
+    await page.waitForTimeout(400);
+  }
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+}
+
 async function openLayerPanel(page) {
   if ((await page.locator(".tk-layers-panel").count()) === 0) {
     await page.locator(".tk-layers-trigger").click();
@@ -913,6 +934,142 @@ async function main() {
       /solar eclipse/i.test(lead),
       `a daytime eclipse leads the ranking on its own date ("${lead}")`,
     );
+    await context.close();
+  }
+
+  /* --- 2D and 3D are the same map ----------------------------------------- */
+  console.log("\n2D and 3D");
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(
+      `${TRACKER}&at=45.5,-122.7&z=4&date=2027-08-12&show=meteor-shower-PER-2027-08-12&layers=twilight`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await settled(page, 2500);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    await dismissTour(page);
+
+    const state = () =>
+      page.evaluate(() => {
+        const map = window.__trackerMap;
+        const style = map.getStyle();
+        const params = new URLSearchParams(location.search);
+        const toggle = document.querySelector(".tk-projection");
+        const topbar = document.querySelector(".tk-map-topbar");
+        return {
+          projection: (map.getProjection?.() ?? style.projection ?? { type: "mercator" }).type,
+          worldCopies: map.getRenderWorldCopies(),
+          atmosphere: style.sky?.["atmosphere-blend"] ?? null,
+          overlays: style.layers
+            .filter((layer) => /^tracker-/.test(layer.id))
+            .map((layer) => layer.id),
+          centre: {
+            lat: Number(map.getCenter().lat.toFixed(3)),
+            lng: Number(map.getCenter().lng.toFixed(3)),
+            zoom: Number(map.getZoom().toFixed(2)),
+          },
+          card: document.querySelector('.tk-rail-card[data-expanded="true"]')?.dataset.card ?? null,
+          url: {
+            pin: params.get("pin"),
+            date: params.get("date"),
+            show: params.get("show"),
+            layers: params.get("layers"),
+            globe: params.get("globe"),
+          },
+          toggle: toggle
+            ? {
+                left: Math.round(toggle.getBoundingClientRect().left),
+                top: Math.round(toggle.getBoundingClientRect().top),
+                belowTopBar: topbar
+                  ? toggle.getBoundingClientRect().top >=
+                    topbar.getBoundingClientRect().bottom - 1
+                  : false,
+                inControlStack: Boolean(toggle.closest(".tk-map-controls-view")),
+              }
+            : null,
+          selected:
+            document.querySelector('.tk-projection-option[aria-checked="true"]')?.getAttribute("aria-label") ?? null,
+          tabStops: [...document.querySelectorAll(".tk-projection-option")].map((b) => b.tabIndex),
+        };
+      });
+
+    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
+    await page.waitForTimeout(1400);
+    const flat = await state();
+
+    check(flat.projection === "mercator", "Tracker opens flat, and stays 2D-first");
+    check(flat.url.globe === null, "and a link without the flag opens flat");
+    /**
+     * The control belongs with what the reader is looking at, not with what
+     * moves the camera.
+     */
+    check(
+      flat.toggle !== null && flat.toggle.left < 200 && flat.toggle.belowTopBar,
+      `the 2D/3D control sits top-left, under the top bar (${JSON.stringify(flat.toggle)})`,
+    );
+    check(
+      flat.toggle !== null && !flat.toggle.inControlStack,
+      "and not in the zoom and Layers stack on the right",
+    );
+    check(
+      JSON.stringify(flat.tabStops) === JSON.stringify([0, -1]),
+      `one tab stop for the group, on the selected option (${flat.tabStops.join(", ")})`,
+    );
+
+    // The arrow keys move and select, which is what the radio role promises.
+    await page.locator('.tk-projection-option[aria-checked="true"]').focus();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(4000);
+    const globe = await state();
+    check(globe.projection === "globe", "the arrow keys switch projection");
+    check(globe.selected?.includes("Globe") === true, "and the selection follows");
+    check(globe.url.globe === "1", "and the globe is a state the URL describes");
+
+    /**
+     * No atmosphere, in either mode.
+     *
+     * MapLibre's globe blends one in at 0.8 by default: a blue halo and a lit
+     * limb. It is a picture of daylight on a product about what the sky does
+     * after dark, and it puts a bright ring around exactly the edge where a
+     * low-altitude eclipse or an aurora oval is read.
+     */
+    check(globe.atmosphere === 0, `the globe renders no atmosphere (blend ${globe.atmosphere})`);
+    check(
+      globe.worldCopies === false && flat.worldCopies === true,
+      "repeated worlds are a flat-map answer and stop at the globe",
+    );
+    check(
+      globe.overlays.length === flat.overlays.length && globe.overlays.length > 0,
+      `the same overlays are drawn in 3D (${globe.overlays.join(", ")})`,
+    );
+
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(3500);
+    const back = await state();
+    check(back.projection === "mercator", "and back again");
+
+    const kept = (key) =>
+      JSON.stringify(flat[key]) === JSON.stringify(globe[key]) &&
+      JSON.stringify(globe[key]) === JSON.stringify(back[key]);
+    for (const [key, what] of [
+      ["card", "the expanded card"],
+      ["centre", "the camera"],
+      ["overlays", "the event overlay"],
+    ]) {
+      check(kept(key), `2D → 3D → 2D keeps ${what}`);
+    }
+    for (const field of ["pin", "date", "show", "layers"]) {
+      check(
+        flat.url[field] === globe.url[field] && globe.url[field] === back.url[field],
+        `2D → 3D → 2D keeps ${field} (${flat.url[field]})`,
+      );
+    }
+    check(back.url.globe === null, "and the flag is dropped when it goes back to flat");
+
     await context.close();
   }
 
