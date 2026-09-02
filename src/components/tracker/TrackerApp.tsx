@@ -10,6 +10,10 @@ import {
   type PlaceClock,
 } from "../../lib/localTime";
 import { planNight, type NightPlan } from "../../data/tracker/schedule";
+import {
+  fetchIssEphemeris,
+  fetchLatestDeployment,
+} from "../../data/tracker/satelliteSources";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
@@ -708,12 +712,97 @@ function TrackerScreen() {
     [clock.timeZone, isToday, selectedDate, todayAnchor],
   );
 
+  /**
+   * The vendored light-pollution composite, decoded once and only when wanted.
+   *
+   * A megabyte of PNG and a full decode is not something to spend on a reader
+   * who never opens the layer, so it is fetched the first time the layer is
+   * switched on and kept for the session afterwards.
+   */
+  const lightPollution = useQuery({
+    queryKey: ["tracker", "light-pollution"],
+    enabled: location.layers.includes("light-pollution"),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    queryFn: () => loadLightPollution(),
+  });
+
+  /**
+   * The measurement at the selected place.
+   *
+   * A separate query from the archive itself because it is a different thing to
+   * wait for: opening the archive fetches a 400 KB index once per session, and
+   * this fetches the single 256×256 tile that covers the reader's own point.
+   * Keyed on the place at three decimals — about 100 m, finer than the archive
+   * resolves — so panning the map never triggers a fetch and only a genuine
+   * change of place does.
+   */
+  const lightHere = useQuery({
+    queryKey: [
+      "tracker",
+      "light-pollution",
+      "at",
+      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+    ],
+    enabled: Boolean(place) && Boolean(lightPollution.data),
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
+  });
+
+  /**
+   * The orbits, for tonight only.
+   *
+   * Two requests to CelesTrak, both small and both cached for the session: the
+   * station's ephemeris, and whichever Starlink deployment is currently being
+   * published as a stack. Only fetched for a night the data can describe — the
+   * station's ephemeris covers a fortnight and a deployment's a few days, and
+   * propagating either past that is exactly what the satellite rule refuses to
+   * do elsewhere.
+   *
+   * Failure is a real state and stays one. If neither answers, no pass is
+   * offered, and nothing else on the page changes: this is one more thing that
+   * might be up tonight, not a dependency of the night.
+   */
+  const satelliteWindow = useMemo(() => {
+    const days = (planAnchor.getTime() - todayAnchor.getTime()) / 86_400_000;
+    return days >= -1 && days <= 10;
+  }, [planAnchor, todayAnchor]);
+
+  const orbits = useQuery({
+    queryKey: ["tracker", "satellites", selectedDate],
+    enabled: satelliteWindow,
+    /**
+     * Two hours, and no retry, because the publisher asked for both.
+     *
+     * CelesTrak's usage policy is explicit: download data once per update, and
+     * their updates are two-hourly for GP and for SupGP; and machine-to-machine
+     * software must stop querying the moment it receives anything other than a
+     * 200 rather than trying again. Retrying a 503 is what their policy exists
+     * to prevent, and repeatedly ignoring it ends with the address firewalled —
+     * so a failed fetch is a night without a pass, not a night with two more
+     * requests in it.
+     */
+    staleTime: 2 * 60 * 60_000,
+    gcTime: 3 * 60 * 60_000,
+    retry: false,
+    queryFn: async ({ signal }) => ({
+      iss: await fetchIssEphemeris(signal),
+      deployment: await fetchLatestDeployment(signal),
+    }),
+  });
+
   const night = useMemo(
     () =>
       place
-        ? planNight(place.latitude, place.longitude, planAnchor, clock.timeZone)
+        ? planNight(place.latitude, place.longitude, planAnchor, clock.timeZone, {
+            iss: orbits.data?.iss ?? null,
+            deployment: orbits.data?.deployment ?? null,
+            artificialLightRadiance: lightHere.data ?? null,
+          })
         : null,
-    [place, clock.timeZone, planAnchor],
+    [place, clock.timeZone, planAnchor, orbits.data, lightHere.data],
   );
 
   // The plan changes only when an authoritative input changes or the observing
@@ -895,44 +984,7 @@ function TrackerScreen() {
     [aurora.data, auroraAssessment, place],
   );
 
-  /**
-   * The vendored light-pollution composite, decoded once and only when wanted.
-   *
-   * A megabyte of PNG and a full decode is not something to spend on a reader
-   * who never opens the layer, so it is fetched the first time the layer is
-   * switched on and kept for the session afterwards.
-   */
-  const lightPollution = useQuery({
-    queryKey: ["tracker", "light-pollution"],
-    enabled: location.layers.includes("light-pollution"),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: 1,
-    queryFn: () => loadLightPollution(),
-  });
 
-  /**
-   * The measurement at the selected place.
-   *
-   * A separate query from the archive itself because it is a different thing to
-   * wait for: opening the archive fetches a 400 KB index once per session, and
-   * this fetches the single 256×256 tile that covers the reader's own point.
-   * Keyed on the place at three decimals — about 100 m, finer than the archive
-   * resolves — so panning the map never triggers a fetch and only a genuine
-   * change of place does.
-   */
-  const lightHere = useQuery({
-    queryKey: [
-      "tracker",
-      "light-pollution",
-      "at",
-      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
-    ],
-    enabled: Boolean(place) && Boolean(lightPollution.data),
-    staleTime: Infinity,
-    gcTime: 30 * 60_000,
-    queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
-  });
 
   const tonightEvents = useMemo<TonightEvent[]>(() => {
     if (!night || !withSky || !place) return [];
@@ -1642,7 +1694,23 @@ function TrackerScreen() {
 
   const visualization = useMemo(() => {
     if (!heroEvent || !night || !place) return null;
-    const timing = `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
+    /**
+     * The window the panel is about, which is not always the night.
+     *
+     * For a planet it is: Saturn is up for hours and the chart is the shape of
+     * those hours. A spacecraft is overhead for four minutes, and printing
+     * "7:46 PM to 6:34 AM" beside a four-minute spike says the pass lasts all
+     * night. The chart still spans the night, because when in the night it
+     * falls is the thing worth seeing; the line beneath says how long it is.
+     */
+    const passGeometry = heroEvent.entry?.opportunity.geometry;
+    const timing =
+      heroEvent.entry?.opportunity.kind === "satellite" &&
+      passGeometry?.kind === "target" &&
+      passGeometry.riseUtc &&
+      passGeometry.setUtc
+        ? `${formatClockTime(passGeometry.riseUtc, clock)} to ${formatClockTime(passGeometry.setUtc, clock)}`
+        : `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
     // "Saturn tonight" is wrong on a night that is not tonight.
     const nightWord = describeDate(selectedDate, today).heading;
     /**
@@ -2638,7 +2706,12 @@ function TrackerScreen() {
             media={heroEvent.media}
             visualization={visualization}
             conditions={conditions}
-            conditionsCaption={conditionsCaption(sources)}
+            conditionsCaption={conditionsCaption(
+              sources,
+              heroEvent?.entry?.opportunity.kind === "satellite"
+                ? heroEvent.entry.opportunity.limitations
+                : [],
+            )}
             evidenceStatus={environment.status}
             /**
              * The hero's own control, routed by what it says it is.
@@ -2923,9 +2996,22 @@ function auroraBounds(latitudeDeg: number, longitudeDeg: number) {
  * computed value from the fetched ones, which is the distinction the row's
  * whole credibility rests on.
  */
-function conditionsCaption(sources: WeatherSourceInfo[]): string | null {
+function conditionsCaption(
+  sources: WeatherSourceInfo[],
+  /**
+   * What the subject's own numbers came from, where they came from outside.
+   *
+   * Weather is credited here because the row's credibility rests on saying
+   * which numbers were fetched and which were computed. A pass is the same
+   * question and a sharper one: the whole page is a prediction, its brightness
+   * is somebody else's measurement, and neither of those is something the
+   * reader should have to take on trust.
+   */
+  subject: readonly string[] = [],
+): string | null {
   const parts = sources.map((source) => source.attribution);
   parts.push("Moon phase and altitude computed on this device.");
+  parts.push(...subject);
   return parts.join(" ");
 }
 

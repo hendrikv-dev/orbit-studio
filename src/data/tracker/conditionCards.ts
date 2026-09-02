@@ -566,7 +566,8 @@ export interface ConditionSubject {
     | "pairings"
     | "eclipses"
     | "deep-sky"
-    | "auroras";
+    | "auroras"
+    | "satellites";
   /**
    * True when the Moon is what the reader is looking at, rather than something
    * competing with it: the Moon itself, a lunar eclipse, or a pairing with the

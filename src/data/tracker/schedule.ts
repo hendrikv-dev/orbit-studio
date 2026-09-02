@@ -1,4 +1,7 @@
 import { deepSkyOpportunities } from "./deepSky";
+import { skyConditionsAt } from "./nakedEye";
+import { satelliteOpportunities } from "./satellites";
+import type { Deployment, IssEphemeris } from "./satelliteSources";
 import { meteorNight } from "./meteorActivity";
 import type { MeteorNight } from "./meteorActivity";
 import type { ObservationPeriod } from "./observationPeriod";
@@ -120,11 +123,27 @@ function dateKeyFor(at: Date, timeZone: string | null): string {
  * or a coordinate the ephemeris search cannot close on. A caller iterating a
  * month needs to skip those rather than fail the month.
  */
+/**
+ * The orbits, where they have been fetched.
+ *
+ * Optional and only supplied for tonight. The ISS ephemeris covers a fortnight
+ * and a deployment stack a few days, so handing either to a plan three weeks out
+ * would be propagating an element set past the arc it describes — and the whole
+ * point of the satellite rule is that it does not predict what it cannot.
+ */
+export interface SatelliteFeeds {
+  iss: IssEphemeris | null;
+  deployment: Deployment | null;
+  /** Radiance at the observer, so the pass is judged against their real sky. */
+  artificialLightRadiance: number | null;
+}
+
 export function planNight(
   latitudeDeg: number,
   longitudeDeg: number,
   at: Date,
   timeZone: string | null = null,
+  satellites: SatelliteFeeds | null = null,
 ): NightPlan | null {
   try {
     const period = trackerObservationPeriod(latitudeDeg, longitudeDeg, at);
@@ -144,6 +163,29 @@ export function planNight(
         startUtc: period.startUtc,
         endUtc: period.endUtc,
       }),
+      /**
+       * And spacecraft, on the same terms again.
+       *
+       * A pass competes with Saturn rather than sitting in a section of its
+       * own. What keeps it out of the list on most nights is that it has to
+       * clear the same naked-eye test — lit, high enough, in a dark enough sky
+       * — and on most nights it does not.
+       */
+      ...(satellites
+        ? satelliteOpportunities(latitudeDeg, longitudeDeg, {
+            startUtc: period.startUtc,
+            endUtc: period.endUtc,
+            iss: satellites.iss,
+            deployment: satellites.deployment,
+            skyAt: (when) =>
+              skyConditionsAt(
+                latitudeDeg,
+                longitudeDeg,
+                when.toISOString(),
+                satellites.artificialLightRadiance,
+              ),
+          })
+        : []),
     ]);
     return {
       identity: planIdentity(latitudeDeg, longitudeDeg, timeZone, period.startUtc),

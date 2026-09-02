@@ -34,6 +34,7 @@
       "api.met.no",
       "api.weather.gov",
       "apps.apple.com",
+      "arxiv.org",
       "assets.science.nasa.gov",
       "atmosphere.copernicus.eu",
       "build.protomaps.com",
@@ -61,11 +62,13 @@
       "github.com",
       "globalmeteornetwork.org",
       "httpbin.org",
+      "images-api.nasa.gov",
       "images-assets.nasa.gov",
       "images.nasa.gov",
       "localhost",
       "maplibre.org",
       "mapterhorn.com",
+      "mmccants.org",
       "noirlab.edu",
       "open-meteo.com",
       "opendatacommons.org",
@@ -269,6 +272,50 @@
         "inclusionStatus": "local-only",
         "release1Included": false,
         "restrictions": "Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission."
+      }
+    },
+    {
+      "id": "celestrak-satellite-orbits-runtime",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "src/data/tracker/satelliteSources.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "CelesTrak General Perturbations (GP) and Supplemental GP (SupGP) element sets",
+        "url": "https://celestrak.org/NORAD/elements/supplemental/",
+        "publicationUrl": "https://celestrak.org/NORAD/documentation/sup-gp-queries.php",
+        "publisher": "CelesTrak / Dr. T.S. Kelso",
+        "version": "Live service; no snapshot retained in this repository",
+        "retrievedAt": null
+      },
+      "localSha256": {
+        "src/data/tracker/satelliteSources.ts": "308d6c1ffd12cc72001c46a2fe61765bbc7474dc597035b958ea9a948647cca1"
+      },
+      "processing": [
+        "Tracker fetches two documents at runtime, in the reader's own browser, and commits neither: the ISS supplemental ephemeris, which is derived from NASA's published trajectory, and whichever Starlink post-deployment stack vector CelesTrak is currently listing. Both are cached for two hours, which is the publisher's own stated update cadence.",
+        "SupGP is preferred over GP wherever it exists, because it is derived from the operator's own data. GP is the fallback for the ISS and is recorded as such on the page, so a prediction can always say which of the two it came from.",
+        "The usage policy asks machine-to-machine consumers to stop querying on any non-200 response rather than retrying. The query is configured with no retries and the deployment fetch stops at the first refusal; a failure produces no pass rather than more requests.",
+        "No element set is committed to this repository. The fixtures in the unit tests and in scripts/verify/tracker-refinement.mjs are Orbit Studio's own constructed elements — the shape of a station and of a deployment stack — because no authoritative grant was found for redistributing CelesTrak's own data."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "CelesTrak's usage policy permits documented consumer acquisition subject to stated rate limits and error handling. It grants nothing about redistribution, which is why nothing is redistributed.",
+        "evidenceUrls": [
+          "https://celestrak.org/usage-policy.php",
+          "https://celestrak.org/NORAD/documentation/sup-gp-queries.php"
+        ],
+        "attribution": "Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory and a Starlink stack vector from SpaceX's published state vector.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "not-applicable-external-service"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The two-hour cache and the stop-on-error behaviour are licence-adjacent conditions of use, not performance choices, and must not be relaxed. No response may be committed to the repository or bundled into a deployment."
       }
     },
     {
@@ -856,6 +903,86 @@
       }
     },
     {
+      "id": "mallama-starlink-orbit-raising-brightness",
+      "category": "scientific-reference-output",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "The Brightness of Starlink Mini Satellites During Orbit-Raising",
+        "url": "https://arxiv.org/abs/2405.12007",
+        "publicationUrl": "https://arxiv.org/abs/2405.12007",
+        "publisher": "Mallama, A., Cole, R. E., Respler, J., Harrington, S., Lee, R. and Worley, A. (2024)",
+        "version": "arXiv:2405.12007v1, 2024-05-20",
+        "retrievedAt": "2026-09-02"
+      },
+      "localSha256": {},
+      "processing": [
+        "Five figures are quoted from the paper and nothing else: the 357 km height at which SpaceX appears to begin brightness mitigation, the mean magnitudes adjusted to 1000 km either side of it (4.58 and 7.52), the 2.94-magnitude separation between them, and the 250 km floor below which the study excluded objects as de-orbiting rather than orbit-raising.",
+        "They are population means over 580 observations, not predictions for one pass, and Tracker treats them as such: only range is applied to them, because the paper's adjustment normalised distance and not phase; half the separation between the two modes is required as headroom before a train is offered at all; and a stack within seventeen kilometres of the mitigation threshold is withheld rather than assigned to either population.",
+        "No text, figure or table from the paper is reproduced."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Measured quantities reported in a published study are facts, cited here with full attribution. No expressive content from the paper is reproduced.",
+        "evidenceUrls": [
+          "https://arxiv.org/abs/2405.12007"
+        ],
+        "attribution": "Starlink orbit-raising brightness from Mallama et al. (2024), arXiv:2405.12007.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "quoted-values-only"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The citation must remain with the values. The figures describe a population and must not be presented as a prediction for an individual pass."
+      }
+    },
+    {
+      "id": "mccants-quicksat-intrinsic-magnitudes",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "scripts/build-satellite-brightness.mjs",
+        "src/data/satellites/brightness.json"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Quicksat intrinsic magnitude file (qs.mag)",
+        "url": "https://mmccants.org/programs/qsmag.zip",
+        "publicationUrl": "https://mmccants.org/programs/",
+        "publisher": "Mike McCants",
+        "version": "Published 2020-09-14, SHA-256 3f3f507014a047b6319813e73e818f065a029355c37a4b4e644213408f6a70a9",
+        "retrievedAt": "2026-09-02"
+      },
+      "localSha256": {
+        "scripts/build-satellite-brightness.mjs": "04c1a14252b7a75ad91ccdbafc711b3216a9c166a11b282297ba2d8f873e191a",
+        "src/data/satellites/brightness.json": "68120298b48caf2a37ee14f388761857861cc4e7681210f12f68bfa25c1f207f"
+      },
+      "processing": [
+        "The long-standing amateur reference for satellite standard magnitudes, compiled from visual and electronic observation. Tracker quotes a single value from it — the International Space Station's standard magnitude of −2.5 — with attribution. The file itself is neither committed nor redistributed; the build script fetches it, verifies its checksum and reads the one row.",
+        "The checksum is pinned so that a revision of the source fails the build rather than silently moving a number the product admits things on.",
+        "The convention is stated with the value: visual magnitude at 1000 km range and 50 per cent illumination. Tracker carries it through the real slant range and phase angle of each pass rather than presenting it as an apparent magnitude."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Individual measured magnitudes are facts rather than expressive content, and Tracker quotes one of them with attribution rather than reproducing the compilation. The file is not committed, bundled or redistributed.",
+        "evidenceUrls": [
+          "https://mmccants.org/programs/"
+        ],
+        "attribution": "Standard magnitude from Mike McCants' Quicksat intrinsic magnitude file (qs.mag), 14 September 2020.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "quoted-value-only"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Only the specific values Tracker uses may be quoted, with attribution. The compilation must not be committed or redistributed, and the pinned checksum must not be updated without reviewing what changed."
+      }
+    },
+    {
       "id": "meteor-stream-parameters-2026-08-16",
       "category": "meteor-stream-parameters",
       "repositoryPaths": [
@@ -1120,8 +1247,8 @@
       },
       "processing": [
         "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
-        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
         "The published frame is two panels — natural colour and contrast-enhanced — which as a hero reads as two planets. Cropped to the left, natural-colour panel; nothing else was altered.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
         "nasa-PIA23791-planet-venus.webp — \"Venus from Mariner 10\", credit: NASA/JPL-Caltech, source: https://photojournal.jpl.nasa.gov/catalog/PIA23791, presented in the interface as a spacecraft mosaic.",
         "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
       ],
@@ -1140,6 +1267,51 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
+      "id": "nasa-spacecraft-photography",
+      "category": "spacecraft-photography",
+      "repositoryPaths": [
+        "public/sky/nasaimages-iss066e081189-satellite-iss-thumb.webp",
+        "public/sky/nasaimages-iss066e081189-satellite-iss.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/nasaimages-iss066e081189-satellite-iss-thumb.webp",
+        "sky/nasaimages-iss066e081189-satellite-iss.webp"
+      ],
+      "originalSource": {
+        "title": "NASA Image and Video Library photograph of the International Space Station",
+        "url": "https://images.nasa.gov/details/iss066e081189",
+        "publicationUrl": "https://images.nasa.gov/",
+        "publisher": "NASA",
+        "version": "iss066e081189, photographed 8 November 2021 from Crew Dragon Endeavour",
+        "retrievedAt": "2026-09-02"
+      },
+      "localSha256": {
+        "public/sky/nasaimages-iss066e081189-satellite-iss-thumb.webp": "c84cdf2a36fe5f7740e08f89477260b82d97d4fd245e10b6bb4140772450f054",
+        "public/sky/nasaimages-iss066e081189-satellite-iss.webp": "2aaf4ea0876c171d9a00f92c608f15de77fe4a530ef48db998066d8e77189a93"
+      },
+      "processing": [
+        "Retrieved by scripts/build-tracker-imagery.mjs, which checks the library's own description of the frame names the International Space Station before downloading it, and resized to at most 1280 pixels with a thumbnail for the rail.",
+        "nasaimages-iss066e081189-satellite-iss.webp — \"The Space Station, photographed from Crew Dragon in 2021\", credit: NASA, source: https://images.nasa.gov/details/iss066e081189, presented in the interface as a photograph taken from orbit.",
+        "Presented as a photograph taken from orbit, with the sentence saying what the view from the ground is instead: a single steady point with no shape at all."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes with the credit retained and no implication of endorsement.",
+        "evidenceUrls": [
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "NASA.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The credit must remain rendered on the image, and the perception classification and eye-expectation sentence must remain with it."
       }
     },
     {
@@ -1309,6 +1481,8 @@
         "public/sky/noirlab-noao-m92-m92.webp",
         "public/sky/noirlab-noao0001a-m31-thumb.webp",
         "public/sky/noirlab-noao0001a-m31.webp",
+        "public/sky/noirlab-noirlab2206b-satellite-train-thumb.webp",
+        "public/sky/noirlab-noirlab2206b-satellite-train.webp",
         "scripts/build-tracker-imagery.mjs",
         "src/data/tracker/heroImagery.json"
       ],
@@ -1337,7 +1511,9 @@
         "sky/noirlab-noao-m92-m92-thumb.webp",
         "sky/noirlab-noao-m92-m92.webp",
         "sky/noirlab-noao0001a-m31-thumb.webp",
-        "sky/noirlab-noao0001a-m31.webp"
+        "sky/noirlab-noao0001a-m31.webp",
+        "sky/noirlab-noirlab2206b-satellite-train-thumb.webp",
+        "sky/noirlab-noirlab2206b-satellite-train.webp"
       ],
       "originalSource": {
         "title": "NSF NOIRLab deep-sky photographs used as Tracker hero imagery",
@@ -1372,8 +1548,10 @@
         "public/sky/noirlab-noao-m92-m92.webp": "d59c692b591bfc69c66c0d769009567fb97b6881338bec8ab116beff7aaa3600",
         "public/sky/noirlab-noao0001a-m31-thumb.webp": "64c430252e8311e54a25bde94d9f657e6152d1db63f0994551c77d8a2a53730b",
         "public/sky/noirlab-noao0001a-m31.webp": "85dc12b392a4898b47cffd53d8f840113c3562f9e81d2666f437f8c8627c87d4",
-        "scripts/build-tracker-imagery.mjs": "90a7ce8252b079ad867e9d83217f81bd9ef194a9bfb960f22536fe11b2265c8f",
-        "src/data/tracker/heroImagery.json": "0b81fe193413249fbceb22211785143578d32db0d126fb5b47e2bad80cda5e8f"
+        "public/sky/noirlab-noirlab2206b-satellite-train-thumb.webp": "938291df8a703764e3278ba9bb73a7995d9198909f1dfa6c9529ba6710e38379",
+        "public/sky/noirlab-noirlab2206b-satellite-train.webp": "60ac1b8a97356cebee7f7f21a82985d09cc9b1d8f32d69365ef045c5fd10d74d",
+        "scripts/build-tracker-imagery.mjs": "ebd9f122f518f09a256cc3f9ba39e0ca4267eeea43d0f619914b72614900a681",
+        "src/data/tracker/heroImagery.json": "43b2d04df5b73327026f072e6326f9ff7b025ff7255fc14d5bbabceb98630bcf"
       },
       "processing": [
         "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
@@ -1390,6 +1568,7 @@
         "noirlab-noao-m45-m45.webp — \"M45 Pleiades\", credit: NOIRLab/NSF/AURA/T.A. Rector (University of Alaska Anchorage), R. Cool (University of Arizona) and WIYN, source: https://noirlab.edu/public/images/noao-m45/, presented in the interface as a long-exposure photograph.",
         "noirlab-noao-m92-m92.webp — \"M92, NGC 6341\", credit: Hillary Mathis, REU program/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-m92/, presented in the interface as a long-exposure photograph.",
         "noirlab-noao0001a-m31.webp — \"The Andromeda Galaxy\", credit: Bill Schoening, Vanessa Harvey/REU program/NOIRLab/ NSF /AURA/, source: https://noirlab.edu/public/images/noao0001a/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noirlab2206b-satellite-train.webp — \"Starlink Satellites over Carson National Forest, New Mexico\", credit: M. Lewinsky/Creative Commons Attribution, source: https://noirlab.edu/public/images/noirlab2206b/, presented in the interface as a long-exposure photograph.",
         "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
       ],
       "rights": {
@@ -1642,6 +1821,49 @@
       }
     },
     {
+      "id": "orbit-studio-satellite-pass-prediction",
+      "category": "orbit-studio-original-work",
+      "repositoryPaths": [
+        "src/data/tracker/satelliteVisibility.ts",
+        "src/data/tracker/satellites.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio satellite pass prediction and naked-eye screening",
+        "url": "https://github.com/hendrikv-dev/orbit-studio",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio",
+        "version": "Written for this repository",
+        "retrievedAt": null
+      },
+      "localSha256": {
+        "src/data/tracker/satelliteVisibility.ts": "53ac4da9cfadcc754ba09c32ba648f0f971e5151cf3c007fe30edfd222dec467",
+        "src/data/tracker/satellites.ts": "7612619bda0e5caccc5d53421f36dd64d8246c60f44f950b41a288977f94a0dc"
+      },
+      "processing": [
+        "Propagation is SGP4 by way of satellite.js. Everything else here is Orbit Studio's: the conical umbra and penumbra test with a 90 km atmospheric allowance, the phase geometry, the reduction of a published standard magnitude to the slant range and phase of a particular pass, and the screening of the result against the same limiting-magnitude model the rest of Tracker ranks with.",
+        "No brightness is derived from orbital geometry. Geometry only scales a published measurement, and an object with no published measurement is not offered."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Original work in this repository, governed by its own licence.",
+        "evidenceUrls": [
+          "https://github.com/hendrikv-dev/orbit-studio"
+        ],
+        "attribution": "Orbit Studio.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "None."
+      }
+    },
+    {
       "id": "orbit-studio-tracker-scene-artwork",
       "category": "first-party-illustration",
       "repositoryPaths": [
@@ -1659,7 +1881,7 @@
       },
       "localSha256": {
         "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
-        "src/data/tracker/imagery.ts": "e8eead051e1cfd8ee028e9e84939279f68ab87e0d85cba31280ab881fe5af1d8"
+        "src/data/tracker/imagery.ts": "4d734dee376a4cb1c68ecf24a8f25f6ab6d05d932517fec37ebf765dc0ed5b07"
       },
       "processing": [
         "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",

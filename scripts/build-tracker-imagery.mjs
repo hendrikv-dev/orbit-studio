@@ -86,6 +86,23 @@ const ARCHIVES = {
     termsUrl: "https://www.nasa.gov/nasa-brand-center/images-and-media/",
     single: true,
   },
+  /**
+   * NASA's Image and Video Library, for spacecraft.
+   *
+   * No observatory photographs the Space Station; the people who fly to it do.
+   * The library records what each frame shows in its description rather than in
+   * a designation table, so that is what the check below reads.
+   */
+  nasaimages: {
+    label: "NASA",
+    page: (id) => `https://images.nasa.gov/details/${id}`,
+    describe: (id) => `https://images-api.nasa.gov/search?nasa_id=${encodeURIComponent(id)}`,
+    file: (id) => `https://images-assets.nasa.gov/image/${id}/${id}~large.jpg`,
+    licence: "NASA Images and Media Usage Guidelines",
+    licenceUrl: "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    termsUrl: "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    single: true,
+  },
   noirlab: {
     label: "NSF NOIRLab",
     page: (id) => `https://noirlab.edu/public/images/${id}/`,
@@ -107,6 +124,9 @@ const LOOKS = {
   hubble: { classification: "telescope-image", expectedMode: "processed" },
   ground: { classification: "long-exposure", expectedMode: "long-exposure" },
   spacecraft: { classification: "spacecraft-mosaic", expectedMode: "processed" },
+  // Taken from another spacecraft a few hundred metres away, which is neither a
+  // mosaic nor anything a telescope on the ground can do.
+  "from-orbit": { classification: "spacecraft-photograph", expectedMode: "processed" },
 };
 
 /**
@@ -347,6 +367,25 @@ const PICKS = [
     eye: "A ground-based telescope image, closer to the eyepiece view than the Hubble close-up. Visually it is a small, bright, blue-green disc — one of the few objects out here with a colour the eye can actually call a colour.",
   },
   {
+    id: "satellite-iss",
+    look: "from-orbit",
+    archive: "nasaimages",
+    image: "iss066e081189",
+    title: "The Space Station, photographed from Crew Dragon in 2021",
+    expect: ["International Space Station"],
+    focusY: "50%",
+    eye: "Photographed from a few hundred metres away. From the ground it has no shape at all: a single steady white point, brighter than any star, sliding across the sky for a few minutes without blinking.",
+  },
+  {
+    id: "satellite-train",
+    look: "ground",
+    archive: "noirlab",
+    image: "noirlab2206b",
+    expect: ["Starlink"],
+    focusY: "50%",
+    eye: "A time exposure, which is why the satellites are streaks. To the eye they are points rather than lines — a row of them, evenly spaced, following each other along the same track.",
+  },
+  {
     id: "planet-venus",
     look: "spacecraft",
     archive: "nasa",
@@ -491,10 +530,37 @@ try {
   for (const pick of PICKS) {
     const archive = ARCHIVES[pick.archive];
     const pageUrl = archive.page(pick.image);
-    const page = await fetchText(pageUrl);
-    const names = objectNames(page);
-    const title = pageTitle(page);
-    const credit = pageCredit(page);
+    let names = [];
+    let title = "";
+    let credit = "";
+    if (archive.describe) {
+      /**
+       * A library that files its images by frame number rather than by subject.
+       *
+       * The description is where it says what the picture is of, so that is
+       * what the identity check reads and what the caption is taken from. The
+       * pick supplies the title, because "iss066e081189" is not one.
+       */
+      const record = JSON.parse(await fetchText(archive.describe(pick.image)));
+      const data = record?.collection?.items?.[0]?.data?.[0] ?? {};
+      title = pick.title ?? entities(String(data.title ?? "")).trim();
+      names = [];
+      credit = entities(String(data.secondary_creator || data.photographer || archive.label));
+      const said = entities(String(data.description ?? ""));
+      if (said) title = pick.title ?? title;
+      // The identity check for this archive: the description has to name it.
+      if (!pick.expect.some((name) => namesObject([], said, name))) {
+        problems.push(
+          `${pick.id}: ${pick.archive}/${pick.image} is described as "${said.slice(0, 90)}", which does not name ${pick.expect[0]}`,
+        );
+        continue;
+      }
+    } else {
+      const page = await fetchText(pageUrl);
+      names = objectNames(page);
+      title = pageTitle(page);
+      credit = pageCredit(page);
+    }
 
     /**
      * The check that makes the claim honest.
@@ -503,7 +569,7 @@ try {
      * archive Tracker can no longer cite for it, and the right response is to
      * fail rather than to ship the picture anyway.
      */
-    const matched = pick.expect.some((name) => namesObject(names, title, name));
+    const matched = archive.describe || pick.expect.some((name) => namesObject(names, title, name));
     if (!matched) {
       problems.push(`${pick.id}: ${pick.archive}/${pick.image} is filed as "${names.join(", ") || title}", which does not name ${pick.expect[0]}`);
       continue;

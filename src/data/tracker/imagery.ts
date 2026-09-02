@@ -40,7 +40,9 @@ export type ImageryClass =
   /** A rendering of forecast values, not an observation. */
   | "forecast-visualisation"
   /** A spacecraft or observatory mosaic. Never a backyard view. */
-  | "spacecraft-mosaic";
+  | "spacecraft-mosaic"
+  /** A photograph taken from orbit, of something else in orbit. */
+  | "spacecraft-photograph";
 
 export const IMAGERY_CLASS_LABEL: Record<ImageryClass, string> = {
   "telescope-image": "Space-telescope image",
@@ -50,6 +52,7 @@ export const IMAGERY_CLASS_LABEL: Record<ImageryClass, string> = {
   simulation: "Simulation",
   "forecast-visualisation": "Forecast visualisation",
   "spacecraft-mosaic": "Spacecraft mosaic",
+  "spacecraft-photograph": "Photographed from space",
 };
 
 export type MediaClaim = "representative" | "event-specific" | "live";
@@ -249,6 +252,19 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
   if (kind === "deep-sky") {
     const catalogued = CATALOGUED.get(id.replace(/^deep-sky-/, ""));
     if (catalogued) return catalogued;
+  }
+
+  /**
+   * A spacecraft, photographed from a spacecraft.
+   *
+   * Both entries are pictures of the thing rather than of the sky it crosses,
+   * and both carry the sentence that says how different the view from a garden
+   * is: the station is a point of light with no shape, and the train is points
+   * rather than the streaks a time exposure records.
+   */
+  if (kind === "satellite") {
+    const spacecraft = CATALOGUED.get(id.startsWith("satellite-train") ? "satellite-train" : id);
+    if (spacecraft) return spacecraft;
   }
 
   if (kind === "lunar-eclipse") {

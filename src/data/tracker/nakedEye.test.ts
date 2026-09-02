@@ -46,6 +46,35 @@ describe("what the sky will allow", () => {
     expect(artificialLightLoss(12.3)).toBeLessThan(3);
   });
 
+  /**
+   * The daylight arm, which the curve did not used to have.
+   *
+   * It stopped at the civil boundary, where meteor watching stops, and above it
+   * the loss stayed pinned at three magnitudes — so a dark site at noon came
+   * back as showing magnitude 3.5. Nothing noticed while every caller was gated
+   * on darkness for its own reasons; a spacecraft, which genuinely is magnitude
+   * −3 at midday and genuinely is not something to send anybody out to see,
+   * asked the question directly.
+   */
+  it("keeps losing magnitudes above the civil boundary rather than stopping there", () => {
+    const civil = skyLimit({ ...DARK, sunAltitudeDeg: -6 });
+    const sunrise = skyLimit({ ...DARK, sunAltitudeDeg: 0 });
+    const midday = skyLimit({ ...DARK, sunAltitudeDeg: 40 });
+
+    expect(sunrise.magnitude).toBeLessThan(civil.magnitude - 2);
+    expect(midday.magnitude).toBeLessThan(sunrise.magnitude);
+    // Venus at −4.3 is the one thing the unaided eye can find in a blue sky,
+    // and only knowing where to look. Nothing fainter belongs in a list.
+    expect(midday.magnitude).toBeGreaterThan(-5);
+    expect(midday.magnitude).toBeLessThan(-3.5);
+  });
+
+  it("is continuous across the civil boundary rather than stepping at it", () => {
+    const before = skyLimit({ ...DARK, sunAltitudeDeg: -6.01 }).magnitude;
+    const after = skyLimit({ ...DARK, sunAltitudeDeg: -5.99 }).magnitude;
+    expect(Math.abs(before - after)).toBeLessThan(0.1);
+  });
+
   it("costs more near the horizon than overhead", () => {
     expect(extinctionAt(90)).toBeCloseTo(0.28, 2);
     expect(extinctionAt(30)).toBeGreaterThan(0.5);

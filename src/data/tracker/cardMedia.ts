@@ -150,6 +150,21 @@ export function cardMediaFor(opportunity: Opportunity): CardMedia {
    * own record of what each one shows, so the shorthand is no longer the
    * honest option: it is just less than the card can say.
    */
+  /**
+   * A pass shows the spacecraft, on the same rule as everything else.
+   *
+   * The alternative was the generic star-field mark, which said "something in
+   * the sky" about the one object in the rail that a reader has probably
+   * already seen without knowing what it was.
+   */
+  if (kind === "satellite") {
+    const catalogued = catalogueImageFor(
+      id.startsWith("satellite-train") ? "satellite-train" : id,
+    );
+    if (catalogued) return { kind: "photo", ...catalogued };
+    return { kind: "mark", phenomenon: "sky" };
+  }
+
   if (kind === "deep-sky") {
     const catalogued = catalogueImageFor(id.replace(/^deep-sky-/, ""));
     if (catalogued) return { kind: "photo", ...catalogued };

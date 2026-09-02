@@ -19,11 +19,21 @@ describe("Tracker phenomenon discovery foundation", () => {
     expect(new Set(mapped)).toEqual(new Set(["eclipses", "meteors", "pairings", "moon", "planets"]));
   });
 
-  it("does not imply satellite-pass support", () => {
-    expect(PHENOMENON_CATEGORIES.find((category) => category.id === "satellites")).toMatchObject({
-      support: "not-yet",
-      selectable: false,
-    });
+  /**
+   * Satellite passes are partial, and the scope has to say what is missing.
+   *
+   * This test used to assert "not-yet", which was true while Tracker had no
+   * pass prediction. It has one now — the Space Station from NASA's published
+   * trajectory, and a Starlink train while SpaceX is publishing a stack for one
+   * — and the honest claim is neither of the two extremes. What must never
+   * appear here is "supported", which would imply the hundreds of other
+   * naked-eye satellites Tracker deliberately does not offer.
+   */
+  it("offers satellite passes only as the partial support its sources provide", () => {
+    const satellites = PHENOMENON_CATEGORIES.find((category) => category.id === "satellites");
+    expect(satellites).toMatchObject({ support: "partial", selectable: true });
+    expect(satellites?.scope).toMatch(/Space Station/i);
+    expect(satellites?.scope).toMatch(/train/i);
   });
 
   it("offers aurora only as the partial support its sources actually provide", () => {

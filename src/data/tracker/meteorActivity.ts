@@ -283,6 +283,23 @@ function bodyAltitudeDeg(observer: Observer, body: Body, at: Date): number {
  *   about 3 at the civil boundary (−6°), which is where meteor watching stops.
  * - moonlight: about 2 magnitudes lost under a full Moon 60° up, about 0.8 under
  *   a half Moon 40° up, and nothing at all with the Moon below the horizon.
+ * - daylight: about 4 more magnitudes lost by sunrise and about 7.5 more with
+ *   the Sun well up, which leaves roughly −4 — Venus, and only if you know
+ *   exactly where to look.
+ *
+ * ## Why the daylight arm exists
+ *
+ * The curve used to stop at the civil boundary because that is where meteor
+ * watching stops, and above it the loss stayed pinned at three magnitudes. That
+ * is not a small extrapolation error, it is the wrong answer: it says a dark
+ * site at noon shows magnitude 3.5, and anything brighter than that would be
+ * admitted as visible. Nothing noticed while the only callers were phenomena
+ * that are gated on darkness for other reasons — and then a spacecraft, which
+ * really is magnitude −3 in broad daylight and really is not something to send
+ * somebody out to see, asked the question directly.
+ *
+ * Meteor rates are unchanged: they are only computed below the civil boundary,
+ * which is the arm that has not moved.
  *
  * Light pollution is absent from this, which is why the result is the limiting
  * magnitude of a *dark* site and the caller reports it as such.
@@ -297,6 +314,14 @@ export function limitingMagnitude(
   if (sunAltitudeDeg > -18) {
     const intoTwilight = Math.min(1, (sunAltitudeDeg + 18) / 12);
     magnitude -= 3 * intoTwilight * intoTwilight;
+  }
+
+  // Above the civil boundary the sky itself becomes the brighter object. The
+  // exponent is what puts most of the loss in the first few degrees, where the
+  // sky brightens fastest, rather than spreading it evenly to noon.
+  if (sunAltitudeDeg > -6) {
+    const intoDay = Math.min(1, (sunAltitudeDeg + 6) / 16);
+    magnitude -= 7.5 * Math.pow(intoDay, 0.6);
   }
 
   if (moonAltitudeDeg > 0) {

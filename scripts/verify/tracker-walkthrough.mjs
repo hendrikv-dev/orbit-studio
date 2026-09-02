@@ -314,6 +314,24 @@ async function stubBasemap(context) {
       body: JSON.stringify(EMPTY_BASEMAP_STYLE),
     }),
   );
+  /**
+   * No orbits, on every page of the walk.
+   *
+   * Two reasons, and both matter. A live feed would make the contents of a rail
+   * depend on whether a spacecraft happened to go over the test location on the
+   * morning the walk ran, and every ranking, layout and screenshot comparison
+   * here would become a different comparison every day. And CelesTrak's usage
+   * policy asks consumers to fetch only what they are going to use — a gate that
+   * opens forty pages is not a reader planning a night, and should not be asking
+   * them for orbits forty times.
+   *
+   * What the walk therefore exercises is the unavailable path, which is the
+   * state most readers are in on most nights. The passes themselves are covered
+   * in `tracker-refinement.mjs`, against pinned elements and a pinned clock.
+   */
+  await context.route("**/celestrak.org/**", (route) =>
+    route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
+  );
 }
 
 /**

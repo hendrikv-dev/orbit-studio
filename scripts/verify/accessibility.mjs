@@ -147,6 +147,12 @@ async function stubProviders(context) {
       body: JSON.stringify(EMPTY_BASEMAP_STYLE),
     }),
   );
+  // No orbits: a contrast scan should not depend on whether a spacecraft went
+  // over the test location this morning, and CelesTrak asks consumers to fetch
+  // only what they are going to use.
+  await context.route("**/celestrak.org/**", (route) =>
+    route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
+  );
   await context.route("**/photon.komoot.io/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(PLACE_FIXTURE) }),
   );

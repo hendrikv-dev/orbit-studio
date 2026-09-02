@@ -90,11 +90,21 @@ export const PHENOMENON_CATEGORIES: readonly PhenomenonCategory[] = [
     selectable: false,
   },
   {
+    /**
+     * Partial, and the scope says exactly how far it goes.
+     *
+     * The Space Station, from NASA's own published trajectory, and a Starlink
+     * train while SpaceX is publishing a post-deployment stack for one. Not the
+     * hundred and fifty other objects on CelesTrak's brightest-satellites list:
+     * they have measured magnitudes and no reason for a reader to care which
+     * anonymous rocket body is overhead. Not Tiangong, which is worth seeing and
+     * has no published brightness Tracker can cite.
+     */
     id: "satellites",
     label: "Satellite passes",
-    support: "not-yet",
-    scope: "Tracker has no live pass-prediction authority",
-    selectable: false,
+    support: "partial",
+    scope: "The Space Station tonight, and a Starlink train while one exists",
+    selectable: true,
   },
 ] as const;
 

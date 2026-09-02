@@ -22,7 +22,8 @@ export type EventCategoryId =
   | "planets"
   | "moon"
   | "pairings"
-  | "deep-sky";
+  | "deep-sky"
+  | "satellites";
 
 /**
  * Which drawing belongs in the fixed visualization slot.
@@ -114,6 +115,22 @@ export const EVENT_CATEGORIES: Record<EventCategoryId, EventCategory> = {
     visualization: "sky-path",
     tone: "neutral",
   },
+  /**
+   * A pass, which is a track rather than a place.
+   *
+   * The sky-path panel is the right primary evidence: it draws a line across
+   * the sky over time, and a satellite is nothing but a line across the sky
+   * over time. The geographic map answers "where on Earth", which for a
+   * four-minute pass over the reader's own head is not the question.
+   */
+  satellites: {
+    id: "satellites",
+    heading: "Satellites",
+    tonightSubtitle: "Spacecraft crossing overhead {night}",
+    upcomingSubtitle: "Passes worth planning around",
+    visualization: "sky-path",
+    tone: "neutral",
+  },
 };
 
 const KIND_TO_CATEGORY: Record<OpportunityKind, EventCategoryId> = {
@@ -124,6 +141,7 @@ const KIND_TO_CATEGORY: Record<OpportunityKind, EventCategoryId> = {
   "lunar-eclipse": "eclipses",
   "solar-eclipse": "eclipses",
   "deep-sky": "deep-sky",
+  satellite: "satellites",
 };
 
 export function categoryForOpportunityKind(kind: OpportunityKind): EventCategoryId {

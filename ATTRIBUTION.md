@@ -26,6 +26,27 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission.
 
+## CelesTrak General Perturbations (GP) and Supplemental GP (SupGP) element sets
+
+- Inventory ID: `celestrak-satellite-orbits-runtime`
+- Category: runtime-external-service
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: CelesTrak / Dr. T.S. Kelso
+- Version or snapshot: Live service; no snapshot retained in this repository
+- Authoritative source: https://celestrak.org/NORAD/documentation/sup-gp-queries.php
+- Authoritative source: https://celestrak.org/NORAD/elements/supplemental/
+- Rights basis: CelesTrak's usage policy permits documented consumer acquisition subject to stated rate limits and error handling. It grants nothing about redistribution, which is why nothing is redistributed.
+- Rights evidence: https://celestrak.org/usage-policy.php
+- Rights evidence: https://celestrak.org/NORAD/documentation/sup-gp-queries.php
+- Attribution: Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory and a Starlink stack vector from SpaceX's published state vector.
+- Public source redistribution: not-applicable-external-service
+- Public deployment redistribution: not-bundled
+- Modification status: not-applicable-external-service
+- Repository paths: `src/data/tracker/satelliteSources.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The two-hour cache and the stop-on-error behaviour are licence-adjacent conditions of use, not performance choices, and must not be relaxed. No response may be committed to the repository or bundled into a deployment.
+
 ## ESA/Hubble deep-sky photographs used as Tracker hero imagery
 
 - Inventory ID: `esa-hubble-deep-sky-photography`
@@ -238,6 +259,48 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices.
 
+## The Brightness of Starlink Mini Satellites During Orbit-Raising
+
+- Inventory ID: `mallama-starlink-orbit-raising-brightness`
+- Category: scientific-reference-output
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Mallama, A., Cole, R. E., Respler, J., Harrington, S., Lee, R. and Worley, A. (2024)
+- Version or snapshot: arXiv:2405.12007v1, 2024-05-20
+- Retrieval date: 2026-09-02
+- Authoritative source: https://arxiv.org/abs/2405.12007
+- Authoritative source: https://arxiv.org/abs/2405.12007
+- Rights basis: Measured quantities reported in a published study are facts, cited here with full attribution. No expressive content from the paper is reproduced.
+- Rights evidence: https://arxiv.org/abs/2405.12007
+- Attribution: Starlink orbit-raising brightness from Mallama et al. (2024), arXiv:2405.12007.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: quoted-values-only
+- Repository paths: none
+- Production paths: none
+- Restrictions and notes: The citation must remain with the values. The figures describe a population and must not be presented as a prediction for an individual pass.
+
+## Quicksat intrinsic magnitude file (qs.mag)
+
+- Inventory ID: `mccants-quicksat-intrinsic-magnitudes`
+- Category: astronomical-catalog-data
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Mike McCants
+- Version or snapshot: Published 2020-09-14, SHA-256 3f3f507014a047b6319813e73e818f065a029355c37a4b4e644213408f6a70a9
+- Retrieval date: 2026-09-02
+- Authoritative source: https://mmccants.org/programs/
+- Authoritative source: https://mmccants.org/programs/qsmag.zip
+- Rights basis: Individual measured magnitudes are facts rather than expressive content, and Tracker quotes one of them with attribution rather than reproducing the compilation. The file is not committed, bundled or redistributed.
+- Rights evidence: https://mmccants.org/programs/
+- Attribution: Standard magnitude from Mike McCants' Quicksat intrinsic magnitude file (qs.mag), 14 September 2020.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: quoted-value-only
+- Repository paths: `scripts/build-satellite-brightness.mjs`, `src/data/satellites/brightness.json`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Only the specific values Tracker uses may be quoted, with attribution. The compilation must not be committed or redistributed, and the pinned checksum must not be updated without reviewing what changed.
+
 ## IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers
 
 - Inventory ID: `meteor-stream-parameters-2026-08-16`
@@ -365,6 +428,27 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `sky/nasa-PIA23791-planet-venus-thumb.webp`, `sky/nasa-PIA23791-planet-venus.webp`
 - Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
 
+## NASA Image and Video Library photograph of the International Space Station
+
+- Inventory ID: `nasa-spacecraft-photography`
+- Category: spacecraft-photography
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: NASA
+- Version or snapshot: iss066e081189, photographed 8 November 2021 from Crew Dragon Endeavour
+- Retrieval date: 2026-09-02
+- Authoritative source: https://images.nasa.gov/
+- Authoritative source: https://images.nasa.gov/details/iss066e081189
+- Rights basis: NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes with the credit retained and no implication of endorsement.
+- Rights evidence: https://www.nasa.gov/nasa-brand-center/images-and-media/
+- Attribution: NASA.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: `public/sky/nasaimages-iss066e081189-satellite-iss-thumb.webp`, `public/sky/nasaimages-iss066e081189-satellite-iss.webp`
+- Production paths: `sky/nasaimages-iss066e081189-satellite-iss-thumb.webp`, `sky/nasaimages-iss066e081189-satellite-iss.webp`
+- Restrictions and notes: The credit must remain rendered on the image, and the perception classification and eye-expectation sentence must remain with it.
+
 ## CGI Moon Kit: LROC WAC Color Mosaic
 
 - Inventory ID: `nasa-svs-lroc-color-moon-1k`
@@ -447,8 +531,8 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `public/sky/noirlab-noao-02211-ngc7009-thumb.webp`, `public/sky/noirlab-noao-02211-ngc7009.webp`, `public/sky/noirlab-noao-02464-ngc457-thumb.webp`, `public/sky/noirlab-noao-02464-ngc457.webp`, `public/sky/noirlab-noao-02637-m6-thumb.webp`, `public/sky/noirlab-noao-02637-m6.webp`, `public/sky/noirlab-noao-04086-m16-thumb.webp`, `public/sky/noirlab-noao-04086-m16.webp`, `public/sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `public/sky/noirlab-noao-hcper-double-cluster.webp`, `public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `public/sky/noirlab-noao-m13kpno4m-m13.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `public/sky/noirlab-noao-m35-m35-thumb.webp`, `public/sky/noirlab-noao-m35-m35.webp`, `public/sky/noirlab-noao-m44bash-m44-thumb.webp`, `public/sky/noirlab-noao-m44bash-m44.webp`, `public/sky/noirlab-noao-m45-m45-thumb.webp`, `public/sky/noirlab-noao-m45-m45.webp`, `public/sky/noirlab-noao-m92-m92-thumb.webp`, `public/sky/noirlab-noao-m92-m92.webp`, `public/sky/noirlab-noao0001a-m31-thumb.webp`, `public/sky/noirlab-noao0001a-m31.webp`, `scripts/build-tracker-imagery.mjs`, `src/data/tracker/heroImagery.json`
-- Production paths: `assets/TrackerApp-*.js`, `sky/noirlab-noao-02211-ngc7009-thumb.webp`, `sky/noirlab-noao-02211-ngc7009.webp`, `sky/noirlab-noao-02464-ngc457-thumb.webp`, `sky/noirlab-noao-02464-ngc457.webp`, `sky/noirlab-noao-02637-m6-thumb.webp`, `sky/noirlab-noao-02637-m6.webp`, `sky/noirlab-noao-04086-m16-thumb.webp`, `sky/noirlab-noao-04086-m16.webp`, `sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `sky/noirlab-noao-hcper-double-cluster.webp`, `sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `sky/noirlab-noao-m13kpno4m-m13.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `sky/noirlab-noao-m35-m35-thumb.webp`, `sky/noirlab-noao-m35-m35.webp`, `sky/noirlab-noao-m44bash-m44-thumb.webp`, `sky/noirlab-noao-m44bash-m44.webp`, `sky/noirlab-noao-m45-m45-thumb.webp`, `sky/noirlab-noao-m45-m45.webp`, `sky/noirlab-noao-m92-m92-thumb.webp`, `sky/noirlab-noao-m92-m92.webp`, `sky/noirlab-noao0001a-m31-thumb.webp`, `sky/noirlab-noao0001a-m31.webp`
+- Repository paths: `public/sky/noirlab-noao-02211-ngc7009-thumb.webp`, `public/sky/noirlab-noao-02211-ngc7009.webp`, `public/sky/noirlab-noao-02464-ngc457-thumb.webp`, `public/sky/noirlab-noao-02464-ngc457.webp`, `public/sky/noirlab-noao-02637-m6-thumb.webp`, `public/sky/noirlab-noao-02637-m6.webp`, `public/sky/noirlab-noao-04086-m16-thumb.webp`, `public/sky/noirlab-noao-04086-m16.webp`, `public/sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `public/sky/noirlab-noao-hcper-double-cluster.webp`, `public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `public/sky/noirlab-noao-m13kpno4m-m13.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `public/sky/noirlab-noao-m35-m35-thumb.webp`, `public/sky/noirlab-noao-m35-m35.webp`, `public/sky/noirlab-noao-m44bash-m44-thumb.webp`, `public/sky/noirlab-noao-m44bash-m44.webp`, `public/sky/noirlab-noao-m45-m45-thumb.webp`, `public/sky/noirlab-noao-m45-m45.webp`, `public/sky/noirlab-noao-m92-m92-thumb.webp`, `public/sky/noirlab-noao-m92-m92.webp`, `public/sky/noirlab-noao0001a-m31-thumb.webp`, `public/sky/noirlab-noao0001a-m31.webp`, `public/sky/noirlab-noirlab2206b-satellite-train-thumb.webp`, `public/sky/noirlab-noirlab2206b-satellite-train.webp`, `scripts/build-tracker-imagery.mjs`, `src/data/tracker/heroImagery.json`
+- Production paths: `assets/TrackerApp-*.js`, `sky/noirlab-noao-02211-ngc7009-thumb.webp`, `sky/noirlab-noao-02211-ngc7009.webp`, `sky/noirlab-noao-02464-ngc457-thumb.webp`, `sky/noirlab-noao-02464-ngc457.webp`, `sky/noirlab-noao-02637-m6-thumb.webp`, `sky/noirlab-noao-02637-m6.webp`, `sky/noirlab-noao-04086-m16-thumb.webp`, `sky/noirlab-noao-04086-m16.webp`, `sky/noirlab-noao-hcper-double-cluster-thumb.webp`, `sky/noirlab-noao-hcper-double-cluster.webp`, `sky/noirlab-noao-m13kpno4m-m13-thumb.webp`, `sky/noirlab-noao-m13kpno4m-m13.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp`, `sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp`, `sky/noirlab-noao-m35-m35-thumb.webp`, `sky/noirlab-noao-m35-m35.webp`, `sky/noirlab-noao-m44bash-m44-thumb.webp`, `sky/noirlab-noao-m44bash-m44.webp`, `sky/noirlab-noao-m45-m45-thumb.webp`, `sky/noirlab-noao-m45-m45.webp`, `sky/noirlab-noao-m92-m92-thumb.webp`, `sky/noirlab-noao-m92-m92.webp`, `sky/noirlab-noao0001a-m31-thumb.webp`, `sky/noirlab-noao0001a-m31.webp`, `sky/noirlab-noirlab2206b-satellite-train-thumb.webp`, `sky/noirlab-noirlab2206b-satellite-train.webp`
 - Restrictions and notes: The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph.
 
 ## npm dependency graph
@@ -559,6 +643,26 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `public/home/tracker-home.webp`, `public/home/explorer-home.webp`, `public/home/playground-home.webp`
 - Production paths: `home/tracker-home.webp`, `home/explorer-home.webp`, `home/playground-home.webp`
 - Restrictions and notes: If the Tracker screenshot is replaced, the replacement inherits the same basemap and terrain attributions for as long as it shows rendered map data.
+
+## Orbit Studio satellite pass prediction and naked-eye screening
+
+- Inventory ID: `orbit-studio-satellite-pass-prediction`
+- Category: orbit-studio-original-work
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Orbit Studio
+- Version or snapshot: Written for this repository
+- Authoritative source: https://github.com/hendrikv-dev/orbit-studio
+- Authoritative source: https://github.com/hendrikv-dev/orbit-studio
+- Rights basis: Original work in this repository, governed by its own licence.
+- Rights evidence: https://github.com/hendrikv-dev/orbit-studio
+- Attribution: Orbit Studio.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted
+- Repository paths: `src/data/tracker/satelliteVisibility.ts`, `src/data/tracker/satellites.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: None.
 
 ## Orbit Studio Tracker imagery policy and lunar phase composite
 

@@ -34,12 +34,78 @@ const EMPTY_STYLE = {
   layers: [{ id: "background", type: "background", paint: { "background-color": "#0e1219" } }],
 };
 
-async function stub(context, { basemap = true } = {}) {
+/**
+ * Pinned orbits, so a pass is the same pass every time this runs.
+ *
+ * Constructed here rather than acquired. They are the *shape* of the real
+ * things — a station four hundred kilometres up at 51.64°, a deployment stack
+ * at 265 km and seventy degrees — chosen so both cross Portland high and sunlit
+ * in the pinned window. CelesTrak's usage policy covers retrieving their data
+ * and this repository's own provenance review found no grant for committing it,
+ * so the fixtures are Orbit Studio's own elements rather than a copy of theirs.
+ *
+ * The clock is pinned alongside them: a prediction is a function of both, and
+ * either one drifting makes every assertion about tonight meaningless.
+ */
+const ISS_TLE = `STATION
+1 99001U 26900A   26245.50000000  .00000000  00000+0  00000+0 0  9998
+2 99001  51.6400   6.0000 0005000  90.0000 298.0000 15.49000000000016
+`;
+
+const STACK_TLE = `STARLINK-G15-23 STACK
+1 99002U 26901A   26245.40000000  .00000000  00000+0  00000+0 0  9999
+2 99002  70.0000  28.0000 0010000 275.0000 156.0000 16.06000000000010
+STARLINK-G15-23 SINGLE
+1 99003U 26901B   26245.40000000  .00000000  00000+0  00000+0 0  9995
+2 99003  70.0000  28.0000 0010000 275.0000 156.5000 16.06000000000019
+`;
+
+const SUPPLEMENTAL_INDEX = `<html><body>
+  <a href="sup-gp.php?FILE=iss&FORMAT=tle">ISS</a>
+  <a href="sup-gp.php?FILE=starlink&FORMAT=tle">Starlink</a>
+  <a href="sup-gp.php?FILE=starlink-g15-23&FORMAT=tle">Starlink G15-23 Post-Deployment</a>
+</body></html>`;
+
+/** The night the pinned element sets describe, at 22:00 in Portland. */
+const SATELLITE_CLOCK = new Date("2026-09-03T05:00:00Z");
+
+async function stub(context, { basemap = true, satellites = "unavailable" } = {}) {
   if (basemap) {
     await context.route("**/tiles.openfreemap.org/**", (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPTY_STYLE) }),
     );
   }
+  /**
+   * Orbits are stubbed everywhere, and unavailable unless a check asks for them.
+   *
+   * Not to make anything pass: with the live feed a rail's contents would depend
+   * on whether the station happened to go over the test location on the morning
+   * the gate ran, and every ranking and layout assertion in this file would
+   * become a different assertion every day. Unavailable is also the state most
+   * readers are in on most nights, so it is the right default to hold the rest
+   * of the gate steady against.
+   */
+  await context.route("**/celestrak.org/**", (route) => {
+    const url = route.request().url();
+    if (satellites === "unavailable") {
+      return route.fulfill({ status: 503, contentType: "text/plain", body: "" });
+    }
+    const text = (body) => route.fulfill({ status: 200, contentType: "text/plain", body });
+    if (url.includes("FILE=iss")) return text(ISS_TLE);
+    if (url.includes("FILE=starlink-g15-23")) {
+      return satellites === "iss-only"
+        ? route.fulfill({ status: 404, contentType: "text/plain", body: "" })
+        : text(STACK_TLE);
+    }
+    if (url.includes("/supplemental/") && !url.includes("sup-gp.php")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: satellites === "iss-only" ? "<html><body></body></html>" : SUPPLEMENTAL_INDEX,
+      });
+    }
+    return route.fulfill({ status: 404, contentType: "text/plain", body: "" });
+  });
 }
 
 async function seed(context, place = PORTLAND) {
@@ -1486,6 +1552,159 @@ async function main() {
       card !== null && card <= 14,
       `reduced motion: the selected card is already at the front (x=${card})`,
     );
+    await context.close();
+  }
+
+  /* --- spacecraft overhead ------------------------------------------------- */
+  console.log("\nSatellites");
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context, { satellites: "full" });
+    await seed(context);
+    const page = await context.newPage();
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(3500);
+    await dismissTour(page);
+
+    const rail = await page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    check(rail.includes("satellite-iss"), `the station is offered on a night it passes (${rail.join(", ")})`);
+
+    /**
+     * And the train, which had to clear four screens to get here.
+     *
+     * A real deployment rather than Starlink objects in a recent-launch feed;
+     * still travelling together; low enough to be the bright population with
+     * room under the height at which they are dimmed; and a prediction that
+     * clears the sky by more than the spread of the population its brightness
+     * came from. Every one of those can say no, and the tests in
+     * `satellites.test.ts` make each of them say it.
+     */
+    check(
+      rail.some((id) => id.startsWith("satellite-train")),
+      "and so is a train that clears all four of its screens",
+    );
+
+    if (rail.includes("satellite-iss")) {
+      await page
+        .locator('.tk-rail-card[data-card="satellite-iss"] .tk-rail-card-head')
+        .click();
+      await page.waitForTimeout(1200);
+      const card = await page
+        .locator('.tk-rail-card[data-card="satellite-iss"]')
+        .innerText();
+      check(/\d+°/.test(card), `the card says how high the pass goes (${card.split("\n")[2] ?? ""})`);
+
+      await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&event=satellite-iss`, {
+        waitUntil: "domcontentloaded",
+      });
+      await settled(page, 2000);
+      await page.waitForTimeout(3500);
+      const detail = await page.evaluate(() => ({
+        heading: document.querySelector(".tk-page-heading")?.textContent?.trim() ?? "",
+        image: document.querySelector(".tracker-media img")?.getAttribute("src") ?? "",
+        timing: document.querySelector(".tk-viz-timing")?.textContent?.trim() ?? "",
+        limitations: [...document.querySelectorAll(".tk-limitation, .tk-hero-limitation")].map(
+          (node) => node.textContent?.trim() ?? "",
+        ),
+        body: document.body.innerText,
+      }));
+      check(/satellite/i.test(detail.heading), `the page is filed under satellites (${detail.heading})`);
+      /**
+       * A picture of the station, not of the sky it crosses.
+       *
+       * The same rule every other page follows, and the one the generic night
+       * sky used to break.
+       */
+      check(/iss/i.test(detail.image), `the hero is a photograph of the station (${detail.image})`);
+      /**
+       * The panel says how long the pass is, not how long the night is.
+       *
+       * A four-minute event under a line reading "7:46 PM to 6:34 AM" is the
+       * interface contradicting its own chart.
+       */
+      const span = detail.timing.match(/(\d+):(\d+)\s*([AP]M)?\s*to\s*(\d+):(\d+)/i);
+      check(span !== null, `the panel states the pass rather than the night (${detail.timing})`);
+      if (span) {
+        const minutes = (h, m, meridiem) =>
+          ((Number(h) % 12) + (/(pm)/i.test(meridiem ?? "") ? 12 : 0)) * 60 + Number(m);
+        const start = minutes(span[1], span[2], span[3]);
+        const end = minutes(span[4], span[5], detail.timing.slice(-2));
+        const length = (end - start + 1440) % 1440;
+        check(
+          length > 0 && length <= 15,
+          `and that pass is minutes rather than hours (${length} minutes)`,
+        );
+      }
+      /**
+       * Where the brightness came from, said on the page.
+       *
+       * A magnitude nobody measured is the one thing this whole feature is not
+       * allowed to invent, so the page has to be able to say it did not.
+       */
+      check(
+        /measured standard magnitude/i.test(detail.body),
+        "the page says the brightness is scaled from a measurement",
+      );
+      check(
+        /NASA|public catalogue/i.test(detail.body),
+        "and where the orbit came from",
+      );
+    }
+    await context.close();
+  }
+
+  /* --- a night with a station but no deployment ---------------------------- */
+  //
+  // The usual night. The index lists no post-deployment stack, so there is no
+  // train — an absence with a cause rather than a prediction nobody can check.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context, { satellites: "iss-only" });
+    await seed(context);
+    const page = await context.newPage();
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    const rail = await page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    check(rail.includes("satellite-iss"), "the station is still offered with no deployment published");
+    check(
+      !rail.some((id) => id.startsWith("satellite-train")),
+      "and nothing is offered as a train when no stack is being published",
+    );
+    await context.close();
+  }
+
+  /* --- and when CelesTrak cannot be reached -------------------------------- */
+  //
+  // The common state, and it has to be an absence rather than a stale pass or a
+  // guess. Nothing else on the page may depend on it.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context, { satellites: "unavailable" });
+    await seed(context);
+    const page = await context.newPage();
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 2000);
+    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    const rail = await page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    check(
+      !rail.some((id) => id.startsWith("satellite-")),
+      "no orbit reached the device, so no pass is offered",
+    );
+    check(rail.length > 0, `and the rest of the night is unaffected (${rail.length} cards)`);
     await context.close();
   }
 

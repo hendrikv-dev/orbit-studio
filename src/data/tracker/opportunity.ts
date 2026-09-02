@@ -63,7 +63,16 @@ export type OpportunityKind =
    * passing over their own house.
    */
   | "solar-eclipse"
-  | "deep-sky";
+  | "deep-sky"
+  /**
+   * A spacecraft passing overhead, which is an event rather than a target.
+   *
+   * Its own kind and not a variant of anything: it is up for four minutes
+   * rather than a night, its brightness comes from reflected sunlight and so
+   * ends the moment it enters the Earth's shadow, and the thing a reader is
+   * told is a track across the sky rather than a direction to face.
+   */
+  | "satellite";
 
 /** What you need to see it. Ordered: each tier includes the ones before it. */
 export type Equipment = "eyes" | "binoculars" | "telescope";

@@ -21,6 +21,7 @@ const ALL_KINDS: OpportunityKind[] = [
   "lunar-eclipse",
   "solar-eclipse",
   "deep-sky",
+  "satellite",
 ];
 
 function opportunity(kind: OpportunityKind, id = kind, science?: unknown): Opportunity {
@@ -36,6 +37,18 @@ describe("cardMediaFor", () => {
       // Nothing may resolve to a photograph with no file behind it.
       if (media.kind === "photo") expect(media.src).toMatch(/^\/sky\/.+\.webp$/);
     }
+  });
+
+  it("shows the spacecraft on a pass, and the train on a train", () => {
+    const station = cardMediaFor(opportunity("satellite", "satellite-iss"));
+    expect(station.kind).toBe("photo");
+    if (station.kind === "photo") expect(station.src).toContain("iss");
+
+    // Every deployment gets its own id, and all of them the one photograph of
+    // a train that Tracker has cleared.
+    const train = cardMediaFor(opportunity("satellite", "satellite-train-starlink-g15-23"));
+    expect(train.kind).toBe("photo");
+    if (train.kind === "photo") expect(train.src).toContain("noirlab");
   });
 
   it("draws a conjunction from its own bodies rather than a photograph", () => {
