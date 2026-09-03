@@ -17,10 +17,24 @@ import {
 import {
   cloudAt,
   fetchCloudForecast,
+  fetchCloudForecastSeries,
   forecastHour,
   OBSERVATION_STALE_MINUTES,
 } from "../../data/tracker/cloud";
-import { fetchObservedAt } from "../../data/tracker/cloudObservation";
+import {
+  CLOUD_FAILURE_LINE,
+  fetchObservedAt,
+  fetchObservedField,
+  fetchObservedSeries,
+  observedAt,
+  sampleSpacingKm,
+} from "../../data/tracker/cloudObservation";
+import {
+  CLOUD_VERDICT_LINE,
+  suitabilityOfCategory,
+  suitabilityOfPercent,
+} from "../../data/tracker/cloudSuitability";
+import { buildCloudTimeline, cloudAdvice, nextChange } from "../../data/tracker/cloudTimeline";
 import { CLOUD_CATEGORY_LABEL } from "../../data/tracker/goesGrid";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
@@ -139,6 +153,7 @@ import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTer
 import { compassPoint } from "../../data/tracker/meteorActivity";
 import { TrackerMapControls } from "./map/TrackerMapControls";
 import { TrackerMapLightLegend } from "./map/TrackerMapLegend";
+import { TrackerCloudTimeline } from "./map/TrackerCloudTimeline";
 import { TrackerProjectionToggle } from "./map/TrackerProjectionToggle";
 import { TrackerEquipmentRule } from "./map/TrackerEquipmentRule";
 import { TrackerEventMapPanel } from "./map/TrackerEventMapPanel";
@@ -857,6 +872,20 @@ function TrackerScreen() {
   });
 
   /**
+   * What the map says is on screen, once it has a size and has settled.
+   *
+   * Null until the first report, which is a real state rather than a default to
+   * paper over: a field fetched for a view nobody has measured is a field drawn
+   * for the wrong place.
+   */
+  const [mapView, setMapView] = useState<{
+    south: number;
+    west: number;
+    north: number;
+    east: number;
+  } | null>(null);
+
+  /**
    * The box the forecast is fetched for: the view, with room around it.
    *
    * The width has to come from the viewport as well as the zoom. Web Mercator
@@ -870,18 +899,51 @@ function TrackerScreen() {
    * it. It is padding on a request, not extrapolation of an answer.
    */
   const cloudBounds = useMemo(() => {
-    const width = typeof window === "undefined" ? 1280 : window.innerWidth;
-    const height = typeof window === "undefined" ? 800 : window.innerHeight;
-    const degreesPerPixel = 360 / (256 * 2 ** location.zoom);
-    const across = Math.min(340, degreesPerPixel * width * 1.3);
-    const down = Math.min(150, degreesPerPixel * height * 1.3);
-    return {
-      south: Math.max(-84, location.centre.latitudeDeg - down / 2),
-      north: Math.min(84, location.centre.latitudeDeg + down / 2),
-      west: location.centre.longitudeDeg - across / 2,
-      east: location.centre.longitudeDeg + across / 2,
+    /**
+     * The ground the map is showing, with room around it.
+     *
+     * Taken from the map rather than computed from the window, which is what
+     * this used to do and which was wrong twice over. The window is not the
+     * map — there is a top bar above it and a rail across it — and in any
+     * context where the window reports no size at all, the arithmetic collapsed
+     * to a zero-width box centred on the pin. The symptom was a forecast
+     * request that asked for the same point ninety-six times and a satellite
+     * request for a single pixel, both of which answer without ever looking
+     * wrong.
+     *
+     * The margin is because the field stops where the samples do, honestly, and
+     * a reader who nudges the map should not immediately be looking at the edge
+     * of it. It is padding on a request, not extrapolation of an answer.
+     */
+    const view = mapView ?? {
+      // Before the map has reported anything: a degree either side of the pin,
+      // which is a small honest box rather than a large invented one.
+      south: location.centre.latitudeDeg - 1,
+      north: location.centre.latitudeDeg + 1,
+      west: location.centre.longitudeDeg - 1,
+      east: location.centre.longitudeDeg + 1,
     };
-  }, [location.centre.latitudeDeg, location.centre.longitudeDeg, location.zoom]);
+    const down = Math.min(150, (view.north - view.south) * 1.3);
+    const across = Math.min(340, (view.east - view.west) * 1.3);
+    const centreLat = (view.north + view.south) / 2;
+    const centreLon = (view.east + view.west) / 2;
+    return {
+      south: Math.max(-84, centreLat - down / 2),
+      north: Math.min(84, centreLat + down / 2),
+      west: centreLon - across / 2,
+      east: centreLon + across / 2,
+    };
+  }, [mapView, location.centre.latitudeDeg, location.centre.longitudeDeg]);
+
+  /**
+   * The frame the reader has scrubbed to, or null while following the satellite.
+   *
+   * Deliberately not in the URL. A time inside tonight's window is not a place
+   * anybody would share or return to — unlike the date, the pin and the
+   * selected event, which are — and putting it there would fill the history
+   * with an entry per drag of a slider.
+   */
+  const [cloudFrameUtc, setCloudFrameUtc] = useState<string | null>(null);
 
   /**
    * The hour the forecast is about: the middle of the night being planned.
@@ -893,10 +955,87 @@ function TrackerScreen() {
    * doing during the hours I would be out in it".
    */
   const cloudHour = useMemo(() => {
+    // A scrubbed forecast hour is the hour the reader asked about; everything
+    // else falls back to the middle of the night being planned.
+    if (cloudFrameUtc) return forecastHour(cloudFrameUtc);
     if (!night) return forecastHour(planAnchor.toISOString());
     const middle = (Date.parse(night.period.startUtc) + Date.parse(night.period.endUtc)) / 2;
     return forecastHour(new Date(middle).toISOString());
-  }, [night, planAnchor]);
+  }, [cloudFrameUtc, night, planAnchor]);
+
+  /**
+   * How fine the map may ask for the observed mask, given the zoom.
+   *
+   * The rule the brief sets is that resolution adapts only when a source pixel
+   * would be smaller than a screen pixel, and that zooming in asks for finer
+   * real data up to native. So this rises with zoom rather than being fixed:
+   * a continental view cannot show two-kilometre pixels and does not ask for
+   * them, and a view of one valley asks for every pixel NOAA published there.
+   *
+   * The proxy answers with a stride, never an average, so a coarse reply is
+   * still made of real pixels — fewer of them, not blended ones.
+   */
+  const cloudCells = useMemo(() => {
+    if (location.zoom >= 9) return 512;
+    if (location.zoom >= 7) return 384;
+    if (location.zoom >= 5) return 256;
+    return 192;
+  }, [location.zoom]);
+
+  /**
+   * The observed mask over the view.
+   *
+   * Fetched for the same box as the forecast, so the two fields cover the same
+   * ground and the fallback happens pixel by pixel rather than as a visible
+   * seam between two differently-shaped rectangles.
+   */
+  const cloudField = useQuery({
+    queryKey: [
+      "tracker",
+      "cloud",
+      "field",
+      cloudCells,
+      cloudFrameUtc,
+      `${cloudBounds.south.toFixed(1)},${cloudBounds.west.toFixed(1)},${cloudBounds.north.toFixed(1)},${cloudBounds.east.toFixed(1)}`,
+    ],
+    enabled: activeLayers.has("cloud"),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) =>
+      fetchObservedField({ ...cloudBounds, cells: cloudCells }, cloudFrameUtc, signal),
+  });
+
+  /**
+   * The recent scans over the reader's own place.
+   *
+   * This is what the warning layer runs on. A single frame cannot distinguish a
+   * cloud crossing the pixel from a night that has closed, and the difference
+   * is the whole point — so the series is fetched even though the map only
+   * draws the newest of them.
+   */
+  const cloudSeries = useQuery({
+    queryKey: [
+      "tracker",
+      "cloud",
+      "series",
+      place ? `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}` : null,
+    ],
+    enabled: activeLayers.has("cloud") && Boolean(place),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    retry: false,
+    /**
+     * Six frames: half an hour of five-minute scans.
+     *
+     * Enough for the warning's own arithmetic — two consecutive frames to
+     * raise, three to relent — and few enough that the proxy's walk over
+     * granules stays a couple of seconds and a couple of requests at a time.
+     * The rest of the window comes from the forecast, which is one request for
+     * all of it.
+     */
+    queryFn: ({ signal }) => fetchObservedSeries(place!.latitude, place!.longitude, 6, signal),
+  });
 
   const cloudForecast = useQuery({
     queryKey: [
@@ -913,6 +1052,79 @@ function TrackerScreen() {
     retry: false,
     queryFn: ({ signal }) => fetchCloudForecast(cloudBounds, cloudHour, signal),
   });
+
+  /**
+   * The window the cloud layer is actually about.
+   *
+   * Sunset to sunrise on the night being planned, which is the stretch a reader
+   * could observe in. Cloud outside it is weather; cloud inside it is an
+   * obstacle. Without a night — high summer at latitude, or a plan that has not
+   * arrived — there is no window and no timeline, which is a real answer.
+   */
+  const cloudWindow = useMemo(() => {
+    if (!night) return null;
+    return { startUtc: night.period.startUtc, endUtc: night.period.endUtc };
+  }, [night]);
+
+  /** The hourly forecast at the reader's place across that window. */
+  const cloudForecastSeries = useQuery({
+    queryKey: [
+      "tracker",
+      "cloud",
+      "forecast-series",
+      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+      cloudWindow?.startUtc ?? null,
+    ],
+    enabled: activeLayers.has("cloud") && Boolean(place) && Boolean(cloudWindow),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) =>
+      fetchCloudForecastSeries(
+        place!.latitude,
+        place!.longitude,
+        cloudWindow!.startUtc,
+        cloudWindow!.endUtc,
+        signal,
+      ),
+  });
+
+  /**
+   * Which evidence path the reader has scrubbed to.
+   *
+   * It decides what the map draws. Scrubbing into the future and being shown
+   * the last satellite pass would be the layer contradicting its own timeline:
+   * the strip would say "forecast" while the field underneath was a
+   * measurement taken hours earlier. So a forecast frame draws the model and an
+   * observed frame draws the satellite, and the two never stand in for each
+   * other.
+   */
+  /**
+   * The night as one line of time, and the warnings that fall out of it.
+   *
+   * Built here rather than inside a view because three things need the same
+   * answer — the scrubber, the reading beside the layer switch, and whatever
+   * the rail does about it — and three independent constructions of "is tonight
+   * clouded out" is three chances for them to disagree in front of the reader.
+   */
+  const cloudTimeline = useMemo(() => {
+    if (!cloudWindow) return null;
+    const series = cloudSeries.data;
+    return buildCloudTimeline({
+      observed: series?.ok ? series.value : null,
+      forecast: cloudForecastSeries.data ?? null,
+      windowStartUtc: cloudWindow.startUtc,
+      windowEndUtc: cloudWindow.endUtc,
+      nowUtc: now.toISOString(),
+    });
+  }, [cloudWindow, cloudSeries.data, cloudForecastSeries.data, now]);
+
+  const cloudFrameBasis = useMemo(() => {
+    if (!cloudFrameUtc || !cloudTimeline) return null;
+    return (
+      cloudTimeline.samples.find((sample) => sample.atUtc === cloudFrameUtc)?.basis ?? null
+    );
+  }, [cloudFrameUtc, cloudTimeline]);
 
   // The plan changes only when an authoritative input changes or the observing
   // period ends. Tonight's selection is derived from that plan and cannot
@@ -2218,11 +2430,15 @@ function TrackerScreen() {
    * care about. A list rather than one value, because several layers can be on.
    */
   /**
-   * One sampler behind the field and the reading, so they cannot disagree.
+   * The forecast percentage at a point, from the values the field is drawn from.
    *
    * This is the rule the whole cloud feature turns on: what the map draws and
    * what the panel says at the reader's own point come from the same numbers.
    * Nothing anywhere reads a percentage back out of a rendered tile.
+   *
+   * The suitability sampler below wraps this one for the forecast half of the
+   * field, so the colour under the pin and the percentage beside it cannot
+   * come from different arithmetic.
    */
   const cloudSample = useMemo(() => {
     const forecast = cloudForecast.data;
@@ -2230,6 +2446,58 @@ function TrackerScreen() {
     return (latitudeDeg: number, longitudeDeg: number) =>
       cloudAt(forecast, latitudeDeg, longitudeDeg);
   }, [cloudForecast.data]);
+
+  /**
+   * How usable the sky is at a point: what was seen, and only then what is
+   * expected.
+   *
+   * The observation wins wherever there is one, because it is the only one of
+   * the two that is a measurement. The forecast fills in behind it — outside
+   * the scene, off the disc, or where a pixel was unusable — so the field
+   * covers the view without ever painting a model's opinion over a satellite's
+   * observation of the same spot.
+   *
+   * Both go through the same four-level scale, and neither is converted into
+   * the other's units on the way. A classification stays a classification and a
+   * percentage stays a percentage; what they share is a verdict about
+   * observing, which is the only thing the map is drawing.
+   */
+  const cloudSuitabilityAt = useMemo(() => {
+    // Scrubbed to an hour only the model has an opinion about: the satellite's
+    // last look is not a picture of that hour and must not be drawn as one.
+    const observedField =
+      cloudFrameBasis === "forecast" || !cloudField.data?.ok ? null : cloudField.data.value;
+    const forecast = cloudForecast.data;
+    if (!observedField && !forecast) return null;
+    return (latitudeDeg: number, longitudeDeg: number) => {
+      if (observedField) {
+        const seen = observedAt(observedField, latitudeDeg, longitudeDeg);
+        if (seen) return suitabilityOfCategory(seen.category);
+      }
+      if (!forecast) return null;
+      const percent = cloudAt(forecast, latitudeDeg, longitudeDeg);
+      return percent === null ? null : suitabilityOfPercent(percent);
+    };
+  }, [cloudField.data, cloudForecast.data, cloudFrameBasis]);
+
+  /**
+   * How far the cloud field's tiles are rendered, which is not the same as how
+   * fine its data is.
+   *
+   * The other computed fields stop at zoom 5, because a one-degree nowcast
+   * carries no more information at finer tiles. This one goes further, and the
+   * reason is the hatch: it is a rendering device measured in screen pixels,
+   * and a tile stretched eight times over turns a five-pixel diagonal into a
+   * forty-pixel blur that reads as a texture in the sky rather than as a
+   * warning about it.
+   *
+   * Nothing about the data changes with this. The classification under the
+   * reader's pin still comes from `fetchObservedAt` at native resolution, and
+   * the sampler still returns null wherever neither source has anything —
+   * finer tiles draw the same field more sharply, they do not invent more of
+   * it.
+   */
+  const cloudMaxZoom = 9;
 
   /**
    * What each active layer reads at the selected point.
@@ -2266,38 +2534,57 @@ function TrackerScreen() {
       };
     }
     if (activeLayers.has("cloud")) {
-      const forecast = cloudForecast.data;
-      const percent = cloudSample ? cloudSample(place.latitude, place.longitude) : null;
       /**
-       * Two claims, kept apart: what was seen, and what is expected.
+       * Three claims, kept apart: what was seen, what is expected, and how sure
+       * either of them is about *this* spot.
        *
-       * The observation leads, because it is the only one of the two that is a
-       * measurement. It is a classification rather than a percentage — NOAA's
-       * four-level clear-sky mask — and it is reported as one, with its age, so
-       * a reader can tell a fresh look from an old one. The forecast follows,
-       * named and timed, as the separate thing it is.
+       * The observation leads, because it is the only measurement of the three.
+       * It is a classification rather than a percentage — NOAA's four-level
+       * clear-sky mask — and it is reported as one, with its age. The forecast
+       * follows, named and timed. And the last sentence is the one a reader
+       * needs most and products almost never print: the satellite pixel is two
+       * kilometres across, so this says something about the area, not about the
+       * sky over their roof.
        */
       const observed = cloudObservation.data;
       const observation = observed?.ok ? observed.value : null;
+      const field = cloudField.data?.ok ? cloudField.data.value : null;
       const age = observation
         ? (now.getTime() - Date.parse(observation.observedUtc)) / 60_000
         : null;
+
       const seen = observation
         ? `${CLOUD_CATEGORY_LABEL[observation.category]} · observed ${
             age !== null && age < 1 ? "just now" : `${Math.round(age ?? 0)} min ago`
           }${age !== null && age > OBSERVATION_STALE_MINUTES ? ", which is several scans old" : ""}`
-        : observed && !observed.ok && observed.kind === "uncovered"
-          ? "No satellite cloud observation covers this location"
+        : observed && !observed.ok
+          ? CLOUD_FAILURE_LINE[observed.kind]
           : "Current cloud observation unavailable";
+
+      const percent = cloudSample ? cloudSample(place.latitude, place.longitude) : null;
       const expected =
         percent === null
           ? "No forecast covers this point."
-          : `${forecast?.model ?? "Forecast"} expects ${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}.`;
+          : `${cloudForecast.data?.model ?? "Forecast"} expects ${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}.`;
+
+      // What the night as a whole amounts to, and when it changes. This is the
+      // sentence somebody deciding whether to pack the car actually needs.
+      const change = cloudTimeline ? nextChange(cloudTimeline) : null;
+      const window =
+        cloudTimeline && cloudTimeline.verdict !== "unknown"
+          ? CLOUD_VERDICT_LINE[cloudTimeline.verdict]
+          : null;
+      const turn = change
+        ? ` ${change.kind === "clearing" ? "Opening" : "Closing"} around ${formatClockTime(change.atUtc, clock)}${change.basis === "forecast" ? ", per the forecast" : ", per the satellite"}.`
+        : "";
+
+      const spread = observation
+        ? ` Satellite pixels here are about ${Math.round(field ? sampleSpacingKm(field) : 2)} km across, so this describes the area rather than your exact horizon.`
+        : "";
+
       readings.cloud = {
-        value: seen,
-        detail: observation
-          ? `${observation.satellite} ${observation.platform}, ${observation.resolution}. ${expected}`
-          : expected,
+        value: window ? `${window} · ${seen}` : seen,
+        detail: `${observation ? `${observation.satellite} ${observation.platform}, ${observation.resolution}. ` : ""}${expected}${turn}${spread}`,
       };
     }
     return readings;
@@ -2305,10 +2592,12 @@ function TrackerScreen() {
     activeLayers,
     auroraGrid,
     clock,
+    cloudField.data,
     cloudForecast.data,
     cloudHour,
     cloudObservation.data,
     cloudSample,
+    cloudTimeline,
     lightHere.data,
     now,
     place,
@@ -2545,6 +2834,26 @@ function TrackerScreen() {
          */
         note: card.significance?.reasons?.[0] ?? null,
         /**
+         * What tonight's sky does to this particular thing.
+         *
+         * Scaled by the significance tier the opportunity already earned, so a
+         * planet that is up most nights is told plainly that it is clouded out
+         * and something that will not come round again is told to go anyway.
+         * The tier comes from measured astronomy rather than an editorial list,
+         * which is why this can borrow it instead of inventing a judgement.
+         */
+        cloud: (() => {
+          if (!cloudTimeline) return null;
+          const advice = cloudAdvice(
+            cloudTimeline,
+            card.significance?.tier ?? "routine",
+            clock.timeZone ?? null,
+          );
+          return advice.warning
+            ? { warning: advice.warning, goAnyway: advice.goAnyway }
+            : null;
+        })(),
+        /**
          * Attached to the card the overlay is actually about.
          *
          * `CARD_FOR_EVENT` is the same mapping the event search uses, so a
@@ -2554,7 +2863,16 @@ function TrackerScreen() {
           selectedEvent && CARD_FOR_EVENT[selectedEvent.kind] === card.id ? eventReading : null,
       };
     },
-    [clock, conditions, eventReading, expandedCardId, selectedEvent, terrain.data, terrain.isFetching],
+    [
+      clock,
+      cloudTimeline,
+      conditions,
+      eventReading,
+      expandedCardId,
+      selectedEvent,
+      terrain.data,
+      terrain.isFetching,
+    ],
   );
 
 
@@ -2630,6 +2948,7 @@ function TrackerScreen() {
          while the layer sheet is open so the two do not fill the phone between
          them. The card stays selected; only its presentation is suppressed. */
       data-layers-open={layersOpen ? "true" : "false"}
+      data-cloud-key={activeLayers.has("cloud") && cloudTimeline && !detailOpen ? "true" : "false"}
     >
       {/* Search is the accessible route to a location: the map must never be
           the only way in, and a reader who cannot drag can still type. */}
@@ -2642,6 +2961,28 @@ function TrackerScreen() {
         zoom={location.zoom}
         // Looking around. Replaces the current entry, so a drag leaves one.
         onMove={(centre, zoom) => settle({ centre, zoom })}
+        /**
+         * Quantised before it reaches state, so a map that reports a hundredth
+         * of a degree of drift does not invalidate a query and fetch a field
+         * that is identical to the one already drawn.
+         */
+        onView={(bounds) =>
+          setMapView((previous) => {
+            const next = {
+              south: Number(bounds.south.toFixed(2)),
+              west: Number(bounds.west.toFixed(2)),
+              north: Number(bounds.north.toFixed(2)),
+              east: Number(bounds.east.toFixed(2)),
+            };
+            return previous &&
+              previous.south === next.south &&
+              previous.west === next.west &&
+              previous.north === next.north &&
+              previous.east === next.east
+              ? previous
+              : next;
+          })
+        }
         // A decision. Pushes, so Back undoes it.
         onPick={(point) =>
           navigate({
@@ -2659,7 +3000,8 @@ function TrackerScreen() {
         cameraKey={selectedEvent ? `${selectedEvent.id}#${frameRequest}` : null}
         daylightAt={now}
         auroraGrid={auroraGrid}
-        cloudForecastAt={cloudSample}
+        cloudSuitabilityAt={cloudSuitabilityAt}
+        cloudMaxZoom={cloudMaxZoom}
         lightPollution={lightPollution.data ?? null}
         layers={activeLayers}
         eventOverlay={eventOverlay}
@@ -2771,16 +3113,22 @@ function TrackerScreen() {
                * picture is not. Only the first makes the control unavailable.
                */
               /**
-               * The layer is the forecast, so the forecast is what makes it
-               * available.
+               * Two sources now, so the control is unavailable only when
+               * neither answers.
                *
-               * The satellite is a caption on the reading rather than a thing
-               * drawn, and a longitude no spacecraft is looking at still gets a
-               * cloud field — the model is global and the picture is not. What
-               * turns the control off is a model that did not answer, which is
-               * a layer that would switch on and draw nothing.
+               * This used to key on the forecast alone, with a note explaining
+               * that the satellite was a caption rather than something drawn.
+               * That is no longer true: the mask is the field wherever it
+               * reaches, and the model fills in behind it. A view the satellite
+               * covers and the model does not is a working layer, and turning
+               * the switch off there would hide a measurement because a
+               * forecast was missing.
                */
-              ...(activeLayers.has("cloud") && !cloudForecast.isFetching && !cloudForecast.data
+              ...(activeLayers.has("cloud") &&
+              !cloudForecast.isFetching &&
+              !cloudForecast.data &&
+              !cloudField.isFetching &&
+              !cloudField.data?.ok
                 ? { cloud: "No forecast covers this view" }
                 : {}),
             }}
@@ -2829,6 +3177,20 @@ function TrackerScreen() {
           that layer is on, and never over a detail page. */}
       {activeLayers.has("light-pollution") && !detailOpen && !lightPollution.isError ? (
         <TrackerMapLightLegend radiance={lightHere.data ?? null} />
+      ) : null}
+
+      {/* Tonight's cloud as a strip of time, with the key to the field over the
+          map. Only while the layer is on, and never over a detail page. */}
+      {activeLayers.has("cloud") && cloudTimeline && !detailOpen ? (
+        <TrackerCloudTimeline
+          timeline={cloudTimeline}
+          format={(atUtc) => formatClockTime(atUtc, clock)}
+          selectedUtc={cloudFrameUtc}
+          onSelect={setCloudFrameUtc}
+          spacingKm={
+            cloudField.data?.ok ? sampleSpacingKm(cloudField.data.value) : null
+          }
+        />
       ) : null}
 
       {place && !detailOpen ? (

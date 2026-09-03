@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { cloudAt, forecastHour, latticeFor, withinHrrr, type CloudForecast } from "./cloud";
+import {
+  cloudAt,
+  fetchCloudForecastSeries,
+  forecastHour,
+  latticeFor,
+  withinHrrr,
+  type CloudForecast,
+} from "./cloud";
 
 describe("which model can answer", () => {
   it("uses HRRR over the United States", () => {
@@ -80,5 +87,74 @@ describe("the hour a forecast is for", () => {
   it("is the hour, because the models are hourly", () => {
     expect(forecastHour("2026-09-03T04:37:12Z")).toBe("2026-09-03T04:00");
     expect(forecastHour("2026-09-03T04:00:00Z")).toBe("2026-09-03T04:00");
+  });
+});
+
+describe("the point forecast series", () => {
+  const answer = (body: unknown, ok = true) =>
+    vi.fn(async () => ({ ok, json: async () => body }) as unknown as Response);
+
+  it("asks one point for a range of hours, and names the model", async () => {
+    const fetcher = answer({
+      hourly: {
+        time: ["2026-09-03T02:00", "2026-09-03T03:00", "2026-09-03T04:00"],
+        cloud_cover: [10, 40, 90],
+      },
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const series = await fetchCloudForecastSeries(45.5, -122.7, "2026-09-03T02:10Z", "2026-09-03T04:50Z");
+    expect(series?.model).toBe("NOAA HRRR");
+    expect(series?.hours).toEqual([
+      { validUtc: "2026-09-03T02:00Z", percent: 10 },
+      { validUtc: "2026-09-03T03:00Z", percent: 40 },
+      { validUtc: "2026-09-03T04:00Z", percent: 90 },
+    ]);
+    const url = String(fetcher.mock.calls[0][0]);
+    expect(url).toContain("start_hour=2026-09-03T02%3A00");
+    expect(url).toContain("end_hour=2026-09-03T04%3A00");
+    // One point, not a lattice: the series answers "when", not "where".
+    expect(url).toContain("latitude=45.500&longitude=-122.700");
+    vi.unstubAllGlobals();
+  });
+
+  it("names the global model outside HRRR's domain", async () => {
+    vi.stubGlobal(
+      "fetch",
+      answer({ hourly: { time: ["2026-09-03T21:00"], cloud_cover: [30] } }),
+    );
+    const series = await fetchCloudForecastSeries(51.5, -0.1, "2026-09-03T21:00Z", "2026-09-03T21:00Z");
+    expect(series?.model).toBe("Open-Meteo best available");
+    vi.unstubAllGlobals();
+  });
+
+  it("drops hours the model left empty rather than reading them as clear", async () => {
+    vi.stubGlobal(
+      "fetch",
+      answer({
+        hourly: {
+          time: ["2026-09-03T02:00", "2026-09-03T03:00"],
+          cloud_cover: [null, 40],
+        },
+      }),
+    );
+    const series = await fetchCloudForecastSeries(45.5, -122.7, "2026-09-03T02:00Z", "2026-09-03T03:00Z");
+    expect(series?.hours).toEqual([{ validUtc: "2026-09-03T03:00Z", percent: 40 }]);
+    vi.unstubAllGlobals();
+  });
+
+  it("is nothing at all when the service says nothing", async () => {
+    vi.stubGlobal("fetch", answer({ hourly: { time: [], cloud_cover: [] } }));
+    expect(
+      await fetchCloudForecastSeries(45.5, -122.7, "2026-09-03T02:00Z", "2026-09-03T03:00Z"),
+    ).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("and when it refuses", async () => {
+    vi.stubGlobal("fetch", answer({}, false));
+    expect(
+      await fetchCloudForecastSeries(45.5, -122.7, "2026-09-03T02:00Z", "2026-09-03T03:00Z"),
+    ).toBeNull();
+    vi.unstubAllGlobals();
   });
 });

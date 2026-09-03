@@ -532,7 +532,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: not-applicable-external-service
 - Public deployment redistribution: not-bundled
 - Modification status: values-passed-through-unaltered
-- Repository paths: `netlify/functions/goes-cloud-mask.mts`, `src/data/tracker/goesGrid.ts`, `src/data/tracker/cloudObservation.ts`
+- Repository paths: `netlify/functions/goes-cloud-mask.mts`, `src/data/tracker/cloudObservation.ts`, `src/data/tracker/cloudSuitability.ts`, `src/data/tracker/goesGrid.ts`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Requests must stay subset and cached rather than bulk. The classification must be presented as a classification: it may not be converted into a cloud-cover percentage, and the cloud probability may not be presented as sky cover.
 

@@ -221,6 +221,25 @@ async function values(path: string, window: Window) {
   return { acm, probability, dqf, width, height };
 }
 
+/**
+ * Map over a list a few at a time, keeping the order of the results.
+ *
+ * Exported because the batching is the part that has to be right: it is what
+ * keeps a series request from turning into two dozen simultaneous hits on
+ * somebody else's free service.
+ */
+export async function inBatches<T, R>(
+  items: readonly T[],
+  width: number,
+  run: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let start = 0; start < items.length; start += width) {
+    results.push(...(await Promise.all(items.slice(start, start + width).map(run))));
+  }
+  return results;
+}
+
 /* ----------------------------------------------------------------- entry */
 
 /**
@@ -295,6 +314,72 @@ export default async (request: Request): Promise<Response> => {
       observedUtc: meta.observedUtc || granule.startedUtc,
       probabilityScale: meta.probabilityScale,
     };
+
+    if (at && url.searchParams.get("series") === "1") {
+      const [latitude, longitudeDeg] = at.split(",").map(Number);
+      /**
+       * One place, several observation times, in one request.
+       *
+       * The warning layer needs persistence — whether cloud stayed rather than
+       * whether it was there in the frame the reader happened to load — and
+       * that means several granules. Asking for them one at a time would be a
+       * round trip each, so the walk over granules happens here, where they are
+       * already catalogued and the DAP4 subsets are a few bytes apiece.
+       *
+       * Bounded on purpose. Each frame is two upstream fetches, and a function
+       * that walks an unbounded catalogue is a timeout waiting for a quiet day.
+       */
+      const count = Math.min(12, Math.max(1, Number(url.searchParams.get("count")) || 6));
+      const chosen = granules.slice(-count);
+      /**
+       * Three at a time, not all at once.
+       *
+       * Each frame is two upstream requests, so a `Promise.all` over a dozen
+       * granules is two dozen simultaneous hits on a free academic service —
+       * which is what Unidata's usage policy asks consumers not to do, and what
+       * this repository's own provenance entry promises we will not. Three
+       * keeps the walk to a couple of seconds without ever looking like a
+       * crawler.
+       */
+      const frames = await inBatches(chosen, 3, async (candidate) => {
+        try {
+          const meta = await metadataFor(candidate.path);
+          const cell = cellFor(meta.grid, latitude, longitudeDeg);
+          if (!cell) return { observedUtc: meta.observedUtc || candidate.startedUtc, covered: false };
+          const read = await values(candidate.path, {
+            row0: cell.row,
+            row1: cell.row,
+            column0: cell.column,
+            column1: cell.column,
+            stride: 1,
+          });
+          return {
+            observedUtc: meta.observedUtc || candidate.startedUtc,
+            covered: true,
+            cell,
+            acm: read.acm[0],
+            cloudProbabilityRaw: read.probability[0],
+            dqf: read.dqf[0],
+            probabilityScale: meta.probabilityScale,
+          };
+        } catch {
+          // One granule failing is a gap in the series, not the end of it:
+          // the timeline can show a hole where a scan is missing, and a
+          // warning built on the rest is still worth more than none.
+          return null;
+        }
+      });
+      const meta = await metadataFor(chosen[chosen.length - 1].path);
+      return json({
+        satellite: satellite === "east" ? "GOES-East" : "GOES-West",
+        platform: meta.platform,
+        scene: meta.scene,
+        product: "ABI-L2-ACMC (Clear Sky Mask)",
+        resolution: meta.resolution,
+        probabilityScale: meta.probabilityScale,
+        frames: frames.filter(Boolean),
+      });
+    }
 
     if (at) {
       const [latitude, longitudeDeg] = at.split(",").map(Number);

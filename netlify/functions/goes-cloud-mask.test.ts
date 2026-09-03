@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { chunks, readMetadata, satelliteFor, startedAt, strideFor } from "./goes-cloud-mask.mts";
+import {
+  chunks,
+  inBatches,
+  readMetadata,
+  satelliteFor,
+  startedAt,
+  strideFor,
+} from "./goes-cloud-mask.mts";
 
 describe("choosing a spacecraft", () => {
   it("takes the one nearer the sub-point", () => {
@@ -136,5 +143,32 @@ describe("reading a granule's own constants", () => {
     expect(meta.observedUtc).toBe("2026-09-03T07:26:17.4Z");
     expect(meta.platform).toBe("G18");
     expect(meta.resolution).toBe("2.0km at nadir");
+  });
+});
+
+describe("batching the walk over granules", () => {
+  it("keeps the order of the results", async () => {
+    const order = await inBatches([1, 2, 3, 4, 5, 6, 7], 3, async (n) => n * 2);
+    expect(order).toEqual([2, 4, 6, 8, 10, 12, 14]);
+  });
+
+  it("never has more than the batch width in flight", async () => {
+    let live = 0;
+    let peak = 0;
+    await inBatches(Array.from({ length: 12 }, (_, i) => i), 3, async () => {
+      live += 1;
+      peak = Math.max(peak, live);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      live -= 1;
+      return null;
+    });
+    // Unidata asks consumers not to scrape, and the provenance entry promises
+    // requests stay subset rather than bulk. Two dozen simultaneous hits on a
+    // free academic service is the thing that promise is about.
+    expect(peak).toBeLessThanOrEqual(3);
+  });
+
+  it("does nothing with nothing", async () => {
+    expect(await inBatches([], 3, async () => 1)).toEqual([]);
   });
 });

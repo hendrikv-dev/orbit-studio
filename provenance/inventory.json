@@ -1463,8 +1463,9 @@
       "category": "runtime-external-service",
       "repositoryPaths": [
         "netlify/functions/goes-cloud-mask.mts",
-        "src/data/tracker/goesGrid.ts",
-        "src/data/tracker/cloudObservation.ts"
+        "src/data/tracker/cloudObservation.ts",
+        "src/data/tracker/cloudSuitability.ts",
+        "src/data/tracker/goesGrid.ts"
       ],
       "productionBundlePaths": [
         "assets/TrackerApp-*.js"
@@ -1478,9 +1479,10 @@
         "retrievedAt": "2026-09-03"
       },
       "localSha256": {
-        "netlify/functions/goes-cloud-mask.mts": "ab6e52404dcbaaf5041d3c92e9d742a4af1acc9ed75f5ae48a3eca677c9130ae",
-        "src/data/tracker/goesGrid.ts": "1ba3d7c61820b62e7f14794d6103d28ff8dcf0d1a2d48f2c01f7692d38180220",
-        "src/data/tracker/cloudObservation.ts": "f377e3385d8d76147958b2932e54e12a2506786af1f3e06fca85b783f238d636"
+        "netlify/functions/goes-cloud-mask.mts": "9c6e8f59513ad6aa973bda94d76ce9ffcce89c3d3cec05e1445878c5e57a1a7b",
+        "src/data/tracker/cloudObservation.ts": "985b352b1d8598d47338ed7d6115d641be79012f2a332e6dbd8885ee40f04540",
+        "src/data/tracker/cloudSuitability.ts": "275134ba4420632795e2ff88594e4d37b4a5754c868621beff1fb84831c502da",
+        "src/data/tracker/goesGrid.ts": "1ba3d7c61820b62e7f14794d6103d28ff8dcf0d1a2d48f2c01f7692d38180220"
       },
       "processing": [
         "The fields used are the ones the granule actually carries, confirmed by inspecting a live file rather than by reading documentation: ACM, a four-level mask whose flag_meanings read 'clear probably_clear probably_cloudy cloudy'; Cloud_Probabilities, a uint16 with scale_factor 1.5261e-05 giving the probability that the pixel is cloudy; and DQF, whose flag_meanings distinguish good, bad, space and degraded quality. Pixels the product calls unusable are reported as no observation rather than as clear sky.",
@@ -2161,7 +2163,7 @@
         "retrievedAt": null
       },
       "localSha256": {
-        "src/data/tracker/cloud.ts": "43d3e5f50da22b8b8eecf6baa3d3a4a8d21b26e65ba45371c7297ae69f27c7a1"
+        "src/data/tracker/cloud.ts": "edd96cd924e5cbd040dcb44694146839fc61deb33a7936f7ea372f3188b62d8a"
       },
       "processing": [
         "Total cloud cover is requested for one hour on a twelve-by-eight lattice covering the visible map, in one request of about thirty kilobytes, and only while the reader has the layer switched on. HRRR is named explicitly inside its own domain, where it is the highest-resolution model available; elsewhere Open-Meteo's own model selection answers and the interface says so rather than claiming HRRR.",
@@ -2265,7 +2267,7 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "c314f96805676ddb5a043d7937f00d6cfbb81687e86ed1c71bfcb1732369fd5c"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "8dbb0286aedacfd1e7c4a261ede3432c00ead6f662abd0068ccfba6eb962e2d4"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",

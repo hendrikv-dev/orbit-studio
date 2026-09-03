@@ -168,6 +168,87 @@ async function stubProviders(context) {
   await context.route("**/api.weather.gov/gridpoints/**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(forecastFixture()) }),
   );
+  /**
+   * The cloud mask, in all three shapes the layer asks for.
+   *
+   * Stubbed rather than skipped because the cloud key is the only place in
+   * Tracker with a slider in it, and a control that never renders during the
+   * scan is a control nobody has checked.
+   */
+  await context.route("**/api/goes-cloud-mask*", (route) => {
+    const url = new URL(route.request().url());
+    const head = {
+      satellite: "GOES-West",
+      platform: "G18",
+      scene: "CONUS",
+      product: "ABI-L2-ACMC (Clear Sky Mask)",
+      resolution: "2.0km at nadir",
+      observedUtc: new Date().toISOString(),
+      probabilityScale: 1.5261e-5,
+    };
+    if (url.searchParams.get("series") === "1") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...head,
+          frames: [0, 0, 2, 3].map((acm, index) => ({
+            observedUtc: new Date(Date.now() - (3 - index) * 600_000).toISOString(),
+            covered: true,
+            acm,
+            cloudProbabilityRaw: 51154,
+            dqf: 0,
+            probabilityScale: head.probabilityScale,
+          })),
+        }),
+      });
+    }
+    if (url.searchParams.get("bbox")) {
+      /**
+       * No field for the map, deliberately.
+       *
+       * This scan is about the key's markup — the slider's name, its spoken
+       * value, and the strip being hidden from a screen reader — none of which
+       * depends on pixels being painted. Faking a covered window would mean
+       * duplicating the fixed-grid geolocation here to make it land in the
+       * right place, which is the refinement gate's job and is tested there.
+       */
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...head, covered: false }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...head,
+        covered: true,
+        cell: { column: 1768, row: 162 },
+        acm: 2,
+        cloudProbabilityRaw: 51154,
+        dqf: 0,
+      }),
+    });
+  });
+  await context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
+    const url = new URL(route.request().url());
+    const latitudes = (url.searchParams.get("latitude") ?? "").split(",");
+    const start = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
+    const end = url.searchParams.get("end_hour") ?? start;
+    const hours = [];
+    for (let at = Date.parse(`${start}:00Z`); at <= Date.parse(`${end}:00Z`); at += 3_600_000) {
+      hours.push(new Date(at).toISOString().slice(0, 16));
+    }
+    const body =
+      latitudes.length > 1
+        ? Array.from({ length: latitudes.length }, () => ({
+            hourly: { time: [start], cloud_cover: [64] },
+          }))
+        : { hourly: { time: hours, cloud_cover: hours.map(() => 64) } };
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  });
   await context.route("**/api.met.no/**", (route) =>
     route.fulfill({
       status: 200,
@@ -620,6 +701,61 @@ async function run() {
 
     await chooseFirstResult(page, "Joshua Tree Village Campground");
     await scan(page, "map with a location selected");
+
+    /* --- the cloud key, which is the one control here with a slider in it ---
+     *
+     * A time scrubber has an accessible name and a spoken value or it is a
+     * mystery to anybody not looking at it, and the strip beside it is a
+     * picture that must not be read out cell by cell. Neither can be checked
+     * on a page where the layer was never switched on, which is why this state
+     * exists at all.
+     *
+     * Switched on through the panel rather than by loading a URL with the layer
+     * in it: this scan sits in the middle of a long linear flow, and navigating
+     * away would quietly change the place and the date every later state is
+     * written against. It is also the path a reader actually takes.
+     */
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5_000 });
+    const cloudRow = page.locator(".tk-layers-item", { hasText: "Cloud viewing conditions" });
+    if ((await cloudRow.count()) === 1 && (await cloudRow.getAttribute("aria-checked")) === "false") {
+      await cloudRow.click();
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(4_000);
+    const cloudKey = await page.locator(".tk-cloud-key").count();
+    expect(cloudKey === 1, "the cloud key should be on the map while the layer is on");
+    const scrub = page.locator(".tk-cloud-scrub");
+    if (await scrub.count()) {
+      const named = await scrub.evaluate((node) => {
+        const label = node.labels?.[0];
+        return {
+          name: (label?.textContent ?? node.getAttribute("aria-label") ?? "").trim(),
+          spoken: (node.getAttribute("aria-valuetext") ?? "").trim(),
+        };
+      });
+      expect(named.name.length > 0, "the cloud scrubber should have an accessible name");
+      expect(
+        named.spoken.length > 0,
+        "and should say what it is pointing at, not just a slider position",
+      );
+      const strip = await page.locator(".tk-cloud-strip").getAttribute("aria-hidden");
+      expect(
+        strip === "true",
+        "the strip is a picture and should not be read out one cell at a time",
+      );
+    }
+    await scan(page, "cloud layer on, with its timeline");
+    /*
+      Off again, so the rest of the flow sees the map it was written against.
+    */
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5_000 });
+    if ((await cloudRow.count()) === 1 && (await cloudRow.getAttribute("aria-checked")) === "true") {
+      await cloudRow.click();
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(500);
 
     /* --- the picker, on the map ------------------------------------------
      *

@@ -1022,7 +1022,12 @@ async function main() {
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const listed = await page.locator(".tk-layers-item-name").allInnerTexts();
-    for (const expected of ["Light pollution", "Aurora", "Twilight and darkness", "Cloud cover"]) {
+    for (const expected of [
+      "Light pollution",
+      "Aurora",
+      "Twilight and darkness",
+      "Cloud viewing conditions",
+    ]) {
       check(listed.some((name) => name === expected), `the panel offers ${expected}`);
     }
     /**
@@ -1799,105 +1804,239 @@ async function main() {
     await context.close();
   }
 
-  /* --- cloud, and where its numbers come from ------------------------------ */
+  /* --- cloud, as a time-aware observing warning ---------------------------- */
   console.log("\nCloud");
+
+  /**
+   * A cloud mask stub that answers every shape the app asks for.
+   *
+   * The proxy has three modes and the layer uses all of them: a point reading
+   * at native resolution, a strided field over the view, and a series of recent
+   * scans for the warning system. Stubbing only the first is how a gate ends up
+   * proving that a feature which never ran is fine.
+   */
+/**
+ * The GOES-West CONUS fixed grid, as a granule publishes it.
+ *
+ * Real numbers, because the client's own geolocation runs against them: a made
+ * up projection would make the field land somewhere the map is not, which is
+ * precisely the bug this constant exists to have caught.
+ */
+const FIXTURE_GRID = {
+  originLongitudeDeg: -137,
+  perspectiveHeightM: 35786023,
+  semiMajorM: 6378137,
+  semiMinorM: 6356752.31414,
+  xOffsetRad: -0.101332,
+  xScaleRad: 0.000056,
+  yOffsetRad: 0.128212,
+  yScaleRad: -0.000056,
+  columns: 2500,
+  rows: 1500,
+};
+
+/** The inverse from the Product User Guide, for the fixture's own use. */
+function cellForFixture(latitudeDeg, longitudeDeg) {
+  const DEG = Math.PI / 180;
+  const g = FIXTURE_GRID;
+  const H = g.perspectiveHeightM + g.semiMajorM;
+  const req = g.semiMajorM;
+  const rpol = g.semiMinorM;
+  const e2 = (req * req - rpol * rpol) / (req * req);
+  const latitude = latitudeDeg * DEG;
+  const difference = (longitudeDeg - g.originLongitudeDeg) * DEG;
+  const geocentric = Math.atan(((rpol * rpol) / (req * req)) * Math.tan(latitude));
+  const rc = rpol / Math.sqrt(1 - e2 * Math.cos(geocentric) * Math.cos(geocentric));
+  const sx = H - rc * Math.cos(geocentric) * Math.cos(difference);
+  const sy = -rc * Math.cos(geocentric) * Math.sin(difference);
+  const sz = rc * Math.sin(geocentric);
+  if (H * (H - sx) < sy * sy + ((req * req) / (rpol * rpol)) * sz * sz) return null;
+  const y = Math.atan(sz / sx);
+  const x = Math.asin(-sy / Math.sqrt(sx * sx + sy * sy + sz * sz));
+  const column = Math.round((x - g.xOffsetRad) / g.xScaleRad);
+  const row = Math.round((y - g.yOffsetRad) / g.yScaleRad);
+  if (column < 0 || column >= g.columns || row < 0 || row >= g.rows) return null;
+  return { column, row };
+}
+
+  const cloudMask = (context, { acm = 2, series = null, status = 200 } = {}) =>
+    context.route("**/api/goes-cloud-mask*", (route) => {
+      if (status !== 200) return route.fulfill({ status, contentType: "application/json", body: "{}" });
+      const url = new URL(route.request().url());
+      const head = {
+        satellite: "GOES-West",
+        platform: "G18",
+        scene: "CONUS",
+        product: "ABI-L2-ACMC (Clear Sky Mask)",
+        resolution: "2.0km at nadir",
+        observedUtc: new Date().toISOString(),
+        probabilityScale: 1.5261e-5,
+      };
+      if (url.searchParams.get("series") === "1") {
+        // Newest last, ten minutes apart, as the catalogue publishes them.
+        const levels = series ?? [acm, acm, acm, acm];
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ...head,
+            frames: levels.map((level, index) => ({
+              observedUtc: new Date(Date.now() - (levels.length - 1 - index) * 600_000).toISOString(),
+              covered: true,
+              acm: level,
+              cloudProbabilityRaw: 51154,
+              dqf: 0,
+              probabilityScale: head.probabilityScale,
+            })),
+          }),
+        });
+      }
+      if (url.searchParams.get("bbox")) {
+        /**
+         * A field of one repeated classification, over a window that actually
+         * covers the view.
+         *
+         * The first version of this returned rows 0-47 and columns 0-47 of the
+         * fixed grid, which is a corner of the disc thousands of pixels from
+         * anywhere the gate looks. `observedAt` correctly found nothing there,
+         * the field fell back to the forecast everywhere, and every check below
+         * passed while the observed path was never once exercised — including
+         * the one that claims the paint follows the mask.
+         *
+         * So the window is computed from the requested box, the way the proxy
+         * computes it. The geolocation is duplicated here on purpose: the
+         * fixture has to be able to disagree with the code it is testing, and
+         * `cellFor` has unit tests of its own.
+         */
+        const [south, west, north, east] = (url.searchParams.get("bbox") ?? "")
+          .split(",")
+          .map(Number);
+        const corners = [
+          cellForFixture(south, west),
+          cellForFixture(south, east),
+          cellForFixture(north, west),
+          cellForFixture(north, east),
+        ].filter(Boolean);
+        if (corners.length < 4) {
+          return route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ ...head, covered: false }),
+          });
+        }
+        const rows = corners.map((c) => c.row);
+        const columns = corners.map((c) => c.column);
+        const row0 = Math.min(...rows);
+        const row1 = Math.max(...rows);
+        const column0 = Math.min(...columns);
+        const column1 = Math.max(...columns);
+        const cells = Number(url.searchParams.get("cells")) || 64;
+        let stride = 1;
+        while (
+          Math.ceil((row1 - row0 + 1) / stride) * Math.ceil((column1 - column0 + 1) / stride) >
+          cells * cells
+        ) {
+          stride += 1;
+        }
+        const width = Math.ceil((column1 - column0 + 1) / stride);
+        const height = Math.ceil((row1 - row0 + 1) / stride);
+        const count = width * height;
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ...head,
+            covered: true,
+            grid: FIXTURE_GRID,
+            window: { row0, row1, column0, column1, stride },
+            width,
+            height,
+            acm: Array.from({ length: count }, () => acm),
+            dqf: Array.from({ length: count }, () => 0),
+            cloudProbabilityRaw: Array.from({ length: count }, () => 51154),
+          }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...head,
+          covered: true,
+          cell: { column: 1768, row: 162 },
+          acm,
+          cloudProbabilityRaw: 51154,
+          dqf: 0,
+        }),
+      });
+    });
+
+  /** An hourly forecast of one repeated percentage, for both request shapes. */
+  const cloudForecast = (context, percent) =>
+    context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
+      const url = new URL(route.request().url());
+      const latitudes = (url.searchParams.get("latitude") ?? "").split(",");
+      const start = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
+      const end = url.searchParams.get("end_hour") ?? start;
+      // The point series asks for a range of hours; the lattice asks many
+      // points for one hour. One stub, both shapes.
+      const hours = [];
+      for (let at = Date.parse(`${start}:00Z`); at <= Date.parse(`${end}:00Z`); at += 3_600_000) {
+        hours.push(new Date(at).toISOString().slice(0, 16));
+      }
+      const body =
+        latitudes.length > 1
+          ? Array.from({ length: latitudes.length }, () => ({
+              hourly: { time: [start], cloud_cover: [percent] },
+            }))
+          : { hourly: { time: hours, cloud_cover: hours.map(() => percent) } };
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    });
+
+  const openCloud = async (page) => {
+    await settled(page, 2500);
+    await page.waitForTimeout(4500);
+    await dismissTour(page);
+  };
+
+  /* --- what the satellite saw, and what the model expects ------------------ */
   {
-    /**
-     * A forecast with a known shape, so the reading can be checked against the
-     * number rather than against itself.
-     *
-     * The lattice is twelve by eight over the view. This answers every point
-     * with the same value, which makes the interpolation's answer at the
-     * reader's own place exactly that value — so a reading that says anything
-     * else is not coming from the model.
-     */
     const CLOUD_PERCENT = 37;
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await stub(context);
     await seed(context);
-    await context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
-      const url = new URL(route.request().url());
-      const count = (url.searchParams.get("latitude") ?? "").split(",").length;
-      const hour = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          Array.from({ length: count }, () => ({
-            hourly: { time: [hour], cloud_cover: [CLOUD_PERCENT] },
-          })),
-        ),
-      });
-    });
-    /**
-     * And a real classification for the reader's own pixel.
-     *
-     * NOAA's clear-sky mask is categorical: `flag_meanings` reads "clear
-     * probably_clear probably_cloudy cloudy". The stub answers `2` — probably
-     * cloudy — with a cloud probability of about 0.78 and a good quality flag,
-     * which is the shape the proxy returns.
-     */
-    await context.route("**/api/goes-cloud-mask*", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          satellite: "GOES-West",
-          platform: "G18",
-          scene: "CONUS",
-          product: "ABI-L2-ACMC (Clear Sky Mask)",
-          resolution: "2.0km at nadir",
-          observedUtc: new Date().toISOString(),
-          probabilityScale: 1.5261e-5,
-          covered: true,
-          cell: { column: 1768, row: 162 },
-          acm: 2,
-          cloudProbabilityRaw: 51154,
-          dqf: 0,
-        }),
-      }),
-    );
+    await cloudForecast(context, CLOUD_PERCENT);
+    // ACM 2 is "probably cloudy": the mask's own third level.
+    await cloudMask(context, { acm: 2 });
     const page = await context.newPage();
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
-    await settled(page, 2500);
-    await page.waitForTimeout(4000);
-    await dismissTour(page);
+    await openCloud(page);
 
     const drawn = await page.evaluate(() =>
       window.__trackerMap
         ? window.__trackerMap.getStyle().layers.filter((layer) => /cloud/.test(layer.id)).map((l) => l.id)
         : [],
     );
-    check(drawn.includes("tracker-cloud-forecast"), `the forecast field is drawn (${drawn.join(", ") || "nothing"})`);
-    /**
-     * And the satellite image is not among them.
-     *
-     * Deliberate: the only near-real-time product is a brightness temperature,
-     * warm ground and low stratus overlap in it, and there is no threshold that
-     * separates them without a retrieval Tracker does not have. Painting it
-     * would put a grey sheet over the whole disc and call it cloud.
-     */
     check(
-      !drawn.some((id) => /observed/.test(id)),
-      "and the infrared image is not painted as though it were a cloud mask",
+      drawn.includes("tracker-cloud"),
+      `the suitability field is drawn (${drawn.join(", ") || "nothing"})`,
     );
 
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const reading = await page.locator(".tk-layers-panel").innerText();
+
     /**
      * The rule this whole feature turns on.
      *
      * The number beside the reader's pin is the model's, sampled from the same
      * values the field is drawn from — never read back out of a rendered tile.
-     * The stub answered 37 everywhere, so 37 is the only answer a reading taken
-     * from the source can give.
      */
     check(
       new RegExp(`${CLOUD_PERCENT}% cloud`).test(reading),
-      `the reading is the model's own number (${(reading.match(/\d+% cloud[^\n]*/) ?? ["nothing"])[0]})`,
+      `the forecast reading is the model's own number (${(reading.match(/\d+% cloud[^\n]*/) ?? ["nothing"])[0]})`,
     );
     check(/HRRR/i.test(reading), "and it names the model that answered");
     /**
@@ -1905,73 +2044,368 @@ async function main() {
      *
      * The clear-sky mask is a per-pixel classification, not a sky-cover
      * fraction, so it is reported in the product's own words. Turning "probably
-     * cloudy" into a percentage would be inventing a measurement — and the
-     * forecast percentage beside it is a different quantity from a different
-     * pipeline, which is why both are named.
+     * cloudy" into a percentage would be inventing a measurement.
      */
     check(
       /probably cloudy/i.test(reading),
       `the observation is reported as the classification it is (${(reading.match(/(Clear|Probably clear|Probably cloudy|Cloudy)[^\n]*/) ?? ["nothing"])[0]})`,
     );
+    check(/observed .*(ago|just now)/i.test(reading), "and says how long ago the satellite looked");
+    check(/GOES-West|G18/.test(reading), "and which spacecraft and product it came from");
+    /**
+     * Spatial honesty, which is the claim a cloud product is most tempted to
+     * overstate. The mask is two-kilometre pixels; it knows nothing about the
+     * sky over one roof, and the reading has to say so.
+     */
     check(
-      /observed .*(ago|just now)/i.test(reading),
-      "and says how long ago the satellite looked",
+      /km across/i.test(reading) && /area rather than your exact horizon/i.test(reading),
+      `and does not claim to know the sky over the reader's roof (${(reading.match(/[^.]*km across[^.]*\./) ?? ["nothing"])[0]})`,
     );
     check(
-      /GOES-West|G18/.test(reading),
-      "and which spacecraft and product it came from",
+      !/\d+%\s*(cloud)?\s*(observed|satellite)/i.test(reading),
+      "and no percentage is attached to the classification",
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(500);
+
+    /**
+     * And the field is actually on the screen, not merely in the style.
+     *
+     * A layer entry proves the source was added; it proves nothing about
+     * pixels. A tile renderer that throws, or a sampler that returns null
+     * everywhere, leaves a perfectly well-formed layer drawing nothing — which
+     * is the failure a check on `getStyle().layers` cannot see.
+     *
+     * So: the same strip of map with the layer on and with it off. The
+     * difference has to be findable, and the negative control is what stops
+     * this passing on a basemap that happens to be busy.
+     */
+    const meanOf = (strip) => strip.columns.reduce((a, b) => a + b, 0) / strip.columns.length;
+    const withCloud = await sampleStrip(page, { x: 400, y: 300, width: 480, height: 120 });
+    await page.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("layers");
+      window.history.replaceState({}, "", url);
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await openCloud(page);
+    const withoutCloud = await sampleStrip(page, { x: 400, y: 300, width: 480, height: 120 });
+    const on = meanOf(withCloud);
+    const off = meanOf(withoutCloud);
+    const lift = Math.round(Math.abs(on - off));
+    check(
+      lift >= 2,
+      `the field changes what is on the screen (${lift} levels of luma, ${Math.round(on)} with it on vs ${Math.round(off)} with it off)`,
     );
     await context.close();
   }
 
-  /* --- and when the observation cannot be had ------------------------------ */
+  /* --- and the paint follows the classification ---------------------------- */
+  //
+  // The old version of this section checked that the infrared image was *not*
+  // painted, because brightness temperature is not a cloud mask and no
+  // threshold separates warm ground from low stratus. There is a real
+  // classification now and it is painted, so the check that replaces it is the
+  // positive form of the same worry: the field has to be made of NOAA's
+  // decision, not of something that merely looks like weather.
+  //
+  // Same view, same forecast, same everything — only the mask's own value
+  // differs. If the screen does not change, the field is not reading it.
+  {
+    const luma = async (acm) => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      await stub(context);
+      await seed(context);
+      await cloudForecast(context, 50);
+      await cloudMask(context, { acm });
+      const page = await context.newPage();
+      await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
+        waitUntil: "domcontentloaded",
+      });
+      await openCloud(page);
+      const strip = await sampleStrip(page, { x: 400, y: 300, width: 480, height: 120 });
+      await context.close();
+      return strip.columns.reduce((a, b) => a + b, 0) / strip.columns.length;
+    };
+    const clear = await luma(0);
+    const cloudy = await luma(3);
+    const difference = Math.round(Math.abs(cloudy - clear));
+    /**
+     * Ten levels, not two.
+     *
+     * The palette puts "clear" at eight percent opacity and "cloudy" at thirty,
+     * so over this basemap the two differ by roughly twenty-five levels. A
+     * threshold of two would have been met by noise — and was: an earlier
+     * version of this fixture put the window in a corner of the disc, the field
+     * fell back to the forecast in both runs, and the three levels between two
+     * renders of the same picture passed for proof.
+     */
+    check(
+      difference >= 10,
+      `clear and cloudy pixels are painted differently (${difference} levels of luma, ${Math.round(clear)} clear vs ${Math.round(cloudy)} cloudy)`,
+    );
+    check(
+      cloudy > clear,
+      `and the worse sky is the heavier mark (${Math.round(cloudy)} cloudy vs ${Math.round(clear)} clear)`,
+    );
+  }
+
+  /* --- the timeline, and the boundary between seeing and guessing ---------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await cloudForecast(context, 12);
+    await cloudMask(context, { acm: 0 });
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
+      waitUntil: "domcontentloaded",
+    });
+    await openCloud(page);
+
+    const key = page.locator(".tk-cloud-key");
+    check(await key.count() === 1, "the cloud key is on the map while the layer is on");
+
+    const title = await key.locator(".tk-cloud-key-title").innerText();
+    /**
+     * The title names one field, not a verdict on the night.
+     *
+     * "Stargazing quality" would claim something this layer cannot know: it
+     * sees cloud, and nothing of the Moon, the transparency or the light on the
+     * ground.
+     */
+    check(
+      /cloud viewing conditions/i.test(title),
+      `and it is a key to cloud, not a grade for the night ("${title}")`,
+    );
+
+    const strip = await page.evaluate(() => {
+      const cells = [...document.querySelectorAll(".tk-cloud-cell")];
+      return {
+        total: cells.length,
+        observed: cells.filter((cell) => cell.dataset.basis === "observed").length,
+        forecast: cells.filter((cell) => cell.dataset.basis === "forecast").length,
+        order: cells.map((cell) => cell.dataset.basis).join(","),
+        boundary: document.querySelectorAll(".tk-cloud-boundary").length,
+      };
+    });
+    check(strip.total > 1, `the night is drawn as a strip of time (${strip.total} samples)`);
+    check(
+      strip.observed > 0 && strip.forecast > 0,
+      `with both evidence paths on it (${strip.observed} observed, ${strip.forecast} forecast)`,
+    );
+    /**
+     * Observations never appear after a forecast hour.
+     *
+     * The two are ordered in time and the satellite always wins an overlap, so
+     * a forecast cell followed by an observed one would mean a model's guess
+     * had been laid over an hour the satellite actually watched.
+     */
+    check(
+      !/forecast,observed/.test(strip.order),
+      `and never a guess before a look at the same hour (${strip.order})`,
+    );
+    check(strip.boundary === 1, "and the boundary between them is marked");
+
+    // The scrubber moves the map's own frame rather than only the words.
+    const before = await page.locator(".tk-cloud-key-now").innerText();
+    await page.evaluate(() => {
+      const input = document.querySelector(".tk-cloud-scrub");
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      ).set;
+      setter.call(input, String(Number(input.max)));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await page.waitForTimeout(1200);
+    const after = await page.locator(".tk-cloud-key-now").innerText();
+    check(before !== after, `scrubbing moves through the night ("${before}" → "${after}")`);
+    check(
+      /forecast/i.test(after),
+      "and the far end of the night is labelled as forecast, not as observation",
+    );
+    check(
+      (await page.locator(".tk-cloud-key-reset").count()) === 1,
+      "and there is a way back to now",
+    );
+    await context.close();
+  }
+
+  /* --- the warning, and what it does to a recommendation ------------------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await cloudForecast(context, 95);
+    // Cloudy, and it stayed cloudy: the warning is about persistence.
+    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3] });
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
+      waitUntil: "domcontentloaded",
+    });
+    await openCloud(page);
+
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    const reading = await page.locator(".tk-layers-panel").innerText();
+    check(
+      /clouded out for most of the window/i.test(reading),
+      `a night that stays closed is called closed (${(reading.match(/[^\n·]*window[^\n]*/) ?? ["nothing"])[0]})`,
+    );
+    await page.keyboard.press("Escape");
+
+    const cards = await page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    /**
+     * Cloud warns; it never deletes.
+     *
+     * A closed forecast breaks up, and a two-kilometre pixel knows nothing
+     * about the gap over the next valley — so an opportunity removed for cloud
+     * is one the reader can never find out was there.
+     */
+    check(cards.length > 0, `a clouded-out night still offers what is up (${cards.length} cards)`);
+
+    await page.locator(".tk-rail-card").first().click();
+    await page.waitForTimeout(900);
+    const caution = await page.evaluate(() => {
+      const node = document.querySelector(".tk-rail-cloud");
+      return node ? { text: node.textContent ?? "", goAnyway: node.dataset.goAnyway ?? "" } : null;
+    });
+    check(Boolean(caution), "and the card says the sky is in the way");
+    if (caution) {
+      check(
+        /cloud is forecast across most of the window/i.test(caution.text),
+        `in terms of the window rather than as a number (${caution.text.slice(0, 70)})`,
+      );
+    }
+    await context.close();
+  }
+
+  /* --- and the same sky over something that will not come round again ------ */
+  //
+  // The cost of being wrong is not symmetric. Missing a clear night for Saturn
+  // costs nothing; missing a rare event because a model said eighty percent
+  // costs years. So the warning is scaled by the significance the opportunity
+  // already earned, and the rare case is told to go anyway.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await cloudForecast(context, 95);
+    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3] });
+    const page = await context.newPage();
+    await page.goto(
+      `${TRACKER}&at=45.5,-122.7&z=7&layers=cloud&date=2027-08-12&show=meteor-shower-PER-2027-08-12`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await openCloud(page);
+
+    /**
+     * Driven with real clicks on the card's own button.
+     *
+     * `.tk-rail-card` is the list item; the control inside it is
+     * `.tk-rail-card-head`. Calling `.click()` on the item in page script
+     * dispatched an event nothing was listening for, so no card ever opened and
+     * the check passed judgement on an interface it had not operated.
+     */
+    const heads = page.locator(".tk-rail-card-head");
+    const total = await heads.count();
+    const notes = [];
+    for (let index = 0; index < total; index += 1) {
+      await heads.nth(index).click();
+      await page.waitForTimeout(800);
+      const note = await page.evaluate(() => {
+        const node = document.querySelector(".tk-rail-cloud");
+        if (!node) return null;
+        const card = node.closest(".tk-rail-card");
+        return {
+          card: card?.dataset.card ?? "",
+          goAnyway: node.dataset.goAnyway === "true",
+          text: node.textContent ?? "",
+        };
+      });
+      if (note) notes.push(note);
+    }
+    check(total > 0, `there are cards to check (${total})`);
+    const encouraged = notes.filter((note) => note.goAnyway);
+    const plain = notes.filter((note) => !note.goAnyway);
+    check(
+      notes.length === total,
+      `every card under a closed sky carries the warning (${notes.length} of ${total})`,
+    );
+    if (encouraged.length) {
+      check(
+        /worth going anyway/i.test(encouraged[0].text),
+        `and something rare is told to go anyway (${encouraged[0].card})`,
+      );
+    } else {
+      console.log("  · no notable-tier card on this night, so the rare-event wording is untested");
+    }
+    if (plain.length) {
+      check(
+        !/worth going anyway/i.test(plain[0].text),
+        `while a routine target is not (${plain[0].card})`,
+      );
+    } else {
+      console.log("  · every card on this night was rare, so the routine wording is untested");
+    }
+    await context.close();
+  }
+
+  /* --- when the observation cannot be had ---------------------------------- */
   //
   // A forecast is not an observation and must never be relabelled as one. With
-  // the mask unavailable the layer still draws the model, and says the current
+  // the mask unavailable the layer still draws the model, and says the
   // observation is missing rather than presenting the forecast as current.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await stub(context);
     await seed(context);
-    await context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
-      const url = new URL(route.request().url());
-      const count = (url.searchParams.get("latitude") ?? "").split(",").length;
-      const hour = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          Array.from({ length: count }, () => ({ hourly: { time: [hour], cloud_cover: [41] } })),
-        ),
-      });
-    });
-    await context.route("**/api/goes-cloud-mask*", (route) =>
-      route.fulfill({ status: 502, contentType: "application/json", body: "{}" }),
-    );
+    await cloudForecast(context, 41);
+    await cloudMask(context, { status: 502 });
     const page = await context.newPage();
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, { waitUntil: "domcontentloaded" });
-    await settled(page, 2500);
-    await page.waitForTimeout(4000);
-    await dismissTour(page);
+    await openCloud(page);
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const panel = await page.locator(".tk-layers-panel").innerText();
     check(
-      /current cloud observation unavailable/i.test(panel),
-      "an unavailable observation says so rather than going quiet",
+      /satellite feed is not responding/i.test(panel),
+      `an unreachable feed says which thing failed (${(panel.match(/[^\n·]*not responding[^\n]*/) ?? ["nothing"])[0]})`,
+    );
+    check(/41% cloud/.test(panel), "and the forecast is still offered, as a forecast");
+    /**
+     * Scoped to the reading, not to the whole panel.
+     *
+     * The layer's own blurb says "observed then forecast", which is a true
+     * description of what the layer does and would fail a naive search of the
+     * panel's text. What must not happen is the *reading* presenting the
+     * model's number as something the satellite saw.
+     */
+    const cloudReading = await page.evaluate(() => {
+      const items = [...document.querySelectorAll(".tk-layers-item, li")];
+      const item = items.find(
+        (node) =>
+          /cloud viewing conditions/i.test(node.textContent ?? "") &&
+          node.querySelector(".tk-map-layer-reading"),
+      );
+      return item?.querySelector(".tk-map-layer-reading")?.textContent ?? "";
+    });
+    check(
+      cloudReading.length > 0,
+      `the cloud layer still shows a reading (${cloudReading.slice(0, 50) || "nothing"})`,
     );
     check(
-      /41% cloud/.test(panel),
-      "and the forecast is still offered, as a forecast",
-    );
-    check(
-      !/observed/i.test(panel.replace(/observation unavailable/i, "")),
-      "and nothing calls the forecast an observation",
+      !/observed/i.test(cloudReading),
+      `and nothing in it calls the forecast an observation (${cloudReading.slice(0, 90)})`,
     );
     await context.close();
   }
 
-  /* --- and when no model answers ------------------------------------------- */
+  /* --- and when no model answers either ------------------------------------ */
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await stub(context);
@@ -1979,19 +2413,28 @@ async function main() {
     await context.route("**/api.open-meteo.com/v1/forecast**", (route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
     );
+    await cloudMask(context, { status: 502 });
     const page = await context.newPage();
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
-    await settled(page, 2500);
-    await page.waitForTimeout(4000);
-    await dismissTour(page);
+    await openCloud(page);
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const panel = await page.locator(".tk-layers-panel").innerText();
     check(
       /no forecast covers this view/i.test(panel),
-      "a layer with no model behind it says so rather than drawing nothing in silence",
+      "a layer with no source behind it says so rather than drawing nothing in silence",
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+    const empty = await page.evaluate(() => {
+      const node = document.querySelector(".tk-cloud-key-empty");
+      return node ? node.textContent ?? "" : null;
+    });
+    check(
+      Boolean(empty) && /no cloud information/i.test(empty ?? ""),
+      `and the key says there is nothing rather than showing an empty scale (${(empty ?? "nothing").slice(0, 60)})`,
     );
     const drawn = await page.evaluate(() =>
       window.__trackerMap

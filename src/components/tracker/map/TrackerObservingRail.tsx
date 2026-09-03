@@ -42,6 +42,15 @@ export interface RailFacts {
   /** One sentence on why this is notable, where there is one. */
   note: string | null;
   /**
+   * What the sky over the observing window does to this, where it does anything.
+   *
+   * A warning rather than a filter. Cloud is the one condition that can be
+   * wrong in the reader's favour — a forecast breaks up, a two-kilometre pixel
+   * knows nothing about the gap over the next valley — so it never removes an
+   * opportunity, and for something rare it says so out loud.
+   */
+  cloud: { warning: string; goAnyway: boolean } | null;
+  /**
    * What this event's own geography says at the selected point.
    *
    * Only events that draw something on the map have one — an eclipse path, a
@@ -368,6 +377,20 @@ export function TrackerObservingRail({
                 {expanded && facts ? (
                   <div className="tk-rail-card-body">
                     {facts.note ? <p className="tk-rail-note">{facts.note}</p> : null}
+                    {/*
+                      The sky, where it is in the way. Marked as a caution
+                      rather than styled like the rest of the card, and never
+                      instead of the card: a reader who would drive for this
+                      still gets to decide.
+                    */}
+                    {facts.cloud ? (
+                      <p
+                        className="tk-rail-cloud"
+                        data-go-anyway={facts.cloud.goAnyway ? "true" : undefined}
+                      >
+                        {facts.cloud.warning}
+                      </p>
+                    ) : null}
 
                     {/* The event's own geography read at this point, above the
                         generic facts, because it is the reason this event is

@@ -86,8 +86,8 @@ export const MAP_LAYERS: MapLayerDefinition[] = [
   },
   {
     id: "cloud",
-    label: "Cloud cover",
-    blurb: "What the satellite sees now, and what the model expects later",
+    label: "Cloud viewing conditions",
+    blurb: "Where the sky is open tonight, observed then forecast",
     icon: CloudIcon,
     group: "conditions",
   },

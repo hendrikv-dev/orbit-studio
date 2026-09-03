@@ -38,7 +38,12 @@ be added later once the user provides credentials.
 
 NOAA GOES and NASA SatCORPS global mosaic data may be useful for higher-fidelity cloud/weather
 animation later, especially for animated operational weather layers. They are not implemented in
-this pass.
+the Explorer/Playground renderer.
+
+Tracker does use GOES, and not as imagery: `netlify/functions/goes-cloud-mask.mts` reads the ABI
+Level-2 Clear Sky Mask through Unidata's THREDDS server, and `src/data/tracker/cloudObservation.ts`
+presents it as the per-pixel classification it is. See the `noaa-goes-clear-sky-mask` entry in
+`provenance/inventory.json` for the rights basis and the restrictions that come with it.
 
 Bundled ground station entries are approximate Deep Space Network demo stations. They are included
 only to exercise editing, contact analysis, and coverage visualization workflows.

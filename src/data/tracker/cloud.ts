@@ -30,7 +30,6 @@
  * function over the same values.
  */
 
-const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 
 /* ------------------------------------------------------------- observed */
@@ -143,6 +142,59 @@ export function cloudAt(forecast: CloudForecast, latitudeDeg: number, longitudeD
   const top = a + (b - a) * column.fraction;
   const bottom = c + (d - c) * column.fraction;
   return top + (bottom - top) * row.fraction;
+}
+
+/**
+ * The hourly forecast at one place across a stretch of time.
+ *
+ * The lattice fetch above answers "where is the cloud" for one hour. This
+ * answers "when does it clear" for one place, which is the other half of the
+ * question and the half a timeline is made of. One point over a night is a
+ * single small request, where a lattice per hour would be a dozen.
+ */
+export interface CloudForecastSeries {
+  model: string;
+  hours: { validUtc: string; percent: number }[];
+}
+
+export async function fetchCloudForecastSeries(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  fromUtc: string,
+  toUtc: string,
+  signal?: AbortSignal,
+): Promise<CloudForecastSeries | null> {
+  const hrrr = withinHrrr({
+    south: latitudeDeg,
+    north: latitudeDeg,
+    west: longitudeDeg,
+    east: longitudeDeg,
+  });
+  const query = new URLSearchParams({
+    latitude: latitudeDeg.toFixed(3),
+    longitude: longitudeDeg.toFixed(3),
+    hourly: "cloud_cover",
+    start_hour: forecastHour(fromUtc),
+    end_hour: forecastHour(toUtc),
+  });
+  if (hrrr) query.set("models", "ncep_hrrr_conus");
+
+  try {
+    const response = await fetch(`${OPEN_METEO}?${query}`, { signal });
+    if (!response.ok) return null;
+    const body = (await response.json()) as {
+      hourly?: { time?: string[]; cloud_cover?: (number | null)[] };
+    };
+    const times = body.hourly?.time ?? [];
+    const values = body.hourly?.cloud_cover ?? [];
+    const hours = times
+      .map((time, index) => ({ validUtc: `${time}Z`, percent: values[index] }))
+      .filter((hour): hour is { validUtc: string; percent: number } => typeof hour.percent === "number");
+    if (!hours.length) return null;
+    return { model: hrrr ? "NOAA HRRR" : "Open-Meteo best available", hours };
+  } catch {
+    return null;
+  }
 }
 
 /** The hour a forecast is asked for, since the models are hourly. */

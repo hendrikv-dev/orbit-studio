@@ -67,6 +67,25 @@ export type ObservedFailure =
 
 export type Observed<T> = { ok: true; value: T } | ({ ok: false } & ObservedFailure);
 
+/**
+ * What to say when there is no observation, in terms that distinguish the cases.
+ *
+ * Three different things go wrong and a reader can act on the difference. Being
+ * outside the satellite's view is permanent for that place and no amount of
+ * waiting fixes it. An unreachable service is temporary and worth a reload. A
+ * pixel the product itself rejected means the satellite looked and could not
+ * tell — which is the honest answer, and the one a layer is most tempted to
+ * paint as clear sky.
+ *
+ * None of them is "0% cloud", which is what a field that treats missing data as
+ * zero would draw.
+ */
+export const CLOUD_FAILURE_LINE: Record<ObservedFailure["kind"], string> = {
+  uncovered: "No weather satellite covers this location",
+  unreachable: "The satellite feed is not responding",
+  unusable: "The satellite looked but could not classify this pixel",
+};
+
 async function ask(query: string, signal?: AbortSignal): Promise<Record<string, unknown> | null> {
   try {
     const response = await fetch(`${ENDPOINT}?${query}`, { signal });
@@ -125,6 +144,62 @@ export async function fetchObservedAt(
       cell: body.cell as { column: number; row: number },
     },
   };
+}
+
+/** One frame of the point series: what the mask said at one scan time. */
+export interface ObservedFrame {
+  observedUtc: string;
+  category: CloudCategory | null;
+  probability: number | null;
+  quality: "good" | "degraded" | "unusable";
+  covered: boolean;
+}
+
+export interface ObservedSeries extends Omit<ObservedHead, "observedUtc"> {
+  frames: ObservedFrame[];
+}
+
+/**
+ * The recent scans over one place, in one request.
+ *
+ * The warning layer asks about persistence, and persistence needs more than the
+ * frame that happened to be newest when the page loaded. Every frame here is
+ * the native pixel over the place at that scan time — the series is a sequence
+ * of readings, not a smoothed one.
+ */
+export async function fetchObservedSeries(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  count: number,
+  signal?: AbortSignal,
+): Promise<Observed<ObservedSeries>> {
+  const body = await ask(
+    `series=1&count=${count}&at=${latitudeDeg.toFixed(4)},${longitudeDeg.toFixed(4)}`,
+    signal,
+  );
+  if (!body) return { ok: false, kind: "unreachable" };
+  const raw = body.frames;
+  if (!Array.isArray(raw)) return { ok: false, kind: "unusable" };
+
+  const scale = body.probabilityScale as number;
+  const frames: ObservedFrame[] = raw.map((entry) => {
+    const frame = entry as Record<string, unknown>;
+    const quality = qualityOf(frame.dqf as number);
+    return {
+      observedUtc: frame.observedUtc as string,
+      covered: frame.covered === true,
+      quality,
+      category: frame.covered === true && quality !== "unusable" ? categoryOf(frame.acm as number) : null,
+      probability: probabilityOf(frame.cloudProbabilityRaw as number, scale),
+    };
+  });
+
+  // Every frame outside the disc means the place is not in this scene at all,
+  // which is a different answer from "the satellite looked and could not tell".
+  if (frames.length && frames.every((frame) => !frame.covered)) return { ok: false, kind: "uncovered" };
+  if (!frames.some((frame) => frame.category)) return { ok: false, kind: "unusable" };
+
+  return { ok: true, value: { ...(body as unknown as Omit<ObservedHead, "observedUtc">), frames } };
 }
 
 export interface FieldRequest {
