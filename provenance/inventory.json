@@ -32,6 +32,7 @@
       "ads.atmosphere.copernicus.eu",
       "air-quality-api.open-meteo.com",
       "api.met.no",
+      "api.open-meteo.com",
       "api.weather.gov",
       "apps.apple.com",
       "arxiv.org",
@@ -102,6 +103,7 @@
       "visibleearth.nasa.gov",
       "weather-gov.github.io",
       "wiki.openstreetmap.org",
+      "worldview.earthdata.nasa.gov",
       "www.apache.org",
       "www.dailymotion.com",
       "www.earthdata.nasa.gov",
@@ -1079,13 +1081,14 @@
         "title": "NASA Global Imagery Browse Services",
         "publicationUrl": "https://www.earthdata.nasa.gov/about/esdis/eosdis/gibs",
         "publisher": "NASA Earthdata / ESDIS",
-        "version": "WMS and WMTS service descriptors; disabled by default",
+        "version": "GOES-East and GOES-West ABI Band 13 clean infrared; queried for its timestamp only",
         "retrievedAt": null
       },
       "localSha256": {},
       "processing": [
-        "Orbit Studio contains URL-construction code but does not commit or production-bundle GIBS response imagery.",
-        "The provider is disabled by default and labels true-color imagery as an overlay rather than a cloud mask."
+        "Tracker sends one HEAD request per hemisphere while the cloud layer is on, to learn which GOES spacecraft covers the reader's longitude and when its most recent infrared image was taken. The service exposes that timestamp in a response header for exactly this purpose. No imagery is downloaded, bundled or painted.",
+        "The imagery is deliberately not drawn. The only near-real-time product is a brightness temperature: warm ground and low stratus overlap in it, and separating them needs a background-temperature field Tracker does not have, so any threshold either washes the whole disc or silently drops the low cloud that actually ends an observing night. The cloud-fraction products that would answer properly are polar-orbiter or daylight-only and describe a different moment.",
+        "What the observation contributes is its time: the interface reports which spacecraft is looking, when it last looked, and that the picture is a cloud-top temperature rather than the percentage beside it."
       ],
       "rights": {
         "verification": "verified",
@@ -1093,15 +1096,15 @@
         "evidenceUrls": [
           "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
         ],
-        "attribution": "NASA Global Imagery Browse Services (GIBS), Earthdata.",
+        "attribution": "Cloud observation times from NASA Global Imagery Browse Services (GIBS), GOES ABI.",
         "sourceRedistribution": "not-applicable-external-service",
         "deployedRedistribution": "not-bundled",
         "modification": "service-output-subject-to-layer-metadata"
       },
       "release": {
-        "inclusionStatus": "external-acquisition-disabled",
+        "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Future enabled layers must preserve product-specific metadata, attribution, and any marked restriction."
+        "restrictions": "Only the observation timestamp is consumed. Any future use of the imagery itself must carry the product's own metadata and must not present a brightness temperature as a cloud fraction."
       }
     },
     {
@@ -2088,6 +2091,51 @@
       }
     },
     {
+      "id": "tracker-cloud-forecast",
+      "category": "runtime-weather-forecast",
+      "repositoryPaths": [
+        "src/data/tracker/cloud.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Open-Meteo Forecast API cloud cover, from NOAA HRRR and the best available global model",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "publicationUrl": "https://open-meteo.com/en/docs",
+        "publisher": "Open-Meteo, from NOAA NCEP (HRRR) and the global models Open-Meteo selects",
+        "version": "Live service; no snapshot retained",
+        "retrievedAt": null
+      },
+      "localSha256": {
+        "src/data/tracker/cloud.ts": "23f2733f510cdaa3544be922380c30ec67485a7d3446acd43dc17f2b023d0b10"
+      },
+      "processing": [
+        "Total cloud cover is requested for one hour on a twelve-by-eight lattice covering the visible map, in one request of about thirty kilobytes, and only while the reader has the layer switched on. HRRR is named explicitly inside its own domain, where it is the highest-resolution model available; elsewhere Open-Meteo's own model selection answers and the interface says so rather than claiming HRRR.",
+        "The values are interpolated bilinearly and drawn through Tracker's own field pipeline in Tracker's own neutral ramp. The same sampler answers the reading at the reader's coordinate, so the colour on the map and the percentage in the panel come from one set of numbers and cannot disagree.",
+        "Nothing is read back out of a rendered tile. Outside the lattice the field draws nothing rather than extending its edge, so a flat band is never mistaken for a forecast.",
+        "A grid that comes back entirely empty is treated as no forecast rather than as clear sky, and the layer says it has nothing for this view."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. HRRR is a NOAA product in the public domain.",
+        "evidenceUrls": [
+          "https://open-meteo.com/en/license",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://rapidrefresh.noaa.gov/hrrr/"
+        ],
+        "attribution": "Cloud forecast from Open-Meteo, licensed CC BY 4.0, using NOAA's HRRR model where it applies.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The attribution must remain with the layer. The model that actually answered must be named in the reading rather than assumed to be HRRR."
+      }
+    },
+    {
       "id": "tracker-light-pollution-viirs",
       "category": "scientific-dataset",
       "repositoryPaths": [
@@ -2164,7 +2212,7 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "30121c1e036bf7b73e07fce042a64e5e33a41abf4d5d57e87d8dcd19ed161143"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "c314f96805676ddb5a043d7937f00d6cfbb81687e86ed1c71bfcb1732369fd5c"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",

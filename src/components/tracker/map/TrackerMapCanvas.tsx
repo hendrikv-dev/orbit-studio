@@ -148,6 +148,13 @@ interface Props {
   /** NOAA's aurora nowcast, drawn when the aurora layer is on. */
   auroraGrid: AuroraGrid | null;
   /**
+   * The cloud forecast, read on the same lattice the panel's reading comes from.
+   *
+   * One sampler behind the colour and the number, so what the map draws under
+   * the reader's pin and what the panel says beside it cannot disagree.
+   */
+  cloudForecastAt?: ((latitudeDeg: number, longitudeDeg: number) => number | null) | null;
+  /**
    * Whether that nowcast has passed its validity.
    *
    * A picture is a claim and a bright one is a confident claim. When the words
@@ -210,6 +217,7 @@ export function TrackerMapCanvas({
   daylightAt,
   auroraGrid,
   auroraExpired = false,
+  cloudForecastAt = null,
   lightPollution,
   layers,
   eventOverlay,
@@ -703,6 +711,14 @@ export function TrackerMapCanvas({
     drawAurora(instance, auroraGrid, auroraExpired);
   }, [auroraGrid, auroraExpired, layers, epoch]);
 
+  /** Cloud, as the forecast field. See the note above on why not the picture. */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || epoch === 0) return;
+    if (layers.has("cloud") && cloudForecastAt) drawCloudForecast(instance, cloudForecastAt);
+    else clearField(instance, CLOUD_FORECAST_ID);
+  }, [cloudForecastAt, layers, epoch]);
+
   /**
    * Artificial light on the ground.
    *
@@ -1059,6 +1075,72 @@ function clearField(instance: MapLibreMap, id: string, { keepSampler = false } =
   if (instance.getLayer(id)) instance.removeLayer(id);
   if (instance.getSource(id)) instance.removeSource(id);
   if (!keepSampler) clearFieldSampler(id);
+}
+
+/* ---------------------------------------------------------------- cloud */
+
+const CLOUD_FORECAST_ID = "tracker-cloud-forecast";
+
+/**
+ * Why there is no satellite picture on this map.
+ *
+ * There is a near-real-time observation — GOES looks at the cloud tops every
+ * ten minutes, day and night — and Tracker fetches it, times it and says so in
+ * words. What it does not do is paint it, and the reason is that the only
+ * near-real-time product is a brightness temperature.
+ *
+ * Infrared brightness is not a cloud mask. Warm ground and low stratus overlap
+ * in it — a tile over the Pacific Northwest has a third of its pixels within
+ * one tenth of the same value, cloud and ground together — so no threshold
+ * separates them without a background-temperature field, which is a retrieval
+ * Tracker does not have. Painting it anyway gives one of two wrong pictures: a
+ * grey wash over the whole disc that reads as "cloud everywhere", or a high
+ * threshold that shows only the coldest tops and silently drops the low stratus
+ * that actually ends an observing night.
+ *
+ * The cloud-fraction products that would answer properly are polar-orbiter
+ * (MODIS, VIIRS: one look a day) or daylight-only (TEMPO). Neither is "what the
+ * sky is doing tonight".
+ *
+ * So the map draws the forecast, which is a cloud fraction and is global, and
+ * the satellite is reported as what it is: an observation, with the time it was
+ * taken, standing behind the forecast rather than on top of it.
+ */
+
+/** Where the ramp stops caring: broken cloud and overcast look the same to plan around. */
+const CLOUD_CEILING_PERCENT = 90;
+
+function cloudColour(percent: number): FieldColour {
+  // Below this the sky is usable and the map should show the ground, not a wash.
+  if (percent <= 10) return null;
+  const t = Math.min(1, (percent - 10) / (CLOUD_CEILING_PERCENT - 10));
+  // One neutral ramp: cloud is not a quality, it is an amount, and colouring it
+  // green-to-red would be the map passing the verdict the hero refuses to.
+  const level = Math.round(150 + 105 * t);
+  return [level, level + 4, level + 10, Math.round(255 * (0.16 + 0.5 * t))];
+}
+
+/**
+ * The forecast, drawn from the numbers the reading also comes from.
+ *
+ * The same lattice, the same interpolation, the same values — so the colour
+ * under the reader's pin and the percentage beside it cannot disagree, which is
+ * the failure the whole cloud feature is arranged to avoid.
+ */
+function drawCloudForecast(
+  instance: MapLibreMap,
+  sample: (latitudeDeg: number, longitudeDeg: number) => number | null,
+) {
+  paintField(
+    instance,
+    CLOUD_FORECAST_ID,
+    (latitudeDeg, longitudeDeg) => {
+      const percent = sample(latitudeDeg, longitudeDeg);
+      return percent === null ? null : cloudColour(percent);
+    },
+    0.85,
+    4,
+  );
 }
 
 /* ------------------------------------------------------------- twilight */

@@ -349,20 +349,20 @@ scientific reference outputs, and dependency code remain governed by their recor
 
 - Inventory ID: `nasa-gibs-external-provider`
 - Category: runtime-external-service
-- Release status: external-acquisition-disabled
+- Release status: retained
 - Release 1.0 included: yes
 - Publisher or rights holder: NASA Earthdata / ESDIS
-- Version or snapshot: WMS and WMTS service descriptors; disabled by default
+- Version or snapshot: GOES-East and GOES-West ABI Band 13 clean infrared; queried for its timestamp only
 - Authoritative source: https://www.earthdata.nasa.gov/about/esdis/eosdis/gibs
 - Rights basis: NASA Earthdata policy states that unmarked NASA-led mission data are CC0 and that ESDIS content may be used factually with NASA acknowledgment.
 - Rights evidence: https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy
-- Attribution: NASA Global Imagery Browse Services (GIBS), Earthdata.
+- Attribution: Cloud observation times from NASA Global Imagery Browse Services (GIBS), GOES ABI.
 - Public source redistribution: not-applicable-external-service
 - Public deployment redistribution: not-bundled
 - Modification status: service-output-subject-to-layer-metadata
 - Repository paths: none
 - Production paths: none
-- Restrictions and notes: Future enabled layers must preserve product-specific metadata, attribution, and any marked restriction.
+- Restrictions and notes: Only the observation timestamp is consumed. Any future use of the imagery itself must carry the product's own metadata and must not present a brightness temperature as a cloud fraction.
 
 ## History of On-orbit Satellite Fragmentations, 16th Edition (NASA/TP-20220019160)
 
@@ -772,6 +772,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/tracker/basemapSource.ts`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: The OpenStreetMap, OpenFreeMap and OpenMapTiles attribution must remain visible on the map. This entry must not be marked verified while the public instance is the tile source: it is a development and prototyping source, and shipping it as the permanent one was explicitly ruled out.
+
+## Open-Meteo Forecast API cloud cover, from NOAA HRRR and the best available global model
+
+- Inventory ID: `tracker-cloud-forecast`
+- Category: runtime-weather-forecast
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Open-Meteo, from NOAA NCEP (HRRR) and the global models Open-Meteo selects
+- Version or snapshot: Live service; no snapshot retained
+- Authoritative source: https://open-meteo.com/en/docs
+- Authoritative source: https://api.open-meteo.com/v1/forecast
+- Rights basis: Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. HRRR is a NOAA product in the public domain.
+- Rights evidence: https://open-meteo.com/en/license
+- Rights evidence: https://creativecommons.org/licenses/by/4.0/
+- Rights evidence: https://rapidrefresh.noaa.gov/hrrr/
+- Attribution: Cloud forecast from Open-Meteo, licensed CC BY 4.0, using NOAA's HRRR model where it applies.
+- Public source redistribution: not-applicable-external-service
+- Public deployment redistribution: not-bundled
+- Modification status: permitted-with-attribution
+- Repository paths: `src/data/tracker/cloud.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: The attribution must remain with the layer. The model that actually answered must be named in the reading rather than assumed to be HRRR.
 
 ## Earth Observation Group Annual VIIRS Nighttime Lights V2.1, annual average, 2024, 15 arc-second
 

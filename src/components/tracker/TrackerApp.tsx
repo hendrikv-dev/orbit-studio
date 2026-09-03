@@ -14,6 +14,15 @@ import {
   fetchIssEphemeris,
   fetchLatestDeployment,
 } from "../../data/tracker/satelliteSources";
+import {
+  cloudAt,
+  fetchCloudForecast,
+  fetchCloudObservation,
+  forecastHour,
+  observationAgeMinutes,
+  OBSERVATION_STALE_MINUTES,
+  satelliteFor,
+} from "../../data/tracker/cloud";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
@@ -751,6 +760,13 @@ function TrackerScreen() {
     queryFn: () => lightPollution.data!.at(place!.latitude, place!.longitude),
   });
 
+  const activeLayers = useMemo(() => {
+    const known = new Set<string>(MAP_LAYER_IDS);
+    return new Set(location.layers.filter((entry) => known.has(entry)));
+  }, [location.layers]);
+
+
+
   /**
    * The orbits, for tonight only.
    *
@@ -804,6 +820,92 @@ function TrackerScreen() {
         : null,
     [place, clock.timeZone, planAnchor, orbits.data, lightHere.data],
   );
+
+  /**
+   * Cloud, as two fetches that answer two different questions.
+   *
+   * Both only while the layer is on: the satellite probe is a HEAD request and
+   * the model grid is thirty kilobytes, and neither is worth spending on a
+   * reader who never opened the control.
+   *
+   * The observation is keyed on the hemisphere rather than the exact place,
+   * because one spacecraft's picture covers a third of the planet and panning
+   * inside it should not refetch. The forecast is keyed on the view and the
+   * hour, because that is what it is a forecast *of*.
+   */
+  const cloudObservation = useQuery({
+    queryKey: [
+      "tracker",
+      "cloud",
+      "observed",
+      place ? satelliteFor(place.longitude) : null,
+    ],
+    enabled: activeLayers.has("cloud") && Boolean(place),
+    // The band refreshes every ten minutes; asking more often than that would
+    // be asking the same question twice.
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) => fetchCloudObservation(place!.longitude, signal),
+  });
+
+  /**
+   * The box the forecast is fetched for: the view, with room around it.
+   *
+   * The width has to come from the viewport as well as the zoom. Web Mercator
+   * puts 256 pixels of the world in a tile, so a thousand-pixel map at zoom
+   * eight shows several tiles across, not one — leaving that factor out fetched
+   * a box a fifth of the width of the screen and drew it as a rectangle sitting
+   * in the middle of the map.
+   *
+   * The margin is because the field stops where the samples do, honestly, and a
+   * reader who nudges the map should not immediately be looking at the edge of
+   * it. It is padding on a request, not extrapolation of an answer.
+   */
+  const cloudBounds = useMemo(() => {
+    const width = typeof window === "undefined" ? 1280 : window.innerWidth;
+    const height = typeof window === "undefined" ? 800 : window.innerHeight;
+    const degreesPerPixel = 360 / (256 * 2 ** location.zoom);
+    const across = Math.min(340, degreesPerPixel * width * 1.3);
+    const down = Math.min(150, degreesPerPixel * height * 1.3);
+    return {
+      south: Math.max(-84, location.centre.latitudeDeg - down / 2),
+      north: Math.min(84, location.centre.latitudeDeg + down / 2),
+      west: location.centre.longitudeDeg - across / 2,
+      east: location.centre.longitudeDeg + across / 2,
+    };
+  }, [location.centre.latitudeDeg, location.centre.longitudeDeg, location.zoom]);
+
+  /**
+   * The hour the forecast is about: the middle of the night being planned.
+   *
+   * Not the wall clock and not the plan's anchor. The anchor is a moment on the
+   * chosen day and can be the middle of the afternoon, which is how a reader
+   * looking at the map at ten at night was shown noon's cloud. The map follows
+   * the date control, and the question it is answering is "what is the sky
+   * doing during the hours I would be out in it".
+   */
+  const cloudHour = useMemo(() => {
+    if (!night) return forecastHour(planAnchor.toISOString());
+    const middle = (Date.parse(night.period.startUtc) + Date.parse(night.period.endUtc)) / 2;
+    return forecastHour(new Date(middle).toISOString());
+  }, [night, planAnchor]);
+
+  const cloudForecast = useQuery({
+    queryKey: [
+      "tracker",
+      "cloud",
+      "forecast",
+      cloudHour,
+      // Quantised, so nudging the map does not spend somebody else's service.
+      `${cloudBounds.south.toFixed(1)},${cloudBounds.west.toFixed(1)},${cloudBounds.north.toFixed(1)},${cloudBounds.east.toFixed(1)}`,
+    ],
+    enabled: activeLayers.has("cloud"),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) => fetchCloudForecast(cloudBounds, cloudHour, signal),
+  });
 
   // The plan changes only when an authoritative input changes or the observing
   // period ends. Tonight's selection is derived from that plan and cannot
@@ -1953,10 +2055,6 @@ function TrackerScreen() {
    * The URL can carry anything; a stale link naming a layer that has since been
    * removed should open the map without it rather than with a broken one.
    */
-  const activeLayers = useMemo(() => {
-    const known = new Set<string>(MAP_LAYER_IDS);
-    return new Set(location.layers.filter((entry) => known.has(entry)));
-  }, [location.layers]);
 
   /**
    * The notable event the map is drawing, if any.
@@ -2113,6 +2211,20 @@ function TrackerScreen() {
    * care about. A list rather than one value, because several layers can be on.
    */
   /**
+   * One sampler behind the field and the reading, so they cannot disagree.
+   *
+   * This is the rule the whole cloud feature turns on: what the map draws and
+   * what the panel says at the reader's own point come from the same numbers.
+   * Nothing anywhere reads a percentage back out of a rendered tile.
+   */
+  const cloudSample = useMemo(() => {
+    const forecast = cloudForecast.data;
+    if (!forecast) return null;
+    return (latitudeDeg: number, longitudeDeg: number) =>
+      cloudAt(forecast, latitudeDeg, longitudeDeg);
+  }, [cloudForecast.data]);
+
+  /**
    * What each active layer reads at the selected point.
    *
    * Keyed by layer rather than listed, because these are now rendered under the
@@ -2146,8 +2258,48 @@ function TrackerScreen() {
               : "Not expected from this latitude tonight.",
       };
     }
+    if (activeLayers.has("cloud")) {
+      const forecast = cloudForecast.data;
+      const percent = cloudSample ? cloudSample(place.latitude, place.longitude) : null;
+      const observation = cloudObservation.data;
+      const age = observation ? observationAgeMinutes(observation, now) : null;
+      /**
+       * The number is the forecast's, and the picture is the satellite's.
+       *
+       * Said in that order and with both named, because they are two different
+       * claims about two different moments and the reader is entitled to know
+       * which one the colour under their pin came from. Where the model said
+       * nothing, the reading says so rather than borrowing the image's word.
+       */
+      const observedNote =
+        observation && age !== null && age <= OBSERVATION_STALE_MINUTES
+          ? `${observation.satellite}'s infrared view is from ${formatClockTime(observation.observedUtc, clock)}; the picture is cloud-top temperature, not this percentage.`
+          : observation
+            ? `${observation.satellite}'s last image is over an hour old, so the picture is history rather than now.`
+            : "No satellite image covers this longitude, so only the forecast is drawn.";
+      readings.cloud = percent === null
+        ? {
+            value: "No forecast for this point",
+            detail: observedNote,
+          }
+        : {
+            value: `${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}`,
+            detail: `${forecast?.model ?? "Forecast"}. ${observedNote}`,
+          };
+    }
     return readings;
-  }, [activeLayers, auroraGrid, lightHere.data, place]);
+  }, [
+    activeLayers,
+    auroraGrid,
+    clock,
+    cloudForecast.data,
+    cloudHour,
+    cloudObservation.data,
+    cloudSample,
+    lightHere.data,
+    now,
+    place,
+  ]);
 
   /**
    * What the selected event means *here*.
@@ -2494,6 +2646,7 @@ function TrackerScreen() {
         cameraKey={selectedEvent ? `${selectedEvent.id}#${frameRequest}` : null}
         daylightAt={now}
         auroraGrid={auroraGrid}
+        cloudForecastAt={cloudSample}
         lightPollution={lightPollution.data ?? null}
         layers={activeLayers}
         eventOverlay={eventOverlay}
@@ -2596,6 +2749,27 @@ function TrackerScreen() {
                * which, for this one, would read as "no artificial light here".
                */
               ...(lightPollution.isError ? { "light-pollution": "Measurements unavailable" } : {}),
+              /**
+               * Two ways cloud can have nothing to say, and they are different.
+               *
+               * No model answered for this view is a layer that would draw
+               * nothing; a model that answered is a layer that works even where
+               * no satellite is looking, because the forecast is global and the
+               * picture is not. Only the first makes the control unavailable.
+               */
+              /**
+               * The layer is the forecast, so the forecast is what makes it
+               * available.
+               *
+               * The satellite is a caption on the reading rather than a thing
+               * drawn, and a longitude no spacecraft is looking at still gets a
+               * cloud field — the model is global and the picture is not. What
+               * turns the control off is a model that did not answer, which is
+               * a layer that would switch on and draw nothing.
+               */
+              ...(activeLayers.has("cloud") && !cloudForecast.isFetching && !cloudForecast.data
+                ? { cloud: "No forecast covers this view" }
+                : {}),
             }}
             eventOverlayLabel={selectedEvent ? overlayTitle(selectedEvent) : null}
             onClearEvent={() => navigate({ event: null })}

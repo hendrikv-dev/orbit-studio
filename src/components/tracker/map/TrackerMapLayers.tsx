@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback} from "react";
-import { Check, Layers, Lightbulb, Sparkles, Sunset, X } from "lucide-react";
+import { Check, Cloud as CloudIcon, Layers, Lightbulb, Sparkles, Sunset, X } from "lucide-react";
 import { useDismissableSurface } from "../../../data/tracker/dismissable";
 
 /**
@@ -33,14 +33,16 @@ import { useDismissableSurface } from "../../../data/tracker/dismissable";
  * A layer Tracker cannot draw at all is not listed. Cloud and smoke used to
  * appear here permanently disabled, reading "Needs a gridded forecast, not yet
  * fetched" — internal language for "we never built this", printed in the
- * product as though it were a temporary outage. Tracker has cloud and aerosol
- * figures for a *point*, which is why the conditions on a card are real; it has
- * no gridded field to draw across a continent. A control that can never turn on
- * is not a disclosure, it is an advertisement for a feature that does not
- * exist, so the two are gone until there is a field behind them.
+ * product as though it were a temporary outage. A control that can never turn
+ * on is not a disclosure, it is an advertisement for a feature that does not
+ * exist, so the two went until there was a field behind them.
+ *
+ * Cloud is back, because there is one: GOES for what the sky is doing and a
+ * numerical model for what it will do. Smoke is still absent, on the same terms
+ * as before — Tracker has an aerosol figure for a point and no field.
  */
 
-export type MapLayerId = "twilight" | "aurora" | "light-pollution";
+export type MapLayerId = "twilight" | "aurora" | "light-pollution" | "cloud";
 
 export interface MapLayerDefinition {
   id: MapLayerId;
@@ -80,6 +82,13 @@ export const MAP_LAYERS: MapLayerDefinition[] = [
     label: "Light pollution",
     blurb: "Upward light measured from orbit, at 500 m",
     icon: Lightbulb,
+    group: "conditions",
+  },
+  {
+    id: "cloud",
+    label: "Cloud cover",
+    blurb: "How much cloud the model expects, and when a satellite last looked",
+    icon: CloudIcon,
     group: "conditions",
   },
 ];

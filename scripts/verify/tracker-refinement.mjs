@@ -898,21 +898,25 @@ async function main() {
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const listed = await page.locator(".tk-layers-item-name").allInnerTexts();
-    for (const expected of ["Light pollution", "Aurora", "Twilight and darkness"]) {
+    for (const expected of ["Light pollution", "Aurora", "Twilight and darkness", "Cloud cover"]) {
       check(listed.some((name) => name === expected), `the panel offers ${expected}`);
     }
     /**
      * The panel lists what Tracker can draw, and nothing else.
      *
-     * Cloud and smoke used to be listed here permanently disabled, reading
+     * Cloud and smoke were both listed here once, permanently disabled, reading
      * "Needs a gridded forecast, not yet fetched" — an engineering note about
      * work never started, printed in the product as if it were a temporary
-     * outage. Tracker has cloud and aerosol figures for a point, which is why a
-     * card's conditions are real; it has no field to draw across a continent.
-     * A control that can never turn on advertises a feature that does not
-     * exist, so both are gone until there is data behind them.
+     * outage. A control that can never turn on advertises a feature that does
+     * not exist, so both went until there was data behind them.
+     *
+     * Cloud has data behind it now and is back. Smoke does not: Tracker has an
+     * aerosol figure for a point, which is why a card's conditions are real, and
+     * no field to draw across a continent. So the assertion is not weaker, it is
+     * the same assertion — this panel lists exactly what can be drawn — applied
+     * to a product that can now draw one more thing.
      */
-    for (const absent of ["Cloud cover", "Smoke and haze"]) {
+    for (const absent of ["Smoke and haze"]) {
       check(!listed.some((name) => name === absent), `the panel does not offer ${absent}`);
     }
     const panelText = await page.locator(".tk-layers-panel").innerText();
@@ -1552,6 +1556,121 @@ async function main() {
       card !== null && card <= 14,
       `reduced motion: the selected card is already at the front (x=${card})`,
     );
+    await context.close();
+  }
+
+  /* --- cloud, and where its numbers come from ------------------------------ */
+  console.log("\nCloud");
+  {
+    /**
+     * A forecast with a known shape, so the reading can be checked against the
+     * number rather than against itself.
+     *
+     * The lattice is twelve by eight over the view. This answers every point
+     * with the same value, which makes the interpolation's answer at the
+     * reader's own place exactly that value — so a reading that says anything
+     * else is not coming from the model.
+     */
+    const CLOUD_PERCENT = 37;
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
+      const url = new URL(route.request().url());
+      const count = (url.searchParams.get("latitude") ?? "").split(",").length;
+      const hour = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          Array.from({ length: count }, () => ({
+            hourly: { time: [hour], cloud_cover: [CLOUD_PERCENT] },
+          })),
+        ),
+      });
+    });
+    // No satellite, so the caption has to say so rather than invent a time.
+    await context.route("**/gibs.earthdata.nasa.gov/**", (route) =>
+      route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
+    );
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2500);
+    await page.waitForTimeout(4000);
+    await dismissTour(page);
+
+    const drawn = await page.evaluate(() =>
+      window.__trackerMap
+        ? window.__trackerMap.getStyle().layers.filter((layer) => /cloud/.test(layer.id)).map((l) => l.id)
+        : [],
+    );
+    check(drawn.includes("tracker-cloud-forecast"), `the forecast field is drawn (${drawn.join(", ") || "nothing"})`);
+    /**
+     * And the satellite image is not among them.
+     *
+     * Deliberate: the only near-real-time product is a brightness temperature,
+     * warm ground and low stratus overlap in it, and there is no threshold that
+     * separates them without a retrieval Tracker does not have. Painting it
+     * would put a grey sheet over the whole disc and call it cloud.
+     */
+    check(
+      !drawn.some((id) => /observed/.test(id)),
+      "and the infrared image is not painted as though it were a cloud mask",
+    );
+
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    const reading = await page.locator(".tk-layers-panel").innerText();
+    /**
+     * The rule this whole feature turns on.
+     *
+     * The number beside the reader's pin is the model's, sampled from the same
+     * values the field is drawn from — never read back out of a rendered tile.
+     * The stub answered 37 everywhere, so 37 is the only answer a reading taken
+     * from the source can give.
+     */
+    check(
+      new RegExp(`${CLOUD_PERCENT}% cloud`).test(reading),
+      `the reading is the model's own number (${(reading.match(/\d+% cloud[^\n]*/) ?? ["nothing"])[0]})`,
+    );
+    check(/HRRR/i.test(reading), "and it names the model that answered");
+    check(
+      /no satellite image/i.test(reading),
+      "and says plainly when no spacecraft is looking at this longitude",
+    );
+    await context.close();
+  }
+
+  /* --- and when no model answers ------------------------------------------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await context.route("**/api.open-meteo.com/v1/forecast**", (route) =>
+      route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
+    );
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 2500);
+    await page.waitForTimeout(4000);
+    await dismissTour(page);
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    const panel = await page.locator(".tk-layers-panel").innerText();
+    check(
+      /no forecast covers this view/i.test(panel),
+      "a layer with no model behind it says so rather than drawing nothing in silence",
+    );
+    const drawn = await page.evaluate(() =>
+      window.__trackerMap
+        ? window.__trackerMap.getStyle().layers.filter((layer) => /cloud/.test(layer.id)).length
+        : -1,
+    );
+    check(drawn === 0, `and nothing is drawn (${drawn} cloud layers)`);
     await context.close();
   }
 
