@@ -58,6 +58,13 @@ export interface EventPresentation {
   id: string;
   categoryId: EventCategoryId;
   title: string;
+  /**
+   * A short name for narrow places, where the subject supplies one.
+   *
+   * Optional: most presentations have titles that already fit, and only the
+   * ones that would otherwise be clipped into nonsense need it.
+   */
+  shortTitle?: string | null;
   /** At most two. The layout allows no more and the type says so. */
   pills: EventPill[];
   /** The decision, in one or two sentences. Never a grade. */
@@ -247,6 +254,7 @@ export function presentTonightEvent(
     id: opportunity.id,
     categoryId,
     title: opportunity.title,
+    shortTitle: opportunity.shortTitle ?? null,
     pills: [...pills, ...secondPillFor(entry, context)].slice(0, 2),
     recommendation: recommendationSentence(level, opportunity.summary, where, passed),
     recommendationLevel: level,

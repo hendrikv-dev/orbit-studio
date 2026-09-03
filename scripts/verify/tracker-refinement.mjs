@@ -110,11 +110,22 @@ async function sampleStrip(page, clip) {
             }
             columns.push(sum / image.height);
           }
+          // Channel means as well as luma: the cloud ramp encodes its direction
+          // in red-versus-green, and a luma-only reading cannot see that.
+          let red = 0;
+          let green = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            red += data[i];
+            green += data[i + 1];
+          }
+          const pixels = data.length / 4;
           resolve({
             width: image.width,
             min: Math.min(...columns),
             max: Math.max(...columns),
             columns,
+            red: red / pixels,
+            green: green / pixels,
           });
         };
         image.onerror = reject;
@@ -1835,6 +1846,24 @@ async function main() {
       !/\d+%\s*(cloud)?\s*(observed|satellite)/i.test(reading),
       "and no percentage is attached to the classification",
     );
+    /**
+     * The two cloud percentages are different quantities and must not share a
+     * noun. NOAA publishes the probability that a pixel is cloudy; the model
+     * publishes a fraction of sky. Rendering both as "N% cloud cover" tells a
+     * reader a confidence is an amount.
+     */
+    check(
+      /cloud cover/i.test(reading) && !/\d+%\s*cloud probability[^.]*observed/i.test(reading),
+      `the forecast percentage is named as cover (${(reading.match(/\d+% cloud cover/) ?? ["nothing"])[0]})`,
+    );
+    check(
+      !/observed[^.]*\d+% cloud cover/i.test(reading),
+      "and no observed reading is labelled as cloud cover",
+    );
+    check(
+      /\d+% cloud probability/i.test(reading),
+      `while the mask's own confidence is named a probability (${(reading.match(/\d+% cloud probability/) ?? ["nothing"])[0]})`,
+    );
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
 
@@ -1895,28 +1924,43 @@ async function main() {
       await openCloud(page);
       const strip = await sampleStrip(page, { x: 400, y: 300, width: 480, height: 120 });
       await context.close();
-      return strip.columns.reduce((a, b) => a + b, 0) / strip.columns.length;
+      return { ...strip, luma: strip.columns.reduce((a, b) => a + b, 0) / strip.columns.length };
     };
-    const clear = await luma(0);
-    const cloudy = await luma(3);
+    const clearShot = await luma(0);
+    const cloudyShot = await luma(3);
+    const clear = clearShot.luma;
+    const cloudy = cloudyShot.luma;
     const difference = Math.round(Math.abs(cloudy - clear));
     /**
-     * Ten levels, not two.
+     * Measured on the channels the palette actually encodes, and on brightness.
      *
-     * The palette puts "clear" at eight percent opacity and "cloudy" at thirty,
-     * so over this basemap the two differ by roughly twenty-five levels. A
-     * threshold of two would have been met by noise — and was: an earlier
-     * version of this fixture put the window in a corner of the disc, the field
-     * fell back to the forecast in both runs, and the three levels between two
-     * renders of the same picture passed for proof.
+     * An earlier version of this compared mean luma alone and reported "0
+     * levels" for a ramp that was working perfectly well in hue — a light green
+     * at low opacity and a dark red at high opacity land in the same place once
+     * blended over a dark basemap. That was a real finding about the palette,
+     * which now rises in brightness as well; but the check that found it was
+     * measuring one of the three cues and calling it the whole answer.
+     *
+     * So both are asserted: the favourable end must be greener than red and the
+     * unfavourable end redder than green — the direction a reader sees — and
+     * the two must also differ in brightness, so the ramp survives a screen
+     * with no usable hue at all.
      */
     check(
-      difference >= 10,
-      `clear and cloudy pixels are painted differently (${difference} levels of luma, ${Math.round(clear)} clear vs ${Math.round(cloudy)} cloudy)`,
+      clearShot.green > clearShot.red,
+      `clear sky is painted green rather than red (G ${Math.round(clearShot.green)} vs R ${Math.round(clearShot.red)})`,
+    );
+    check(
+      cloudyShot.red > cloudyShot.green,
+      `and cloudy sky red rather than green (R ${Math.round(cloudyShot.red)} vs G ${Math.round(cloudyShot.green)})`,
+    );
+    check(
+      difference >= 6,
+      `and the two differ in brightness for a reader without hue (${difference} levels of luma, ${Math.round(clear)} clear vs ${Math.round(cloudy)} cloudy)`,
     );
     check(
       cloudy > clear,
-      `and the worse sky is the heavier mark (${Math.round(cloudy)} cloudy vs ${Math.round(clear)} clear)`,
+      `with the worse sky the heavier mark (${Math.round(cloudy)} cloudy vs ${Math.round(clear)} clear)`,
     );
   }
 
@@ -2021,8 +2065,8 @@ async function main() {
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
     const reading = await page.locator(".tk-layers-panel").innerText();
     check(
-      /clouded out for most of the window/i.test(reading),
-      `a night that stays closed is called closed (${(reading.match(/[^\n·]*window[^\n]*/) ?? ["nothing"])[0]})`,
+      /cloudy for most of tonight/i.test(reading),
+      `a night that stays closed is called closed, in plain words (${(reading.match(/Cloudy for most of tonight/i) ?? ["nothing"])[0]})`,
     );
     await page.keyboard.press("Escape");
 
@@ -2030,13 +2074,43 @@ async function main() {
       [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
     );
     /**
-     * Cloud warns; it never deletes.
+     * Cloud takes routine targets off the rail and leaves the rest.
      *
-     * A closed forecast breaks up, and a two-kilometre pixel knows nothing
-     * about the gap over the next valley — so an opportunity removed for cloud
-     * is one the reader can never find out was there.
+     * This used to assert that cloud never removed anything, which was the rule
+     * at the time and was wrong: it filled the rail with things a reader could
+     * not see. What must still hold is that the rail is not *emptied* — a night
+     * with a rare event in it still offers that event, however bad the sky,
+     * because missing it costs years and a satellite pixel knows nothing about
+     * the gap over the next valley.
      */
-    check(cards.length > 0, `a clouded-out night still offers what is up (${cards.length} cards)`);
+    check(
+      cards.length > 0,
+      `a clouded-out night still offers what is worth the risk (${cards.length} cards: ${cards.join(", ")})`,
+    );
+
+    /**
+     * And it does not offer everything.
+     *
+     * The counterpart to the check above: a repeatable target whose own window
+     * is cloudy throughout is withheld, so the rail under a closed sky is
+     * shorter than the same night's rail with the layer off. Without this, "the
+     * rail is not empty" would pass just as happily on a product that had
+     * quietly stopped suppressing anything.
+     */
+    const openSky = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(openSky);
+    await seed(openSky);
+    const clearPage = await cloudPage(openSky);
+    await clearPage.goto(`${TRACKER}&at=45.5,-122.7&z=7`, { waitUntil: "domcontentloaded" });
+    await openCloud(clearPage);
+    const withoutCloud = await clearPage.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    await openSky.close();
+    check(
+      cards.length < withoutCloud.length,
+      `and withholds the ones a reader could not see (${cards.length} under cloud vs ${withoutCloud.length} without: dropped ${withoutCloud.filter((id) => !cards.includes(id)).join(", ") || "nothing"})`,
+    );
 
     await page.locator(".tk-rail-card").first().click();
     await page.waitForTimeout(900);
@@ -2047,7 +2121,7 @@ async function main() {
     check(Boolean(caution), "and the card says the sky is in the way");
     if (caution) {
       check(
-        /cloud is forecast across most of the window/i.test(caution.text),
+        /cloud is forecast through this whole window/i.test(caution.text),
         `in terms of the window rather than as a number (${caution.text.slice(0, 70)})`,
       );
     }

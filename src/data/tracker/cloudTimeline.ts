@@ -1,12 +1,14 @@
 import type { CloudForecastSeries } from "./cloud";
 import type { ObservedSeries } from "./cloudObservation";
 import {
+  SUITABILITY_ORDER,
   suitabilityOfCategory,
   suitabilityOfPercent,
   verdictOf,
   warningsIn,
   type CloudBasis,
   type CloudSample,
+  type Suitability,
   type CloudWarning,
   type WindowVerdict,
 } from "./cloudSuitability";
@@ -164,15 +166,20 @@ export function nextChange(
 /**
  * How cloud should change what Tracker recommends.
  *
- * ## Why nothing is ever removed for cloud
+ * ## What cloud may and may not remove
  *
- * Cloud is the one condition that can be wrong in the reader's favour. A closed
- * forecast breaks up; a two-kilometre pixel says nothing about the gap over the
- * next valley. Light pollution and the Moon do not do this — they are where
- * they are — so those may gate an opportunity and cloud may not. A layer that
- * deleted tonight's occultation because the model said eighty percent would
- * eventually delete one that happened in a clear hour, and the reader would
- * never know it had.
+ * Cloud is the one condition that can be wrong in the reader's favour: a closed
+ * forecast breaks up, and a two-kilometre pixel says nothing about the gap over
+ * the next valley. That argues for caution, not for never acting.
+ *
+ * A repeatable target whose own interval is closed throughout is withheld. It
+ * is up again tomorrow, and a rail of five things none of which can be seen
+ * tonight is a catalogue with apologies attached rather than a recommendation.
+ *
+ * A rare or time-critical event is never withheld, however bad the sky. Missing
+ * it because a model said eighty percent costs years, and the reader is the one
+ * entitled to weigh that. For those, the obstruction is made unmistakable
+ * instead.
  *
  * ## Why rarity changes the answer
  *
@@ -190,6 +197,13 @@ export function nextChange(
 export type CloudAdviceTier = "routine" | "good-example" | "favourable" | "notable";
 
 export interface CloudAdvice {
+  /**
+   * True when the opportunity should not be offered at all.
+   *
+   * Only ever true for a repeatable target whose own observing interval is
+   * effectively unusable. Never true for something rare.
+   */
+  suppress: boolean;
   /** The warning to show beside it, or null when the sky is not in the way. */
   warning: string | null;
   /** True when the reader should be told to go anyway. */
@@ -197,19 +211,58 @@ export interface CloudAdvice {
 }
 
 /**
- * Why this does not reorder anything.
+ * What the sky does during one opportunity's own interval.
  *
- * An earlier version of this returned a demotion for the ranking to apply. It
- * was wrong, and the reason is worth writing down: cloud at the reader's own
- * place is the same cloud for everything in the sky above it. A penalty applied
- * equally to every opportunity changes no order at all, and one scaled by
- * significance only amplifies a tier ordering the significance model has
- * already done deliberately and defended.
+ * ## Why the night's verdict is not enough
  *
- * So cloud changes what the reader is *told*, not what they are offered. That
- * is also the safer failure: an opportunity pushed off the end of the rail by a
- * forecast is one the reader can never discover was there, on a night the sky
- * may well have opened.
+ * Saturn sets at ten and a shower peaks at two. A single verdict for the whole
+ * night gives them the same answer, and the answer is wrong for at least one of
+ * them whenever the sky changes — which is most nights that are worth warning
+ * about. Cloud arriving at midnight should take Saturn and leave the shower
+ * alone; cloud clearing at midnight should do the reverse.
+ *
+ * So each opportunity is judged over the stretch a reader would actually be
+ * outside for it, and two opportunities on the same night can legitimately
+ * receive different outcomes.
+ */
+export interface IntervalCloud {
+  verdict: WindowVerdict;
+  /** How many samples fell inside the interval. */
+  samples: number;
+  /** The worst level reached inside it. */
+  worst: Suitability | null;
+}
+
+export function cloudOver(
+  timeline: CloudTimeline,
+  fromUtc: string,
+  toUtc: string,
+): IntervalCloud {
+  const from = Date.parse(fromUtc);
+  const to = Date.parse(toUtc);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) {
+    return { verdict: "unknown", samples: 0, worst: null };
+  }
+  const inside = timeline.samples.filter((sample) => {
+    const at = Date.parse(sample.atUtc);
+    return at >= from && at <= to;
+  });
+  if (!inside.length) return { verdict: "unknown", samples: 0, worst: null };
+
+  const warnings = warningsIn(inside);
+  const worst = inside.reduce<Suitability>(
+    (bad, sample) =>
+      SUITABILITY_ORDER[sample.suitability] > SUITABILITY_ORDER[bad] ? sample.suitability : bad,
+    "good",
+  );
+  return { verdict: verdictOf(inside, warnings), samples: inside.length, worst };
+}
+
+/**
+ * Which tiers are rare enough that cloud must not remove them.
+ *
+ * Drawn from the significance model rather than a list of event names, so this
+ * borrows a judgement Tracker has already made from measured astronomy.
  */
 const RARE: ReadonlySet<CloudAdviceTier> = new Set(["favourable", "notable"]);
 
@@ -217,9 +270,16 @@ export function cloudAdvice(
   timeline: CloudTimeline,
   tier: CloudAdviceTier,
   timeZone: string | null,
+  interval?: { startUtc: string; endUtc: string } | null,
 ): CloudAdvice {
-  if (timeline.verdict === "unknown" || timeline.verdict === "open") {
-    return { warning: null, goAnyway: false };
+  // Judged over the opportunity's own interval where it has one, and over the
+  // night only when it does not.
+  const local = interval
+    ? cloudOver(timeline, interval.startUtc, interval.endUtc)
+    : { verdict: timeline.verdict, samples: timeline.samples.length, worst: null };
+
+  if (local.verdict === "unknown" || local.verdict === "open") {
+    return { suppress: false, warning: null, goAnyway: false };
   }
 
   const rare = RARE.has(tier);
@@ -229,17 +289,36 @@ export function cloudAdvice(
       ? ` The sky is expected to open around ${clock(change.atUtc, timeZone)}.`
       : "";
 
-  if (timeline.verdict === "closed") {
+  if (local.verdict === "closed") {
+    /**
+     * A repeatable target under a sky that is closed for its whole interval is
+     * not worth offering.
+     *
+     * The previous rule was "cloud warns but never removes", and it filled the
+     * rail with things a reader could not see, on the reasoning that the sky
+     * might surprise them. That reasoning is sound for an eclipse and wrong for
+     * Saturn: Saturn is up again tomorrow, and a list of five things none of
+     * which is visible tonight is not a recommendation, it is a catalogue with
+     * apologies attached.
+     *
+     * Rare events keep their place. Missing a routine planet costs a night;
+     * missing a total eclipse because a model said eighty percent costs years,
+     * and cloud breaks up locally in ways a satellite pixel cannot see.
+     */
     return {
+      suppress: !rare,
       warning: rare
-        ? `Cloud is forecast across most of the window.${opening} Worth going anyway if you can — this is not a common sight, and cloud breaks up locally in ways a satellite pixel cannot see.`
-        : `Cloud is forecast across most of the window.${opening}`,
+        ? `Cloud is forecast through this whole window.${opening} Worth going anyway if you can — this is not a common sight, and cloud breaks up locally in ways a satellite pixel cannot see.`
+        : `Cloud is forecast through this whole window.${opening}`,
       goAnyway: rare,
     };
   }
 
+  // Intermittent: the sky is changing, so it may well be open when the reader
+  // is out. Kept for every tier, with the change named where one is expected.
   return {
-    warning: `Cloud comes and goes through the window.${opening}`,
+    suppress: false,
+    warning: `Cloud comes and goes during this window.${opening}`,
     goAnyway: false,
   };
 }

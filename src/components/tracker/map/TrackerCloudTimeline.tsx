@@ -44,6 +44,14 @@ interface Props {
   onSelect: (atUtc: string | null) => void;
   /** How far apart the satellite's samples are, in kilometres. */
   spacingKm: number | null;
+  /**
+   * True when the drawn field can contain both observed and forecast pixels.
+   *
+   * The satellite scene does not cover every view, so a field can be observed
+   * in the middle and modelled at the edges. The key says so rather than
+   * letting "Observed" describe the whole picture.
+   */
+  mixedField?: boolean;
 }
 
 const LEVELS: Suitability[] = ["good", "fair", "poor", "bad"];
@@ -53,7 +61,14 @@ function swatch(suitability: Suitability): string {
   return `rgba(${r}, ${g}, ${b}, ${(a * 3).toFixed(2)})`;
 }
 
-export function TrackerCloudTimeline({ timeline, format, selectedUtc, onSelect, spacingKm }: Props) {
+export function TrackerCloudTimeline({
+  timeline,
+  format,
+  selectedUtc,
+  onSelect,
+  spacingKm,
+  mixedField = false,
+}: Props) {
   const id = useId();
   const { samples, nowIndex } = timeline;
 
@@ -111,6 +126,37 @@ export function TrackerCloudTimeline({ timeline, format, selectedUtc, onSelect, 
         ) : null}
       </ol>
 
+      {/*
+        The strip says what it is, on the strip.
+
+        A reader had to infer "the left is observation and the right is
+        forecast" from the sentence underneath and a dashed rule. That is the
+        one thing about this control they must not have to work out: it decides
+        how much to trust everything above it. So the two halves are labelled in
+        place, and Now is marked where it falls.
+      */}
+      <div className="tk-cloud-axis" aria-hidden>
+        {observedCount > 0 ? (
+          <span
+            className="tk-cloud-axis-observed"
+            style={{ width: `${((observedCount / samples.length) * 100).toFixed(2)}%` }}
+          >
+            Observed
+          </span>
+        ) : null}
+        {nowIndex >= 0 ? (
+          <span
+            className="tk-cloud-axis-now"
+            style={{ left: `${(((nowIndex + 1) / samples.length) * 100).toFixed(2)}%` }}
+          >
+            Now
+          </span>
+        ) : null}
+        {observedCount < samples.length ? (
+          <span className="tk-cloud-axis-forecast">Forecast</span>
+        ) : null}
+      </div>
+
       <label className="tk-visually-hidden" htmlFor={`${id}-scrub`}>
         Time through tonight
       </label>
@@ -155,10 +201,24 @@ export function TrackerCloudTimeline({ timeline, format, selectedUtc, onSelect, 
         ))}
       </ul>
 
+      {/*
+        Where the field's numbers come from, including the part that is easy to
+        overstate.
+
+        A frame timed as an observation is not observed everywhere. The
+        satellite scene is a window on the disc, and outside it — or on a pixel
+        the product rejected — the field falls back to the model. Painting that
+        without saying so tells a reader the whole map was looked at.
+
+        Said in a line rather than drawn as a second texture: a checkerboard of
+        provenance over a layer that already carries a hatch would be two
+        patterns competing to mean different things.
+      */}
       <p className="tk-cloud-key-source">
-        {timeline.observedSource ? `Observed: ${timeline.observedSource}.` : null}
-        {timeline.forecastModel ? ` Forecast: ${timeline.forecastModel}.` : null}
-        {spacingKm ? ` Samples about ${Math.round(spacingKm)} km apart.` : null}
+        {mixedField ? "Observed where available · forecast fill elsewhere. " : null}
+        {timeline.observedSource ? `Observed: ${timeline.observedSource}. ` : null}
+        {timeline.forecastModel ? `Forecast: ${timeline.forecastModel}. ` : null}
+        {spacingKm ? `Samples about ${Math.round(spacingKm)} km apart.` : null}
       </p>
     </div>
   );

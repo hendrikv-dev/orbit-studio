@@ -155,6 +155,20 @@ export interface Opportunity {
   kind: OpportunityKind;
   /** What it is called, as a person would say it. */
   title: string;
+  /**
+   * A short name for a place too narrow for the title.
+   *
+   * Optional, and supplied where the full title would otherwise be clipped into
+   * something worse than either half of it. A closed rail card is about 190px:
+   * "The Space Station passes overhead" became "The Space Stati…", which names
+   * nothing. "ISS" names it exactly.
+   *
+   * Deliberately a field rather than a function that shortens the title. There
+   * is no rule that turns "The Moon, a waning gibbous" into "Waning gibbous
+   * Moon" — that is editorial, it belongs where the title is written, and a
+   * heuristic that guessed it would be wrong somewhere nobody was looking.
+   */
+  shortTitle?: string;
   /** One line: what you can see. */
   summary: string;
   qualities: Qualities;

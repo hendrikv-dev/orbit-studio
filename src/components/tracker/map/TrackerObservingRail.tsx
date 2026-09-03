@@ -87,15 +87,19 @@ function summaryOf(card: RailCard) {
 /**
  * The name a card wears while it is closed.
  *
- * Titles here are written to be read in full — "The Moon, a waning gibbous"
- * says the useful thing about tonight's Moon. In a 190px closed card that
- * became "The Moon, a wa…", which is worse than either the name or the phase
- * alone. So the closed card drops the qualifier after the comma and the open
- * card, which has the width, carries the whole sentence.
+ * A subject that has a proper short name supplies one — `shortTitle` — and it
+ * is used verbatim. That is the only way to get "ISS" out of "The Space
+ * Station", or "Waning gibbous Moon" out of "The Moon, a waning gibbous":
+ * neither is a substring operation, both are editorial, and a heuristic that
+ * guessed them would be wrong somewhere nobody was looking.
  *
- * Titles with no comma are already short enough and pass through untouched.
+ * Where nothing is supplied, the comma rule is a decent fallback for titles
+ * written as "name, qualifier". Where there is no comma either, the title is
+ * used as it is — and if that clips, the answer is to give that subject a short
+ * name rather than to invent a cleverer truncation.
  */
-function compactName(title: string): string {
+export function compactName(title: string, short?: string | null): string {
+  if (short && short.trim()) return short.trim();
   const comma = title.indexOf(", ");
   return comma > 2 ? title.slice(0, comma) : title;
 }
@@ -358,7 +362,9 @@ export function TrackerObservingRail({
                   </span>
                   <span className="tk-rail-card-text">
                     <span className="tk-rail-card-name">
-                      {expanded ? card.presentation.title : compactName(card.presentation.title)}
+                      {expanded
+                        ? card.presentation.title
+                        : compactName(card.presentation.title, card.presentation.shortTitle)}
                     </span>
                     {/* Concrete facts, never a grade. What it is, when, and
                         which way to face is the whole of the compact card. */}

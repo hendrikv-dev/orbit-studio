@@ -28,12 +28,68 @@ describe("the cloud palette", () => {
     // The worst case is under a third opaque. A warning that hides the roads
     // gets switched off, and then it warns nobody about anything.
     for (const level of LEVELS) {
-      expect(SUITABILITY_PAINT[level].fill[3]).toBeLessThanOrEqual(0.34);
+      expect(SUITABILITY_PAINT[level].fill[3]).toBeLessThanOrEqual(0.3);
     }
   });
 
-  it("leaves open sky almost untouched", () => {
-    expect(SUITABILITY_PAINT.good.fill[3]).toBeLessThan(0.1);
+  it("leaves the favourable end the lightest touch on the map", () => {
+    // This used to demand under 0.1, which made "favourable" almost invisible
+    // and left the map reading as grey hatching with nothing to compare it to.
+    // The requirement is restraint, not absence: a reader must be able to see
+    // that an area is favourable, not merely that it is unmarked.
+    expect(SUITABILITY_PAINT.good.fill[3]).toBeLessThanOrEqual(0.12);
+    expect(SUITABILITY_PAINT.good.fill[3]).toBeGreaterThan(0.05);
+  });
+
+  /**
+   * Hue must carry meaning, and must not be the only thing that does.
+   *
+   * A red-green axis is the exact axis roughly one man in twelve cannot
+   * separate, and a screen in red-light mode at night flattens hue for
+   * everybody. So the ramp is checked in both directions: the colours do point
+   * the right way, and the ordering survives losing them.
+   */
+  it("points green at favourable and red at unfavourable", () => {
+    const greener = ([r, g]: number[]) => g - r;
+    expect(greener(SUITABILITY_PAINT.good.fill)).toBeGreaterThan(0);
+    expect(greener(SUITABILITY_PAINT.fair.fill)).toBeGreaterThan(0);
+    expect(greener(SUITABILITY_PAINT.poor.fill)).toBeLessThan(0);
+    expect(greener(SUITABILITY_PAINT.bad.fill)).toBeLessThan(0);
+  });
+
+  /**
+   * The greyscale check has to be done on the *composited* result, not on the
+   * raw colour.
+   *
+   * The first version of this compared the fills' own luminance, which said the
+   * ramp was fine while the map showed four shades within two levels of each
+   * other: a light green at low alpha and a dark red at high alpha land in the
+   * same place once blended over a dark basemap. A reader without hue got
+   * nothing from the fill at all.
+   */
+  it("keeps the ordering when hue is thrown away", () => {
+    /** Tracker's own basemap is dark; this is representative of it. */
+    const BASEMAP = 26;
+    /** The raster layer's own opacity, applied on top of each fill's alpha. */
+    const LAYER = 0.92;
+    const composited = (level: Suitability) => {
+      const [r, g, b, alpha] = SUITABILITY_PAINT[level].fill;
+      const a = alpha * LAYER;
+      return BASEMAP * (1 - a) + (0.2126 * r + 0.7152 * g + 0.0722 * b) * a;
+    };
+    const values = LEVELS.map(composited);
+    for (let index = 1; index < values.length; index += 1) {
+      expect(values[index]).toBeGreaterThan(values[index - 1]);
+    }
+    // And the two ends are far enough apart to tell apart at a glance.
+    expect(composited("bad") - composited("good")).toBeGreaterThan(12);
+  });
+
+  it("marks only the levels a reader has to act on", () => {
+    // The hatch is a secondary cue. Hatching all four would put texture over
+    // the whole map and take the basemap with it.
+    const hatched = LEVELS.filter((level) => isHatched(level));
+    expect(hatched).toEqual(["poor", "bad"]);
   });
 
   it("draws a continuous diagonal, so tiles do not show their seams", () => {

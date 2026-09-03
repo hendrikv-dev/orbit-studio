@@ -17179,6 +17179,41 @@ button.primary,
   pointer-events: none;
 }
 
+/*
+  The axis under the strip: which half is measurement, which is model, and
+  where now falls. Small and quiet — it is a caption on the control, not a
+  second control.
+*/
+.tk-cloud-axis {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: 3px 0 0;
+  font-size: 0.52rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tk-ink-faint, #7f8ca4);
+  pointer-events: none;
+}
+.tk-cloud-axis-observed {
+  /* Sized to the observed half, so the word sits over the frames it describes. */
+  flex: 0 0 auto;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.tk-cloud-axis-forecast {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.tk-cloud-axis-now {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0 3px;
+  color: var(--tk-ink, #e8edf6);
+  background: var(--tk-glass, rgba(16, 20, 28, 0.9));
+}
+
 .tk-cloud-scrub {
   width: 100%;
   margin: 6px 0 0;

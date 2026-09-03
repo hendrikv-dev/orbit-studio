@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCloudTimeline, cloudAdvice, nextChange } from "./cloudTimeline";
+import { buildCloudTimeline, cloudAdvice, cloudOver, nextChange } from "./cloudTimeline";
 import type { ObservedSeries } from "./cloudObservation";
 import type { CloudForecastSeries } from "./cloud";
 import type { CloudCategory } from "./goesGrid";
@@ -208,22 +208,39 @@ describe("the next change", () => {
 });
 
 describe("what cloud does to a recommendation", () => {
-  const closed = () =>
+  /** A night that is closed early and clear later, as hourly forecast steps. */
+  const clearingNight = () =>
     buildCloudTimeline({
-      ...WINDOW,
-      nowUtc: "2026-09-03T03:00Z",
-      observed: observed([
-        ["2026-09-03T02:30Z", "cloudy"],
-        ["2026-09-03T03:00Z", "cloudy"],
-      ]),
+      windowStartUtc: "2026-09-03T02:00Z",
+      windowEndUtc: "2026-09-03T12:00Z",
+      nowUtc: "2026-09-03T02:00Z",
+      observed: null,
       forecast: forecast([
+        ["2026-09-03T02:00Z", 95],
+        ["2026-09-03T03:00Z", 95],
         ["2026-09-03T04:00Z", 95],
         ["2026-09-03T05:00Z", 95],
-        ["2026-09-03T06:00Z", 95],
-        ["2026-09-03T07:00Z", 95],
-        ["2026-09-03T08:00Z", 95],
-        ["2026-09-03T09:00Z", 95],
+        ["2026-09-03T06:00Z", 5],
+        ["2026-09-03T07:00Z", 5],
+        ["2026-09-03T08:00Z", 5],
+        ["2026-09-03T09:00Z", 5],
+        ["2026-09-03T10:00Z", 5],
+        ["2026-09-03T11:00Z", 5],
       ]),
+    });
+
+  const closedNight = () =>
+    buildCloudTimeline({
+      windowStartUtc: "2026-09-03T02:00Z",
+      windowEndUtc: "2026-09-03T12:00Z",
+      nowUtc: "2026-09-03T02:00Z",
+      observed: null,
+      forecast: forecast(
+        Array.from({ length: 10 }, (_, hour) => [
+          `2026-09-03T${String(2 + hour).padStart(2, "0")}:00Z`,
+          95,
+        ]) as [string, number][],
+      ),
     });
 
   it("says nothing when the sky is open", () => {
@@ -234,6 +251,7 @@ describe("what cloud does to a recommendation", () => {
       forecast: forecast([["2026-09-03T04:00Z", 5]]),
     });
     expect(cloudAdvice(timeline, "notable", "UTC")).toEqual({
+      suppress: false,
       warning: null,
       goAnyway: false,
     });
@@ -247,53 +265,149 @@ describe("what cloud does to a recommendation", () => {
       forecast: null,
     });
     expect(cloudAdvice(timeline, "routine", "UTC").warning).toBeNull();
+    expect(cloudAdvice(timeline, "routine", "UTC").suppress).toBe(false);
   });
 
-  it("warns about every tier rather than silently dropping any of them", () => {
-    // Cloud never removes an opportunity: the sky can open, and something the
-    // rail deleted is something the reader can never find out was there.
-    for (const tier of ["routine", "good-example", "favourable", "notable"] as const) {
-      expect(cloudAdvice(closed(), tier, "UTC").warning).toBeTruthy();
-    }
+  /* --- what the brief calls the governing principle ---------------------- */
+
+  it("withholds a routine target whose own window is unusable", () => {
+    const advice = cloudAdvice(closedNight(), "routine", "UTC", {
+      startUtc: "2026-09-03T02:00Z",
+      endUtc: "2026-09-03T05:00Z",
+    });
+    expect(advice.suppress).toBe(true);
+    expect(advice.warning).toBeTruthy();
   });
 
-  it("offers no ordering signal at all, because cloud has none to give", () => {
-    // The same sky covers everything above one place, so a per-opportunity
-    // penalty would either change no order or merely restate the significance
-    // tiers. What differs between tiers is the wording, and only the wording.
-    const advice = cloudAdvice(closed(), "routine", "UTC");
-    expect(Object.keys(advice).sort()).toEqual(["goAnyway", "warning"]);
-  });
-
-  it("tells the reader to go anyway for something they will not see again", () => {
-    const advice = cloudAdvice(closed(), "notable", "UTC");
+  it("keeps a rare event under the same sky, and says so unmistakably", () => {
+    const advice = cloudAdvice(closedNight(), "notable", "UTC", {
+      startUtc: "2026-09-03T02:00Z",
+      endUtc: "2026-09-03T05:00Z",
+    });
+    expect(advice.suppress).toBe(false);
     expect(advice.goAnyway).toBe(true);
-    expect(advice.warning).toContain("Worth going anyway");
+    expect(advice.warning).toMatch(/worth going anyway/i);
   });
 
-  it("does not say that about a planet that is up most nights", () => {
-    const advice = cloudAdvice(closed(), "routine", "UTC");
-    expect(advice.goAnyway).toBe(false);
-    expect(advice.warning).not.toContain("Worth going anyway");
+  it("keeps a routine target when the cloud is only intermittent", () => {
+    const timeline = buildCloudTimeline({
+      windowStartUtc: "2026-09-03T02:00Z",
+      windowEndUtc: "2026-09-03T12:00Z",
+      nowUtc: "2026-09-03T02:00Z",
+      observed: null,
+      forecast: forecast([
+        ["2026-09-03T02:00Z", 95],
+        ["2026-09-03T03:00Z", 95],
+        ["2026-09-03T04:00Z", 10],
+        ["2026-09-03T05:00Z", 10],
+        ["2026-09-03T06:00Z", 10],
+        ["2026-09-03T07:00Z", 10],
+      ]),
+    });
+    const advice = cloudAdvice(timeline, "routine", "UTC", {
+      startUtc: "2026-09-03T02:00Z",
+      endUtc: "2026-09-03T07:00Z",
+    });
+    expect(advice.suppress).toBe(false);
+    expect(advice.warning).toMatch(/comes and goes/i);
   });
 
-  it("quotes the clearing time on the reader's own clock", () => {
+  /* --- different times, different answers -------------------------------- */
+
+  /**
+   * The defect this replaces reasoned from one cloud state for the whole night.
+   * Saturn at nine and a shower at two are not the same question, and on a
+   * night that clears at midnight they must not receive the same answer.
+   */
+  it("gives two opportunities at different times different outcomes", () => {
+    const timeline = clearingNight();
+    const early = cloudAdvice(timeline, "routine", "UTC", {
+      startUtc: "2026-09-03T02:00Z",
+      endUtc: "2026-09-03T05:00Z",
+    });
+    const late = cloudAdvice(timeline, "routine", "UTC", {
+      startUtc: "2026-09-03T07:00Z",
+      endUtc: "2026-09-03T11:00Z",
+    });
+    expect(early.suppress).toBe(true);
+    expect(late.suppress).toBe(false);
+    expect(late.warning).toBeNull();
+  });
+
+  it("lets a later clearance save a later opportunity", () => {
+    const timeline = clearingNight();
+    expect(
+      cloudAdvice(timeline, "routine", "UTC", {
+        startUtc: "2026-09-03T08:00Z",
+        endUtc: "2026-09-03T11:00Z",
+      }).suppress,
+    ).toBe(false);
+  });
+
+  it("suppresses an opportunity whose peak sits in the worst of the cloud", () => {
+    const timeline = clearingNight();
+    // Entirely inside the closed stretch.
+    expect(
+      cloudAdvice(timeline, "routine", "UTC", {
+        startUtc: "2026-09-03T02:00Z",
+        endUtc: "2026-09-03T04:00Z",
+      }).suppress,
+    ).toBe(true);
+  });
+
+  it("judges the night as a whole when an opportunity has no interval of its own", () => {
+    const advice = cloudAdvice(closedNight(), "routine", "UTC", null);
+    expect(advice.suppress).toBe(true);
+  });
+
+  it("never suppresses on an interval nothing sampled", () => {
+    const advice = cloudAdvice(closedNight(), "routine", "UTC", {
+      startUtc: "2026-09-04T02:00Z",
+      endUtc: "2026-09-04T05:00Z",
+    });
+    expect(advice.suppress).toBe(false);
+    expect(advice.warning).toBeNull();
+  });
+});
+
+describe("cloud over one interval", () => {
+  it("reports nothing for an interval outside the timeline", () => {
     const timeline = buildCloudTimeline({
       ...WINDOW,
       nowUtc: "2026-09-03T03:00Z",
-      observed: observed([
-        ["2026-09-03T02:30Z", "cloudy"],
-        ["2026-09-03T03:00Z", "cloudy"],
-      ]),
+      observed: observed([["2026-09-03T03:00Z", "clear"]]),
+      forecast: null,
+    });
+    expect(cloudOver(timeline, "2026-09-05T00:00Z", "2026-09-05T01:00Z")).toEqual({
+      verdict: "unknown",
+      samples: 0,
+      worst: null,
+    });
+  });
+
+  it("reports the worst level reached inside it", () => {
+    const timeline = buildCloudTimeline({
+      windowStartUtc: "2026-09-03T02:00Z",
+      windowEndUtc: "2026-09-03T12:00Z",
+      nowUtc: "2026-09-03T02:00Z",
+      observed: null,
       forecast: forecast([
+        ["2026-09-03T02:00Z", 5],
+        ["2026-09-03T03:00Z", 95],
         ["2026-09-03T04:00Z", 5],
-        ["2026-09-03T05:00Z", 5],
-        ["2026-09-03T06:00Z", 5],
       ]),
     });
-    const advice = cloudAdvice(timeline, "routine", "America/Los_Angeles");
-    // 04:00Z is 9pm the previous evening in Pacific daylight time.
-    expect(advice.warning).toContain("9:00");
-    expect(advice.warning).not.toContain("UTC");
+    expect(cloudOver(timeline, "2026-09-03T02:00Z", "2026-09-03T04:00Z").worst).toBe("bad");
+    expect(cloudOver(timeline, "2026-09-03T04:00Z", "2026-09-03T04:00Z").worst).toBe("good");
+  });
+
+  it("refuses a backwards interval rather than guessing", () => {
+    const timeline = buildCloudTimeline({
+      ...WINDOW,
+      nowUtc: "2026-09-03T03:00Z",
+      observed: observed([["2026-09-03T03:00Z", "clear"]]),
+      forecast: null,
+    });
+    expect(cloudOver(timeline, "2026-09-03T06:00Z", "2026-09-03T02:00Z").verdict).toBe("unknown");
   });
 });

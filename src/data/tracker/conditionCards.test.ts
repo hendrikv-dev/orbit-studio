@@ -155,10 +155,15 @@ describe("the shape of the row", () => {
     expect(ids).toEqual(["cloud", "smoke", "moonlight", "temperature", "air-quality"]);
   });
 
-  it("folds rain into cloud rather than growing a fifth card", () => {
-    // Rain is the most decisive thing on the page and has nowhere of its own to
-    // go. It takes over the cloud card's headline, which is where a reader
-    // looking for "is there a sky tonight" is already looking.
+  it("folds rain into the cloud card rather than growing a fifth one", () => {
+    /**
+     * Rain is the most decisive thing on the page and has nowhere of its own to
+     * go, so it rides on the cloud card — but in the interpretation, not in the
+     * value. This assertion used to accept rain *as* the cloud-cover value,
+     * which is how `Cloud cover · Rain or snow` reached a shipped ISS card.
+     * Rain still takes over the card's meaning; the labelled number stays a
+     * number about cloud.
+     */
     const cards = byId(
       conditionCards({
         ...PORTLAND,
@@ -169,7 +174,8 @@ describe("the shape of the row", () => {
         pending: false,
       }),
     );
-    expect(cards.cloud.value).toMatch(/rain|snow/i);
+    expect(cards.cloud.interpretation).toMatch(/rain|snow/i);
+    expect(cards.cloud.value).not.toMatch(/rain|snow/i);
     expect(cards.cloud.tone).toBe("poor");
   });
 
@@ -441,7 +447,17 @@ describe("provider states", () => {
     expect(cards.smoke.tone).toBe("poor");
   });
 
-  it("closes the sky for rain rather than reporting a cloud percentage", () => {
+  /**
+   * This assertion used to be `value === "Rain or snow"`, and it was pinning a
+   * defect: it required a row labelled "Cloud cover" to hold a precipitation
+   * state instead of a cover fraction. The behaviour it protected shipped, and
+   * a reader saw `Cloud cover · Rain or snow` on an ISS card.
+   *
+   * The replacement is stricter, not looser. It still demands that rain closes
+   * the sky and still demands the poor tone; it additionally demands that the
+   * value under a cloud-cover label actually be cloud cover.
+   */
+  it("reports the cover fraction while saying rain has closed the sky", () => {
     const cards = byId(
       conditionCards({
         ...PORTLAND,
@@ -452,7 +468,9 @@ describe("provider states", () => {
         pending: false,
       }),
     );
-    expect(cards.cloud.value).toBe("Rain or snow");
+    expect(cards.cloud.label).toBe("Cloud cover");
+    expect(cards.cloud.value).toBe("95%");
+    expect(cards.cloud.interpretation).toMatch(/rain|snow/i);
     expect(cards.cloud.tone).toBe("poor");
   });
 });
@@ -569,5 +587,107 @@ describe("conditions that bear on this event, not every event", () => {
     // Existing callers that have not been taught about subjects keep the old
     // behaviour rather than silently losing a card.
     expect(conditionCards(base).map((card) => card.id)).toContain("moonlight");
+  });
+});
+
+/**
+ * A labelled row must be about the thing its label names.
+ *
+ * The defect this guards against shipped: an ISS card read
+ *
+ *     Cloud cover · Rain or snow
+ *
+ * Rain is precipitation, not cloud cover. Both statements were true about the
+ * weather; the row was still wrong, because a reader scanning labelled values
+ * is entitled to assume the label describes the number beside it. Once a label
+ * can carry a neighbouring field, every label in the interface becomes
+ * approximate, which is the opposite of what a conditions row is for.
+ */
+describe("a label describes the value beside it", () => {
+  /** Things that are emphatically not a measure of how much cloud there is. */
+  const NOT_CLOUD_COVER = [
+    /rain/i,
+    /snow/i,
+    /sleet/i,
+    /drizzle/i,
+    /precipit/i,
+    /\bfog\b/i,
+    /\bmist\b/i,
+    /°\s*C\b/,
+    /\bkm\/h\b/,
+    /\bhPa\b/,
+  ];
+
+  /** Every weather shape the cloud card can be built from. */
+  const SHAPES: [string, Partial<ConditionSnapshot>][] = [
+    ["clear", { cloudCoverPercent: 5 }],
+    ["broken", { cloudCoverPercent: 40 }],
+    ["overcast", { cloudCoverPercent: 95 }],
+    ["raining", { cloudCoverPercent: 95, precipitating: true }],
+    ["raining under thin cloud", { cloudCoverPercent: 30, precipitating: true }],
+    ["foggy", { cloudCoverPercent: 10, visibilityM: 120 }],
+    ["foggy and overcast", { cloudCoverPercent: 100, visibilityM: 80 }],
+  ];
+
+  for (const [name, overrides] of SHAPES) {
+    it(`keeps a cloud-cover figure in the cloud-cover row when it is ${name}`, () => {
+      const cards = conditionCards({
+        ...PORTLAND,
+        atUtc: "2026-08-22T06:00:00Z",
+        snapshots: [snapshot(overrides)],
+        evidenceStatus: "available",
+        now: NOW,
+      });
+      const cloud = byId(cards).cloud;
+      expect(cloud.label).toBe("Cloud cover");
+      for (const banned of NOT_CLOUD_COVER) {
+        expect(cloud.value).not.toMatch(banned);
+      }
+      // And it is genuinely the cover fraction, not a shape that merely avoids
+      // the banned words.
+      expect(cloud.value).toMatch(/^\d{1,3}%$/);
+    });
+  }
+
+  it("still tells the reader it is raining, in the interpretation", () => {
+    const cards = conditionCards({
+      ...PORTLAND,
+      atUtc: "2026-08-22T06:00:00Z",
+      snapshots: [snapshot({ cloudCoverPercent: 95, precipitating: true })],
+      evidenceStatus: "available",
+      now: NOW,
+    });
+    const cloud = byId(cards).cloud;
+    expect(cloud.interpretation).toMatch(/rain|snow/i);
+    expect(cloud.tone).toBe("poor");
+  });
+
+  it("says fog in the interpretation without pretending fog is a cover fraction", () => {
+    const cards = conditionCards({
+      ...PORTLAND,
+      atUtc: "2026-08-22T06:00:00Z",
+      snapshots: [snapshot({ cloudCoverPercent: 10, visibilityM: 90 })],
+      evidenceStatus: "available",
+      now: NOW,
+    });
+    const cloud = byId(cards).cloud;
+    expect(cloud.interpretation).toMatch(/fog/i);
+    expect(cloud.value).toBe("10%");
+  });
+
+  it("reports an honest absence rather than borrowing another field", () => {
+    const cards = conditionCards({
+      ...PORTLAND,
+      atUtc: "2026-08-22T06:00:00Z",
+      snapshots: [],
+      evidenceStatus: "available",
+      now: NOW,
+    });
+    const cloud = byId(cards).cloud;
+    expect(cloud.label).toBe("Cloud cover");
+    expect(cloud.value).toBe("Not reported");
+    for (const banned of NOT_CLOUD_COVER) {
+      expect(cloud.value).not.toMatch(banned);
+    }
   });
 });

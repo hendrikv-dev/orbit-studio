@@ -175,6 +175,8 @@ export function issOpportunities(
       id: "satellite-iss",
       kind: "satellite",
       title: "The Space Station",
+      // "The Space Stati…" in a closed card names nothing; this names it exactly.
+      shortTitle: "ISS",
       summary: ISS.appearance,
       qualities: {
         // It cleared the same test everything else does, and it clears it by a
@@ -357,6 +359,7 @@ export function trainVerdict(
       id: `satellite-train-${deployment.file}`,
       kind: "satellite",
       title: "A Starlink train",
+      shortTitle: "Starlink train",
       summary: appearance,
       qualities: {
         observability: Math.min(1, 0.55 + Math.min(0.35, best.peakAltitudeDeg / 250)),

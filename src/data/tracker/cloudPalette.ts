@@ -6,23 +6,30 @@ import type { Suitability } from "./cloudSuitability";
  * ## Restraint, because this map has other jobs
  *
  * The cloud layer sits over a basemap the reader is also using to find a dark
- * site, judge a horizon and pick a road. A saturated green-to-red wash would
- * take the map over and turn every other layer into a tint of itself. So the
- * palette is two quiet ends of one axis: a cool, barely-there blue-green where
- * the sky is open, and a warm neutral grey where it is closed. Nothing shouts,
- * and the ground stays readable underneath.
+ * site, judge a horizon and pick a road. A saturated wash would take the map
+ * over and turn every other layer into a tint of itself. So the greens are
+ * desaturated, the reds are muted, and nothing exceeds a third opacity — the
+ * terrain, the roads, the labels and an event's own geography stay legible
+ * underneath. Restrained is not the same as neutral: the reader should still
+ * see which way is better without reading the legend first.
  *
- * ## The non-hue cue, and why it is a hatch
+ * ## Why hue is not allowed to be the only cue
  *
- * Roughly one man in twelve cannot separate the two ends of a red-green axis,
+ * A red-green axis is the exact axis roughly one man in twelve cannot separate,
  * and a screen outdoors at night in red-light mode flattens hue for everybody.
- * A layer whose entire meaning is carried by colour fails both.
+ * So the ramp carries the same ordering three more ways:
  *
- * So severity is also carried by texture: closed sky is hatched, and the hatch
- * gets denser as it gets worse. It survives greyscale, colour blindness, a
- * dimmed screen and a photograph of a screen. Open sky has no hatch at all,
- * which is the strongest cue of the set — the absence of marking reads as "the
- * map is not warning you about this".
+ *  - **opacity** rises monotonically with severity, so the bad end is denser
+ *    than the good end in greyscale;
+ *  - **luminance** falls, because the reds are darker than the greens at the
+ *    same alpha;
+ *  - **texture**, as a hatch that appears only on the two unfavourable levels
+ *    and tightens as they worsen.
+ *
+ * The hatch is deliberately secondary. It marks the levels a reader should act
+ * on rather than covering the map: at a ninth and a fifth coverage it reads as
+ * a mark laid over a tint, not as a striped surface. An earlier version hatched
+ * with a neutral grey fill and the whole map became the texture.
  *
  * The hatch is drawn in tile-pixel space rather than in degrees, so it stays
  * the same visual weight at every zoom instead of dissolving as the reader
@@ -41,17 +48,54 @@ export interface SuitabilityPaint {
   spacingPx: number;
 }
 
+/**
+ * The suitability ramp: green where cloud is favourable, red where it is not.
+ *
+ * The previous version was a single neutral grey with a hatch, on the reasoning
+ * that a green-to-red wash would be the map passing a verdict. That reasoning
+ * was right about the wrong thing. Green here does not say "observing is good
+ * here" — it says "cloud is favourable here", which is a claim about one
+ * variable and is exactly what a layer called Cloud viewing conditions is for.
+ * What the old palette actually produced was a grey striped surface where a
+ * reader could see *that* the layer was on and not *what it was telling them*,
+ * and a warning nobody can read at a glance is not a warning.
+ *
+ * The greens are desaturated and the reds are muted, because this sits over a
+ * basemap somebody is also using to find a road. Nothing exceeds a third
+ * opacity: a layer that hides the terrain gets switched off, and then it warns
+ * about nothing.
+ */
 export const SUITABILITY_PAINT: Record<Suitability, SuitabilityPaint> = {
-  // Open sky is left almost alone. A layer that tints the good case as heavily
-  // as the bad one is a layer that has to be turned off to read the map.
-  good: { fill: [96, 152, 148, 0.08], hatch: null, spacingPx: 0 },
-  fair: { fill: [126, 146, 154, 0.14], hatch: null, spacingPx: 0 },
-  // The bad end stays under a third opaque. The reader is choosing a road and a
-  // horizon under this layer, and a warning that hides the map it is drawn on
-  // gets switched off — after which it warns nobody about anything.
-  poor: { fill: [146, 143, 138, 0.2], hatch: [58, 54, 50, 0.2], spacingPx: 9 },
-  bad: { fill: [144, 139, 134, 0.3], hatch: [44, 41, 38, 0.3], spacingPx: 5 },
+  // Favourable: a cool green, barely there. The best case tints the map least —
+  // the absence of marking is itself the strongest "nothing to warn you about".
+  good: { fill: [70, 140, 110, 0.081], hatch: null, spacingPx: 0 },
+  // Mostly favourable: still green, a little more present.
+  fair: { fill: [110, 150, 105, 0.126], hatch: null, spacingPx: 0 },
+  // Unfavourable: warm red, and marked as well as tinted.
+  poor: { fill: [200, 120, 90, 0.2], hatch: [70, 32, 26, 0.22], spacingPx: 9 },
+  // Strongly unfavourable: denser red, tighter hatch.
+  bad: { fill: [220, 110, 100, 0.285], hatch: [58, 20, 20, 0.3], spacingPx: 5 },
 };
+
+/**
+ * Why these particular numbers.
+ *
+ * The ramp has to survive being read three ways, and the first attempt only
+ * survived one. A desaturated green at 0.14 and a deep crimson at 0.32 point
+ * the right way in hue and land within two levels of each other once
+ * composited over a dark basemap — so in greyscale, or on a screen in
+ * red-light mode, favourable and unfavourable looked identical and only the
+ * hatch distinguished them. The hatch is supposed to be the secondary cue, not
+ * the only one.
+ *
+ * These are chosen so that over Tracker's own basemap the composited luminance
+ * rises monotonically with severity — roughly 33, 39, 46, 54 — while the
+ * red-minus-green channel difference reverses sign between `fair` and `poor`.
+ * Hue says which way is better, brightness says it again for anyone who cannot
+ * use the hue, and the hatch says it a third time for the two levels a reader
+ * has to act on. Nothing exceeds 0.285 opacity, so the terrain, the roads and
+ * an event's own geography stay legible underneath.
+ */
 
 /** True where the level is marked as well as tinted. */
 export function isHatched(suitability: Suitability): boolean {

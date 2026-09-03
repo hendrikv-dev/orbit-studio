@@ -58,6 +58,37 @@ const problems = [];
  * failure list and the destination — and because `only` has to be able to skip
  * a state without the caller writing a conditional around every call site.
  */
+/**
+ * Affordances that mean the product has not finished answering.
+ *
+ * A screenshot taken over one of these is a picture of the product thinking,
+ * and the previous package contained two: a card reading "Checking the terrain
+ * horizon…" and a homepage still assembling its catalogue. Both were declared
+ * verified, because the precondition asked about something else.
+ *
+ * So every frame is checked for visible pending state before it is kept, and a
+ * state that is genuinely *about* a pending affordance says so with
+ * `allowPending`.
+ */
+const PENDING_MARKS = [
+  ".tk-map-skeleton",
+  '[aria-busy="true"]',
+  ".tk-rail-card.is-loading",
+];
+
+const PENDING_TEXT = /Checking the terrain|Loading Orbit Studio|Preparing the satellite/i;
+
+async function pendingState(page) {
+  const marks = await page.evaluate(
+    (selectors) => selectors.filter((selector) => document.querySelector(selector)).join(", "),
+    PENDING_MARKS,
+  );
+  if (marks) return marks;
+  const body = await page.evaluate(() => document.body?.innerText ?? "");
+  const text = body.match(PENDING_TEXT);
+  return text ? text[0] : "";
+}
+
 function makeCapture({ shots, problems, wanted, shotsDir }) {
   return async function capture(page, id, caption, expect, options = {}) {
     if (wanted && !wanted.has(id)) return;
@@ -67,9 +98,20 @@ function makeCapture({ shots, problems, wanted, shotsDir }) {
     } catch (error) {
       found = `threw: ${error.message}`;
     }
-    const ok = typeof found === "string" && found.length > 0;
+    let ok = typeof found === "string" && found.length > 0;
+
+    // A precondition can be satisfied while something else on screen is still
+    // resolving. That frame is not evidence of the settled product.
+    if (ok && !options.allowPending) {
+      const pending = await pendingState(page).catch(() => "");
+      if (pending) {
+        ok = false;
+        found = `state still pending: ${pending}`;
+      }
+    }
     const file = `${id}.png`;
-    await page.screenshot({ path: path.join(shotsDir, file), ...options });
+    const { allowPending: _allowPending, ...shotOptions } = options;
+    await page.screenshot({ path: path.join(shotsDir, file), ...shotOptions });
     shots.push({ id, file, caption, verified: ok, observed: found ?? "nothing" });
     console.log(`  ${ok ? "✓" : "✗"} ${id} — ${found ?? "precondition not met"}`);
     if (!ok) problems.push(`${id}: ${caption}`);
@@ -134,6 +176,16 @@ async function open(browser, { viewport, satellites = "unavailable", cloud = nul
  * reading failed against a string that had had that sentence removed — by the
  * test, not by the product. Shortening is the caller's job, after the check.
  */
+/**
+ * Curated objects that genuinely fail a naked-eye rule.
+ *
+ * Magnitudes from the showpieces catalogue: M27 at 7.4, M81 at 6.92, M92 at
+ * 6.52, M15 at 6.3, NGC7009 at 8.0. Pleiades is 1.2 and is deliberately not
+ * here — it is naked-eye visible, so its presence on a Telescope rail proves
+ * nothing about the rule.
+ */
+const FAINT = ["m27", "m81", "m92", "m15", "ngc7009", "m16", "m22"];
+
 const text = (page, selector) =>
   page
     .locator(selector)
@@ -221,24 +273,66 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await context.close();
   }
 
-  /* --- the telescope rule ------------------------------------------------- */
+  /* --- the equipment rule, proved as a pair -------------------------------- */
+  //
+  // A single Telescope screenshot proves nothing. The previous package showed
+  // Pleiades under an equipment control still reading "Naked eye", and Pleiades
+  // is magnitude 1.2 — visible to the naked eye, so its presence says nothing
+  // about telescopes either way. Two failures at once: the URL parameter is
+  // `with`, not `equipment`, so the mode never changed; and the object chosen
+  // could not have demonstrated the rule even if it had.
+  //
+  // So this is a pair, at one place on one night: the same view under each
+  // rule, and the claim is the difference between them.
   {
     const { context, page } = await open(browser, { viewport: desktop });
-    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8&equipment=telescope`, {
+    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 4000);
+    await dismissTour(page);
+
+    /** Deep-sky cards on the rail, with the magnitudes they were admitted at. */
+    const deepSky = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll(".tk-rail-card")]
+          .map((card) => card.dataset.card ?? "")
+          .filter((id) => id.startsWith("deep-sky")),
+      );
+
+    const nakedEye = await deepSky();
+    await capture(
+      page,
+      "03a-naked-eye-rule",
+      "Naked eye, at the place and night the Telescope frame uses: the control reads Naked eye, and no telescope-only object is offered.",
+      async () => {
+        const rule = await text(page, ".tk-equipment-trigger");
+        const faint = nakedEye.filter((id) => FAINT.some((object) => id.includes(object)));
+        return /naked eye/i.test(rule) && faint.length === 0
+          ? `control reads "${rule}"; deep sky offered: ${nakedEye.join(", ") || "none"}`
+          : "";
+      },
+    );
+
+    // The rule is a URL parameter called `with`. Driving it through the control
+    // would be closer to a reader's path, but the parameter is the product's
+    // own contract and the control's state is asserted either way.
+    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8&with=telescope`, {
       waitUntil: "domcontentloaded",
     });
     await settled(page, 4000);
     await dismissTour(page);
+
+    const withTelescope = await deepSky();
     await capture(
       page,
-      "03-telescope-rule",
-      "Telescope selected: the rail carries deep-sky targets a naked eye could not reach.",
+      "03b-telescope-rule",
+      "Telescope, same place and night: the control reads Telescope, and objects too faint for the naked eye are now offered.",
       async () => {
-        const cards = await page.evaluate(() =>
-          [...document.querySelectorAll(".tk-rail-card")].map((c) => c.dataset.card ?? ""),
-        );
-        const deep = cards.filter((id) => id.startsWith("deep-sky"));
-        return deep.length ? `${deep.length} deep-sky cards: ${deep.join(", ")}` : "";
+        const rule = await text(page, ".tk-equipment-trigger");
+        const faint = withTelescope.filter((id) => FAINT.some((object) => id.includes(object)));
+        const added = withTelescope.filter((id) => !nakedEye.includes(id));
+        return /telescope/i.test(rule) && added.length > 0
+          ? `control reads "${rule}"; added: ${added.join(", ")}${faint.length ? `; genuinely faint: ${faint.join(", ")}` : ""}`
+          : "";
       },
     );
     await context.close();
@@ -507,7 +601,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
   {
     const context = await browser.newContext({ viewport: desktop, deviceScaleFactor: 2 });
     const page = await context.newPage();
-    await page.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+    await page.goto(origin, { waitUntil: "domcontentloaded" });
     /**
      * Wait for the page, not for a stopwatch.
      *

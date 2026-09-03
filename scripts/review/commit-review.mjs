@@ -32,7 +32,7 @@
  *                                         [--gates <results.json>] [--why <text>]
  */
 import { execFileSync } from "node:child_process";
-import { mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -48,6 +48,9 @@ import {
 import { captureStates, writeContactSheet } from "./tracker-states.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
+
+/** Recorded so a failure can clean up after itself. */
+let staging = null;
 
 function option(name, fallback = null) {
   const at = process.argv.indexOf(`--${name}`);
@@ -212,7 +215,19 @@ async function main() {
   if (existsSync(outDir)) {
     throw new Error(`${outDir} already exists; refusing to overwrite review evidence`);
   }
-  const shotsDir = path.join(outDir, "screenshots");
+  /**
+   * Built aside, then moved into place.
+   *
+   * A run that dies partway — a bad selector, a browser that will not start —
+   * would otherwise leave a half-written directory in the history, and the
+   * append-only rule would then treat that wreckage as the commit's evidence
+   * and push the real package to `-r2`. Only complete packages enter the
+   * history; an interrupted one leaves nothing behind.
+   */
+  const stagingDir = path.join(paths.commits, `.incomplete-${commit.short}-${process.pid}`);
+  staging = stagingDir;
+  await rm(stagingDir, { recursive: true, force: true });
+  const shotsDir = path.join(stagingDir, "screenshots");
   await mkdir(shotsDir, { recursive: true });
 
   const gates = await readGateResults(option("gates"));
@@ -232,7 +247,7 @@ async function main() {
   await writeContactSheet({
     browser,
     shotsDir,
-    outFile: path.join(outDir, "CONTACT_SHEET.png"),
+    outFile: path.join(stagingDir, "CONTACT_SHEET.png"),
     shots,
     title: `${commit.short} — ${commit.subject}`,
   });
@@ -240,7 +255,7 @@ async function main() {
   if (server) await server.close();
 
   await writeFile(
-    path.join(outDir, "SUMMARY.md"),
+    path.join(stagingDir, "SUMMARY.md"),
     summaryMarkdown(commit, {
       purpose: option("purpose", commit.subject),
       unchanged: option(
@@ -253,10 +268,10 @@ async function main() {
       gates,
     }),
   );
-  await writeFile(path.join(outDir, "FILES_CHANGED.md"), filesMarkdown(commit));
-  await writeFile(path.join(outDir, "GATES.md"), gatesMarkdown(commit, gates));
+  await writeFile(path.join(stagingDir, "FILES_CHANGED.md"), filesMarkdown(commit));
+  await writeFile(path.join(stagingDir, "GATES.md"), gatesMarkdown(commit, gates));
   await writeFile(
-    path.join(outDir, "LIMITATIONS.md"),
+    path.join(stagingDir, "LIMITATIONS.md"),
     `# Limitations\n\n${option("limitations", "None known from this commit.")}\n`,
   );
   await writeFile(
@@ -265,13 +280,15 @@ async function main() {
   );
   if (revision > 1) {
     await writeFile(
-      path.join(outDir, "REVISION.md"),
+      path.join(stagingDir, "REVISION.md"),
       `# Revision ${revision}\n\nThis is a later package for commit \`${commit.short}\`.\n` +
         `Earlier packages for the same commit are kept beside it and were not modified.\n\n` +
         `Reason: ${option("why", "not recorded")}\n`,
     );
   }
 
+  // Complete: the package becomes visible in the history under its real name.
+  await rename(stagingDir, outDir);
   execFileSync("zip", ["-qr", `tracker-review-${commit.short}.zip`, name], { cwd: paths.commits });
 
   console.log(`\n${shots.filter((s) => s.verified).length} of ${shots.length} states verified`);
@@ -284,7 +301,9 @@ async function main() {
   process.exitCode = problems.length ? 1 : 0;
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error(error.message ?? error);
+  // Leave nothing half-written where the history lives.
+  if (staging) await rm(staging, { recursive: true, force: true }).catch(() => {});
   process.exitCode = 1;
 });

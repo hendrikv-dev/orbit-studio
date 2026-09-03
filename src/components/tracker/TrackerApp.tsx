@@ -35,7 +35,7 @@ import {
   suitabilityOfPercent,
 } from "../../data/tracker/cloudSuitability";
 import { buildCloudTimeline, cloudAdvice, nextChange } from "../../data/tracker/cloudTimeline";
-import { CLOUD_CATEGORY_LABEL } from "../../data/tracker/goesGrid";
+import { cloudPhrase, cloudSourceLine } from "../../data/tracker/cloudWording";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
@@ -2553,19 +2553,67 @@ function TrackerScreen() {
         ? (now.getTime() - Date.parse(observation.observedUtc)) / 60_000
         : null;
 
-      const seen = observation
-        ? `${CLOUD_CATEGORY_LABEL[observation.category]} · observed ${
-            age !== null && age < 1 ? "just now" : `${Math.round(age ?? 0)} min ago`
-          }${age !== null && age > OBSERVATION_STALE_MINUTES ? ", which is several scans old" : ""}`
-        : observed && !observed.ok
-          ? CLOUD_FAILURE_LINE[observed.kind]
-          : "Current cloud observation unavailable";
-
       const percent = cloudSample ? cloudSample(place.latitude, place.longitude) : null;
+
+      /**
+       * The reading names the source that actually supplied *this point*.
+       *
+       * Not the source the layer generally uses. A frame timed as an
+       * observation can still fall back to the forecast at a particular
+       * coordinate — off the edge of the scene, or on a pixel the product
+       * rejected — and a reader told "observed" at a point nobody observed has
+       * been given the wrong confidence in the number beside it.
+       */
+      const seen = observation
+        ? `${cloudPhrase({ kind: "observed-classification", category: observation.category })} · ${cloudSourceLine(
+            {
+              kind: "observed",
+              platform: `${observation.satellite} ${observation.platform}`,
+              ageMinutes: age ?? 0,
+            },
+          )}${age !== null && age > OBSERVATION_STALE_MINUTES ? ", which is several scans old" : ""}`
+        : percent !== null
+          ? // The satellite has nothing here, so the point is the model's. Said
+            // in the model's own units, which are a cover fraction and not the
+            // mask's probability — those are different quantities.
+            `${cloudPhrase({ kind: "forecast-cover", percent })} · ${cloudSourceLine({
+              kind: "forecast",
+              model: cloudForecast.data?.model ?? "model",
+              validLocal: formatClockTime(`${cloudHour}:00Z`, clock),
+            })}`
+          : observed && !observed.ok
+            ? CLOUD_FAILURE_LINE[observed.kind]
+            : "Current cloud observation unavailable";
+
+      /**
+       * When the point falls back to the forecast, say why there is no
+       * observation.
+       *
+       * The value line names the source that actually supplied the number, so a
+       * forecast-filled point reads as a forecast — correct, and on its own it
+       * silently swallows the fact that the satellite feed is down. A reader
+       * watching an observed layer deserves to know the observing half of it
+       * has stopped answering, not merely that this pixel is modelled.
+       */
+      const fellBack =
+        !observation && percent !== null && observed && !observed.ok
+          ? ` ${CLOUD_FAILURE_LINE[observed.kind]}, so this point is filled from the forecast.`
+          : "";
+
+      // The observed probability, where the product published one. Named as a
+      // probability, because that is what it is: the confidence that this pixel
+      // is cloudy, not a fraction of sky.
+      const confidence =
+        observation && observation.probability !== null
+          ? ` ${cloudPhrase({ kind: "observed-probability", probability: observation.probability })}.`
+          : "";
+
       const expected =
         percent === null
           ? "No forecast covers this point."
-          : `${cloudForecast.data?.model ?? "Forecast"} expects ${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}.`;
+          : observation
+            ? `${cloudForecast.data?.model ?? "Forecast"} expects ${cloudPhrase({ kind: "forecast-cover", percent })} at ${formatClockTime(`${cloudHour}:00Z`, clock)}.`
+            : "";
 
       // What the night as a whole amounts to, and when it changes. This is the
       // sentence somebody deciding whether to pack the car actually needs.
@@ -2584,7 +2632,7 @@ function TrackerScreen() {
 
       readings.cloud = {
         value: window ? `${window} · ${seen}` : seen,
-        detail: `${observation ? `${observation.satellite} ${observation.platform}, ${observation.resolution}. ` : ""}${expected}${turn}${spread}`,
+        detail: `${observation ? `${observation.resolution}.${confidence} ` : ""}${expected}${fellBack}${turn}${spread}`,
       };
     }
     return readings;
@@ -2666,13 +2714,40 @@ function TrackerScreen() {
      * of why it is a showpiece — so a reader who has said "telescope" and been
      * shown three planets has been given the opposite of what they asked for.
      */
+    /**
+     * Cloud can take a repeatable target off the rail.
+     *
+     * Judged over each candidate's own observing interval, so a planet that
+     * sets before the cloud arrives keeps its place while one that is up
+     * entirely inside it does not. Rare and time-critical events are never
+     * removed — `cloudAdvice` will not suppress them — so an eclipse under a
+     * closed sky still appears, with the obstruction stated.
+     *
+     * Applied before `buildRail` rather than after, so the rail fills its
+     * remaining places with things a reader can actually see rather than
+     * leaving gaps where the suppressed cards were.
+     */
+    const visible = cloudTimeline
+      ? candidates.filter((candidate) => {
+          const advice = cloudAdvice(
+            cloudTimeline,
+            candidate.significance?.tier ?? "routine",
+            clock.timeZone ?? null,
+            candidate.window
+              ? { startUtc: candidate.window.startUtc, endUtc: candidate.window.endUtc }
+              : null,
+          );
+          return !advice.suppress;
+        })
+      : candidates;
+
     return buildRail(
-      candidates,
+      visible,
       location.equipment === "eyes"
         ? {}
         : { routineLimit: 4, limit: 6, aided: location.equipment },
     );
-  }, [bestTonight, tonightEvents, location.equipment]);
+  }, [bestTonight, tonightEvents, location.equipment, cloudTimeline, clock.timeZone]);
 
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(
@@ -2848,6 +2923,9 @@ function TrackerScreen() {
             cloudTimeline,
             card.significance?.tier ?? "routine",
             clock.timeZone ?? null,
+            // The card's own observing interval, so cloud at nine o'clock and
+            // cloud at two in the morning reach different conclusions.
+            card.window ? { startUtc: card.window.startUtc, endUtc: card.window.endUtc } : null,
           );
           return advice.warning
             ? { warning: advice.warning, goAnyway: advice.goAnyway }
@@ -3190,6 +3268,11 @@ function TrackerScreen() {
           spacingKm={
             cloudField.data?.ok ? sampleSpacingKm(cloudField.data.value) : null
           }
+          /**
+           * Both sources present means the drawn field can be part observed and
+           * part modelled — the satellite scene does not cover every view.
+           */
+          mixedField={Boolean(cloudField.data?.ok) && Boolean(cloudForecast.data)}
         />
       ) : null}
 

@@ -234,20 +234,39 @@ function illuminatedPercent(fraction: number, phaseName: string): number {
 
 /* ----------------------------------------------------------------- cloud */
 
+/**
+ * Cloud cover, and only cloud cover.
+ *
+ * This card used to put "Rain or snow" and "Fog" in the *value* of a row
+ * labelled "Cloud cover". Both are true statements about the weather and
+ * neither is a cloud-cover figure: precipitation is water arriving, fog is
+ * visibility at the ground. A reader scanning a labelled row is entitled to
+ * assume the label describes the number beside it, and an ISS card reading
+ *
+ *     Cloud cover · Rain or snow
+ *
+ * quietly taught them that Tracker's labels are approximate.
+ *
+ * So the value is the cover fraction in every case the provider reports one,
+ * and what else the sky is doing goes in the interpretation, where a sentence
+ * about conditions belongs. Nothing is lost: the reader still learns it is
+ * raining, and the row still means what it says.
+ */
 function cloudCard(snapshot: ConditionSnapshot | null): ConditionCard {
   if (!snapshot) return unknownCard("cloud", "Cloud cover", "Not reported");
   const percent = Math.round(snapshot.cloudCoverPercent);
   const reading = readCondition(snapshot);
+  const cover = `${percent}%`;
   if (reading.condition === "precipitating") {
-    return { id: "cloud", label: "Cloud cover", value: "Rain or snow", interpretation: "Sky closed", tone: "poor" };
+    return { id: "cloud", label: "Cloud cover", value: cover, interpretation: "Rain or snow", tone: "poor" };
   }
   if (reading.condition === "foggy") {
-    return { id: "cloud", label: "Cloud cover", value: "Fog", interpretation: "Sky closed", tone: "poor" };
+    return { id: "cloud", label: "Cloud cover", value: cover, interpretation: "Fog", tone: "poor" };
   }
   return {
     id: "cloud",
     label: "Cloud cover",
-    value: `${percent}%`,
+    value: cover,
     interpretation: percent < 25 ? "Good" : percent < 55 ? "Broken" : percent < 80 ? "Poor" : "Overcast",
     tone: percent < 25 ? "good" : percent < 55 ? "fair" : "poor",
   };

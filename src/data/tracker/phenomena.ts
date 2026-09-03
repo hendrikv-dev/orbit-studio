@@ -383,6 +383,9 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
         // to look at.
         ? "New Moon — darkest skies"
         : `The Moon, a ${phaseName.toLowerCase()}`,
+      // The phase is the useful half on a narrow card: "Waning gibbous Moon"
+      // rather than "The Moon, a wa…".
+      shortTitle: `${phaseName} Moon`,
     summary: isNewMoon
       ? "The Moon is near the Sun and absent from the night sky, leaving the darkest lunar conditions of the month."
       : earthshine

@@ -1481,7 +1481,7 @@
       "localSha256": {
         "netlify/functions/goes-cloud-mask.mts": "9c6e8f59513ad6aa973bda94d76ce9ffcce89c3d3cec05e1445878c5e57a1a7b",
         "src/data/tracker/cloudObservation.ts": "985b352b1d8598d47338ed7d6115d641be79012f2a332e6dbd8885ee40f04540",
-        "src/data/tracker/cloudSuitability.ts": "275134ba4420632795e2ff88594e4d37b4a5754c868621beff1fb84831c502da",
+        "src/data/tracker/cloudSuitability.ts": "49a1413dc7d785b197cd8f8832ecef1aba6dad4ae3e4e6ce6b92e9c60328402c",
         "src/data/tracker/goesGrid.ts": "1ba3d7c61820b62e7f14794d6103d28ff8dcf0d1a2d48f2c01f7692d38180220"
       },
       "processing": [
@@ -1898,7 +1898,7 @@
       },
       "localSha256": {
         "src/data/tracker/satelliteVisibility.ts": "53ac4da9cfadcc754ba09c32ba648f0f971e5151cf3c007fe30edfd222dec467",
-        "src/data/tracker/satellites.ts": "7612619bda0e5caccc5d53421f36dd64d8246c60f44f950b41a288977f94a0dc"
+        "src/data/tracker/satellites.ts": "9cc9bc222d3b777f3fc8a6de200801a262421f93ea8fd653886f0c04df919e7d"
       },
       "processing": [
         "Propagation is SGP4 by way of satellite.js. Everything else here is Orbit Studio's: the conical umbra and penumbra test with a 90 km atmospheric allowance, the phase geometry, the reduction of a published standard magnitude to the slant range and phase of a particular pass, and the screening of the result against the same limiting-magnitude model the rest of Tracker ranks with.",
