@@ -1,0 +1,14 @@
+# How the site is built and what runs beside it.
+#
+# One function, and it exists for one reason: NOAA's cloud classification is
+# published either as HDF5 with permissive CORS, or subsettable over DAP4 with
+# no CORS at all. The second is the one that returns a few kilobytes instead of
+# four megabytes, so a small proxy in front of it is what lets a browser read
+# the product without shipping an HDF5 reader to every reader.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

@@ -17,12 +17,11 @@ import {
 import {
   cloudAt,
   fetchCloudForecast,
-  fetchCloudObservation,
   forecastHour,
-  observationAgeMinutes,
   OBSERVATION_STALE_MINUTES,
-  satelliteFor,
 } from "../../data/tracker/cloud";
+import { fetchObservedAt } from "../../data/tracker/cloudObservation";
+import { CLOUD_CATEGORY_LABEL } from "../../data/tracker/goesGrid";
 import { gazeRegionFor, skyPathFor } from "../../data/tracker/skyPath";
 import {
   applySkyAccess,
@@ -833,20 +832,28 @@ function TrackerScreen() {
    * inside it should not refetch. The forecast is keyed on the view and the
    * hour, because that is what it is a forecast *of*.
    */
+  /**
+   * What the satellite saw over the reader's own place, at native resolution.
+   *
+   * Keyed on the place to four decimals — about ten metres, far finer than the
+   * two-kilometre pixel — so this is one request per place rather than one per
+   * pan. The reading is never taken from whatever stride the map happens to be
+   * drawn at: the classification the reader is shown is the pixel that covers
+   * them, and the map's own sampling has nothing to do with it.
+   */
   const cloudObservation = useQuery({
     queryKey: [
       "tracker",
       "cloud",
       "observed",
-      place ? satelliteFor(place.longitude) : null,
+      place ? `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}` : null,
     ],
     enabled: activeLayers.has("cloud") && Boolean(place),
-    // The band refreshes every ten minutes; asking more often than that would
-    // be asking the same question twice.
-    staleTime: 10 * 60_000,
+    // A CONUS scan every five minutes: asking more often is asking twice.
+    staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     retry: false,
-    queryFn: ({ signal }) => fetchCloudObservation(place!.longitude, signal),
+    queryFn: ({ signal }) => fetchObservedAt(place!.latitude, place!.longitude, null, signal),
   });
 
   /**
@@ -2261,31 +2268,37 @@ function TrackerScreen() {
     if (activeLayers.has("cloud")) {
       const forecast = cloudForecast.data;
       const percent = cloudSample ? cloudSample(place.latitude, place.longitude) : null;
-      const observation = cloudObservation.data;
-      const age = observation ? observationAgeMinutes(observation, now) : null;
       /**
-       * The number is the forecast's, and the picture is the satellite's.
+       * Two claims, kept apart: what was seen, and what is expected.
        *
-       * Said in that order and with both named, because they are two different
-       * claims about two different moments and the reader is entitled to know
-       * which one the colour under their pin came from. Where the model said
-       * nothing, the reading says so rather than borrowing the image's word.
+       * The observation leads, because it is the only one of the two that is a
+       * measurement. It is a classification rather than a percentage — NOAA's
+       * four-level clear-sky mask — and it is reported as one, with its age, so
+       * a reader can tell a fresh look from an old one. The forecast follows,
+       * named and timed, as the separate thing it is.
        */
-      const observedNote =
-        observation && age !== null && age <= OBSERVATION_STALE_MINUTES
-          ? `${observation.satellite}'s infrared view is from ${formatClockTime(observation.observedUtc, clock)}; the picture is cloud-top temperature, not this percentage.`
-          : observation
-            ? `${observation.satellite}'s last image is over an hour old, so the picture is history rather than now.`
-            : "No satellite image covers this longitude, so only the forecast is drawn.";
-      readings.cloud = percent === null
-        ? {
-            value: "No forecast for this point",
-            detail: observedNote,
-          }
-        : {
-            value: `${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}`,
-            detail: `${forecast?.model ?? "Forecast"}. ${observedNote}`,
-          };
+      const observed = cloudObservation.data;
+      const observation = observed?.ok ? observed.value : null;
+      const age = observation
+        ? (now.getTime() - Date.parse(observation.observedUtc)) / 60_000
+        : null;
+      const seen = observation
+        ? `${CLOUD_CATEGORY_LABEL[observation.category]} · observed ${
+            age !== null && age < 1 ? "just now" : `${Math.round(age ?? 0)} min ago`
+          }${age !== null && age > OBSERVATION_STALE_MINUTES ? ", which is several scans old" : ""}`
+        : observed && !observed.ok && observed.kind === "uncovered"
+          ? "No satellite cloud observation covers this location"
+          : "Current cloud observation unavailable";
+      const expected =
+        percent === null
+          ? "No forecast covers this point."
+          : `${forecast?.model ?? "Forecast"} expects ${Math.round(percent)}% cloud at ${formatClockTime(`${cloudHour}:00Z`, clock)}.`;
+      readings.cloud = {
+        value: seen,
+        detail: observation
+          ? `${observation.satellite} ${observation.platform}, ${observation.resolution}. ${expected}`
+          : expected,
+      };
     }
     return readings;
   }, [

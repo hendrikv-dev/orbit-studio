@@ -349,7 +349,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 
 - Inventory ID: `nasa-gibs-external-provider`
 - Category: runtime-external-service
-- Release status: retained
+- Release status: external-acquisition-disabled
 - Release 1.0 included: yes
 - Publisher or rights holder: NASA Earthdata / ESDIS
 - Version or snapshot: GOES-East and GOES-West ABI Band 13 clean infrared; queried for its timestamp only
@@ -362,7 +362,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Modification status: service-output-subject-to-layer-metadata
 - Repository paths: none
 - Production paths: none
-- Restrictions and notes: Only the observation timestamp is consumed. Any future use of the imagery itself must carry the product's own metadata and must not present a brightness temperature as a cloud fraction.
+- Restrictions and notes: Any future use must carry the product's own metadata and must not present a brightness temperature as a cloud fraction.
 
 ## History of On-orbit Satellite Fragmentations, 16th Edition (NASA/TP-20220019160)
 
@@ -512,6 +512,29 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json`, `src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json`, `src/data/natural-earth/ne_110m_lakes.json`, `src/data/natural-earth/ne_110m_places.json`
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Natural Earth does not require attribution; Orbit Studio includes the recommended citation.
+
+## GOES-R ABI Level-2 Clear Sky Mask (ABI-L2-ACMC), by way of Unidata's THREDDS server
+
+- Inventory ID: `noaa-goes-clear-sky-mask`
+- Category: runtime-external-service
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: NOAA NESDIS; redistributed by UCAR/Unidata
+- Version or snapshot: ABI-L2-ACMC-M6, CONUS scene, five-minute cadence
+- Retrieval date: 2026-09-03
+- Authoritative source: https://www.goes-r.gov/products/baseline-clear-sky-mask.html
+- Authoritative source: https://thredds.ucar.edu/thredds/catalog/satellite/goes/east/products/CloudMask/CONUS/current/catalog.html
+- Rights basis: GOES-R products are US Government works in the public domain. Unidata distributes them for research and education and asks that the service not be scraped; requests are subset to the pixels needed and cached rather than bulk-downloaded.
+- Rights evidence: https://www.goes-r.gov/products/baseline-clear-sky-mask.html
+- Rights evidence: https://www.unidata.ucar.edu/software/tds/
+- Rights evidence: https://www.unidata.ucar.edu/legal/
+- Attribution: Cloud observations from the NOAA GOES-R ABI clear-sky mask, served by UCAR/Unidata.
+- Public source redistribution: not-applicable-external-service
+- Public deployment redistribution: not-bundled
+- Modification status: values-passed-through-unaltered
+- Repository paths: `netlify/functions/goes-cloud-mask.mts`, `src/data/tracker/goesGrid.ts`, `src/data/tracker/cloudObservation.ts`
+- Production paths: `assets/TrackerApp-*.js`
+- Restrictions and notes: Requests must stay subset and cached rather than bulk. The classification must be presented as a classification: it may not be converted into a cloud-cover percentage, and the cloud probability may not be presented as sky cover.
 
 ## NSF NOIRLab deep-sky photographs used as Tracker hero imagery
 

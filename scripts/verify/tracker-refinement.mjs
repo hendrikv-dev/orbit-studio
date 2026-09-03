@@ -383,28 +383,118 @@ async function main() {
     page.on("response", (response) => {
       if (/openfreemap/.test(response.url()) && response.status() === 200) tiles += 1;
     });
-    await page.goto(`${TRACKER}&at=10,180&z=3`, { waitUntil: "domcontentloaded" });
+    /**
+     * Driven to the seam rather than linked to it.
+     *
+     * `&at=10,180&z=3` does not get there: a reader with a confirmed place
+     * lands on that place, which is the right product behaviour and meant this
+     * check spent a long time measuring Portland at zoom eight and passing or
+     * failing on how much terrain detail happened to have loaded. Moving the
+     * camera after the page settles is what actually puts the antimeridian in
+     * front of it.
+     */
+    await page.goto(TRACKER, { waitUntil: "domcontentloaded" });
     await settled(page, 6000);
+    /**
+     * The Aleutians, not the open Pacific.
+     *
+     * The check reads a truncated world as a run of columns that do not vary,
+     * so it needs geography either side of the seam to vary. At ten degrees
+     * north the antimeridian runs through two thousand kilometres of empty
+     * ocean, which is featureless whether or not the map wraps — the check was
+     * measuring the sea and calling it a hard edge. At fifty-two degrees it has
+     * Kamchatka on one side and Alaska on the other.
+     */
+    await page.evaluate(() => window.__trackerMap?.jumpTo({ center: [180, 52], zoom: 3 }));
+    await settled(page, 8000);
+    const arrived = await page.evaluate(() => {
+      const map = window.__trackerMap;
+      return map ? Math.round(((map.getCenter().lng % 360) + 540) % 360 - 180) : null;
+    });
+    check(arrived === 180 || arrived === -180, `the camera reached the antimeridian (${arrived})`);
     if (tiles < 3) {
       console.log("  · skipped: the tile service did not respond, so the seam cannot be judged");
     } else {
-      const strip = await sampleStrip(page, { x: 0, y: 260, width: 1200, height: 80 });
       /**
-       * A truncated world shows as a run of columns all the same value — the
-       * shell's flat background beside the map's edge. Real geography either
-       * side of the seam varies from column to column.
+       * What a truncated world actually looks like.
+       *
+       * The shell's own background, showing through where the map has run out.
+       * This used to be tested as "a run of columns that do not vary", which
+       * assumed geography either side of the seam to vary — and the
+       * antimeridian is mostly ocean, which is featureless whether the map
+       * wraps or not. Measured against the shell colour instead, the two states
+       * separate completely: nothing matches it when the world repeats, and
+       * hundreds of columns do when it does not.
        */
-      let flattest = 0;
-      let run = 0;
-      for (let x = 1; x < strip.columns.length; x += 1) {
-        run = Math.abs(strip.columns[x] - strip.columns[x - 1]) < 0.35 ? run + 1 : 0;
-        flattest = Math.max(flattest, run);
-      }
+      const backgroundRun = async () => {
+        const shot = await page.screenshot({ clip: { x: 0, y: 260, width: 1200, height: 80 } });
+        return page.evaluate(
+          (url) =>
+            new Promise((resolve) => {
+              const shell = document.querySelector(".tk-map-shell") ?? document.body;
+              const parsed = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(
+                getComputedStyle(shell).backgroundColor,
+              );
+              const target = parsed
+                ? [Number(parsed[1]), Number(parsed[2]), Number(parsed[3])]
+                : [0, 0, 0];
+              const image = new Image();
+              image.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const context2d = canvas.getContext("2d");
+                context2d.drawImage(image, 0, 0);
+                const { data } = context2d.getImageData(0, 0, canvas.width, canvas.height);
+                let run = 0;
+                let longest = 0;
+                for (let x = 0; x < canvas.width; x += 1) {
+                  let r = 0;
+                  let g = 0;
+                  let b = 0;
+                  for (let y = 0; y < canvas.height; y += 1) {
+                    const at = (y * canvas.width + x) * 4;
+                    r += data[at];
+                    g += data[at + 1];
+                    b += data[at + 2];
+                  }
+                  const near =
+                    Math.abs(r / canvas.height - target[0]) +
+                      Math.abs(g / canvas.height - target[1]) +
+                      Math.abs(b / canvas.height - target[2]) <
+                    12;
+                  run = near ? run + 1 : 0;
+                  longest = Math.max(longest, run);
+                }
+                resolve(longest);
+              };
+              image.src = url;
+            }),
+          `data:image/png;base64,${shot.toString("base64")}`,
+        );
+      };
+
+      const wrapped = await backgroundRun();
+      check(wrapped < 40, `the world repeats across the antimeridian (${wrapped}px of shell showing)`);
+
+      /**
+       * And the check can still fail, which is the other half of trusting it.
+       *
+       * Turning world copies off is the regression this exists for — it shipped
+       * once. If the measurement cannot see the difference it is not guarding
+       * anything, so it is made to look at both states before the map is put
+       * back the way the product has it.
+       */
+      await page.evaluate(() => window.__trackerMap?.setRenderWorldCopies(false));
+      await settled(page, 8000);
+      const truncated = await backgroundRun();
       check(
-        flattest < strip.width * 0.2,
-        `no flat band at the antimeridian (longest featureless run ${flattest}px of ${strip.width})`,
+        truncated > wrapped + 100,
+        `and a truncated world would be caught (${truncated}px of shell showing without world copies)`,
       );
+      await page.evaluate(() => window.__trackerMap?.setRenderWorldCopies(true));
     }
+
     await context.close();
   }
 
@@ -1666,9 +1756,33 @@ async function main() {
         ),
       });
     });
-    // No satellite, so the caption has to say so rather than invent a time.
-    await context.route("**/gibs.earthdata.nasa.gov/**", (route) =>
-      route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
+    /**
+     * And a real classification for the reader's own pixel.
+     *
+     * NOAA's clear-sky mask is categorical: `flag_meanings` reads "clear
+     * probably_clear probably_cloudy cloudy". The stub answers `2` — probably
+     * cloudy — with a cloud probability of about 0.78 and a good quality flag,
+     * which is the shape the proxy returns.
+     */
+    await context.route("**/api/goes-cloud-mask*", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          satellite: "GOES-West",
+          platform: "G18",
+          scene: "CONUS",
+          product: "ABI-L2-ACMC (Clear Sky Mask)",
+          resolution: "2.0km at nadir",
+          observedUtc: new Date().toISOString(),
+          probabilityScale: 1.5261e-5,
+          covered: true,
+          cell: { column: 1768, row: 162 },
+          acm: 2,
+          cloudProbabilityRaw: 51154,
+          dqf: 0,
+        }),
+      }),
     );
     const page = await context.newPage();
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
@@ -1713,9 +1827,73 @@ async function main() {
       `the reading is the model's own number (${(reading.match(/\d+% cloud[^\n]*/) ?? ["nothing"])[0]})`,
     );
     check(/HRRR/i.test(reading), "and it names the model that answered");
+    /**
+     * The observation is a category, and stays one.
+     *
+     * The clear-sky mask is a per-pixel classification, not a sky-cover
+     * fraction, so it is reported in the product's own words. Turning "probably
+     * cloudy" into a percentage would be inventing a measurement — and the
+     * forecast percentage beside it is a different quantity from a different
+     * pipeline, which is why both are named.
+     */
     check(
-      /no satellite image/i.test(reading),
-      "and says plainly when no spacecraft is looking at this longitude",
+      /probably cloudy/i.test(reading),
+      `the observation is reported as the classification it is (${(reading.match(/(Clear|Probably clear|Probably cloudy|Cloudy)[^\n]*/) ?? ["nothing"])[0]})`,
+    );
+    check(
+      /observed .*(ago|just now)/i.test(reading),
+      "and says how long ago the satellite looked",
+    );
+    check(
+      /GOES-West|G18/.test(reading),
+      "and which spacecraft and product it came from",
+    );
+    await context.close();
+  }
+
+  /* --- and when the observation cannot be had ------------------------------ */
+  //
+  // A forecast is not an observation and must never be relabelled as one. With
+  // the mask unavailable the layer still draws the model, and says the current
+  // observation is missing rather than presenting the forecast as current.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
+      const url = new URL(route.request().url());
+      const count = (url.searchParams.get("latitude") ?? "").split(",").length;
+      const hour = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          Array.from({ length: count }, () => ({ hourly: { time: [hour], cloud_cover: [41] } })),
+        ),
+      });
+    });
+    await context.route("**/api/goes-cloud-mask*", (route) =>
+      route.fulfill({ status: 502, contentType: "application/json", body: "{}" }),
+    );
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, { waitUntil: "domcontentloaded" });
+    await settled(page, 2500);
+    await page.waitForTimeout(4000);
+    await dismissTour(page);
+    await page.locator(".tk-layers-trigger").click();
+    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    const panel = await page.locator(".tk-layers-panel").innerText();
+    check(
+      /current cloud observation unavailable/i.test(panel),
+      "an unavailable observation says so rather than going quiet",
+    );
+    check(
+      /41% cloud/.test(panel),
+      "and the forecast is still offered, as a forecast",
+    );
+    check(
+      !/observed/i.test(panel.replace(/observation unavailable/i, "")),
+      "and nothing calls the forecast an observation",
     );
     await context.close();
   }

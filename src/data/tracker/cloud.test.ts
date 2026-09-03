@@ -1,41 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  cloudAt,
-  forecastHour,
-  latticeFor,
-  observationAgeMinutes,
-  satelliteFor,
-  withinHrrr,
-  type CloudForecast,
-} from "./cloud";
-
-describe("which spacecraft is looking", () => {
-  it("hands the Americas to the two that watch them", () => {
-    expect(satelliteFor(-75)).toBe("GOES-East");
-    expect(satelliteFor(-122.7)).toBe("GOES-West");
-    expect(satelliteFor(-45)).toBe("GOES-East");
-    expect(satelliteFor(-160)).toBe("GOES-West");
-  });
-
-  /**
-   * The honest half of a geostationary satellite: it sees a disc, not a world.
-   *
-   * Europe, Africa and Asia are not in view of either spacecraft, and drawing
-   * an empty tile there would read as a clear sky rather than as no observation.
-   */
-  it("says nothing at all where neither is looking", () => {
-    expect(satelliteFor(10)).toBe("GOES-East");
-    expect(satelliteFor(60)).toBeNull();
-    expect(satelliteFor(100)).toBeNull();
-    expect(satelliteFor(140)).toBeNull();
-  });
-
-  it("takes a longitude in any of the forms a map hands it", () => {
-    expect(satelliteFor(-122.7)).toBe(satelliteFor(-122.7 + 360));
-    expect(satelliteFor(-75)).toBe(satelliteFor(-75 - 720));
-  });
-});
+import { cloudAt, forecastHour, latticeFor, withinHrrr, type CloudForecast } from "./cloud";
 
 describe("which model can answer", () => {
   it("uses HRRR over the United States", () => {
@@ -108,19 +73,6 @@ describe("reading the field at a point", () => {
   it("reports nothing where the model said nothing", () => {
     const grid = forecast([0, 0, 0, 0, null, 0, 0, 0, 0]);
     expect(cloudAt(grid, 40.5, -124.5)).toBeNull();
-  });
-});
-
-describe("how old an observation is", () => {
-  it("counts from the time the service reported, not from a request", () => {
-    const observation = {
-      satellite: "GOES-West" as const,
-      product: "GOES-West_ABI_Band13_Clean_Infrared_v0_NRT",
-      observedUtc: "2026-09-02T20:40:00Z",
-      imageUrl: "",
-    };
-    expect(observationAgeMinutes(observation, new Date("2026-09-02T20:50:00Z"))).toBeCloseTo(10, 6);
-    expect(observationAgeMinutes(observation, new Date("2026-09-02T23:40:00Z"))).toBeCloseTo(180, 6);
   });
 });
 

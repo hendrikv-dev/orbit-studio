@@ -3,17 +3,16 @@
  *
  * ## Two sources, and they are not the same claim
  *
- * **What the sky is doing** comes from GOES. The satellite's infrared band sees
- * cloud tops by their temperature, day and night, every ten minutes. Tracker
- * asks NASA's imagery service which spacecraft is looking at this longitude and
- * when its last image was taken, and reports that — an observation, with a time
- * on it, standing behind the forecast.
+ * **What the sky is doing** comes from GOES, as NOAA's own classification
+ * rather than as a picture. The clear-sky mask decides, per two-kilometre
+ * pixel, whether it is clear, probably clear, probably cloudy or cloudy, every
+ * five minutes, day and night. That lives in `cloudObservation.ts`.
  *
- * It is not painted on the map. Brightness temperature is not a cloud mask:
- * warm ground and low stratus overlap in it, and separating them needs a
- * background-temperature field that Tracker does not have. The map draws the
- * forecast, which is a cloud fraction; the satellite says how long ago anybody
- * actually looked.
+ * An earlier version of this file used the infrared imagery instead and only
+ * for its timestamp, because brightness temperature is not a cloud mask — warm
+ * ground and low stratus overlap in it. That was the right call about the
+ * imagery and the wrong product: the classification exists, and it is what a
+ * reader is actually asking about.
  *
  * **What the sky will do** comes from a numerical forecast — HRRR over the
  * United States, where it is the highest-resolution model there is, and the
@@ -36,92 +35,20 @@ const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 
 /* ------------------------------------------------------------- observed */
 
-export interface CloudObservation {
-  /** Which spacecraft is looking at this part of the world. */
-  satellite: "GOES-East" | "GOES-West";
-  /** The imagery product actually served, which is not always the one asked for. */
-  product: string;
-  /** The moment the image was taken, from the service's own header. */
-  observedUtc: string;
-  /**
-   * Where the image can be seen, for a reader who wants to look at it.
-   *
-   * Not drawn on the map — see the note at the top — so this is a link rather
-   * than a tile template.
-   */
-  imageUrl: string;
-}
-
 /**
- * Which spacecraft has this longitude in view.
+ * How old an observation may be before the interface says so.
  *
- * GOES-East sits over 75.2° W and GOES-West over 137.2° W. Each sees a full
- * disc, so the Americas are covered twice and the split is about which one is
- * looking more squarely: everything west of about 105° W is nearer the western
- * spacecraft's sub-point. Beyond about 20° E or 165° E neither of them is
- * looking at all, which is what `null` is for.
+ * The CONUS scene is scanned every five minutes. Fifteen is three scans missed,
+ * which means something is wrong upstream rather than that the reader caught
+ * the gap between two images — and cloud a quarter of an hour old has moved far
+ * enough that presenting it as "now" is a claim Tracker cannot support.
+ *
+ * The observation itself lives in `cloudObservation.ts`, which reads NOAA's
+ * clear-sky mask through the proxy. What used to be here was a satellite
+ * *image* — infrared brightness — kept only so the interface could say when
+ * somebody last looked. There is a classification now, so the image is gone.
  */
-export function satelliteFor(longitudeDeg: number): "GOES-East" | "GOES-West" | null {
-  const lon = ((((longitudeDeg + 180) % 360) + 360) % 360) - 180;
-  if (lon <= 20 && lon > -105) return "GOES-East";
-  if (lon <= -105 || lon > 155) return "GOES-West";
-  return null;
-}
-
-const LAYER = {
-  "GOES-East": "GOES-East_ABI_Band13_Clean_Infrared",
-  "GOES-West": "GOES-West_ABI_Band13_Clean_Infrared",
-} as const;
-
-/**
- * What the satellite is showing, and when it was taken.
- *
- * The time comes from the service rather than from a clock here. NASA's imagery
- * server answers a request for `default` with whatever it actually has and puts
- * the timestamp in a response header it deliberately exposes cross-origin —
- * which matters, because "the latest image" is between ten minutes and several
- * hours old depending on what the ground segment is doing, and a picture
- * captioned "now" that is four hours old is worse than no picture.
- *
- * A HEAD request, so learning the time costs no imagery.
- */
-export async function fetchCloudObservation(
-  longitudeDeg: number,
-  signal?: AbortSignal,
-): Promise<CloudObservation | null> {
-  const satellite = satelliteFor(longitudeDeg);
-  if (!satellite) return null;
-  const layer = LAYER[satellite];
-  const probe = `${GIBS}/${layer}/default/default/GoogleMapsCompatible_Level6/0/0/0.png`;
-  try {
-    const response = await fetch(probe, { method: "HEAD", signal });
-    if (!response.ok) return null;
-    const observedUtc = response.headers.get("layer-time-actual");
-    if (!observedUtc) return null;
-    return {
-      satellite,
-      product: response.headers.get("layer-identifier-actual") ?? layer,
-      observedUtc,
-      imageUrl: `https://worldview.earthdata.nasa.gov/?l=${layer}&t=${encodeURIComponent(observedUtc)}`,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * How old an image may be before it stops describing now.
- *
- * The band refreshes every ten minutes. An hour is several refreshes missed,
- * which means the ground segment is having a problem — and cloud an hour old
- * has moved far enough that showing it under the word "now" is a claim Tracker
- * cannot support.
- */
-export const OBSERVATION_STALE_MINUTES = 60;
-
-export function observationAgeMinutes(observation: CloudObservation, now: Date): number {
-  return (now.getTime() - Date.parse(observation.observedUtc)) / 60_000;
-}
+export const OBSERVATION_STALE_MINUTES = 15;
 
 /* ------------------------------------------------------------- forecast */
 

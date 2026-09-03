@@ -97,6 +97,7 @@
       "ssd.jpl.nasa.gov",
       "svn.webkit.org",
       "svs.gsfc.nasa.gov",
+      "thredds.ucar.edu",
       "tiles.mapterhorn.com",
       "tiles.openfreemap.org",
       "upload.wikimedia.org",
@@ -110,6 +111,7 @@
       "www.ecmwf.int",
       "www.esa.int",
       "www.eso.org",
+      "www.goes-r.gov",
       "www.gps.gov",
       "www.imo.net",
       "www.nasa.gov",
@@ -120,6 +122,7 @@
       "www.spaceweather.gov",
       "www.swpc.noaa.gov",
       "www.ta3.sk",
+      "www.unidata.ucar.edu",
       "www.usgs.gov",
       "www.ventusky.com",
       "www.w3.org",
@@ -1086,9 +1089,8 @@
       },
       "localSha256": {},
       "processing": [
-        "Tracker sends one HEAD request per hemisphere while the cloud layer is on, to learn which GOES spacecraft covers the reader's longitude and when its most recent infrared image was taken. The service exposes that timestamp in a response header for exactly this purpose. No imagery is downloaded, bundled or painted.",
-        "The imagery is deliberately not drawn. The only near-real-time product is a brightness temperature: warm ground and low stratus overlap in it, and separating them needs a background-temperature field Tracker does not have, so any threshold either washes the whole disc or silently drops the low cloud that actually ends an observing night. The cloud-fraction products that would answer properly are polar-orbiter or daylight-only and describe a different moment.",
-        "What the observation contributes is its time: the interface reports which spacecraft is looking, when it last looked, and that the picture is a cloud-top temperature rather than the percentage beside it."
+        "Not consulted at runtime. Tracker briefly asked this service for the timestamp of the latest GOES infrared image, as a way of saying when a satellite had last looked at the reader's sky. That was a stand-in for an observation rather than one: brightness temperature is not a cloud mask, since warm ground and low stratus overlap in it.",
+        "NOAA's own clear-sky mask is a classification and is what Tracker uses instead — see noaa-goes-clear-sky-mask. This entry is retained because the URL-construction code and the evaluation are part of the record, and because the imagery remains the obvious candidate for any future layer that wants a picture rather than a decision."
       ],
       "rights": {
         "verification": "verified",
@@ -1102,9 +1104,9 @@
         "modification": "service-output-subject-to-layer-metadata"
       },
       "release": {
-        "inclusionStatus": "retained",
+        "inclusionStatus": "external-acquisition-disabled",
         "release1Included": true,
-        "restrictions": "Only the observation timestamp is consumed. Any future use of the imagery itself must carry the product's own metadata and must not present a brightness temperature as a cloud fraction."
+        "restrictions": "Any future use must carry the product's own metadata and must not present a brightness temperature as a cloud fraction."
       }
     },
     {
@@ -1454,6 +1456,57 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
+      }
+    },
+    {
+      "id": "noaa-goes-clear-sky-mask",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "netlify/functions/goes-cloud-mask.mts",
+        "src/data/tracker/goesGrid.ts",
+        "src/data/tracker/cloudObservation.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "GOES-R ABI Level-2 Clear Sky Mask (ABI-L2-ACMC), by way of Unidata's THREDDS server",
+        "url": "https://thredds.ucar.edu/thredds/catalog/satellite/goes/east/products/CloudMask/CONUS/current/catalog.html",
+        "publicationUrl": "https://www.goes-r.gov/products/baseline-clear-sky-mask.html",
+        "publisher": "NOAA NESDIS; redistributed by UCAR/Unidata",
+        "version": "ABI-L2-ACMC-M6, CONUS scene, five-minute cadence",
+        "retrievedAt": "2026-09-03"
+      },
+      "localSha256": {
+        "netlify/functions/goes-cloud-mask.mts": "ab6e52404dcbaaf5041d3c92e9d742a4af1acc9ed75f5ae48a3eca677c9130ae",
+        "src/data/tracker/goesGrid.ts": "1ba3d7c61820b62e7f14794d6103d28ff8dcf0d1a2d48f2c01f7692d38180220",
+        "src/data/tracker/cloudObservation.ts": "f377e3385d8d76147958b2932e54e12a2506786af1f3e06fca85b783f238d636"
+      },
+      "processing": [
+        "The fields used are the ones the granule actually carries, confirmed by inspecting a live file rather than by reading documentation: ACM, a four-level mask whose flag_meanings read 'clear probably_clear probably_cloudy cloudy'; Cloud_Probabilities, a uint16 with scale_factor 1.5261e-05 giving the probability that the pixel is cloudy; and DQF, whose flag_meanings distinguish good, bad, space and degraded quality. Pixels the product calls unusable are reported as no observation rather than as clear sky.",
+        "A reading for a place is always the native pixel covering it, at the product's own two-kilometre resolution. Map requests may skip pixels by stride when the view holds more of them than can be drawn, and the stride falls to one as the reader zooms in; a stride skips pixels and never averages them, so every value shown is one NOAA published.",
+        "Nothing is interpolated between categories. A classification has nothing between its levels, and a value invented between two of them would be a measurement nobody made. Rendering may be smoothed; the evidence is not.",
+        "The probability is presented as a per-pixel confidence and never as a sky-cover fraction. The two are different quantities and Tracker does not convert one into the other.",
+        "A small Netlify function stands between the browser and the service. NOAA's own object storage sets permissive CORS but distributes HDF5, which would mean shipping an HDF5 reader to every reader; the THREDDS server subsets the same product over DAP4 into a few kilobytes but sends no CORS headers. The function asks for exactly the pixels requested, decodes the DAP4 chunk stream, and returns the values unaltered. It resamples nothing.",
+        "Every grid constant — the sub-satellite longitude, the ellipsoid, the scan-angle offsets and steps, the scene size — is read from the granule being used, because the two spacecraft differ and the grid has been redefined before."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "GOES-R products are US Government works in the public domain. Unidata distributes them for research and education and asks that the service not be scraped; requests are subset to the pixels needed and cached rather than bulk-downloaded.",
+        "evidenceUrls": [
+          "https://www.goes-r.gov/products/baseline-clear-sky-mask.html",
+          "https://www.unidata.ucar.edu/software/tds/",
+          "https://www.unidata.ucar.edu/legal/"
+        ],
+        "attribution": "Cloud observations from the NOAA GOES-R ABI clear-sky mask, served by UCAR/Unidata.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "values-passed-through-unaltered"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Requests must stay subset and cached rather than bulk. The classification must be presented as a classification: it may not be converted into a cloud-cover percentage, and the cloud probability may not be presented as sky cover."
       }
     },
     {
@@ -2108,7 +2161,7 @@
         "retrievedAt": null
       },
       "localSha256": {
-        "src/data/tracker/cloud.ts": "23f2733f510cdaa3544be922380c30ec67485a7d3446acd43dc17f2b023d0b10"
+        "src/data/tracker/cloud.ts": "43d3e5f50da22b8b8eecf6baa3d3a4a8d21b26e65ba45371c7297ae69f27c7a1"
       },
       "processing": [
         "Total cloud cover is requested for one hour on a twelve-by-eight lattice covering the visible map, in one request of about thirty kilobytes, and only while the reader has the layer switched on. HRRR is named explicitly inside its own domain, where it is the highest-resolution model available; elsewhere Open-Meteo's own model selection answers and the interface says so rather than claiming HRRR.",
