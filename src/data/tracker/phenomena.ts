@@ -383,9 +383,17 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
         // to look at.
         ? "New Moon — darkest skies"
         : `The Moon, a ${phaseName.toLowerCase()}`,
-      // The phase is the useful half on a narrow card: "Waning gibbous Moon"
-      // rather than "The Moon, a wa…".
-      shortTitle: `${phaseName} Moon`,
+      /**
+       * The phase alone, because the phase is the part that changes.
+       *
+       * "Waning Gibbous Moon" was the first attempt and still clipped to
+       * "Waning Gibbou…" in a closed card — a shorter way of producing the same
+       * defect. The card carries a photograph of the Moon beside the name, so
+       * the word "Moon" is the one part a reader does not need in text.
+       * "New Moon", "Full Moon" and the quarters keep it because their own
+       * names contain it.
+       */
+      shortTitle: phaseName,
     summary: isNewMoon
       ? "The Moon is near the Sun and absent from the night sky, leaving the darkest lunar conditions of the month."
       : earthshine
