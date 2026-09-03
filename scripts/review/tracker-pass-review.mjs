@@ -517,12 +517,22 @@ async function main() {
     await capture(
       page,
       "15-home-licensing",
-      "The homepage: each product's licence stated on its own row, because a single sentence about all three stopped being true when Tracker stopped being open source.",
+      "The homepage: the products are named separately where their terms differ — Explorer and Playground offered for reuse, Tracker not — instead of one open-source claim over all three.",
       async () => {
         const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
-        // A licence has to be named against a product, not merely mentioned.
-        const rows = body.match(/[^.]*[Ll]icen[^.]*/g) ?? [];
-        return rows.length ? brief(rows.join(" · ")) : "";
+        /**
+         * The claim has to be attached to products, not merely present.
+         *
+         * An earlier version matched the word "licen" anywhere, and passed on
+         * the footer's "License" link while the sentence that actually does the
+         * work sits in About — where it names which tools are offered for reuse
+         * and which is not. A check that a link exists is not a check that the
+         * page tells the truth about its terms.
+         */
+        const statement = (body.match(/[^.]*not offered for reuse[^.]*\./) ?? [])[0];
+        if (!statement) return "";
+        const separates = /Explorer/.test(statement) && /Tracker/.test(statement);
+        return separates ? brief(statement.trim()) : "";
       },
       { fullPage: true },
     );
