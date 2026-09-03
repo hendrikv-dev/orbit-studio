@@ -430,6 +430,16 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     if (await head.count()) {
       await head.click();
       await page.waitForTimeout(1200);
+      // The terrain horizon is fetched when a card opens. Photographing the
+      // "Checking the terrain horizon…" state is honest and uninformative.
+      await page
+        .waitForFunction(
+          () => !/Checking the terrain/i.test(document.querySelector(".tk-rail")?.textContent ?? ""),
+          null,
+          { timeout: 20_000 },
+        )
+        .catch(() => {});
+      await page.waitForTimeout(800);
       await capture(
         page,
         "08-iss-expanded",

@@ -68,13 +68,13 @@ export interface SuitabilityPaint {
 export const SUITABILITY_PAINT: Record<Suitability, SuitabilityPaint> = {
   // Favourable: a cool green, barely there. The best case tints the map least —
   // the absence of marking is itself the strongest "nothing to warn you about".
-  good: { fill: [70, 140, 110, 0.081], hatch: null, spacingPx: 0 },
+  good: { fill: [70, 140, 110, 0.058], hatch: null, spacingPx: 0 },
   // Mostly favourable: still green, a little more present.
-  fair: { fill: [110, 150, 105, 0.126], hatch: null, spacingPx: 0 },
-  // Unfavourable: warm red, and marked as well as tinted.
-  poor: { fill: [200, 120, 90, 0.2], hatch: [70, 32, 26, 0.22], spacingPx: 9 },
-  // Strongly unfavourable: denser red, tighter hatch.
-  bad: { fill: [220, 110, 100, 0.285], hatch: [58, 20, 20, 0.3], spacingPx: 5 },
+  fair: { fill: [110, 150, 105, 0.09], hatch: null, spacingPx: 0 },
+  // Unfavourable: muted red, and marked as well as tinted.
+  poor: { fill: [196, 104, 86, 0.145], hatch: [70, 32, 26, 0.2], spacingPx: 9 },
+  // Strongly unfavourable: deeper red, tighter hatch.
+  bad: { fill: [208, 96, 88, 0.205], hatch: [58, 20, 20, 0.26], spacingPx: 5 },
 };
 
 /**
@@ -89,12 +89,18 @@ export const SUITABILITY_PAINT: Record<Suitability, SuitabilityPaint> = {
  * the only one.
  *
  * These are chosen so that over Tracker's own basemap the composited luminance
- * rises monotonically with severity — roughly 33, 39, 46, 54 — while the
+ * rises monotonically with severity — roughly 31, 35, 39, 44 — while the
  * red-minus-green channel difference reverses sign between `fair` and `poor`.
  * Hue says which way is better, brightness says it again for anyone who cannot
  * use the hue, and the hatch says it a third time for the two levels a reader
- * has to act on. Nothing exceeds 0.285 opacity, so the terrain, the roads and
- * an event's own geography stay legible underneath.
+ * has to act on.
+ *
+ * The opacities came down after looking at the result. A first version that
+ * satisfied all three cues put the worst level at 0.285, and over a wide view
+ * the red bands swallowed the terrain shading they were drawn on — legible in
+ * the sense that the labels could still be read, and not in the sense that a
+ * reader could judge a horizon or pick a road through them. Nothing now exceeds
+ * 0.205, which keeps the ordering and gives the map back.
  */
 
 /** True where the level is marked as well as tinted. */

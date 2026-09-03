@@ -28,7 +28,10 @@ describe("the cloud palette", () => {
     // The worst case is under a third opaque. A warning that hides the roads
     // gets switched off, and then it warns nobody about anything.
     for (const level of LEVELS) {
-      expect(SUITABILITY_PAINT[level].fill[3]).toBeLessThanOrEqual(0.3);
+      // Tightened after a wide view showed 0.285 swallowing the terrain it was
+      // drawn on. Legible has to mean "you can still judge a horizon through
+      // it", not "the labels can still be read".
+      expect(SUITABILITY_PAINT[level].fill[3]).toBeLessThanOrEqual(0.21);
     }
   });
 
@@ -37,8 +40,8 @@ describe("the cloud palette", () => {
     // and left the map reading as grey hatching with nothing to compare it to.
     // The requirement is restraint, not absence: a reader must be able to see
     // that an area is favourable, not merely that it is unmarked.
-    expect(SUITABILITY_PAINT.good.fill[3]).toBeLessThanOrEqual(0.12);
-    expect(SUITABILITY_PAINT.good.fill[3]).toBeGreaterThan(0.05);
+    expect(SUITABILITY_PAINT.good.fill[3]).toBeLessThanOrEqual(0.08);
+    expect(SUITABILITY_PAINT.good.fill[3]).toBeGreaterThan(0.04);
   });
 
   /**
