@@ -10,10 +10,17 @@
  */
 import { chromium } from "playwright";
 import { preview } from "vite";
+import {
+  PORTLAND,
+  SATELLITE_CLOCK,
+  seedPlace,
+  stubCloudForecast,
+  stubCloudMask,
+  stubTracker,
+} from "./tracker-fixtures.mjs";
 
 const ORIGIN = process.argv[2] ?? "http://127.0.0.1:4181";
 const TRACKER = `${ORIGIN}/?app=tracker`;
-const PORTLAND = { name: "Portland", context: "Oregon, United States", latitude: 45.5152, longitude: -122.6784 };
 
 const failures = [];
 const passes = [];
@@ -27,85 +34,11 @@ function check(condition, label) {
   }
 }
 
-/** A style with nothing in it, so the run does not depend on a tile server. */
-const EMPTY_STYLE = {
-  version: 8,
-  sources: {},
-  layers: [{ id: "background", type: "background", paint: { "background-color": "#0e1219" } }],
-};
 
-/**
- * Pinned orbits, so a pass is the same pass every time this runs.
- *
- * Constructed here rather than acquired. They are the *shape* of the real
- * things — a station four hundred kilometres up at 51.64°, a deployment stack
- * at 265 km and seventy degrees — chosen so both cross Portland high and sunlit
- * in the pinned window. CelesTrak's usage policy covers retrieving their data
- * and this repository's own provenance review found no grant for committing it,
- * so the fixtures are Orbit Studio's own elements rather than a copy of theirs.
- *
- * The clock is pinned alongside them: a prediction is a function of both, and
- * either one drifting makes every assertion about tonight meaningless.
- */
-const ISS_TLE = `STATION
-1 99001U 26900A   26245.50000000  .00000000  00000+0  00000+0 0  9998
-2 99001  51.6400   6.0000 0005000  90.0000 298.0000 15.49000000000016
-`;
 
-const STACK_TLE = `STARLINK-G15-23 STACK
-1 99002U 26901A   26245.40000000  .00000000  00000+0  00000+0 0  9999
-2 99002  70.0000  28.0000 0010000 275.0000 156.0000 16.06000000000010
-STARLINK-G15-23 SINGLE
-1 99003U 26901B   26245.40000000  .00000000  00000+0  00000+0 0  9995
-2 99003  70.0000  28.0000 0010000 275.0000 156.5000 16.06000000000019
-`;
-
-const SUPPLEMENTAL_INDEX = `<html><body>
-  <a href="sup-gp.php?FILE=iss&FORMAT=tle">ISS</a>
-  <a href="sup-gp.php?FILE=starlink&FORMAT=tle">Starlink</a>
-  <a href="sup-gp.php?FILE=starlink-g15-23&FORMAT=tle">Starlink G15-23 Post-Deployment</a>
-</body></html>`;
-
-/** The night the pinned element sets describe, at 22:00 in Portland. */
-const SATELLITE_CLOCK = new Date("2026-09-03T05:00:00Z");
-
+/** The gate always wants the empty basemap; only the orbits vary. */
 async function stub(context, { basemap = true, satellites = "unavailable" } = {}) {
-  if (basemap) {
-    await context.route("**/tiles.openfreemap.org/**", (route) =>
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPTY_STYLE) }),
-    );
-  }
-  /**
-   * Orbits are stubbed everywhere, and unavailable unless a check asks for them.
-   *
-   * Not to make anything pass: with the live feed a rail's contents would depend
-   * on whether the station happened to go over the test location on the morning
-   * the gate ran, and every ranking and layout assertion in this file would
-   * become a different assertion every day. Unavailable is also the state most
-   * readers are in on most nights, so it is the right default to hold the rest
-   * of the gate steady against.
-   */
-  await context.route("**/celestrak.org/**", (route) => {
-    const url = route.request().url();
-    if (satellites === "unavailable") {
-      return route.fulfill({ status: 503, contentType: "text/plain", body: "" });
-    }
-    const text = (body) => route.fulfill({ status: 200, contentType: "text/plain", body });
-    if (url.includes("FILE=iss")) return text(ISS_TLE);
-    if (url.includes("FILE=starlink-g15-23")) {
-      return satellites === "iss-only"
-        ? route.fulfill({ status: 404, contentType: "text/plain", body: "" })
-        : text(STACK_TLE);
-    }
-    if (url.includes("/supplemental/") && !url.includes("sup-gp.php")) {
-      return route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: satellites === "iss-only" ? "<html><body></body></html>" : SUPPLEMENTAL_INDEX,
-      });
-    }
-    return route.fulfill({ status: 404, contentType: "text/plain", body: "" });
-  });
+  await stubTracker(context, { basemap: basemap ? "empty" : "live", satellites });
 }
 
 /**
@@ -142,14 +75,7 @@ async function railFraming(page) {
   });
 }
 
-async function seed(context, place = PORTLAND) {
-  await context.addInitScript((value) => {
-    localStorage.setItem(
-      "orbit-studio:tracker:confirmed-place:v1",
-      JSON.stringify({ version: 1, place: { ...value, fromDevice: false } }),
-    );
-  }, place);
-}
+const seed = (context, place = PORTLAND) => seedPlace(context, place);
 
 /**
  * Luma statistics for a strip of what is actually on screen.
@@ -1815,183 +1741,27 @@ async function main() {
    * scans for the warning system. Stubbing only the first is how a gate ends up
    * proving that a feature which never ran is fine.
    */
-/**
- * The GOES-West CONUS fixed grid, as a granule publishes it.
- *
- * Real numbers, because the client's own geolocation runs against them: a made
- * up projection would make the field land somewhere the map is not, which is
- * precisely the bug this constant exists to have caught.
- */
-const FIXTURE_GRID = {
-  originLongitudeDeg: -137,
-  perspectiveHeightM: 35786023,
-  semiMajorM: 6378137,
-  semiMinorM: 6356752.31414,
-  xOffsetRad: -0.101332,
-  xScaleRad: 0.000056,
-  yOffsetRad: 0.128212,
-  yScaleRad: -0.000056,
-  columns: 2500,
-  rows: 1500,
-};
+  // The mask and the forecast come from the shared fixtures, so the picture in
+  // the review package is of the same night these checks are about.
+  const cloudMask = stubCloudMask;
+  const cloudForecast = stubCloudForecast;
 
-/** The inverse from the Product User Guide, for the fixture's own use. */
-function cellForFixture(latitudeDeg, longitudeDeg) {
-  const DEG = Math.PI / 180;
-  const g = FIXTURE_GRID;
-  const H = g.perspectiveHeightM + g.semiMajorM;
-  const req = g.semiMajorM;
-  const rpol = g.semiMinorM;
-  const e2 = (req * req - rpol * rpol) / (req * req);
-  const latitude = latitudeDeg * DEG;
-  const difference = (longitudeDeg - g.originLongitudeDeg) * DEG;
-  const geocentric = Math.atan(((rpol * rpol) / (req * req)) * Math.tan(latitude));
-  const rc = rpol / Math.sqrt(1 - e2 * Math.cos(geocentric) * Math.cos(geocentric));
-  const sx = H - rc * Math.cos(geocentric) * Math.cos(difference);
-  const sy = -rc * Math.cos(geocentric) * Math.sin(difference);
-  const sz = rc * Math.sin(geocentric);
-  if (H * (H - sx) < sy * sy + ((req * req) / (rpol * rpol)) * sz * sz) return null;
-  const y = Math.atan(sz / sx);
-  const x = Math.asin(-sy / Math.sqrt(sx * sx + sy * sy + sz * sz));
-  const column = Math.round((x - g.xOffsetRad) / g.xScaleRad);
-  const row = Math.round((y - g.yOffsetRad) / g.yScaleRad);
-  if (column < 0 || column >= g.columns || row < 0 || row >= g.rows) return null;
-  return { column, row };
-}
-
-  const cloudMask = (context, { acm = 2, series = null, status = 200 } = {}) =>
-    context.route("**/api/goes-cloud-mask*", (route) => {
-      if (status !== 200) return route.fulfill({ status, contentType: "application/json", body: "{}" });
-      const url = new URL(route.request().url());
-      const head = {
-        satellite: "GOES-West",
-        platform: "G18",
-        scene: "CONUS",
-        product: "ABI-L2-ACMC (Clear Sky Mask)",
-        resolution: "2.0km at nadir",
-        observedUtc: new Date().toISOString(),
-        probabilityScale: 1.5261e-5,
-      };
-      if (url.searchParams.get("series") === "1") {
-        // Newest last, ten minutes apart, as the catalogue publishes them.
-        const levels = series ?? [acm, acm, acm, acm];
-        return route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            ...head,
-            frames: levels.map((level, index) => ({
-              observedUtc: new Date(Date.now() - (levels.length - 1 - index) * 600_000).toISOString(),
-              covered: true,
-              acm: level,
-              cloudProbabilityRaw: 51154,
-              dqf: 0,
-              probabilityScale: head.probabilityScale,
-            })),
-          }),
-        });
-      }
-      if (url.searchParams.get("bbox")) {
-        /**
-         * A field of one repeated classification, over a window that actually
-         * covers the view.
-         *
-         * The first version of this returned rows 0-47 and columns 0-47 of the
-         * fixed grid, which is a corner of the disc thousands of pixels from
-         * anywhere the gate looks. `observedAt` correctly found nothing there,
-         * the field fell back to the forecast everywhere, and every check below
-         * passed while the observed path was never once exercised — including
-         * the one that claims the paint follows the mask.
-         *
-         * So the window is computed from the requested box, the way the proxy
-         * computes it. The geolocation is duplicated here on purpose: the
-         * fixture has to be able to disagree with the code it is testing, and
-         * `cellFor` has unit tests of its own.
-         */
-        const [south, west, north, east] = (url.searchParams.get("bbox") ?? "")
-          .split(",")
-          .map(Number);
-        const corners = [
-          cellForFixture(south, west),
-          cellForFixture(south, east),
-          cellForFixture(north, west),
-          cellForFixture(north, east),
-        ].filter(Boolean);
-        if (corners.length < 4) {
-          return route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ ...head, covered: false }),
-          });
-        }
-        const rows = corners.map((c) => c.row);
-        const columns = corners.map((c) => c.column);
-        const row0 = Math.min(...rows);
-        const row1 = Math.max(...rows);
-        const column0 = Math.min(...columns);
-        const column1 = Math.max(...columns);
-        const cells = Number(url.searchParams.get("cells")) || 64;
-        let stride = 1;
-        while (
-          Math.ceil((row1 - row0 + 1) / stride) * Math.ceil((column1 - column0 + 1) / stride) >
-          cells * cells
-        ) {
-          stride += 1;
-        }
-        const width = Math.ceil((column1 - column0 + 1) / stride);
-        const height = Math.ceil((row1 - row0 + 1) / stride);
-        const count = width * height;
-        return route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            ...head,
-            covered: true,
-            grid: FIXTURE_GRID,
-            window: { row0, row1, column0, column1, stride },
-            width,
-            height,
-            acm: Array.from({ length: count }, () => acm),
-            dqf: Array.from({ length: count }, () => 0),
-            cloudProbabilityRaw: Array.from({ length: count }, () => 51154),
-          }),
-        });
-      }
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          ...head,
-          covered: true,
-          cell: { column: 1768, row: 162 },
-          acm,
-          cloudProbabilityRaw: 51154,
-          dqf: 0,
-        }),
-      });
-    });
-
-  /** An hourly forecast of one repeated percentage, for both request shapes. */
-  const cloudForecast = (context, percent) =>
-    context.route("**/api.open-meteo.com/v1/forecast**", (route) => {
-      const url = new URL(route.request().url());
-      const latitudes = (url.searchParams.get("latitude") ?? "").split(",");
-      const start = url.searchParams.get("start_hour") ?? "2026-09-03T04:00";
-      const end = url.searchParams.get("end_hour") ?? start;
-      // The point series asks for a range of hours; the lattice asks many
-      // points for one hour. One stub, both shapes.
-      const hours = [];
-      for (let at = Date.parse(`${start}:00Z`); at <= Date.parse(`${end}:00Z`); at += 3_600_000) {
-        hours.push(new Date(at).toISOString().slice(0, 16));
-      }
-      const body =
-        latitudes.length > 1
-          ? Array.from({ length: latitudes.length }, () => ({
-              hourly: { time: [start], cloud_cover: [percent] },
-            }))
-          : { hourly: { time: hours, cloud_cover: hours.map(() => percent) } };
-      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-    });
+  /**
+   * The cloud checks run on a pinned night, not on whatever hour it is here.
+   *
+   * They used to inherit the wall clock, and the fixture's scans were stamped
+   * with it. That works while the machine happens to be inside Portland's
+   * observing window and fails the moment it is not: run in the morning, every
+   * scan lands in daylight, the timeline filters them all out, and three checks
+   * about the observed half of the layer fail on a product that is working. A
+   * check whose answer depends on the time of day is not a check.
+   */
+  const cloudPage = async (context) => {
+    const page = await context.newPage();
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    return page;
+  };
+  const cloudNow = { nowUtc: SATELLITE_CLOCK.toISOString() };
 
   const openCloud = async (page) => {
     await settled(page, 2500);
@@ -2007,8 +1777,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await seed(context);
     await cloudForecast(context, CLOUD_PERCENT);
     // ACM 2 is "probably cloudy": the mask's own third level.
-    await cloudMask(context, { acm: 2 });
-    const page = await context.newPage();
+    await cloudMask(context, { acm: 2, ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
@@ -2117,8 +1887,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
       await stub(context);
       await seed(context);
       await cloudForecast(context, 50);
-      await cloudMask(context, { acm });
-      const page = await context.newPage();
+      await cloudMask(context, { acm, ...cloudNow });
+      const page = await cloudPage(context);
       await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
         waitUntil: "domcontentloaded",
       });
@@ -2156,8 +1926,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await stub(context);
     await seed(context);
     await cloudForecast(context, 12);
-    await cloudMask(context, { acm: 0 });
-    const page = await context.newPage();
+    await cloudMask(context, { acm: 0, ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
@@ -2240,8 +2010,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await seed(context);
     await cloudForecast(context, 95);
     // Cloudy, and it stayed cloudy: the warning is about persistence.
-    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3] });
-    const page = await context.newPage();
+    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3], ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
@@ -2295,8 +2065,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await stub(context);
     await seed(context);
     await cloudForecast(context, 95);
-    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3] });
-    const page = await context.newPage();
+    await cloudMask(context, { acm: 3, series: [3, 3, 3, 3], ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(
       `${TRACKER}&at=45.5,-122.7&z=7&layers=cloud&date=2027-08-12&show=meteor-shower-PER-2027-08-12`,
       { waitUntil: "domcontentloaded" },
@@ -2365,8 +2135,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await stub(context);
     await seed(context);
     await cloudForecast(context, 41);
-    await cloudMask(context, { status: 502 });
-    const page = await context.newPage();
+    await cloudMask(context, { status: 502, ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, { waitUntil: "domcontentloaded" });
     await openCloud(page);
     await page.locator(".tk-layers-trigger").click();
@@ -2413,8 +2183,8 @@ function cellForFixture(latitudeDeg, longitudeDeg) {
     await context.route("**/api.open-meteo.com/v1/forecast**", (route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "" }),
     );
-    await cloudMask(context, { status: 502 });
-    const page = await context.newPage();
+    await cloudMask(context, { status: 502, ...cloudNow });
+    const page = await cloudPage(context);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7&layers=cloud`, {
       waitUntil: "domcontentloaded",
     });
