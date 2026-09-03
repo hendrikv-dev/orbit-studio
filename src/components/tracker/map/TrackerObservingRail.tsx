@@ -91,6 +91,18 @@ function compactName(title: string): string {
   return comma > 2 ? title.slice(0, comma) : title;
 }
 
+/**
+ * Sub-pixel differences are not clipping.
+ *
+ * Layout arithmetic lands fractionally either side of an edge all the time, and
+ * a rail that scrolled a third of a pixel every time a card was chosen would be
+ * the twitch this whole effect exists to remove.
+ */
+const TOLERANCE = 1;
+
+/** A little air between a card and the controls, so they do not read as touching. */
+const CONTROL_CLEARANCE = 8;
+
 export function TrackerObservingRail({
   cards,
   expandedId,
@@ -131,19 +143,32 @@ export function TrackerObservingRail({
   const expandedRef = useRef<HTMLLIElement>(null);
 
   /**
-   * The selected card comes to the front of the rail.
+   * The rail moves only when it has to, and only as far as it has to.
    *
-   * `nearest` was the old behaviour and it is wrong on a phone. An expanded
-   * card is most of the screen's width, so a card selected from the middle of
-   * the strip opens half off the edge and the reader has to scroll to read the
-   * thing they just chose — while the cards they did not choose sit where they
-   * were. Bringing it to the start puts the answer where the eye already is and
-   * leaves the rest reachable to the right of it.
+   * ## What this replaces
    *
-   * `scrollTo` on the strip rather than `scrollIntoView` on the card: the card
-   * is inside a horizontally scrolling container inside a page, and
-   * `scrollIntoView` is entitled to scroll every ancestor — which on a narrow
-   * screen scrolled the document itself.
+   * Bringing the selected card to the front. That was right about the problem —
+   * a card chosen from the middle of a phone's rail opened half off the edge —
+   * and wrong about the fix: it scrolled on every selection, including the many
+   * where the card was already entirely visible and the reader was looking
+   * straight at it. Moving the rail under somebody who did not ask for it is
+   * its own defect, and it is the more common one.
+   *
+   * So the rule is containment, not position. If the whole card is visible,
+   * nothing happens. If part of it is not, the rail moves by exactly the
+   * overflow and no further.
+   *
+   * ## Why it waits
+   *
+   * A card animates its width over 260 ms, and its neighbours move with it, so
+   * the rectangle at the moment of the click is not the rectangle the reader
+   * ends up looking at. Deciding from that one produced two wrong answers: a
+   * scroll for a card that was about to fit anyway, and a correction aimed at
+   * a position everything then slid away from. One measurement, after the
+   * widths have stopped, is both simpler and the only one that is true.
+   *
+   * That means one scroll call rather than a first attempt and a correction
+   * chasing it, which is what the competing smooth scrolls used to be.
    */
   useEffect(() => {
     const strip = scroller.current;
@@ -151,68 +176,99 @@ export function TrackerObservingRail({
     if (!expandedId || !strip || !card) return;
 
     /**
-     * Measured against the strip, and clamped to what the strip can scroll.
+     * The part of the strip a card can actually be seen in.
      *
-     * `offsetLeft` is relative to whichever ancestor happens to be positioned,
-     * which is a property of the stylesheet rather than of this component;
-     * rectangles are relative to the thing actually being scrolled. The clamp
-     * matters because a target past the end is silently truncated by the
-     * browser, and the difference between "we asked for too much" and "we
-     * arrived" is what this effect has to be able to tell.
+     * Not the strip's own box. The map's zoom and locate buttons float over its
+     * right-hand end, and a card that reaches under them is not visible however
+     * much of it is inside the scroller. The controls are found rather than
+     * assumed, and only counted when they really do overlap the rail's band —
+     * on a layout that puts them elsewhere the whole strip is usable.
      */
-    const align = (behavior: ScrollBehavior) => {
-      const offset = card.getBoundingClientRect().left - strip.getBoundingClientRect().left;
-      const furthest = Math.max(0, strip.scrollWidth - strip.clientWidth);
-      const left = Math.min(Math.max(0, strip.scrollLeft + offset), furthest);
-      if (Math.abs(strip.scrollLeft - left) < 2) return;
-      strip.scrollTo({ left, behavior });
+    const viewport = () => {
+      const box = strip.getBoundingClientRect();
+      const controls = document.querySelector<HTMLElement>(".tk-map-controls-view");
+      const over = controls?.getBoundingClientRect();
+      const overlaps =
+        over !== undefined &&
+        over.left < box.right &&
+        over.right > box.left &&
+        over.top < box.bottom &&
+        over.bottom > box.top;
+      return {
+        left: box.left,
+        right: overlaps ? Math.min(box.right, over!.left - CONTROL_CLEARANCE) : box.right,
+      };
     };
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    align(reduced ? "auto" : "smooth");
-
     /**
-     * And again once the widths have finished moving.
+     * How far the rail has to move, which is usually not at all.
      *
-     * The defect this closes: cards animate their width over 260 ms, so when a
-     * card is chosen while another is open *to its left*, the open one shrinks
-     * by a hundred-odd pixels underneath the scroll that is already running.
-     * Everything to its right slides left by that much, and the card the reader
-     * just picked ends up off the left edge of the strip with its neighbours
-     * standing where it should be. The first alignment starts the motion; this
-     * one corrects it against the layout that actually settled.
+     * Positive scrolls the content left. The two clauses are exclusive by
+     * construction: a card cannot overflow both edges unless it is wider than
+     * the space it is being shown in, and in that case revealing the left edge
+     * is the answer — the card reads from the left, and pulling its right edge
+     * into view would push its name out of sight.
      */
+    const overflow = () => {
+      const view = viewport();
+      const box = card.getBoundingClientRect();
+      const usable = view.right - view.left;
+      if (box.width > usable) return box.left - view.left;
+      if (box.left < view.left - TOLERANCE) return box.left - view.left;
+      if (box.right > view.right + TOLERANCE) return box.right - view.right;
+      return 0;
+    };
+
+    const align = (behavior: ScrollBehavior) => {
+      const delta = overflow();
+      if (delta === 0) return false;
+      // Clamped at both ends: a target past either bound is silently truncated
+      // by the browser, and the verification below has to be able to tell the
+      // difference between "we arrived" and "we asked for more than exists".
+      const furthest = Math.max(0, strip.scrollWidth - strip.clientWidth);
+      const left = Math.min(Math.max(0, strip.scrollLeft + delta), furthest);
+      if (Math.abs(strip.scrollLeft - left) < 1) return false;
+      strip.scrollTo({ left, behavior });
+      return true;
+    };
+
     let done = false;
     let frame = 0;
+    let check = 0;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const settle = () => {
       if (done) return;
       done = true;
       window.clearTimeout(timer);
       strip.removeEventListener("transitionend", onEnd);
+      if (!align(reduced ? "auto" : "smooth")) return;
       /**
-       * Stop the smooth scroll before correcting, or it finishes on top of us.
+       * One verification, and no more.
        *
-       * A smooth scroll runs to the target it was given, and the target it was
-       * given was computed against the layout before the widths moved. Setting
-       * a new position underneath it is not enough: the animation carries on to
-       * its own stale destination and lands a few pixels past the card's edge.
-       * Asking for the current position with `auto` cancels it; the correction
-       * goes in on the next frame, against a strip that has stopped moving.
+       * A smooth scroll can be interrupted — by a clamp at either end, or by a
+       * reader who starts swiping while it runs — so the containment it was
+       * asked for is not guaranteed to be the containment that happened. One
+       * silent correction covers that. A loop would fight anybody scrolling by
+       * hand, which is worse than a card an inch off the edge.
        */
-      strip.scrollTo({ left: strip.scrollLeft, behavior: "auto" });
-      frame = window.requestAnimationFrame(() => align("auto"));
+      check = window.setTimeout(() => {
+        frame = window.requestAnimationFrame(() => align("auto"));
+      }, reduced ? 0 : 500);
     };
+
     const onEnd = (event: TransitionEvent) => {
       if (event.propertyName === "width") settle();
     };
     strip.addEventListener("transitionend", onEnd);
-    // No transition fires when nothing changed width — a card chosen with none
-    // open, or reduced motion — so the correction is not left waiting on one.
-    const timer = window.setTimeout(settle, 400);
+    // Nothing transitions when nothing changed width — a card chosen with none
+    // already open, or reduced motion — so the decision is not left waiting.
+    const timer = window.setTimeout(settle, reduced ? 0 : 320);
 
     return () => {
       done = true;
       window.clearTimeout(timer);
+      window.clearTimeout(check);
       window.cancelAnimationFrame(frame);
       strip.removeEventListener("transitionend", onEnd);
     };

@@ -108,6 +108,40 @@ async function stub(context, { basemap = true, satellites = "unavailable" } = {}
   });
 }
 
+/**
+ * Where the expanded card sits inside the part of the rail that can be seen.
+ *
+ * The usable viewport is not the strip: the map's zoom and locate buttons float
+ * over its right-hand end, and a card reaching under them is not visible however
+ * much of it is inside the scroller. Measured the same way the component
+ * measures it, so the gate is checking the rule rather than a restatement of it.
+ */
+async function railFraming(page) {
+  return page.evaluate(() => {
+    const strip = document.querySelector(".tk-rail-scroll");
+    const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
+    if (!strip || !card) return null;
+    const box = strip.getBoundingClientRect();
+    const controls = document.querySelector(".tk-map-controls-view");
+    const over = controls?.getBoundingClientRect();
+    const overlaps =
+      over &&
+      over.left < box.right &&
+      over.right > box.left &&
+      over.top < box.bottom &&
+      over.bottom > box.top;
+    const right = overlaps ? Math.min(box.right, over.left) : box.right;
+    const rect = card.getBoundingClientRect();
+    return {
+      name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
+      clippedLeft: Math.round(Math.max(0, box.left - rect.left)),
+      clippedRight: Math.round(Math.max(0, rect.right - right)),
+      scrollLeft: Math.round(strip.scrollLeft),
+      maxScroll: Math.round(strip.scrollWidth - strip.clientWidth),
+    };
+  });
+}
+
 async function seed(context, place = PORTLAND) {
   await context.addInitScript((value) => {
     localStorage.setItem(
@@ -1409,9 +1443,18 @@ async function main() {
       await page.waitForTimeout(1600);
       const open = await snap();
       const card = open.cards.find((entry) => entry.expanded);
+      /**
+       * Whole, rather than first.
+       *
+       * Bringing every chosen card to the front was the old rule and it moved
+       * the rail on selections where nothing needed moving. What the reader is
+       * owed is the card they just chose, entire; where it sits after that is
+       * wherever it already was.
+       */
+      const framing = await railFraming(page);
       check(
-        card !== undefined && Math.abs(card.x - resting.cards[0].x) <= 4,
-        `${label}: selecting card ${index + 1} brings it to the front (x=${card?.x} vs ${resting.cards[0].x})`,
+        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+        `${label}: selecting card ${index + 1} leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
       );
       check(
         card !== undefined && open.controls !== null && card.right <= open.controls.x,
@@ -1430,48 +1473,78 @@ async function main() {
     }
 
     /**
-     * And choosing one card straight after another, without closing the first.
+     * The corrected rule, at this width.
      *
-     * The defect: cards animate their width over 260 ms, so choosing a card
-     * while another is open *to its left* left the open one shrinking by a
-     * hundred-odd pixels underneath a scroll that was already running.
-     * Everything to its right slid left by that much, and the card the reader
-     * had just chosen ended up off the left edge with its neighbours standing
-     * where it should have been.
-     *
-     * The loop above never caught it because it closed each card before opening
-     * the next, which is the one order in which nothing is shrinking.
+     * Selecting a card must not move the rail unless part of that card would
+     * otherwise be hidden, and when it does move it must move by the least
+     * distance that makes the card whole. Every case below is one way that can
+     * go wrong, and the sequence deliberately never closes a card first — a
+     * card shrinking beside the one being chosen is the geometry the decision
+     * has to be made against.
      */
     for (const index of [1, count - 1, 2, 0]) {
-      await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(1400);
-      const framing = await page.evaluate(() => {
+      const before = await page.evaluate(() =>
+        Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
+      );
+      const wasWhole = await page.evaluate((position) => {
         const strip = document.querySelector(".tk-rail-scroll");
-        const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
-        if (!strip || !card) return null;
-        const s = strip.getBoundingClientRect();
-        const c = card.getBoundingClientRect();
-        return {
-          name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
-          clippedLeft: Math.round(Math.max(0, s.left - c.left)),
-          clippedRight: Math.round(Math.max(0, c.right - s.right)),
-        };
-      });
+        const card = document.querySelectorAll(".tk-rail-card")[position];
+        if (!strip || !card) return false;
+        const box = strip.getBoundingClientRect();
+        const controls = document.querySelector(".tk-map-controls-view");
+        const over = controls?.getBoundingClientRect();
+        const overlaps =
+          over && over.left < box.right && over.right > box.left &&
+          over.top < box.bottom && over.bottom > box.top;
+        const right = overlaps ? Math.min(box.right, over.left) : box.right;
+        const rect = card.getBoundingClientRect();
+        // Room for the width it is about to grow to, so "it already fitted" is
+        // a statement about the card the reader ends up looking at.
+        const expanded = rect.left + Math.max(rect.width, 344);
+        return rect.left >= box.left - 1 && expanded <= right + 1;
+      }, index);
+
+      await cards.nth(index).locator(".tk-rail-card-head").click();
+      await page.waitForTimeout(1500);
+      const framing = await railFraming(page);
+      const after = framing?.scrollLeft ?? -1;
+
       check(
         framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
-        `${label}: choosing ${framing?.name} while another is open leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
+        `${label}: choosing ${framing?.name} leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
+      );
+      /**
+       * And the rail did not move for a card that already fitted.
+       *
+       * This is the assertion the correction exists for. The old rule scrolled
+       * on every selection; a reader looking straight at a card they can see
+       * should not have it slide away from them.
+       */
+      if (wasWhole) {
+        check(
+          Math.abs(after - before) <= 2,
+          `${label}: and a card that already fitted did not move the rail (${before} → ${after})`,
+        );
+      }
+      check(
+        framing !== null && framing.scrollLeft >= 0 && framing.scrollLeft <= framing.maxScroll,
+        `${label}: and the scroll position stays inside its own bounds (${framing?.scrollLeft} of ${framing?.maxScroll})`,
       );
     }
 
     await context.close();
   }
 
-  /* --- and the same on a desktop rail ------------------------------------- */
+  /* --- and the same rule on a desktop rail --------------------------------- */
   //
-  // Reported on both: the strip is wider, so more cards fit and more of them
-  // are to the left of whichever one is chosen next.
-  {
-    const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  // A wider strip fits several cards at once, so most selections should move
+  // nothing at all — which is the case the old always-scroll rule got wrong
+  // most often, because there was always somewhere else to put the card.
+  for (const [label, viewport] of [
+    ["1024x800", { width: 1024, height: 800 }],
+    ["1440x900", { width: 1440, height: 900 }],
+  ]) {
+    const context = await browser.newContext({ viewport });
     await stub(context);
     await seed(context);
     const page = await context.newPage();
@@ -1481,47 +1554,46 @@ async function main() {
     await settled(page, 2000);
     await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
+    await dismissTour(page);
+
     const cards = page.locator(".tk-rail-card");
     const count = await cards.count();
-    for (const index of [0, 1, count - 1, 2]) {
+    let unmoved = 0;
+    /**
+     * Never the same card twice in a row: the head is a toggle, so a repeat
+     * closes the card rather than choosing it, and there is then nothing to
+     * measure. A short rail makes that easy to write by accident.
+     */
+    const sequence = [0, 1, count - 1, 2, count - 2].filter(
+      (index, at, all) => index >= 0 && index < count && index !== all[at - 1],
+    );
+    for (const index of sequence) {
+      const before = await page.evaluate(() =>
+        Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
+      );
       await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(1400);
-      const framing = await page.evaluate(() => {
-        const strip = document.querySelector(".tk-rail-scroll");
-        const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
-        if (!strip || !card) return null;
-        const s = strip.getBoundingClientRect();
-        const c = card.getBoundingClientRect();
-        const controls = document.querySelector(".tk-map-controls-view");
-        return {
-          name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
-          clipped: Math.round(Math.max(0, s.left - c.left) + Math.max(0, c.right - s.right)),
-          fromStart: Math.round(c.left - s.left),
-          right: Math.round(c.right),
-          controlsLeft: Math.round(controls?.getBoundingClientRect().left ?? Infinity),
-        };
-      });
+      await page.waitForTimeout(1500);
+      const framing = await railFraming(page);
+      if (framing && Math.abs(framing.scrollLeft - before) <= 2) unmoved += 1;
       check(
-        framing !== null && framing.clipped === 0,
-        `desktop rail: ${framing?.name} stays whole when chosen after another (${framing?.clipped}px clipped)`,
-      );
-      /**
-       * And it leads the strip, rather than resting where the list ran out.
-       *
-       * A scroller stops when its content does, so without room past the last
-       * card the ones near the end come to rest under the zoom and recentre
-       * buttons at the right-hand edge. The phone rail had a spacer for this;
-       * the wide one did not.
-       */
-      check(
-        framing !== null && framing.fromStart <= 4,
-        `desktop rail: and comes to the front (${framing?.fromStart}px in)`,
+        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+        `${label}: ${framing?.name} is whole after being chosen (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
       );
       check(
-        framing !== null && framing.right <= framing.controlsLeft,
-        `desktop rail: and stops short of the controls (${framing?.right} vs ${framing?.controlsLeft})`,
+        framing !== null && framing.scrollLeft >= 0 && framing.scrollLeft <= framing.maxScroll,
+        `${label}: and the scroll stays inside its bounds (${framing?.scrollLeft} of ${framing?.maxScroll})`,
       );
     }
+    /**
+     * Most of those should have moved nothing.
+     *
+     * A rail this wide shows several cards at once. If every selection still
+     * scrolls, the rule has not changed however contained the cards end up.
+     */
+    check(
+      unmoved >= 2,
+      `${label}: and selecting a card that already fitted left the rail alone (${unmoved} of ${sequence.length})`,
+    );
     await context.close();
   }
 
@@ -1548,13 +1620,18 @@ async function main() {
     // Deliberately short: with motion off the rail should already be there
     // rather than still gliding.
     await page.waitForTimeout(500);
-    const card = await page.evaluate(() => {
-      const open = document.querySelector('.tk-rail-card[data-expanded="true"]');
-      return open ? Math.round(open.getBoundingClientRect().x) : null;
-    });
+    /**
+     * With motion off, the same containment and no glide to watch.
+     *
+     * The rule is about geometry, not animation: the card the reader chose is
+     * whole by the time they look at it, and the rail arrives rather than
+     * travels. Half a second is deliberately short — enough for the layout to
+     * settle, not enough for a smooth scroll to have finished.
+     */
+    const framing = await railFraming(page);
     check(
-      card !== null && card <= 14,
-      `reduced motion: the selected card is already at the front (x=${card})`,
+      framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+      `reduced motion: the selected card is already whole (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
     );
     await context.close();
   }

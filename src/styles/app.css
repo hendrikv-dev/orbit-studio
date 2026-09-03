@@ -16494,23 +16494,22 @@ button.primary,
   width: max-content;
 }
 /**
- * Room past the last card, so any card can lead.
+ * Room past the last card, so the last card can clear the controls.
  *
- * Selecting a card brings it to the front of the strip, and without this the
- * cards near the end cannot get there: a scroller stops when its content runs
- * out, so they come to rest wherever the end of the list leaves them — which is
- * under the zoom and recentre buttons at the right-hand edge. The spacer is the
- * strip's width less one expanded card and the control stack, which is exactly
- * the distance the last card needs.
+ * A scroller stops when its content runs out, and the strip runs to the edge of
+ * the screen while the map's zoom and locate buttons float over its right-hand
+ * end. Without this the final card comes to rest under them and no amount of
+ * scrolling frees it.
  *
- * The phone has its own, narrower, version below; this is the wide one.
+ * It is the width of what covers it and nothing more. It was a whole card wide
+ * once, back when selecting a card brought it to the front of the strip; that
+ * is no longer what happens — the rail now moves only far enough to make a
+ * chosen card whole — so the spacer only has to cover the controls.
  */
 .tk-rail-list::after {
   content: "";
   flex: 0 0 auto;
-  /* The strip's width less one expanded card: 100vw, less the rail's 14px of
-     padding either side, less the 344px an open card takes. */
-  inline-size: calc(100vw - 372px);
+  inline-size: calc(var(--tk-control-gutter, 62px) + 12px);
 }
 
 .tk-rail-card {
@@ -16725,20 +16724,11 @@ button.primary,
     width: min(320px, calc(100vw - 40px - var(--tk-control-gutter)));
   }
   .tk-rail-card-body { max-height: 46dvh; overflow-y: auto; }
-  /**
-   * Room past the last card, so any card can lead.
-   *
-   * Selecting a card brings it to the front of the strip, and without this the
-   * last one cannot get there: a scroller stops when its content runs out, so
-   * the final card came to rest wherever the end of the list left it — which on
-   * a phone is halfway under the control stack. The spacer is the width of the
-   * strip less one card, which is exactly the distance the last card needs.
-   */
-  .tk-rail-list::after {
-    content: "";
-    flex: 0 0 auto;
-    inline-size: calc(100vw - 220px);
-  }
+  /*
+    The phone needs the same clearance and no more, for the same reason. The
+    wide rule above already says it; this override exists only because the old
+    one was a different width and had to be removed rather than inherited.
+  */
   /**
    * The controls do not move when a card opens.
    *
