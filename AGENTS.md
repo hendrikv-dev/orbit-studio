@@ -134,6 +134,7 @@ until green without explaining the cause is prohibited.
   build, test, or review contracts change.
 - Run `npm run review` for completed features and changes to reviewed UI, rendering, simulation,
   timeline, catalog, or interaction behavior.
+- Every commit must have its own private review package. See Gate 7.
 
 ### Change-class validation matrix
 
@@ -219,6 +220,48 @@ Within the user's requested report format, report files and reasons, exact comma
 runtime scenarios, evidence paths, limitations, uncertainties, and blockers. Never claim broader
 scientific accuracy, dataset coverage, performance, accessibility, security, or release readiness
 than the evidence establishes.
+
+### Per-commit review packages
+
+Every commit must have its own private, commit-specific review package, and a commit is not complete
+until that package exists and has been inspected. Three commits require three packages. An aggregate
+pass package is additional and never a substitute.
+
+Generate one with `npm run review:commit` after the commit exists, so the package is identified by
+the final hash rather than by an intention.
+
+**Review artifacts must be stored outside the repository.** Not in a gitignored directory:
+`.gitignore` prevents a commit and nothing else — not `git clean -x`, not an archive of the working
+tree, not a reader who assumes a directory is source. The destination is `ORBIT_REVIEW_OUTPUT_DIR`
+when set and a sibling of the repository otherwise; the generator resolves both paths and refuses to
+run if the destination is the repository or a descendant of it. The repository may hold the
+generator, its tests, and this rule. It may not hold generated ZIPs, screenshots, contact sheets,
+summaries, gate reports, limitations reports, or manifests.
+
+**Review history is append-only.** One commit, one package, never overwritten. If evidence must be
+regenerated for a commit that already has a package, the original is preserved and the new one
+becomes `-r2`, `-r3`, recording why it exists. There is no overwrite option, and adding one is a
+change to this standard.
+
+Each package must contain `SUMMARY.md` (hash, message, purpose, behavior changed, decisions,
+deliberately unchanged behavior, limitations, verification actually performed), `FILES_CHANGED.md`,
+`GATES.md`, `LIMITATIONS.md`, `screenshots/`, `CONTACT_SHEET.png`, and a ZIP named for the commit.
+
+`GATES.md` records only checks that actually ran, with their actual results. The generator has no
+way to assert a gate it did not observe: results are supplied from a file written after running
+them, and a package generated without one says so rather than implying a suite passed.
+
+Screenshots are mandatory for every commit. A visual commit shows the changed interface; a
+behavioral one shows the nearest product state that proves the effect and that the affected surface
+is intact. Source-code screenshots do not substitute for product evidence unless there is genuinely
+no product-facing state. Fixture-driven states must be captioned as such. A screenshot must not be
+declared verified while state relevant to its claim is visibly pending.
+
+Completing a commit means, in order: implement; run focused validation; run required gates; commit;
+take the final hash; generate the package; **inspect every screenshot**; confirm the required
+documents are present and the ZIP opens; push; **verify the intended remote branch contains that
+exact hash**; and report the hash and the external package path. A change to the review tooling or
+to this rule is itself a commit and receives a package under it.
 
 ## Changing This Standard
 

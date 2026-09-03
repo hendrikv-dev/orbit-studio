@@ -50,7 +50,8 @@
     "tracker:refinement": "node scripts/verify/tracker-refinement.mjs",
     "lightpollution:archive": "node scripts/deploy/light-pollution-archive.mjs",
     "deepsky:build": "node scripts/build-deep-sky-showpieces.mjs",
-    "tracker:review": "node scripts/review/tracker-pass-review.mjs"
+    "review:commit": "node scripts/review/commit-review.mjs",
+    "review:pass": "node scripts/review/tracker-pass-review.mjs"
   },
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
