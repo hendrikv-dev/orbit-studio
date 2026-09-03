@@ -16931,7 +16931,19 @@ button.primary,
   position: absolute;
   left: 14px;
   top: 68px;
-  z-index: 5;
+  /*
+    Below the top bar, which is at 5.
+
+    It used to be 5 as well, and a sibling that comes later in the document
+    wins a tie — so this persistent little control painted over the panels that
+    drop out of the bar above it. The bar is a stacking context of its own, so
+    its panels could not climb out of it however high their own z-index went:
+    the equipment panel asks for 20 and was still underneath.
+
+    On a narrow screen those panels are nearly the full width, and the reader
+    got a 2D/3D switch sitting on top of the list they had just opened.
+  */
+  z-index: 4;
   display: flex;
   overflow: hidden;
   border: 1px solid var(--tk-glass-line);

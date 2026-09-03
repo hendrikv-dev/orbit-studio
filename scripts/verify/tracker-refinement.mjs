@@ -1726,6 +1726,79 @@ async function main() {
     await context.close();
   }
 
+  /* --- the toggle stays under what drops out of the top bar ---------------- */
+  //
+  // It sat at the same stacking level as the bar and later in the document, so
+  // it painted over the bar's own panels — and the bar is a stacking context,
+  // so their z-index could not climb out of it however high it went. On a
+  // narrow screen those panels are nearly the full width, and a reader opening
+  // the observing rule got a 2D/3D switch sitting on top of the list.
+  // 700 is where the event finder's panel first reaches the toggle; 430 and 390
+  // are where the observing rule's does.
+  for (const width of [700, 430, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 820 } });
+    await stub(context);
+    await seed(context);
+    const page = await context.newPage();
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 2000);
+    await page.waitForTimeout(2500);
+    await dismissTour(page);
+
+    const covered = async (label, panelSelector) => {
+      const seen = await page.evaluate((selector) => {
+        const toggle = document.querySelector(".tk-projection");
+        const panel = document.querySelector(selector);
+        if (!toggle || !panel) return null;
+        const t = toggle.getBoundingClientRect();
+        const p = panel.getBoundingClientRect();
+        const across = Math.max(0, Math.min(p.right, t.right) - Math.max(p.left, t.left));
+        const down = Math.max(0, Math.min(p.bottom, t.bottom) - Math.max(p.top, t.top));
+        if (across <= 0 || down <= 0) return { overlaps: false };
+        const element = document.elementFromPoint(
+          Math.max(p.left, t.left) + across / 2,
+          Math.max(p.top, t.top) + down / 2,
+        );
+        return { overlaps: true, toggleOnTop: Boolean(element?.closest(".tk-projection")) };
+      }, panelSelector);
+      if (seen === null) return;
+      if (!seen.overlaps) {
+        check(true, `${width}px: the ${label} panel clears the 2D/3D control entirely`);
+        return;
+      }
+      check(
+        seen.toggleOnTop === false,
+        `${width}px: the ${label} panel is above the 2D/3D control where they overlap`,
+      );
+    };
+
+    const rule = page.getByRole("button", { name: /naked eye|binocular|telescope/i }).first();
+    if ((await rule.count()) > 0) {
+      await rule.click().catch(() => {});
+      await page.waitForTimeout(700);
+      await covered("observing rule", ".tk-equipment-panel");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+    }
+
+    /**
+     * And the event finder, whose panel drops out of the same bar.
+     *
+     * Named rather than silently skipped: a check that quietly does nothing
+     * when a selector stops matching is worse than no check, because it goes on
+     * reporting success.
+     */
+    const finder = page.locator(".tk-eventfinder-trigger, .tk-eventfinder-current").first();
+    if ((await finder.count()) > 0) {
+      await finder.click().catch(() => {});
+      await page.waitForTimeout(700);
+      await covered("event finder", ".tk-eventfinder-open");
+    } else {
+      console.log(`  · ${width}px: no event-finder control on screen, so its stacking is untested`);
+    }
+    await context.close();
+  }
+
   /* --- cloud, and where its numbers come from ------------------------------ */
   console.log("\nCloud");
   {
