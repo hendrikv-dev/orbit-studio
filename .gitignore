@@ -63,3 +63,8 @@ public/earth/*.jpg
 public/tracker/*.bin
 
 .orbit-studio-backups/
+
+# Netlify CLI working directory: the local build's packaged functions, and the
+# link state for whichever site the CLI is pointed at. `netlify build` writes it
+# on every run, so it is output, not source.
+.netlify/

@@ -28,7 +28,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.apsis.json && vite build",
+    "build": "npm run netlify:functions:verify && tsc --noEmit -p tsconfig.apsis.json && vite build",
     "preview": "vite preview",
     "review": "node scripts/review/run-review.mjs",
     "release:verify": "npm run provenance:validate && npm run licenses:validate && npm run history:validate && node scripts/release/verify-release-source.mjs",
@@ -45,6 +45,7 @@
     "science:report": "node scripts/report-celestial-validation.mjs",
     "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs",
     "a11y:verify": "node scripts/verify/accessibility.mjs",
+    "netlify:functions:verify": "node scripts/verify/netlify-functions.mjs",
     "tracker:walkthrough": "node scripts/verify/tracker-walkthrough.mjs",
     "fragmentation:build": "python3 scripts/build-fragmentation-causes.py",
     "tracker:refinement": "node scripts/verify/tracker-refinement.mjs",

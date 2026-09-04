@@ -1,3 +1,23 @@
+/**
+ * Not beside the function it tests, and that is deliberate.
+ *
+ * Netlify treats every top-level file in the configured functions directory as
+ * a deployable function, and derives the function's name from the file's
+ * basename minus its final extension. `goes-cloud-mask.test.ts` therefore
+ * became a function named `goes-cloud-mask.test`, whose dot is not legal in a
+ * function name, and the deploy was rejected with:
+ *
+ *   The following serverless functions failed to deploy: goes-cloud-mask.test
+ *
+ * Local bundling does not catch it. `netlify build` packaged both files
+ * happily, producing `goes-cloud-mask.zip` and `goes-cloud-mask.test.zip`; the
+ * name is only rejected server-side at deploy. So the file lives outside the
+ * deployable tree, and `npm run netlify:functions:verify` fails the build if a
+ * test, fixture or helper ever appears in there again.
+ *
+ * The rest of the repository colocates tests with their source. This one
+ * cannot, because the directory it would sit in is a deployment surface.
+ */
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,7 +27,7 @@ import {
   satelliteFor,
   startedAt,
   strideFor,
-} from "./goes-cloud-mask.mts";
+} from "../functions/goes-cloud-mask.mts";
 
 describe("choosing a spacecraft", () => {
   it("takes the one nearer the sub-point", () => {
