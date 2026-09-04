@@ -765,14 +765,20 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
           const a = place.getBoundingClientRect();
           const b = date.getBoundingClientRect();
           const hit = document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
+          const label = document.querySelector(".tracker-place-name");
           return {
             overlap: Math.round(Math.min(a.right, b.right) - Math.max(a.left, b.left)),
             pressable: Boolean(hit?.closest(".tracker-place-current")),
-            name: document.querySelector(".tracker-place-name")?.textContent?.trim() ?? "",
+            name: label?.textContent?.trim() ?? "",
+            /* Rendered, not read from the DOM. `textContent` still says
+               "Portland" while the button is showing "P. Oreg…", so the first
+               version of this check passed on a bar whose place name had been
+               truncated away to nothing. */
+            clipped: label ? label.scrollWidth > label.clientWidth + 1 : true,
           };
         });
-        return seen && seen.overlap <= 0 && seen.pressable
-          ? `place and date clear by ${-seen.overlap}px, place button pressable, name reads "${seen.name}"`
+        return seen && seen.overlap <= 0 && seen.pressable && !seen.clipped
+          ? `place and date clear by ${-seen.overlap}px, place button pressable, name reads "${seen.name}" without truncation`
           : "";
       },
     );

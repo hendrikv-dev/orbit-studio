@@ -15028,6 +15028,16 @@ button.primary,
   /* Below this the place's context line goes entirely: the name identifies the
      place, and the date needs the room more than the postcode does. */
   .tk-header-identity .tracker-place-context { display: none; }
+  /*
+    The map's bar makes the same trade at the same width, for the same reason.
+
+    Binding the lead to its grid column stopped it overflowing into the date,
+    but the room it gave up had to come from somewhere: at 768px "Portland
+    Oregon, United States" rendered as "P. Oreg…", which is a place button that
+    no longer says which place. Dropping the context leaves the name enough
+    width to be read whole at every size from 320px up.
+  */
+  .tk-map-topbar .tracker-place-context { display: none; }
 }
 
 /* Candidate places to watch an eclipse from.
