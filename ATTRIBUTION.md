@@ -838,8 +838,8 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `public/tracker/light-pollution-v21-2024.bin`, `public/tracker/light-pollution-v21-2024.json`, `scripts/build-light-pollution-tiles.py`, `src/data/tracker/lightPollution.ts`
-- Production paths: `tracker/light-pollution-v21-2024.bin`, `tracker/light-pollution-v21-2024.json`
+- Repository paths: `public/tracker/light-pollution-v21-2024.json`, `scripts/build-light-pollution-tiles.py`, `src/data/tracker/lightPollution.ts`
+- Production paths: `tracker/light-pollution-v21-2024.json`
 - Restrictions and notes: The Earth Observation Group credit and the Elvidge et al. (2021) citation must remain, both being conditions of CC BY 4.0. The value must not be presented as a Bortle class, an SQM reading, a limiting magnitude, or as a prediction of what will be visible overhead.
 
 ## MapLibre GL JS, an open-source WebGL renderer for vector map tiles
@@ -977,6 +977,29 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Repository paths: `public/media/perseids-realtime-bautsch-cc0.webm`, `public/media/perseids-realtime-bautsch-cc0-poster.webp`
 - Production paths: `media/perseids-realtime-bautsch-cc0.webm`, `media/perseids-realtime-bautsch-cc0-poster.webp`
 - Restrictions and notes: This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support.
+
+## IBM Plex Sans, Space Grotesk and Space Mono, packaged by Fontsource
+
+- Inventory ID: `webfont-typefaces-ofl`
+- Category: webfont-typefaces
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: IBM Corp.; the Space Grotesk Project Authors; the Space Mono Project Authors — packaged by Fontsource
+- Version or snapshot: @fontsource-variable/ibm-plex-sans 5.3.0, @fontsource-variable/space-grotesk 5.3.0, @fontsource/space-mono 5.3.0
+- Authoritative source: https://openfontlicense.org/
+- Authoritative source: https://fontsource.org/
+- Rights basis: SIL Open Font License 1.1, declared as the SPDX identifier OFL-1.1 in all three packages and reproduced from each package's own LICENSE file. The OFL permits redistribution of the fonts, bundled with software, provided the copyright and licence notice travel with them and the fonts are not sold on their own. Both conditions are met: the notices are reproduced in THIRD_PARTY_NOTICES.md, which the build copies into the deployment, and the fonts are shipped as part of the application rather than sold.
+- Rights evidence: https://openfontlicense.org/
+- Rights evidence: https://fontsource.org/fonts/ibm-plex-sans
+- Rights evidence: https://fontsource.org/fonts/space-grotesk
+- Rights evidence: https://fontsource.org/fonts/space-mono
+- Attribution: IBM Plex Sans © 2019 IBM Corp. Space Grotesk © 2020 The Space Grotesk Project Authors. Space Mono © 2016 The Space Mono Project Authors. All three under the SIL Open Font License 1.1.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: permitted-with-attribution
+- Repository paths: none
+- Production paths: `assets/ibm-plex-sans-*.woff2`, `assets/space-grotesk-*.woff2`, `assets/space-mono-*.woff2`, `assets/space-mono-*.woff`
+- Restrictions and notes: The OFL notices in THIRD_PARTY_NOTICES.md must keep reaching the deployment; they are the condition on which these files may be redistributed at all. The fonts must not be renamed, and any future subsetting would engage the reserved-name clause and needs its own review. They must never be offered for sale on their own, bundled or otherwise.
 
 ## Software dependencies
 

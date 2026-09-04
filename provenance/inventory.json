@@ -58,6 +58,7 @@
       "eso.org",
       "example.invalid",
       "firms.modaps.eosdis.nasa.gov",
+      "fontsource.org",
       "geojson.org",
       "gibs.earthdata.nasa.gov",
       "git-lfs.github.com",
@@ -74,6 +75,7 @@
       "noirlab.edu",
       "open-meteo.com",
       "opendatacommons.org",
+      "openfontlicense.org",
       "openfreemap.org",
       "openmaptiles.org",
       "opensource.org",
@@ -93,6 +95,7 @@
       "robertpenner.com",
       "science.data.nasa.gov",
       "science.nasa.gov",
+      "scripts.sil.org",
       "services.swpc.noaa.gov",
       "ssd-api.jpl.nasa.gov",
       "ssd.jpl.nasa.gov",
@@ -239,8 +242,62 @@
           "public/placeholders/earth-reference.svg": "6357defdfbed68125604ccb4d46dbfa5e79d4e3ad96c8944060e20efe389befe"
         },
         "basis": "Project-authored SVG placeholders generated for Orbit Studio."
+      },
+      {
+        "id": "orbit-studio-brand-marks",
+        "description": "Orbit Studio's own wordmarks and app icons, drawn for this project. First-party work: no third-party rights attach, and they are the one class of artifact in the bundle that is not licensed from anybody.",
+        "paths": [
+          "public/brand/orbit-studio-explorer-icon.png",
+          "public/brand/orbit-studio-explorer-logo.png",
+          "public/brand/orbit-studio-icon.png",
+          "public/brand/orbit-studio-logo.png",
+          "public/brand/orbit-studio-playground-icon.png",
+          "public/brand/orbit-studio-playground-logo.png",
+          "public/brand/orbit-studio-tracker-icon.png",
+          "public/brand/orbit-studio-tracker-logo-dark.png",
+          "public/brand/orbit-studio-tracker-logo.png"
+        ],
+        "sha256": {
+          "public/brand/orbit-studio-explorer-icon.png": "fb84caa619a905a0c8eed09312874d7d726754a24cbb909cad7eca2c74b11488",
+          "public/brand/orbit-studio-explorer-logo.png": "fa022b461e03fbb2677ac4a8fbf4ef270769dfedf9ee6bd44521338b77aed908",
+          "public/brand/orbit-studio-icon.png": "f5ec282b0fa004b77203f04a2f60ceeba04fdf22508a23cf10e66f54d456050c",
+          "public/brand/orbit-studio-logo.png": "a2f050bc778d5ca17715efe6053d0c8bc002f5ed10b9e590d05c2ab8f2ab6ea1",
+          "public/brand/orbit-studio-playground-icon.png": "856a4ce0dfcd11587228fc5208db64e9234750acbd6b994d12beecf0a1790d6e",
+          "public/brand/orbit-studio-playground-logo.png": "b399c4e70d9effc5f33d8f23be7100bffb2c23b5b675c6efc50c02a1a92dc564",
+          "public/brand/orbit-studio-tracker-icon.png": "2245f71fcfb0a03b966821ec4795512f8a567191d01247a7af88294a160abd1e",
+          "public/brand/orbit-studio-tracker-logo-dark.png": "31cea6729bec6164f7bd17429ff848f2583b39cfc81636f0256cf60c446af58d",
+          "public/brand/orbit-studio-tracker-logo.png": "f7c0075b6ee2e298f68a0d366c2297fd865611b18749560f3b519cfe97ba9635"
+        }
       }
-    ]
+    ],
+    "acceptedProvenanceFindings": [
+      {
+        "finding": "included-item-rights-unresolved:meteor-stream-parameters-2026-08-16",
+        "acceptedOn": "2026-09-04",
+        "reason": "The parameters are measurements of natural phenomena and are safe to redistribute in both source and deployment, which the two redistribution controls check separately and pass. What is open is the basis: neither the IMO working list nor the IAU MDC list has been retrieved from its publication URL and checksummed. Resolving it needs no agreement and no server, only that retrieval."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-basemap-tiles",
+        "acceptedOn": "2026-09-04",
+        "reason": "OpenStreetMap under ODbL and the OpenFreeMap stack are openly licensed and attributed on the map, so redistribution is not in question. What is open is production reliance on a courtesy public endpoint with no usage agreement. The entry's own restriction forbids marking it verified while that instance is the tile source; resolving it means serving our own tiles."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-place-search-adapter",
+        "acceptedOn": "2026-09-04",
+        "reason": "Results are ODbL OpenStreetMap data and attributed, so redistribution is not in question. What is open is sending production traffic to a free community Photon instance with no agreement. Resolving it means an agreement, a self-hosted Photon, or a paid provider, and the last is barred from the free path by the recorded cost rule."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-terrain-elevation",
+        "acceptedOn": "2026-09-04",
+        "reason": "All 148 datasets in Mapterhorn's catalogue are open and the attribution link that satisfies them is rendered, so redistribution is not in question. What is open is the same public-endpoint reliance as the basemap, on a service that is measurably rate-limited."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-weather-forecast-adapters",
+        "acceptedOn": "2026-09-04",
+        "reason": "MET Norway is CC BY 4.0 and the NWS API is US Government public domain, so the data is safe to use and is attributed. What is open is the providers' identification requirement: both ask for a User-Agent naming the application, and a browser cannot send one because User-Agent is a forbidden header name in the Fetch standard. Resolving it needs a proxy that can set the header, which is a server and therefore a running cost."
+      }
+    ],
+    "acceptedProvenanceFindingsPolicy": "Findings recorded here are known, deliberate and open: each names an obligation the project has decided to carry for now, with the reason and the date it was accepted. Validation reports them and does not fail on them. It does fail on any finding not listed, and it fails on any entry here that no longer occurs, so an accepted finding cannot quietly outlive the condition that justified it. Nothing in this list weakens a check: every one of these items still passes the source and deployment redistribution controls, which are what govern whether it may ship."
   },
   "items": [
     {
@@ -1795,10 +1852,10 @@
         "retrievedAt": "2026-07-25"
       },
       "localSha256": {
-        "src/data/explorerCatalog.ts": "196b3e5ac6e71ad47324565a359ab0cb262e17cc72af583747647647261e1eb3",
+        "src/data/explorerCatalog.ts": "2ec381be2ec2d81b44881a76510b8f3dec042a3722d28b528c3928f35f225762",
         "src/data/explorerConstellationArchitecture.ts": "4c133d532fb0c25a74642384d1b5aacb208478c71152aaf84713a141fef310b1",
         "src/data/explorerEducation.ts": "9c730c2e36e561049898787c2364e790326626bdbec1f20b24a2cce2f34d68ca",
-        "src/lib/scenario.ts": "5f40fbe901f13d68e4aab77ef0d7bf9abd5b7248a0459c4c831178bff74454d3"
+        "src/lib/scenario.ts": "1db5da01f38edd645ffe2d16d2032ae36b8e14d6b8ccfae3848d5b34f6e39471"
       },
       "processing": [
         "Orbit Studio authors wrote the catalog selection, educational summaries, semantic search terms, simplified regions, representative orbit elements, and display geometry.",
@@ -2195,13 +2252,11 @@
       "id": "tracker-light-pollution-viirs",
       "category": "scientific-dataset",
       "repositoryPaths": [
-        "public/tracker/light-pollution-v21-2024.bin",
         "public/tracker/light-pollution-v21-2024.json",
         "scripts/build-light-pollution-tiles.py",
         "src/data/tracker/lightPollution.ts"
       ],
       "productionBundlePaths": [
-        "tracker/light-pollution-v21-2024.bin",
         "tracker/light-pollution-v21-2024.json"
       ],
       "originalSource": {
@@ -2227,7 +2282,8 @@
         "Tiles are 8-bit RGB PNGs with the value split across red (high byte) and green (low byte). 16-bit greyscale is 8% smaller and was tried first, but a browser cannot read one back: decoding needs a 2D canvas and a canvas is 8 bits per channel, so a 16-bit PNG is silently truncated. This is the same reason Terrarium elevation tiles encode the way they do.",
         "Only tiles containing light exist - 14,928 of them, 47.8 MB. A missing tile means no artificial light was detected anywhere in it, which is true of most of the planet: 2.6% of the source's valid pixels carry any light at all. The browser reads single tiles by HTTP range request, so a reader fetches the 400 KB index once and then a handful of tiles, not the archive.",
         "The value is carried as radiance all the way to the interface and quoted there alongside its band. It is NOT presented as a Bortle class, an SQM reading, or a limiting magnitude, and no claim is made about which objects will be visible: those are statements about the sky, and deriving them from upward radiance needs an atmospheric scattering model that Tracker does not have. The bands are fixed thresholds on a log scale - 0.25, 1, 4, 16 and 64 nW/cm2/sr - documented in lightPollution.ts and chosen as round numbers before checking where any particular town fell.",
-        "Replaces a 2048x966 render of NASA's Black Marble, about 14 km per pixel, which could not resolve a city: Bend, Oregon, population 100,000, registered as unlit and was reported to the reader as dark. Validated after the change at central Portland 12.3, Wood Village 3.4, Bend 2.9, Sisters 0.8, Manhattan 47.7 and London 14.4 nW/cm2/sr, with the Alvord Desert and the Atacama at zero. Each of those figures was confirmed against the source raster's own pixels before tiling, so the differences are in the measurement and not in the rendering."
+        "Replaces a 2048x966 render of NASA's Black Marble, about 14 km per pixel, which could not resolve a city: Bend, Oregon, population 100,000, registered as unlit and was reported to the reader as dark. Validated after the change at central Portland 12.3, Wood Village 3.4, Bend 2.9, Sisters 0.8, Manhattan 47.7 and London 14.4 nW/cm2/sr, with the Alvord Desert and the Atacama at zero. Each of those figures was confirmed against the source raster's own pixels before tiling, so the differences are in the measurement and not in the rendering.",
+        "The 46 MB tile archive is not committed and not bundled: .gitignore excludes public/tracker/*.bin and the deployment serves it from R2. It was previously recorded as a repository path and a bundle path, which made a clean checkout look like a repository missing one of its own files — the audit reported it missing on every CI run while it was simply somewhere else. The sparse index beside it stays tracked and bundled, and scripts/build-light-pollution-tiles.py rebuilds the archive from the source recorded here."
       ],
       "rights": {
         "verification": "verified",
@@ -2247,7 +2303,10 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "The Earth Observation Group credit and the Elvidge et al. (2021) citation must remain, both being conditions of CC BY 4.0. The value must not be presented as a Bortle class, an SQM reading, a limiting magnitude, or as a prediction of what will be visible overhead."
-      }
+      },
+      "externallyDeliveredPaths": [
+        "public/tracker/light-pollution-v21-2024.bin"
+      ]
     },
     {
       "id": "tracker-map-renderer",
@@ -2417,7 +2476,7 @@
         "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "src/data/tracker/weatherProviders.ts": "680d4c3d290e63caca8d123a19dae80470e1555b3e1c30fbefb032d707e8e202"
+        "src/data/tracker/weatherProviders.ts": "10e1da46ff3f455a7148f98e64254e5e85d35ec98230884613697a0734f706bc"
       },
       "processing": [
         "This is Tracker's first runtime external request. Forecasts are fetched from the browser at the observer's selected location and are never bundled, stored on a server, or attributed to a user.",
@@ -2534,6 +2593,49 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
+      }
+    },
+    {
+      "id": "webfont-typefaces-ofl",
+      "category": "webfont-typefaces",
+      "originalSource": {
+        "title": "IBM Plex Sans, Space Grotesk and Space Mono, packaged by Fontsource",
+        "url": "https://fontsource.org/",
+        "publicationUrl": "https://openfontlicense.org/",
+        "publisher": "IBM Corp.; the Space Grotesk Project Authors; the Space Mono Project Authors — packaged by Fontsource",
+        "version": "@fontsource-variable/ibm-plex-sans 5.3.0, @fontsource-variable/space-grotesk 5.3.0, @fontsource/space-mono 5.3.0",
+        "retrievedAt": null
+      },
+      "repositoryPaths": [],
+      "productionBundlePaths": [
+        "assets/ibm-plex-sans-*.woff2",
+        "assets/space-grotesk-*.woff2",
+        "assets/space-mono-*.woff2",
+        "assets/space-mono-*.woff"
+      ],
+      "processing": [
+        "Installed as npm dependencies and imported in src/main.tsx; Vite emits the subset files each package ships and content-hashes their names, which is why these are claimed by pattern rather than by filename.",
+        "The font binaries are redistributed byte for byte. Nothing is subset, re-hinted, renamed or otherwise modified, so the OFL's reserved-name and modification clauses are not engaged.",
+        "Each package declares OFL-1.1 in its own package.json and ships the licence text, and THIRD_PARTY_NOTICES.md reproduces it in full alongside the copyright lines."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "SIL Open Font License 1.1, declared as the SPDX identifier OFL-1.1 in all three packages and reproduced from each package's own LICENSE file. The OFL permits redistribution of the fonts, bundled with software, provided the copyright and licence notice travel with them and the fonts are not sold on their own. Both conditions are met: the notices are reproduced in THIRD_PARTY_NOTICES.md, which the build copies into the deployment, and the fonts are shipped as part of the application rather than sold.",
+        "evidenceUrls": [
+          "https://openfontlicense.org/",
+          "https://fontsource.org/fonts/ibm-plex-sans",
+          "https://fontsource.org/fonts/space-grotesk",
+          "https://fontsource.org/fonts/space-mono"
+        ],
+        "attribution": "IBM Plex Sans © 2019 IBM Corp. Space Grotesk © 2020 The Space Grotesk Project Authors. Space Mono © 2016 The Space Mono Project Authors. All three under the SIL Open Font License 1.1.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The OFL notices in THIRD_PARTY_NOTICES.md must keep reaching the deployment; they are the condition on which these files may be redistributed at all. The fonts must not be renamed, and any future subsetting would engage the reserved-name clause and needs its own review. They must never be offered for sale on their own, bundled or otherwise."
       }
     }
   ]

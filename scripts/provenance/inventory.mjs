@@ -1,13 +1,27 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 export const projectRoot = path.resolve(scriptDirectory, "../..");
 export const inventoryPath = path.join(projectRoot, "provenance/inventory.json");
 
+/**
+ * The inventory, from the repository or from wherever the caller points.
+ *
+ * `ORBIT_PROVENANCE_INVENTORY` exists for the validator's own tests, which have
+ * to run the real audit against deliberately broken inventories. Without it
+ * they would have to edit the committed file and put it back, which is not safe
+ * while other tests are running beside them and leaves a mangled inventory
+ * behind if a run is interrupted.
+ */
 export async function readInventory(root = projectRoot) {
-  return JSON.parse(await readFile(path.join(root, "provenance/inventory.json"), "utf8"));
+  const override = process.env.ORBIT_PROVENANCE_INVENTORY;
+  const file = override
+    ? path.resolve(override)
+    : path.join(root, "provenance/inventory.json");
+  return JSON.parse(await readFile(file, "utf8"));
 }
 
 function sourceLinks(item) {
