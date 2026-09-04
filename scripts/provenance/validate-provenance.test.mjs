@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, writeFile, rm, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,6 +11,18 @@ import { bundlePathPatterns, matchesBundlePattern } from "./validate-provenance.
 const run = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const inventoryPath = path.join(projectRoot, "provenance/inventory.json");
+
+/**
+ * Whether this checkout has a production build to audit.
+ *
+ * The validator audits the tree and the bundle separately, and the release
+ * workflow runs the test suite before it builds — so in CI there is no `dist`
+ * when these run, and the bundle half correctly reports
+ * `production-bundle-missing`. The tree half is still worth checking there, and
+ * the cases that genuinely need a bundle say so rather than quietly passing on
+ * a tree that was never built.
+ */
+const builtBundle = existsSync(path.join(projectRoot, "dist/index.html"));
 
 /**
  * Run the real validator against the real tree.
@@ -60,7 +73,23 @@ describe("the accepted-findings baseline", { timeout: 120_000 }, () => {
   it("passes on the tree as it stands", async () => {
     const { code, output } = await validate();
     expect(output).toContain("[provenance:accepted] 5 known findings");
-    expect(code).toBe(0);
+    if (builtBundle) {
+      expect(code).toBe(0);
+      return;
+    }
+    /* No build here, so the bundle half cannot pass. The tree half still must,
+       and the bundle's only complaint may be the absent bundle itself.
+
+       Read out of the bundle section rather than off the whole output: the
+       accepted findings are reported as "- ..." lines too, and matching those
+       would make this assertion true for the wrong reason. */
+    expect(output).toContain("[provenance:tree] PASS");
+    const bundleSection = output.slice(output.indexOf("[provenance:bundle]"));
+    const bundleFailures = bundleSection
+      .split("\n")
+      .filter((line) => line.startsWith("- "))
+      .map((line) => line.slice(2));
+    expect(bundleFailures).toEqual(["production-bundle-missing"]);
   });
 
   /**
@@ -164,7 +193,7 @@ describe("bundle paths claimed by pattern", { timeout: 120_000 }, () => {
   });
 
   /** A pattern that matches nothing means the artifact left the bundle. */
-  it("fails when a claimed pattern matches nothing", async () => {
+  it.skipIf(!builtBundle)("fails when a claimed pattern matches nothing", async () => {
     const broken = await brokenInventory((inventory) => {
       const fonts = inventory.items.find((entry) => entry.id === "webfont-typefaces-ofl");
       fonts.productionBundlePaths.push("assets/no-such-font-*.woff2");
