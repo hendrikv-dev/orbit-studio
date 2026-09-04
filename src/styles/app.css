@@ -11270,6 +11270,10 @@ button.primary,
   color: #eaf3fb;
   padding: 0 13px;
   font-size: 0.84rem;
+  /* A flex item defaults to `min-width: auto`, which is its content's width,
+     and the name inside is `white-space: nowrap`. Without this the button will
+     not shrink into the bar's column however narrow the column gets. */
+  min-width: 0;
 }
 
 .tracker-place-current svg { flex: none; color: #90a8bd; }
@@ -11779,7 +11783,7 @@ button.primary,
   position: absolute;
   left: 12px;
   top: -60px;
-  z-index: 60;
+  z-index: var(--tk-z-skip);
   border-radius: 8px;
   background: #3fd6a8;
   color: #04211a;
@@ -15069,6 +15073,65 @@ button.primary,
    map is never bright, at noon or at midnight; day and night differ by depth of
    shade rather than by theme. */
 
+/* --- How Tracker's surfaces stack ----------------------------------------
+
+   One order, written down once, for everything that floats over the map.
+
+   The rule that makes this necessary is not obvious from any single
+   declaration: a z-index is resolved inside its own stacking context, so the
+   number written on a panel orders it against its siblings and nothing else.
+   The top bar is a stacking context, so the equipment menu asking for 20 was
+   never above the map's controls at 5 — it was above its neighbours inside a
+   bar that ranked 5, and the two numbers were never compared. Reading the
+   stylesheet suggested otherwise, which is how the projection toggle came to be
+   patched down to 4 to get it under a bar it was already losing to for a
+   different reason.
+
+   So the tiers below name containers, in the order a reader needs them when two
+   overlap, and the panels inside those containers share one tier because that
+   is all their own number can honestly mean.
+
+   Ordering, and why:
+
+     canvas   the map itself, under everything
+     rail     tonight's opportunities, along the bottom edge
+     reading  what the map is telling you: the legend, the cloud key, a notice
+     control  what changes the view: zoom, recentre, layers, 2D/3D. Above a
+              reading, because a reading must never sit on top of a control the
+              reader is trying to press
+     bar      place, date, equipment, the event finder. Above the controls,
+              because a menu the reader has just opened is the thing they are
+              looking at
+     detail   the opened event, which is a reply to a press and outranks the
+              bar that prompted it
+     callout  the tour, which is about the interface and must be over all of it
+     skip     the keyboard escape hatch, above everything by definition
+
+   Two of these render outside the map shell. `.tk-cal` is portalled to the
+   body, so it is ranked against the document rather than against the map, which
+   is why the scale lives on `:root` and not beside the glass tokens on
+   `.tk-map-shell` — a custom property defined there would not reach it. */
+:root {
+  --tk-z-canvas: 1;
+  --tk-z-rail: 2;
+  --tk-z-reading: 3;
+  --tk-z-control: 4;
+  --tk-z-bar: 5;
+  --tk-z-detail: 6;
+  --tk-z-callout-ring: 7;
+  --tk-z-callout: 8;
+
+  /* Inside one of the surfaces above. A panel has only to beat its own
+     siblings; its rank against the rest of the map is its container's, and
+     giving each panel the same tier is what stops the next one being written as
+     a larger number in the hope that larger wins. */
+  --tk-z-panel: 1;
+
+  /* Portalled to the body, and so ranked against the document. */
+  --tk-z-portal: 60;
+  --tk-z-skip: 61;
+}
+
 .tk-map-shell {
   position: relative;
   display: block;
@@ -15091,6 +15154,7 @@ button.primary,
 .tk-map-canvas {
   position: absolute;
   inset: 0;
+  z-index: var(--tk-z-canvas);
 }
 
 /* Sized rather than inset. MapLibre's own stylesheet sets `position: relative`
@@ -15259,7 +15323,7 @@ button.primary,
   top: 14px;
   left: 14px;
   right: 14px;
-  z-index: 5;
+  z-index: var(--tk-z-bar);
   display: grid;
   /* The centre column is the one that must stay centred on the viewport rather
      than between its neighbours, so the outer columns are equal and free. */
@@ -15271,9 +15335,30 @@ button.primary,
   pointer-events: none;
 }
 .tk-map-topbar > * { pointer-events: auto; }
+
+/* The app menu is a site component and carries the site's numbering: 96 for
+   itself, 120 for its panel, chosen against a page header where nothing else is
+   above 30. Dropped into the map's bar that 96 outranked every tier in the scale
+   above, and the "…" button painted over the event finder a reader had just
+   opened.
+
+   `auto` rather than a tier of its own, and the distinction matters: `auto`
+   keeps the closed menu out of the ordering altogether while leaving its own
+   panel free to rise and cover the bar when it is opened, which is what an open
+   menu should do. Any real number here would make the menu a stacking context
+   and trap that panel below its neighbours instead. */
+.tk-map-topbar .orbit-app-menu { z-index: auto; }
 .tk-map-topbar-lead {
   min-width: 0;
-  justify-self: start;
+  /* Stretch, not start. `justify-self: start` sizes a grid item to its content,
+     so the lead took the brand plus the whole place name and overflowed its
+     column — 322px of content in a 287px column at 900px wide. The centre
+     column is centred on the viewport and does not move aside, so the two
+     overlapped: from about 940px down the date covered part of the place
+     button, and below 760px it covered the button's centre, which is where a
+     click lands. Choosing a place was impossible on a tablet. Stretching binds
+     the lead to its column, and the name truncates as it was always meant to. */
+  justify-self: stretch;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -15805,7 +15890,7 @@ button.primary,
   position: absolute;
   right: 14px;
   bottom: 18px;
-  z-index: 5;
+  z-index: var(--tk-z-control);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -15845,7 +15930,7 @@ button.primary,
   position: absolute;
   right: 14px;
   bottom: 132px;
-  z-index: 5;
+  z-index: var(--tk-z-reading);
   width: min(300px, calc(100% - 28px));
   padding: 11px 13px;
   border: 1px solid var(--tk-glass-line-strong);
@@ -15870,7 +15955,7 @@ button.primary,
 .tk-map-detail {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: var(--tk-z-detail);
   overflow-y: auto;
   background: var(--tk-surface, #080b12);
 }
@@ -16137,7 +16222,7 @@ button.primary,
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 6;
+  z-index: var(--tk-z-panel);
   width: min(320px, calc(100vw - 28px));
   /* Tall enough for every layer plus a selected event's reading, which is the
      panel's fullest state and the one that was being cut off mid-sentence —
@@ -16278,7 +16363,7 @@ button.primary,
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 7;
+  z-index: var(--tk-z-panel);
   width: min(330px, calc(100vw - 28px));
   padding: 6px;
   border: 1px solid var(--tk-glass-line-strong);
@@ -16305,11 +16390,44 @@ button.primary,
   font-size: 0.9rem;
 }
 .tk-eventfinder-field input:focus { outline: none; }
+
+/*
+  Sixteen pixels, on the two fields a reader types into on a phone.
+
+  Mobile Safari zooms the layout when a focused input's text is smaller than
+  16px, and it does not zoom back out afterwards — the reader is left on a
+  magnified page with the map half off the screen, which is what the reported
+  screenshot was showing. The usual shortcut is `user-scalable=no` on the
+  viewport tag, which stops the zoom by taking pinch-zoom away from everybody
+  who needs it. This is the other fix: make the text big enough that the browser
+  has no reason to intervene. The fields are already the largest touch targets
+  in their panels, so nothing else has to move.
+*/
+@media (max-width: 720px) {
+  /* Unscoped for the place field, deliberately. Its panel is a React Aria
+     `Popover`, which portals to the body, so it is not inside `.tk-map-shell`
+     and a rule scoped there never reaches it. The locate variant is listed
+     separately because it sets its own size at a higher specificity. */
+  .tk-map-shell .tk-eventfinder-field input,
+  .tracker-place-search input,
+  .tk-locate .tracker-place-search input {
+    font-size: 1rem;
+  }
+}
 .tk-eventfinder-suggestions,
 .tk-eventfinder-results {
   margin: 4px 0 0;
   padding: 0;
   list-style: none;
+  /* `--tk-visual-height` tracks the visual viewport, so the list ends above the
+     on-screen keyboard rather than continuing behind it. Without it the last
+     few matches are unreachable on a phone the moment the reader types. The
+     fallback is the layout viewport, which is the right answer whenever there
+     is no keyboard. */
+  max-height: calc(var(--tk-visual-height, 100dvh) - 160px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .tk-eventfinder-suggestions button,
 .tk-eventfinder-results button {
@@ -16452,7 +16570,7 @@ button.primary,
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 4;
+  z-index: var(--tk-z-rail);
   padding: 0 14px 16px;
   /* The strip is a layout, not a surface: the map takes clicks between cards. */
   pointer-events: none;
@@ -16904,7 +17022,7 @@ button.primary,
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  z-index: 20;
+  z-index: var(--tk-z-panel);
   width: 268px;
   padding: 10px;
   border: 1px solid var(--tk-glass-line);
@@ -16955,7 +17073,29 @@ button.primary,
   /* The label goes; the icon and the target stay the size they were. */
   .tk-equipment-current { display: none; }
   .tk-equipment-trigger { padding: 0 9px; }
-  .tk-equipment-panel { width: min(268px, calc(100vw - 28px)); }
+
+  /*
+    Anchored to the bar rather than to the button that opens it.
+
+    The panel is 268px and hangs off the right-hand end of a bar whose right
+    edge is 10px from the viewport's. `right: 0` against the trigger therefore
+    put its left edge wherever the trigger happened to be, which on a narrow
+    screen is off the side: 18px past the edge at 360px and 58px at 320px, with
+    "Naked eye" — the first and most likely choice — partly cut away.
+
+    Clamping the width could not fix that, because the width was never the
+    problem; the anchor was. Making the wrapper static hands the panel to
+    `.tk-map-topbar`, which is positioned and spans the bar, so `right: 0` is
+    now the bar's right edge and `top: 100%` is below the whole bar rather than
+    below one button in it. The panel cannot leave the viewport because the bar
+    does not.
+  */
+  .tk-map-topbar .tk-equipment { position: static; }
+  .tk-map-topbar .tk-equipment-panel {
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(268px, 100%);
+  }
 }
 
 /* --- 2D or 3D, top left --------------------------------------------------
@@ -16979,7 +17119,7 @@ button.primary,
     On a narrow screen those panels are nearly the full width, and the reader
     got a 2D/3D switch sitting on top of the list they had just opened.
   */
-  z-index: 4;
+  z-index: var(--tk-z-control);
   display: flex;
   overflow: hidden;
   border: 1px solid var(--tk-glass-line);
@@ -17018,7 +17158,23 @@ button.primary,
 }
 @media (max-width: 720px) {
   /* The phone's top bar is two rows, so the control clears both. */
-  .tk-projection { top: 108px; left: 10px; }
+  /*
+    Below the bar, by measurement rather than by a constant.
+
+    `--tk-bar-height` is published by the shell from a `ResizeObserver` on the
+    bar itself, so this clears two rows on a phone, one on a desktop, and three
+    if a place name ever wraps to one. The fallback is the two-row height, which
+    is what a phone renders before the first measurement lands; it is a starting
+    guess, not the answer.
+
+    The previous constant of 108px was the answer for a bar that has since grown
+    to 104px tall from a top of 10px — leaving the toggle six pixels underneath
+    the thing it was meant to sit below.
+  */
+  .tk-projection {
+    top: calc(10px + var(--tk-bar-height, 104px) + 12px);
+    left: 10px;
+  }
 }
 
 /* --- the light-pollution key --------------------------------------------
@@ -17034,7 +17190,7 @@ button.primary,
   position: absolute;
   left: 14px;
   bottom: 18px;
-  z-index: 5;
+  z-index: var(--tk-z-reading);
   width: 218px;
   padding: 9px 11px 7px;
   border: 1px solid var(--tk-glass-line);
@@ -17123,7 +17279,7 @@ button.primary,
   /* Clear of the zoom and layers controls, which own the right-hand gutter. */
   right: calc(var(--tk-control-gutter, 62px) + 14px);
   bottom: 18px;
-  z-index: 5;
+  z-index: var(--tk-z-reading);
   width: 260px;
   padding: 9px 11px 8px;
   border: 1px solid var(--tk-glass-line);
@@ -17310,7 +17466,7 @@ button.primary,
    visible and usable behind it. No mask, no slideshow, no modal. */
 .tk-callout-ring {
   position: fixed;
-  z-index: 40;
+  z-index: var(--tk-z-callout-ring);
   border-radius: 16px;
   box-shadow:
     0 0 0 2px rgba(124, 140, 248, 0.85),
@@ -17325,7 +17481,7 @@ button.primary,
 
 .tk-callout {
   position: fixed;
-  z-index: 41;
+  z-index: var(--tk-z-callout);
   padding: 14px 15px 12px;
   border: 1px solid var(--tk-glass-line-strong, rgba(126, 152, 190, 0.26));
   border-radius: 14px;
@@ -17481,7 +17637,7 @@ button.primary,
 
 .tk-cal {
   position: fixed;
-  z-index: 60;
+  z-index: var(--tk-z-portal);
   width: 288px;
   padding: 12px 12px 10px;
   border: 1px solid var(--tk-glass-line-strong, rgba(126, 152, 190, 0.26));

@@ -48,6 +48,7 @@
     "tracker:walkthrough": "node scripts/verify/tracker-walkthrough.mjs",
     "fragmentation:build": "python3 scripts/build-fragmentation-causes.py",
     "tracker:refinement": "node scripts/verify/tracker-refinement.mjs",
+    "tracker:mobile": "node scripts/verify/tracker-mobile.mjs",
     "lightpollution:archive": "node scripts/deploy/light-pollution-archive.mjs",
     "deepsky:build": "node scripts/build-deep-sky-showpieces.mjs",
     "review:commit": "node scripts/review/commit-review.mjs",

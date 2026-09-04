@@ -417,6 +417,32 @@ among several.
   J2000/EQJ. It reaches a sky view through the same conversion as the planets. No new
   asset, no new attribution.
 
+- **R7.6 — The map's floating surfaces have one depth order, and it names containers.**
+  Tracker draws five families of furniture over one map. On a desktop they sit in separate
+  corners; on a phone they compete for the same 360 points and each can open a panel that
+  covers most of the screen. The order they stack in is defined once, as tiers on `:root`
+  (`--tk-z-canvas` through `--tk-z-callout`, plus `--tk-z-panel` for anything a container
+  opens), and every surface takes its z-index from that scale rather than from a number
+  chosen locally.
+
+  The tiers name *containers* because that is the only thing a z-index can honestly order.
+  A z-index is resolved inside its own stacking context, so a panel's number ranks it
+  against its siblings and nothing else: the equipment menu asking for 20 was never above
+  the map's controls at 5 — it was above its neighbours inside a bar that ranked 5, and
+  the two numbers were never compared. Every panel therefore shares one tier, because
+  that is all any of their numbers could mean.
+
+  Two consequences worth stating. A component brought in from elsewhere must be given a
+  tier from this scale or none at all: the shared app menu arrived carrying the site's
+  numbering (96, and 120 for its panel, chosen against a header where nothing exceeds 30)
+  and painted over the event finder. And the scale lives on `:root` rather than on the
+  map shell because two surfaces — the calendar and the place popover — are portalled to
+  the body and would not inherit a property defined further down.
+
+  Depth is not asserted by reading the stylesheet. `npm run tracker:mobile` opens every
+  panel at 320, 360, 375, 390, 768 and 1280 and samples `elementFromPoint` across each
+  one, so what is checked is what the compositor did and what a finger would hit.
+
 ---
 
 ## 8. Accuracy and validation

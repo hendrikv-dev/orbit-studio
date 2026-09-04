@@ -110,7 +110,14 @@ function PlaceSearchInput({ autoFocus }: { autoFocus: boolean }) {
     <Input
       autoFocus={autoFocus}
       placeholder="Address, campsite, park, trailhead, town…"
+      /* A place name, not the reader's own address. `autoComplete="off"` alone
+         does not always stop Safari offering one, so the field also says what
+         kind of text it takes. */
       autoComplete="off"
+      enterKeyHint="search"
+      autoCorrect="off"
+      autoCapitalize="words"
+      spellCheck={false}
       onKeyDownCapture={(event) => {
         // Mark focus gone as well as closing. With menuTrigger="focus", merely
         // calling close while the key event still owns focus causes the

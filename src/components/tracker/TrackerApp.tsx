@@ -3030,11 +3030,80 @@ function TrackerScreen() {
     // the map they "came from" is the one this location describes without it.
     returnTo(remembered ?? { ...location, detail: null, drill: null });
   }, [location, returnTo]);
+  /**
+   * The bar's height, published so the things below it can keep clear of it.
+   *
+   * The bar is not one height. It is a single row on a desktop, two on a phone
+   * — place and layers, then the date across the bottom — and it grows again
+   * when a place name wraps. The 2D/3D toggle used to clear it with a constant
+   * of 108px, chosen when the phone bar was shorter, and by the time the second
+   * row settled at its present height the toggle was six pixels underneath the
+   * bar it was supposed to sit below.
+   *
+   * A constant cannot track a height that depends on the content, so this
+   * measures it. `ResizeObserver` rather than a layout effect on render,
+   * because the height also changes without React: a longer place name arriving
+   * from the geocoder, or the browser's own font size.
+   */
+  const topbar = useRef<HTMLDivElement | null>(null);
+  const shell = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const bar = topbar.current;
+    if (!bar) return undefined;
+    const publish = () => {
+      shell.current?.style.setProperty(
+        "--tk-bar-height",
+        `${Math.round(bar.getBoundingClientRect().height)}px`,
+      );
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, []);
+
+  /**
+   * How much of the window the reader can actually see.
+   *
+   * When the on-screen keyboard opens, the layout viewport does not change —
+   * `100dvh` still reports the whole screen — while the visual viewport shrinks
+   * to the strip above the keyboard. A results list sized against the layout
+   * viewport therefore runs on underneath the keyboard, and the matches at the
+   * bottom of it cannot be reached or even seen.
+   *
+   * Published on the document element rather than on the shell because one of
+   * the surfaces that needs it, the place popover, is portalled to the body by
+   * React Aria and would never inherit a property set further down.
+   *
+   * The same approach Explorer takes for its own search
+   * (`--explorer-search-viewport-height`).
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const viewport = window.visualViewport;
+    const publish = () => {
+      document.documentElement.style.setProperty(
+        "--tk-visual-height",
+        `${Math.round(viewport?.height ?? window.innerHeight)}px`,
+      );
+    };
+    publish();
+    viewport?.addEventListener("resize", publish);
+    viewport?.addEventListener("scroll", publish);
+    window.addEventListener("orientationchange", publish);
+    return () => {
+      viewport?.removeEventListener("resize", publish);
+      viewport?.removeEventListener("scroll", publish);
+      window.removeEventListener("orientationchange", publish);
+    };
+  }, []);
+
   /** Narrowed for the detail branch, which only renders when both exist. */
   const detailPlace = place;
 
   return (
     <main
+      ref={shell}
       className="tracker-shell tk-map-shell"
       data-map-state={detailOpen ? "detail" : "map"}
       /* Read only by the narrow-screen rules, which collapse an expanded card
@@ -3110,7 +3179,7 @@ function TrackerScreen() {
        * which is the whole of what makes this a system rather than five
        * widgets that happen to float.
        */}
-      <div className="tk-map-topbar">
+      <div className="tk-map-topbar" ref={topbar}>
         {/* Inside the lead, not beside it: the bar is a three-column grid whose
             centre column must stay centred on the viewport, and a fourth child
             wrapped onto its own row and stretched across the width. */}

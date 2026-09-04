@@ -680,6 +680,105 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await context.close();
   }
 
+  /* --- the surfaces where they overlap ------------------------------------ */
+  console.log("\nOverlapping surfaces");
+  {
+    /* A narrow phone, because the failures were all width-dependent: the
+       equipment menu left the viewport at 360 and 320 but not at 390. */
+    const { context, page } = await open(browser, {
+      viewport: { width: 360, height: 780 },
+      mobile: true,
+    });
+    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 4000);
+    await dismissTour(page);
+
+    await capture(
+      page,
+      "19-mobile-bar-and-toggle",
+      "The bar at rest on a 360px phone: the 2D/3D toggle sits clear below it, at a gap measured from the bar's own height rather than a constant.",
+      async () => {
+        const seen = await page.evaluate(() => {
+          const bar = document.querySelector(".tk-map-topbar")?.getBoundingClientRect();
+          const toggle = document.querySelector(".tk-projection")?.getBoundingClientRect();
+          if (!bar || !toggle) return null;
+          return {
+            gap: Math.round(toggle.top - bar.bottom),
+            published: getComputedStyle(document.documentElement).getPropertyValue("--tk-bar-height").trim()
+              || document.querySelector(".tk-map-shell")?.style.getPropertyValue("--tk-bar-height"),
+          };
+        });
+        return seen && seen.gap > 0
+          ? `toggle clears the bar by ${seen.gap}px (bar measured at ${seen.published})`
+          : "";
+      },
+    );
+
+    await page.locator(".tk-equipment-trigger").first().click();
+    await page.waitForTimeout(600);
+    await capture(
+      page,
+      "20-mobile-equipment-open",
+      "The equipment menu open at 360px. It is anchored to the bar rather than to the button, so it cannot hang off the side; before this it started 18px past the left edge with \"Naked eye\" partly cut away.",
+      async () => {
+        const seen = await page.evaluate(() => {
+          const panel = document.querySelector(".tk-equipment-panel");
+          if (!panel) return null;
+          const box = panel.getBoundingClientRect();
+          /* Not the rect alone: the first option has to be the topmost thing at
+             its own centre, or the menu is a picture of a menu. */
+          const option = panel.querySelector("button");
+          const spot = option?.getBoundingClientRect();
+          const hit = spot
+            ? document.elementFromPoint(spot.left + spot.width / 2, spot.top + spot.height / 2)
+            : null;
+          return {
+            left: Math.round(box.left),
+            right: Math.round(box.right),
+            inside: box.left >= 0 && box.right <= innerWidth,
+            pressable: Boolean(hit && panel.contains(hit)),
+            first: option?.textContent?.trim().slice(0, 24) ?? "",
+          };
+        });
+        return seen && seen.inside && seen.pressable
+          ? `panel spans ${seen.left}…${seen.right} of 360, "${seen.first}" pressable`
+          : "";
+      },
+    );
+    await context.close();
+  }
+  {
+    /* The tablet width, where the bar's three columns used to collide. */
+    const { context, page } = await open(browser, { viewport: { width: 768, height: 1024 } });
+    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 4000);
+    await dismissTour(page);
+    await capture(
+      page,
+      "21-tablet-bar",
+      "The bar at 768px. The lead column is bound to its grid column and the place name truncates, so the centred date no longer covers the place button — which it did from about 940px down, over its centre below 760px.",
+      async () => {
+        const seen = await page.evaluate(() => {
+          const place = document.querySelector(".tracker-place-current");
+          const date = document.querySelector(".tk-date");
+          if (!place || !date) return null;
+          const a = place.getBoundingClientRect();
+          const b = date.getBoundingClientRect();
+          const hit = document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
+          return {
+            overlap: Math.round(Math.min(a.right, b.right) - Math.max(a.left, b.left)),
+            pressable: Boolean(hit?.closest(".tracker-place-current")),
+            name: document.querySelector(".tracker-place-name")?.textContent?.trim() ?? "",
+          };
+        });
+        return seen && seen.overlap <= 0 && seen.pressable
+          ? `place and date clear by ${-seen.overlap}px, place button pressable, name reads "${seen.name}"`
+          : "";
+      },
+    );
+    await context.close();
+  }
+
   /* --- the embedded event map --------------------------------------------- */
   console.log("\nEvent map");
   {

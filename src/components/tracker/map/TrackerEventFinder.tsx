@@ -110,6 +110,18 @@ export function TrackerEventFinder({
               value={query}
               placeholder="Find an event"
               aria-label="Find a notable astronomical event"
+              /* This field takes the name of an eclipse, not the name of a
+                 person. Without saying so, Safari reads a bare text input in a
+                 bar near the top of a page as a contact field and offers the
+                 reader their own name and address above the keyboard, which is
+                 both useless here and covers the results underneath it. The
+                 last three keep the phone from correcting "Perseids" into a
+                 word it prefers. */
+              autoComplete="off"
+              enterKeyHint="search"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Escape") {
