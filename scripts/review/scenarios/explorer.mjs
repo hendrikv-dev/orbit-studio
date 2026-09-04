@@ -1,3 +1,8 @@
+import {
+  reviewPlaybackSpeeds as playbackSpeeds,
+  reviewPlaybackTimeScales as playbackTimeScales,
+} from "../playback-speeds.mjs";
+
 const timelineCaptures = [1957, 1965, 1980, 1990, 2000, 2015];
 const historicalMilestones = [
   { id: "snapshot-1957", year: "1957" },
@@ -9,14 +14,6 @@ const historicalMilestones = [
   { id: "snapshot-2015", year: "2015" },
   { id: "snapshot-2019", year: "2019" },
 ];
-const playbackSpeeds = ["1x", "10x", "100x", "1000x", "max"];
-const playbackTimeScales = {
-  "1x": 1,
-  "10x": 10,
-  "100x": 100,
-  "1000x": 1_000,
-  max: 2_500,
-};
 const timelineVideoSampleRate = 4;
 const timelineVideoDurationSeconds = 12;
 export const rendererDiagnosticsObservationIntervalWallMs = 500;

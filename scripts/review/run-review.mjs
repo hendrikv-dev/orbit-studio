@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import { preview } from "vite";
 import { readSourceIdentity } from "../release/source-identity.mjs";
 import { acquireReviewLock } from "./review-lock.mjs";
+import { reviewPlaybackSpeedLabel, reviewPlaybackTimeScales } from "./playback-speeds.mjs";
 import { reviewScenarios } from "./scenarios/index.mjs";
 
 const scenarioOptionIndex = process.argv.indexOf("--scenario");
@@ -294,20 +295,32 @@ function createScenarioTools(page, scenarioId, extras = {}) {
     );
   };
 
-  const speedLabels = {
-    "1x": "1×",
-    "10x": "10×",
-    "100x": "100×",
-    "1000x": "1000×",
-    max: "2,500×",
-  };
+  // Wait on the applied time scale rather than the rendered speed label. The label is a
+  // localized rendering of that number, so a harness that mirrors its formatting turns an
+  // application-side presentation change into a silent 45-second timeout. Checking the
+  // label separately, once the scale has landed, still catches a genuine label regression
+  // and reports it immediately.
   const setPlaybackSpeed = async (speed) => {
+    const expectedTimeScale = reviewPlaybackTimeScales[speed];
+    if (expectedTimeScale === undefined) {
+      throw new Error(`Unknown review playback speed "${speed}".`);
+    }
     await page.evaluate((value) => {
       window.__ORBIT_STUDIO_REVIEW__?.setPlaybackSpeed(value);
     }, speed);
-    return waitForState(
-      (state) => !state.playback.isPlaying && state.playback.speed === speedLabels[speed],
+    const state = await waitForState(
+      (candidate) =>
+        !candidate.playback.isPlaying &&
+        candidate.playback.timeScale === expectedTimeScale,
     );
+    const expectedLabel = reviewPlaybackSpeedLabel(expectedTimeScale);
+    if (state.playback.speed !== expectedLabel) {
+      throw new Error(
+        `Playback speed ${speed} applied ${expectedTimeScale}× but reads ` +
+        `"${state.playback.speed}" instead of "${expectedLabel}".`,
+      );
+    }
+    return state;
   };
 
   // The production main thread can spend several hundred milliseconds committing a full

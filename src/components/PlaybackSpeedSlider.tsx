@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 
 const MIN_SPEED = 1;
-const MAX_SPEED = 3000;
-const SPEED_ANCHORS = [1, 10, 100, 1000, 3000] as const;
+export const MAX_SPEED = 3000;
+// Exported so the review harness can be pinned to the speeds this slider actually offers.
+export const SPEED_ANCHORS = [1, 10, 100, 1000, 3000] as const;
 const SLIDER_MAX = 1000;
 const SNAP_DISTANCE = 18;
 
