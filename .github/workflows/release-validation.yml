@@ -28,6 +28,22 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # First, and before `npm ci`, for two reasons.
+      #
+      # It needs nothing installed — it reads `netlify.toml` and a directory
+      # listing using Node builtins alone — so this is the earliest point a
+      # deploy-shaped mistake can be reported, about two minutes ahead of
+      # anything else here.
+      #
+      # And it has to be its own step rather than riding along inside
+      # `npm run build`, which also runs it: the test suite above currently
+      # exits non-zero on this repository because the LFS-backed satellite
+      # authority checks out as a 134-byte pointer, so the build step never
+      # runs at all. A guard registered only inside a step that is skipped is
+      # not registered. Same reasoning as the accessibility step below.
+      - name: Validate the Netlify functions tree
+        run: npm run netlify:functions:verify
+
       - name: Install locked dependencies
         run: npm ci
 
