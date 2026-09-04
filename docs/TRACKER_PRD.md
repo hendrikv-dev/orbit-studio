@@ -275,6 +275,44 @@ The one component with no reference implementation, and the actual work of phase
   ranked without it and says so, rather than being dropped or silently scored as average.
 - **R5.4** — Rarity must not dominate. A once-a-decade event low on the horizon in
   daylight is not worth going outside for, and a ranking that says otherwise is wrong.
+- **R5.9** — Ranking quality and weather-independent discoverability are different
+  properties and must be modelled separately. Ranking answers *how good is this observing
+  opportunity*. Discoverability answers *does missing this window cost the reader
+  something they cannot get back*. They correlate; they are not the same, and one must
+  never be inferred from the other.
+
+  The concrete failure this forbids: cloud suppression once kept an opportunity on the
+  rail when its significance tier reached `favourable`. A 3° Moon–Venus pairing reaches
+  that tier and recurs most months, so it survived a closed sky; a modest occultation
+  could rate `good-example` and disappear, which is the case that actually matters.
+
+  Discoverability lives on the opportunity as `ObstructionPersistence`
+  (`src/data/tracker/opportunity.ts`), is required of every producer so a new phenomenon
+  cannot inherit an answer by omission, and is decided from the physics of the event
+  rather than from its score or its category. It may remove a routine opportunity whose
+  own observing window is unusable, may never remove a time-critical one, and may never
+  change a ranking.
+
+  Assignment is per event, not per phenomenon family. A meteor shower is time-critical at
+  maximum and routine on the nights either side; a conjunction involving the Moon is
+  routine however close, because the Moon laps the zodiac monthly, while two planets
+  inside a degree are not; a Starlink deployment train is time-critical because the
+  formation disperses permanently within days, while an ISS pass is routine because the
+  station comes back.
+
+  Aurora is outside this property because it is not a ranked opportunity: it is a map
+  layer and a visibility assessment, deliberately kept out of the ranked list so it cannot
+  be given a quality label on a night the oval is too far north to see. If it ever becomes
+  an opportunity it is time-critical — a substorm is hours, not seasons.
+
+  Families Tracker does not currently generate — occultations, comets, transits — take
+  the same rule when they arrive: time-critical where the window is the event. Do not
+  build them to fill the matrix.
+
+  This sits after ranking, not inside it: `eligible? → how good? → rank → obstruction`.
+  Eligibility still may not read the weather (see `bestTonightEligibility.ts`); cloud
+  cannot create an opportunity, only decide whether an existing one is worth offering
+  tonight.
 
 ### Observation guidance
 

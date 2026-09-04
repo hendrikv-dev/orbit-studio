@@ -16645,6 +16645,21 @@ button.primary,
   warmer rule, because that line is telling the reader to do something rather
   than warning them off.
 */
+/*
+  What an empty rail says.
+
+  Reached only when opportunities existed and cloud took all of them, so the
+  message is about the sky rather than about the night being quiet.
+*/
+.tk-rail-withheld {
+  margin: 0;
+  padding: 14px 16px;
+  max-width: 46ch;
+  color: var(--tk-ink-soft, #9aa7bd);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .tk-rail-cloud {
   margin: 0 0 10px;
   padding-left: 9px;

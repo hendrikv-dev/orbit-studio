@@ -74,6 +74,40 @@ export type OpportunityKind =
    */
   | "satellite";
 
+/**
+ * Whether an opportunity stays discoverable when the weather prevents it.
+ *
+ * ## Why this is not the significance tier
+ *
+ * Cloud suppression used to ask the significance model: `favourable` and
+ * `notable` survived a closed sky, everything else was withheld. Those are
+ * answers to a different question. Significance says *how good an observing
+ * opportunity this is*; this says *whether missing it costs the reader
+ * anything they can get back*. They correlate and they are not the same, and
+ * the gap between them is where the defect lived: a 3° Moon–Venus pairing rates
+ * `favourable`, so it survived a closed sky — while the Moon passes a bright
+ * planet most months, and the code that ranks it says so in its own comment.
+ * Meanwhile a modest occultation could rate `good-example` and vanish.
+ *
+ * So it is its own property, on the opportunity, decided where the opportunity
+ * is built and by the physics of the thing rather than by how it scored.
+ *
+ * ## The two values
+ *
+ * `routine` — it comes round again. Withholding it on a night nobody could see
+ * it costs the reader nothing, and offering five things none of which are
+ * visible is a catalogue with apologies attached.
+ *
+ * `time-critical` — this window is the window. It stays on the rail with the
+ * obstruction stated plainly, because a satellite pixel knows nothing about the
+ * gap over the next valley and the reader is the one entitled to weigh a drive
+ * against a forecast.
+ *
+ * It is required rather than optional on purpose: a new kind of opportunity has
+ * to decide, and cannot inherit an answer by omission.
+ */
+export type ObstructionPersistence = "routine" | "time-critical";
+
 /** What you need to see it. Ordered: each tier includes the ones before it. */
 export type Equipment = "eyes" | "binoculars" | "telescope";
 
@@ -155,6 +189,13 @@ export interface Opportunity {
   kind: OpportunityKind;
   /** What it is called, as a person would say it. */
   title: string;
+  /**
+   * Whether cloud may take this off the rail. See `ObstructionPersistence`.
+   *
+   * Answered by every producer, because the answer is about the event and only
+   * the code that knows what the event is can give it.
+   */
+  persistence: ObstructionPersistence;
   /**
    * A short name for a place too narrow for the title.
    *

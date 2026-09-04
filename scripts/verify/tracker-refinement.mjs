@@ -2083,9 +2083,21 @@ async function main() {
      * because missing it costs years and a satellite pixel knows nothing about
      * the gap over the next valley.
      */
+    /**
+     * A night of only routine targets, all clouded out, is legitimately empty —
+     * and must say so rather than rendering as no rail at all.
+     *
+     * This used to assert `cards.length > 0`, which was right while cloud could
+     * not remove anything. Now that it can, the meaningful claim is that the
+     * reader is told what happened: a blank map is the same picture a reader
+     * with an empty sky gets, and those are different answers.
+     */
+    const withheld = await page.evaluate(
+      () => document.querySelector(".tk-rail-withheld")?.textContent?.trim() ?? "",
+    );
     check(
-      cards.length > 0,
-      `a clouded-out night still offers what is worth the risk (${cards.length} cards: ${cards.join(", ")})`,
+      cards.length > 0 || withheld.length > 0,
+      `a clouded-out night says what happened (${cards.length} cards${cards.length ? `: ${cards.join(", ")}` : `; "${withheld.slice(0, 70)}"`})`,
     );
 
     /**
@@ -2112,19 +2124,16 @@ async function main() {
       `and withholds the ones a reader could not see (${cards.length} under cloud vs ${withoutCloud.length} without: dropped ${withoutCloud.filter((id) => !cards.includes(id)).join(", ") || "nothing"})`,
     );
 
-    await page.locator(".tk-rail-card").first().click();
-    await page.waitForTimeout(900);
-    const caution = await page.evaluate(() => {
-      const node = document.querySelector(".tk-rail-cloud");
-      return node ? { text: node.textContent ?? "", goAnyway: node.dataset.goAnyway ?? "" } : null;
-    });
-    check(Boolean(caution), "and the card says the sky is in the way");
-    if (caution) {
-      check(
-        /cloud is forecast through this whole window/i.test(caution.text),
-        `in terms of the window rather than as a number (${caution.text.slice(0, 70)})`,
-      );
-    }
+    /**
+     * The warning on a surviving card is checked on the next night, not this
+     * one.
+     *
+     * This block used to open the first card and read its cloud caution. On a
+     * night whose opportunities are all routine there is now no first card to
+     * open — which is the behaviour under test two checks above — so the
+     * assertion moved to the rare-event night below, where a card survives by
+     * design and the caution is the point.
+     */
     await context.close();
   }
 

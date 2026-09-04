@@ -250,7 +250,7 @@ describe("what cloud does to a recommendation", () => {
       observed: observed([["2026-09-03T03:00Z", "clear"]]),
       forecast: forecast([["2026-09-03T04:00Z", 5]]),
     });
-    expect(cloudAdvice(timeline, "notable", "UTC")).toEqual({
+    expect(cloudAdvice(timeline, "time-critical", "UTC")).toEqual({
       suppress: false,
       warning: null,
       goAnyway: false,
@@ -280,7 +280,7 @@ describe("what cloud does to a recommendation", () => {
   });
 
   it("keeps a rare event under the same sky, and says so unmistakably", () => {
-    const advice = cloudAdvice(closedNight(), "notable", "UTC", {
+    const advice = cloudAdvice(closedNight(), "time-critical", "UTC", {
       startUtc: "2026-09-03T02:00Z",
       endUtc: "2026-09-03T05:00Z",
     });

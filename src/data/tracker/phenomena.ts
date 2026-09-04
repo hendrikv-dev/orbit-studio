@@ -15,7 +15,7 @@ import {
   compassPoint,
   describeCharacter,
 } from "./meteorActivity";
-import type { Opportunity, PhenomenonGeometry } from "./opportunity";
+import type { Opportunity, PhenomenonGeometry, ObstructionPersistence } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
 import { lunarPhaseAt } from "./lunarPhase";
 import { lunarEclipseTiming } from "./lunarEclipse";
@@ -276,6 +276,21 @@ function meteorOpportunity(
   return {
     id: "meteors",
     kind: "meteors",
+    /**
+     * The peak, and only the peak.
+     *
+     * A shower runs for days and its rate away from maximum is a fraction of
+     * it, so "the Perseids are on" is not a reason to keep an unobservable
+     * night on the rail. Maximum is: the Earth crosses the densest part of the
+     * trail once, and the next one is a year away. `daysFromPeak` is the same
+     * measure the copy uses to say "the shower is at maximum", so the words and
+     * the behaviour cannot disagree.
+     *
+     * With no shower running at all, this is the sporadic background — the most
+     * routine thing in the sky.
+     */
+    persistence:
+      headline && Math.abs(headline.daysFromPeak) < 0.75 ? "time-critical" : "routine",
     title,
     summary,
     qualities: {
@@ -375,6 +390,9 @@ function moonOpportunity(observer: Observer, period: ObservationPeriod): Opportu
   return {
     id: "moon",
     kind: "moon",
+    // A phase recurs every month and is much the same for several nights
+    // either side. Nothing is lost by not offering it on a closed night.
+    persistence: "routine",
     title: phaseName === "First Quarter" || phaseName === "Last Quarter" || phaseName === "Full Moon"
       ? `The ${phaseName}`
       : phaseName === "New Moon"
@@ -641,6 +659,16 @@ function planetOpportunities(observer: Observer, period: ObservationPeriod): Opp
     opportunities.push({
       id: `planet-${profile.name.toLowerCase()}`,
       kind: "planet",
+      /**
+       * Routine, including at opposition.
+       *
+       * A planet is up for months either side of its best night and its
+       * apparent size changes slowly; a reader who misses tonight loses a small
+       * increment of a long season. Opposition earns a higher significance
+       * tier, correctly, and that is a statement about how good the view is —
+       * not about whether it can be had again this week.
+       */
+      persistence: "routine",
       title: profile.name,
       summary: profile.invitation,
       qualities: {
@@ -720,6 +748,41 @@ const CONJUNCTION_BODIES: { body: Body; name: string }[] = [
 /** Pairs closer than this are worth pointing out. */
 const CONJUNCTION_LIMIT_DEG = 6;
 
+/**
+ * A planet–planet approach closer than this is worth not missing.
+ *
+ * Two planets within a degree share a low-power telescope field and, for a
+ * given pair, happen on a scale of years to decades — Jupiter and Saturn last
+ * managed it in 2020 and will not again until 2040. That is a real cost to
+ * missing one.
+ */
+const RARE_PLANET_PAIR_DEG = 1;
+
+/**
+ * Whether a conjunction is one the reader cannot simply catch next time.
+ *
+ * The Moon is the discriminator, and it is a fact about orbits rather than a
+ * taste. It laps the zodiac every month, so it passes each bright planet a
+ * dozen times a year; a close Moon–Venus pairing is a lovely sight and there
+ * will be another before long. Two *planets* converging is governed by their
+ * synodic period, which is years.
+ *
+ * This is deliberately not the significance tier. `conjunctionSignificance`
+ * calls anything under 3° `favourable` and under 1° `notable`, which is the
+ * right judgement about how good the view is and the wrong one about whether
+ * it recurs — and a rule keyed to it kept every monthly Moon pairing alive
+ * through a closed sky.
+ */
+export function conjunctionPersistence(
+  firstName: string,
+  secondName: string,
+  separationDeg: number,
+): ObstructionPersistence {
+  const involvesMoon = firstName === "the Moon" || secondName === "the Moon";
+  if (involvesMoon) return "routine";
+  return separationDeg <= RARE_PLANET_PAIR_DEG ? "time-critical" : "routine";
+}
+
 function conjunctionOpportunities(observer: Observer, period: ObservationPeriod): Opportunity[] {
   const times = sampleTimes(observer, period, false);
   if (times.length === 0) return [];
@@ -761,6 +824,7 @@ function conjunctionOpportunities(observer: Observer, period: ObservationPeriod)
       opportunities.push({
         id: `conjunction-${first.name}-${second.name}`.replace(/\s+/g, "-").toLowerCase(),
         kind: "conjunction",
+        persistence: conjunctionPersistence(first.name, second.name, best.separation),
         title: `${first.name === "the Moon" ? "The Moon" : first.name} and ${second.name}`,
     summary: `${first.name === "the Moon" ? "The Moon" : first.name} and ${second.name} almost touching — ${best.separation < 2 ? "close enough to cover with a fingertip" : "a striking pair"}, low in the ${compassPoint(best.azimuth)}.`,
         qualities: {
@@ -879,6 +943,9 @@ function solarEclipseOpportunity(
   return {
     id: "solar-eclipse",
     kind: "solar-eclipse",
+    // The clearest case there is. A given place sees totality roughly twice a
+    // millennium, the path is fixed, and the window is minutes long.
+    persistence: "time-critical",
     title:
       local.kind === "total"
         ? "Total solar eclipse"
@@ -1047,6 +1114,16 @@ function lunarEclipseOpportunity(
   return {
     id: "lunar-eclipse",
     kind: "lunar-eclipse",
+    /**
+     * Time-critical, though less absolutely than a solar eclipse.
+     *
+     * A lunar eclipse is visible from a whole night hemisphere and lasts hours,
+     * so it is a softer claim than totality on a 100 km path. But it is still a
+     * dated event with contact times, a handful per decade are well placed from
+     * any one location, and the next one from here may be years away. That is
+     * the cost the reader is entitled to weigh for themselves.
+     */
+    persistence: "time-critical",
     title: totality
       ? "Total lunar eclipse"
       : partial

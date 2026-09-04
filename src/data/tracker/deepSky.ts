@@ -138,6 +138,15 @@ export function deepSkyOpportunities(
     opportunities.push({
       id: `deep-sky-${object.id}`,
       kind: "deep-sky",
+      /**
+       * Routine by construction, which is most of why these are showpieces.
+       *
+       * A globular cluster is in the same place tonight, next week and next
+       * year, and the curated set is chosen for objects that are reliably
+       * available rather than for anything fleeting. Their season is months
+       * long; a closed night takes nothing away.
+       */
+      persistence: "routine",
       title: object.name,
       summary: object.appearance,
       qualities: {

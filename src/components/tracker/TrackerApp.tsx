@@ -2666,7 +2666,7 @@ function TrackerScreen() {
    * once — with a floor applied so a quiet night shows two cards rather than
    * five, three of which are "something is above the horizon".
    */
-  const railCards = useMemo(() => {
+  const rail = useMemo(() => {
     const toCandidate = (event: (typeof tonightEvents)[number]): RailCandidate[] =>
       event.entry
         ? [
@@ -2731,7 +2731,10 @@ function TrackerScreen() {
       ? candidates.filter((candidate) => {
           const advice = cloudAdvice(
             cloudTimeline,
-            candidate.significance?.tier ?? "routine",
+            // The opportunity's own answer to "does missing this cost anything
+            // I can get back". Not its significance tier, which answers a
+            // different question and used to be asked in its place.
+            candidate.opportunity.persistence,
             clock.timeZone ?? null,
             candidate.window
               ? { startUtc: candidate.window.startUtc, endUtc: candidate.window.endUtc }
@@ -2741,13 +2744,25 @@ function TrackerScreen() {
         })
       : candidates;
 
-    return buildRail(
-      visible,
+    const shape =
       location.equipment === "eyes"
         ? {}
-        : { routineLimit: 4, limit: 6, aided: location.equipment },
-    );
+        : { routineLimit: 4, limit: 6, aided: location.equipment };
+    const rail = buildRail(visible, shape);
+    /**
+     * How many cards cloud actually cost the reader.
+     *
+     * Counted against the rail that *would* have been built, not against every
+     * candidate: the rail caps its own length, so on a busy night nine
+     * candidates become four or five cards. Saying "all 9 things up tonight"
+     * when the reader would only ever have been offered four is a number they
+     * cannot check and did not lose.
+     */
+    const withoutCloud = buildRail(candidates, shape);
+    return { cards: rail, withheldByCloud: withoutCloud.length - rail.length };
   }, [bestTonight, tonightEvents, location.equipment, cloudTimeline, clock.timeZone]);
+
+  const railCards = rail.cards;
 
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(
@@ -2921,7 +2936,7 @@ function TrackerScreen() {
           if (!cloudTimeline) return null;
           const advice = cloudAdvice(
             cloudTimeline,
-            card.significance?.tier ?? "routine",
+            card.opportunity.persistence,
             clock.timeZone ?? null,
             // The card's own observing interval, so cloud at nine o'clock and
             // cloud at two in the morning reach different conclusions.
@@ -3279,6 +3294,7 @@ function TrackerScreen() {
       {place && !detailOpen ? (
         <TrackerObservingRail
           cards={railCards}
+          withheldByCloud={rail.withheldByCloud}
           expandedId={expandedCardId}
           /**
            * Expanding is a decision, so it pushes: Back undoes it, and "Back to

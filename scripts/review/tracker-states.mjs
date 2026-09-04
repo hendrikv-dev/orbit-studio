@@ -406,6 +406,106 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await context.close();
   }
 
+  /* --- what cloud may and may not remove ----------------------------------- */
+  //
+  // The claim this commit makes, shown rather than asserted: whether an
+  // opportunity survives a closed sky is a property of the event, not of how
+  // well it scored. Three frames at one place, two skies.
+  //
+  // The cloud in all three is a controlled fixture. Real weather cannot be
+  // arranged to demonstrate a rule on demand, and a package that could only be
+  // produced on the right night is one nobody can reproduce.
+  console.log("\nDiscoverability under cloud");
+  {
+    /** A meteor-shower peak: time-critical. Portland, the 2027 Perseids. */
+    const PEAK = "&date=2027-08-12&show=meteor-shower-PER-2027-08-12";
+
+    // Closed sky, fixtured: overcast observed and 95% forecast all night.
+    const closed = await open(browser, {
+      viewport: desktop,
+      cloud: { mask: { acm: 3, series: [3, 3, 3, 3] }, percent: 95 },
+    });
+    await closed.page.goto(`${TRACKER}&at=45.52,-122.68&z=7&layers=cloud${PEAK}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(closed.page, 5000);
+    await dismissTour(closed.page);
+
+    const underCloud = await closed.page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    await capture(
+      closed.page,
+      "16-closed-sky-rail",
+      "Closed sky (fixtured overcast, 95% forecast): the time-critical meteor peak is still offered; routine targets that would appear under clear sky are not.",
+      async () =>
+        underCloud.includes("meteors") && !underCloud.some((id) => id.startsWith("planet-"))
+          ? `rail under cloud: ${underCloud.join(", ") || "empty"}`
+          : "",
+    );
+
+    // The rare event's own warning, on the card.
+    const peakHead = closed.page.locator('.tk-rail-card[data-card="meteors"] .tk-rail-card-head');
+    if (await peakHead.count()) {
+      await peakHead.click();
+      await closed.page.waitForTimeout(1000);
+      await closed.page
+        .waitForFunction(
+          () => !/Checking the terrain/i.test(document.querySelector(".tk-rail")?.textContent ?? ""),
+          null,
+          { timeout: 20_000 },
+        )
+        .catch(() => {});
+      await closed.page.waitForTimeout(700);
+      await capture(
+        closed.page,
+        "17-rare-event-warning",
+        "The same peak opened: kept under a closed sky, with the obstruction stated rather than hidden. Cloud is a fixture.",
+        async () => {
+          const note = await closed.page.evaluate(() => {
+            const node = document.querySelector(".tk-rail-cloud");
+            return node
+              ? { text: node.textContent ?? "", goAnyway: node.dataset.goAnyway === "true" }
+              : null;
+          });
+          return note && note.goAnyway && /worth going anyway/i.test(note.text)
+            ? brief(note.text)
+            : "";
+        },
+      );
+    }
+    await closed.context.close();
+
+    // The same night with a clear sky, fixtured: the peak is there without a
+    // warning, and the routine targets are back.
+    const clear = await open(browser, {
+      viewport: desktop,
+      cloud: { mask: { acm: 0, series: [0, 0, 0, 0] }, percent: 5 },
+    });
+    await clear.page.goto(`${TRACKER}&at=45.52,-122.68&z=7&layers=cloud${PEAK}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(clear.page, 5000);
+    await dismissTour(clear.page);
+
+    const underClear = await clear.page.evaluate(() =>
+      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+    );
+    await capture(
+      clear.page,
+      "18-clear-sky-rail",
+      "The same place and night with a clear sky (fixtured): the peak is offered with no obstruction warning, and the routine targets withheld above are back.",
+      async () => {
+        const warnings = await clear.page.locator(".tk-rail-cloud").count();
+        const restored = underClear.filter((id) => !underCloud.includes(id));
+        return warnings === 0 && restored.length > 0
+          ? `rail under clear sky: ${underClear.join(", ")}; restored: ${restored.join(", ")}`
+          : "";
+      },
+    );
+    await clear.context.close();
+  }
+
   /* --- spacecraft, present and absent ------------------------------------- */
   console.log("\nSatellites");
   {

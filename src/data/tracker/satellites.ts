@@ -177,6 +177,17 @@ export function issOpportunities(
       title: "The Space Station",
       // "The Space Stati…" in a closed card names nothing; this names it exactly.
       shortTitle: "ISS",
+      /**
+       * Routine, despite being a spacecraft.
+       *
+       * The station's orbit brings it back over any mid-latitude site in
+       * batches every few days, and a visible pass on a clouded-out night costs
+       * the reader a wait, not the sight. The brief for this property warns
+       * against assuming every ISS pass is rare, and it is right: an
+       * exceptionally high, long, bright pass is a better *opportunity* — which
+       * is what the significance tier is for — and no harder to catch again.
+       */
+      persistence: "routine",
       summary: ISS.appearance,
       qualities: {
         // It cleared the same test everything else does, and it clears it by a
@@ -360,6 +371,17 @@ export function trainVerdict(
       kind: "satellite",
       title: "A Starlink train",
       shortTitle: "Starlink train",
+      /**
+       * Time-critical, and the one satellite case that is.
+       *
+       * A train is not a repeating pass: it is a formation that exists for the
+       * few days between deployment and the satellites raising themselves into
+       * their working orbits. `COHERENCE_DAYS` above is that window, and it is
+       * already the gate on whether this opportunity exists at all — after it
+       * the line has dispersed and *this* train will never form again. There
+       * will be other launches; there will not be this one.
+       */
+      persistence: "time-critical",
       summary: appearance,
       qualities: {
         observability: Math.min(1, 0.55 + Math.min(0.35, best.peakAltitudeDeg / 250)),

@@ -1,5 +1,6 @@
 import type { CloudForecastSeries } from "./cloud";
 import type { ObservedSeries } from "./cloudObservation";
+import type { ObstructionPersistence } from "./opportunity";
 import {
   SUITABILITY_ORDER,
   suitabilityOfCategory,
@@ -176,10 +177,13 @@ export function nextChange(
  * is up again tomorrow, and a rail of five things none of which can be seen
  * tonight is a catalogue with apologies attached rather than a recommendation.
  *
- * A rare or time-critical event is never withheld, however bad the sky. Missing
- * it because a model said eighty percent costs years, and the reader is the one
+ * A time-critical event is never withheld, however bad the sky. Missing it
+ * because a model said eighty percent costs years, and the reader is the one
  * entitled to weigh that. For those, the obstruction is made unmistakable
  * instead.
+ *
+ * Which is which is a property of the opportunity — `ObstructionPersistence`,
+ * decided where the opportunity is built — and not a threshold on its score.
  *
  * ## Why rarity changes the answer
  *
@@ -194,7 +198,7 @@ export function nextChange(
  * The tier comes from measured astronomy, not from an editorial list, so this
  * borrows a judgement Tracker has already defended rather than inventing one.
  */
-export type CloudAdviceTier = "routine" | "good-example" | "favourable" | "notable";
+
 
 export interface CloudAdvice {
   /**
@@ -259,16 +263,23 @@ export function cloudOver(
 }
 
 /**
- * Which tiers are rare enough that cloud must not remove them.
+ * Cloud advice for one opportunity, over its own observing window.
  *
- * Drawn from the significance model rather than a list of event names, so this
- * borrows a judgement Tracker has already made from measured astronomy.
+ * `persistence` comes from the opportunity itself and answers "does missing
+ * this cost anything I can get back". It is deliberately *not* the significance
+ * tier, which answers "how good is this view" — the two correlate and are not
+ * the same, and this function used to ask the wrong one. Under that rule a 3°
+ * Moon–Venus pairing rated `favourable` and survived a closed sky while the
+ * Moon passes a bright planet most months, and a modest occultation rating
+ * `good-example` would have vanished.
+ *
+ * Nothing here touches the ranking. An opportunity that survives cloud keeps
+ * the position its significance and qualities earned it; it is not promoted for
+ * having been preserved.
  */
-const RARE: ReadonlySet<CloudAdviceTier> = new Set(["favourable", "notable"]);
-
 export function cloudAdvice(
   timeline: CloudTimeline,
-  tier: CloudAdviceTier,
+  persistence: ObstructionPersistence,
   timeZone: string | null,
   interval?: { startUtc: string; endUtc: string } | null,
 ): CloudAdvice {
@@ -282,7 +293,7 @@ export function cloudAdvice(
     return { suppress: false, warning: null, goAnyway: false };
   }
 
-  const rare = RARE.has(tier);
+  const rare = persistence === "time-critical";
   const change = nextChange(timeline);
   const opening =
     change?.kind === "clearing"

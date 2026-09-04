@@ -1898,7 +1898,7 @@
       },
       "localSha256": {
         "src/data/tracker/satelliteVisibility.ts": "53ac4da9cfadcc754ba09c32ba648f0f971e5151cf3c007fe30edfd222dec467",
-        "src/data/tracker/satellites.ts": "9cc9bc222d3b777f3fc8a6de200801a262421f93ea8fd653886f0c04df919e7d"
+        "src/data/tracker/satellites.ts": "325789e367e2ca8f577963657415c159a71fcf236dfd2692beadcdac2aa1e740"
       },
       "processing": [
         "Propagation is SGP4 by way of satellite.js. Everything else here is Orbit Studio's: the conical umbra and penumbra test with a 90 km atmospheric allowance, the phase geometry, the reduction of a published standard magnitude to the slant range and phase of a particular pass, and the screening of the result against the same limiting-magnitude model the rest of Tracker ranks with.",

@@ -75,6 +75,13 @@ interface Props {
   factsFor: (card: RailCard) => RailFacts;
   /** Shown as the rail's own heading, so the place is still named. */
   place: string;
+  /**
+   * How many opportunities cloud removed, so an empty rail can say so.
+   *
+   * Zero means the sky simply has nothing in it tonight, which is a different
+   * answer and gets no message.
+   */
+  withheldByCloud?: number;
   loading: boolean;
 }
 
@@ -125,6 +132,7 @@ export function TrackerObservingRail({
   factsFor,
   place,
   loading,
+  withheldByCloud = 0,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
@@ -304,7 +312,30 @@ export function TrackerObservingRail({
     );
   }
 
-  if (cards.length === 0) return null;
+  /**
+   * Nothing to offer, and why.
+   *
+   * An empty rail used to render as no rail at all. That was survivable while
+   * emptiness meant "nothing is up", and stopped being survivable when cloud
+   * gained the power to withhold: a reader who has things in their sky and a
+   * closed forecast now sees the same blank map as a reader with nothing at
+   * all, and the product has silently answered a question it should have
+   * spoken. Absence is a finding here, not a lack of one.
+   */
+  if (cards.length === 0) {
+    if (!withheldByCloud) return null;
+    return (
+      <div className="tk-rail" ref={rail}>
+        <p className="tk-rail-withheld" role="status">
+          {withheldByCloud === 1
+            ? "The one thing up tonight is behind cloud for its whole window."
+            : `All ${withheldByCloud} things up tonight are behind cloud for their whole windows.`}{" "}
+          Nothing here is worth the trip, and none of them is going anywhere — they
+          come round again.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="tk-rail" ref={rail}>
