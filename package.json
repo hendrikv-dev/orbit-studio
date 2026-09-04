@@ -46,6 +46,7 @@
     "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs",
     "a11y:verify": "node scripts/verify/accessibility.mjs",
     "netlify:functions:verify": "node scripts/verify/netlify-functions.mjs",
+    "lfs:verify": "node scripts/verify/lfs-assets.mjs",
     "tracker:walkthrough": "node scripts/verify/tracker-walkthrough.mjs",
     "fragmentation:build": "python3 scripts/build-fragmentation-causes.py",
     "tracker:refinement": "node scripts/verify/tracker-refinement.mjs",

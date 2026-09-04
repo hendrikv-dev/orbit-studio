@@ -21,6 +21,13 @@ jobs:
     steps:
       - name: Check out the release source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # releases/v4, 2026-07-16
+        with:
+          # The satellite authority is a 124 MB SQLite database tracked in Git
+          # LFS. This input defaults to false, so without it the checkout leaves
+          # the 134-byte pointer on disk and every later step runs against a file
+          # that is not the database. The action fetches and checks out the LFS
+          # objects itself, which is why no separate `git lfs pull` follows.
+          lfs: true
 
       - name: Use the pinned Node.js runtime
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -43,6 +50,20 @@ jobs:
       # not registered. Same reasoning as the accessibility step below.
       - name: Validate the Netlify functions tree
         run: npm run netlify:functions:verify
+
+      # Immediately after the guard above and still before `npm ci`, because it
+      # needs nothing installed either, and because the failure it reports is
+      # the one that is otherwise unrecognisable. Without it a checkout that
+      # skipped LFS surfaces minutes later inside the catalogue verification as
+      # "Size mismatch ... 134 != 124649472", which reads like a corrupt
+      # authority rather than a file that was never fetched.
+      #
+      # It does not replace that verification. `verify.py` still checks every
+      # artefact's size and SHA-256 against manifest.json and CHECKSUMS.sha256,
+      # and remains the authority on whether this is the right database. This
+      # only answers whether there is a database here at all.
+      - name: Verify Git LFS assets are materialised
+        run: npm run lfs:verify
 
       - name: Install locked dependencies
         run: npm ci
