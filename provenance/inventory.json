@@ -29,39 +29,109 @@
     "documentedExternalHosts": [
       "127.0.0.1",
       "aa.usno.navy.mil",
+      "ads.atmosphere.copernicus.eu",
+      "air-quality-api.open-meteo.com",
+      "api.met.no",
+      "api.open-meteo.com",
+      "api.weather.gov",
+      "apps.apple.com",
+      "arxiv.org",
       "assets.science.nasa.gov",
+      "atmosphere.copernicus.eu",
+      "build.protomaps.com",
+      "cdn.esahubble.org",
+      "cdn.eso.org",
       "cdsarc.cds.unistra.fr",
       "celestrak.org",
+      "commons.wikimedia.org",
       "creativecommons.org",
+      "dataspace.copernicus.eu",
+      "docs.airnowapi.org",
+      "docs.api.met.no",
       "docs.pmnd.rs",
+      "doi.org",
+      "download.mapterhorn.com",
+      "earthdata.nasa.gov",
+      "earthobservatory.nasa.gov",
+      "eogdata.mines.edu",
+      "esahubble.org",
+      "eso.org",
       "example.invalid",
+      "firms.modaps.eosdis.nasa.gov",
+      "fontsource.org",
+      "geojson.org",
       "gibs.earthdata.nasa.gov",
+      "git-lfs.github.com",
       "github.com",
+      "globalmeteornetwork.org",
+      "httpbin.org",
+      "images-api.nasa.gov",
       "images-assets.nasa.gov",
       "images.nasa.gov",
       "localhost",
+      "maplibre.org",
+      "mapterhorn.com",
+      "mmccants.org",
+      "noirlab.edu",
+      "open-meteo.com",
+      "opendatacommons.org",
+      "openfontlicense.org",
+      "openfreemap.org",
+      "openmaptiles.org",
+      "opensource.org",
       "openweathermap.org",
-      "planet4589.org",
+      "orbitaldebris.jsc.nasa.gov",
+      "osm.org",
+      "photojournal.jpl.nasa.gov",
+      "photon.komoot.io",
       "piotrwitek.github.io",
+      "planet4589.org",
+      "rapidrefresh.noaa.gov",
       "raw.githubusercontent.com",
       "reactjs.org",
       "registry.npmjs.org",
+      "registry.opendata.aws",
+      "research.tudelft.nl",
       "robertpenner.com",
       "science.data.nasa.gov",
       "science.nasa.gov",
+      "scripts.sil.org",
+      "services.swpc.noaa.gov",
       "ssd-api.jpl.nasa.gov",
       "ssd.jpl.nasa.gov",
+      "svn.webkit.org",
       "svs.gsfc.nasa.gov",
+      "thredds.ucar.edu",
+      "tiles.mapterhorn.com",
+      "tiles.openfreemap.org",
+      "upload.wikimedia.org",
+      "visibleearth.nasa.gov",
+      "weather-gov.github.io",
+      "wiki.openstreetmap.org",
+      "worldview.earthdata.nasa.gov",
       "www.apache.org",
       "www.dailymotion.com",
       "www.earthdata.nasa.gov",
+      "www.ecmwf.int",
       "www.esa.int",
+      "www.eso.org",
+      "www.goes-r.gov",
       "www.gps.gov",
+      "www.imo.net",
       "www.nasa.gov",
       "www.naturalearthdata.com",
       "www.nesdis.noaa.gov",
+      "www.openstreetmap.org",
       "www.space-track.org",
-      "www.w3.org"
+      "www.spaceweather.gov",
+      "www.swpc.noaa.gov",
+      "www.ta3.sk",
+      "www.unidata.ucar.edu",
+      "www.usgs.gov",
+      "www.ventusky.com",
+      "www.w3.org",
+      "www.weather.gov",
+      "zenodo.org"
     ],
     "prohibitedHistoricalChecksums": [
       {
@@ -172,186 +242,414 @@
           "public/placeholders/earth-reference.svg": "6357defdfbed68125604ccb4d46dbfa5e79d4e3ad96c8944060e20efe389befe"
         },
         "basis": "Project-authored SVG placeholders generated for Orbit Studio."
+      },
+      {
+        "id": "orbit-studio-brand-marks",
+        "description": "Orbit Studio's own wordmarks and app icons, drawn for this project. First-party work: no third-party rights attach, and they are the one class of artifact in the bundle that is not licensed from anybody.",
+        "paths": [
+          "public/brand/orbit-studio-explorer-icon.png",
+          "public/brand/orbit-studio-explorer-logo.png",
+          "public/brand/orbit-studio-icon.png",
+          "public/brand/orbit-studio-logo.png",
+          "public/brand/orbit-studio-playground-icon.png",
+          "public/brand/orbit-studio-playground-logo.png",
+          "public/brand/orbit-studio-tracker-icon.png",
+          "public/brand/orbit-studio-tracker-logo-dark.png",
+          "public/brand/orbit-studio-tracker-logo.png"
+        ],
+        "sha256": {
+          "public/brand/orbit-studio-explorer-icon.png": "fb84caa619a905a0c8eed09312874d7d726754a24cbb909cad7eca2c74b11488",
+          "public/brand/orbit-studio-explorer-logo.png": "fa022b461e03fbb2677ac4a8fbf4ef270769dfedf9ee6bd44521338b77aed908",
+          "public/brand/orbit-studio-icon.png": "f5ec282b0fa004b77203f04a2f60ceeba04fdf22508a23cf10e66f54d456050c",
+          "public/brand/orbit-studio-logo.png": "a2f050bc778d5ca17715efe6053d0c8bc002f5ed10b9e590d05c2ab8f2ab6ea1",
+          "public/brand/orbit-studio-playground-icon.png": "856a4ce0dfcd11587228fc5208db64e9234750acbd6b994d12beecf0a1790d6e",
+          "public/brand/orbit-studio-playground-logo.png": "b399c4e70d9effc5f33d8f23be7100bffb2c23b5b675c6efc50c02a1a92dc564",
+          "public/brand/orbit-studio-tracker-icon.png": "2245f71fcfb0a03b966821ec4795512f8a567191d01247a7af88294a160abd1e",
+          "public/brand/orbit-studio-tracker-logo-dark.png": "31cea6729bec6164f7bd17429ff848f2583b39cfc81636f0256cf60c446af58d",
+          "public/brand/orbit-studio-tracker-logo.png": "f7c0075b6ee2e298f68a0d366c2297fd865611b18749560f3b519cfe97ba9635"
+        }
       }
-    ]
+    ],
+    "acceptedProvenanceFindings": [
+      {
+        "finding": "included-item-rights-unresolved:meteor-stream-parameters-2026-08-16",
+        "acceptedOn": "2026-09-04",
+        "reason": "The parameters are measurements of natural phenomena and are safe to redistribute in both source and deployment, which the two redistribution controls check separately and pass. What is open is the basis: neither the IMO working list nor the IAU MDC list has been retrieved from its publication URL and checksummed. Resolving it needs no agreement and no server, only that retrieval."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-basemap-tiles",
+        "acceptedOn": "2026-09-04",
+        "reason": "OpenStreetMap under ODbL and the OpenFreeMap stack are openly licensed and attributed on the map, so redistribution is not in question. What is open is production reliance on a courtesy public endpoint with no usage agreement. The entry's own restriction forbids marking it verified while that instance is the tile source; resolving it means serving our own tiles."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-place-search-adapter",
+        "acceptedOn": "2026-09-04",
+        "reason": "Results are ODbL OpenStreetMap data and attributed, so redistribution is not in question. What is open is sending production traffic to a free community Photon instance with no agreement. Resolving it means an agreement, a self-hosted Photon, or a paid provider, and the last is barred from the free path by the recorded cost rule."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-terrain-elevation",
+        "acceptedOn": "2026-09-04",
+        "reason": "All 148 datasets in Mapterhorn's catalogue are open and the attribution link that satisfies them is rendered, so redistribution is not in question. What is open is the same public-endpoint reliance as the basemap, on a service that is measurably rate-limited."
+      },
+      {
+        "finding": "included-item-rights-unresolved:tracker-weather-forecast-adapters",
+        "acceptedOn": "2026-09-04",
+        "reason": "MET Norway is CC BY 4.0 and the NWS API is US Government public domain, so the data is safe to use and is attributed. What is open is the providers' identification requirement: both ask for a User-Agent naming the application, and a browser cannot send one because User-Agent is a forbidden header name in the Fetch standard. Resolving it needs a proxy that can set the header, which is a server and therefore a running cost."
+      }
+    ],
+    "acceptedProvenanceFindingsPolicy": "Findings recorded here are known, deliberate and open: each names an obligation the project has decided to carry for now, with the reason and the date it was accepted. Validation reports them and does not fail on them. It does fail on any finding not listed, and it fails on any entry here that no longer occurs, so an accepted finding cannot quietly outlive the condition that justified it. Nothing in this list weakens a check: every one of these items still passes the source and deployment redistribution controls, which are what govern whether it may ship."
   },
   "items": [
     {
-      "id": "nasa-blue-marble-january-2004",
-      "category": "image-texture",
-      "repositoryPaths": [
-        "public/earth/nasa-blue-marble-january-5400.jpg"
-      ],
-      "productionBundlePaths": [
-        "earth/nasa-blue-marble-january-5400.jpg"
-      ],
+      "id": "celestrak-current-gp-local-acquisition",
+      "category": "current-orbital-data",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
       "originalSource": {
-        "title": "Blue Marble: Next Generation with Topography and Bathymetry, January",
-        "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/january/world.topo.bathy.200401.3x5400x2700.jpg",
-        "publicationUrl": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/",
-        "publisher": "NASA Earth Observatory",
-        "version": "January 2004, 5400 x 2700 JPEG",
-        "retrievedAt": "2026-07-04",
-        "originalSha256": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
+        "title": "CelesTrak current General Perturbations data",
+        "url": "https://celestrak.org/NORAD/elements/gp.php",
+        "publicationUrl": "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
+        "publisher": "CelesTrak / Dr. T.S. Kelso",
+        "version": "Live service; no release snapshot retained in public source",
+        "retrievedAt": null
       },
-      "localSha256": {
-        "public/earth/nasa-blue-marble-january-5400.jpg": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
-      },
+      "localSha256": {},
       "processing": [
-        "Downloaded from the official NASA asset URL.",
-        "No resizing, cropping, color editing, or recompression."
+        "No CelesTrak response, transformed record, acquisition script, runtime override, or test fixture is included.",
+        "Production and review have no code path that reads ignored local CelesTrak material.",
+        "Any future acquisition or redistribution path requires a new explicit provenance and architecture decision."
       ],
       "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "NASA Images and Media Usage Guidelines; unmarked NASA content may be used factually for educational or informational computer simulations and web pages.",
+        "verification": "unresolved",
+        "licenseOrBasis": "CelesTrak's official usage policy permits documented consumer acquisition and requires rate-conscious caching behavior, but no authoritative grant was found for committing, deploying, or redistributing snapshots or transformed records.",
         "evidenceUrls": [
-          "https://www.nasa.gov/nasa-brand-center/images-and-media/",
-          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+          "https://celestrak.org/usage-policy.php",
+          "https://celestrak.org/NORAD/documentation/gp-data-formats.php"
         ],
-        "attribution": "NASA Blue Marble: Next Generation. NASA is acknowledged as the source; no endorsement is implied.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-for-factual-educational-or-informational-use"
+        "attribution": "CelesTrak / Dr. T.S. Kelso.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "unresolved-for-redistribution"
       },
       "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "Do not imply NASA endorsement; re-check if a future replacement carries a third-party copyright notice, logo, or identifiable-person restriction."
+        "inclusionStatus": "local-only",
+        "release1Included": false,
+        "restrictions": "Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission."
       }
     },
     {
-      "id": "nasa-svs-lroc-color-moon-1k",
-      "category": "image-texture",
+      "id": "celestrak-satellite-orbits-runtime",
+      "category": "runtime-external-service",
       "repositoryPaths": [
-        "public/moon/nasa-lroc-color-1k.jpg"
+        "src/data/tracker/satelliteSources.ts"
       ],
       "productionBundlePaths": [
-        "moon/nasa-lroc-color-1k.jpg"
+        "assets/TrackerApp-*.js"
       ],
       "originalSource": {
-        "title": "CGI Moon Kit: LROC WAC Color Mosaic",
-        "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_1k.jpg",
-        "publicationUrl": "https://svs.gsfc.nasa.gov/4720/",
-        "publisher": "NASA Scientific Visualization Studio",
-        "contributors": [
-          "Ernie Wright (USRA), visualizer",
-          "Noah Petro (NASA/GSFC), scientist",
-          "LROC WAC data collected by Arizona State University"
-        ],
-        "version": "SVS visualization 4720, 1K color texture, published 2019-09-06",
-        "retrievedAt": "2026-07-25",
-        "originalSha256": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+        "title": "CelesTrak General Perturbations (GP) and Supplemental GP (SupGP) element sets",
+        "url": "https://celestrak.org/NORAD/elements/supplemental/",
+        "publicationUrl": "https://celestrak.org/NORAD/documentation/sup-gp-queries.php",
+        "publisher": "CelesTrak / Dr. T.S. Kelso",
+        "version": "Live service; no snapshot retained in this repository",
+        "retrievedAt": null
       },
       "localSha256": {
-        "public/moon/nasa-lroc-color-1k.jpg": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+        "src/data/tracker/satelliteSources.ts": "308d6c1ffd12cc72001c46a2fe61765bbc7474dc597035b958ea9a948647cca1"
       },
       "processing": [
-        "Downloaded from the official NASA SVS asset URL.",
-        "No resizing, cropping, color editing, or recompression."
+        "Tracker fetches two documents at runtime, in the reader's own browser, and commits neither: the ISS supplemental ephemeris, which is derived from NASA's published trajectory, and whichever Starlink post-deployment stack vector CelesTrak is currently listing. Both are cached for two hours, which is the publisher's own stated update cadence.",
+        "SupGP is preferred over GP wherever it exists, because it is derived from the operator's own data. GP is the fallback for the ISS and is recorded as such on the page, so a prediction can always say which of the two it came from.",
+        "The usage policy asks machine-to-machine consumers to stop querying on any non-200 response rather than retrying. The query is configured with no retries and the deployment fetch stops at the first refusal; a failure produces no pass rather than more requests.",
+        "No element set is committed to this repository. The fixtures in the unit tests and in scripts/verify/tracker-refinement.mjs are Orbit Studio's own constructed elements — the shape of a station and of a deployment stack — because no authoritative grant was found for redistributing CelesTrak's own data."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "NASA Images and Media Usage Guidelines; NASA SVS supplies an explicit credit request and identifies the contributing data.",
+        "licenseOrBasis": "CelesTrak's usage policy permits documented consumer acquisition subject to stated rate limits and error handling. It grants nothing about redistribution, which is why nothing is redistributed.",
         "evidenceUrls": [
-          "https://svs.gsfc.nasa.gov/4720/",
-          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+          "https://celestrak.org/usage-policy.php",
+          "https://celestrak.org/NORAD/documentation/sup-gp-queries.php"
         ],
-        "attribution": "NASA's Scientific Visualization Studio; visualization by Ernie Wright (USRA), science by Noah Petro (NASA/GSFC), using LROC WAC data collected by Arizona State University.",
-        "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-for-factual-educational-or-informational-use"
+        "attribution": "Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory and a Starlink stack vector from SpaceX's published state vector.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "not-applicable-external-service"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Display-optimized texture, not a precision lunar cartography product; no NASA endorsement implied."
+        "restrictions": "The two-hour cache and the stop-on-error behaviour are licence-adjacent conditions of use, not performance choices, and must not be relaxed. No response may be committed to the repository or bundled into a deployment."
       }
     },
     {
-      "id": "natural-earth-110m-land",
-      "category": "geographic-boundary-data",
+      "id": "esa-hubble-deep-sky-photography",
+      "category": "deep-sky-photography",
       "repositoryPaths": [
-        "src/data/natural-earth/ne_110m_land.geojson.json"
+        "public/sky/esahubble-heic0401e-m81-thumb.webp",
+        "public/sky/esahubble-heic0401e-m81.webp",
+        "public/sky/esahubble-heic0414b-ngc6543-thumb.webp",
+        "public/sky/esahubble-heic0414b-ngc6543.webp",
+        "public/sky/esahubble-heic0506a-m51-thumb.webp",
+        "public/sky/esahubble-heic0506a-m51.webp",
+        "public/sky/esahubble-heic0515a-m1-thumb.webp",
+        "public/sky/esahubble-heic0515a-m1.webp",
+        "public/sky/esahubble-heic0604a-m82-thumb.webp",
+        "public/sky/esahubble-heic0604a-m82.webp",
+        "public/sky/esahubble-heic1310a-m57-thumb.webp",
+        "public/sky/esahubble-heic1310a-m57.webp",
+        "public/sky/esahubble-heic1321b-m15-thumb.webp",
+        "public/sky/esahubble-heic1321b-m15.webp",
+        "public/sky/esahubble-opo0328a-m104-thumb.webp",
+        "public/sky/esahubble-opo0328a-m104.webp",
+        "public/sky/esahubble-potw1514a-m22-thumb.webp",
+        "public/sky/esahubble-potw1514a-m22.webp"
       ],
       "productionBundlePaths": [
-        "assets/index-*.js"
+        "sky/esahubble-heic0401e-m81-thumb.webp",
+        "sky/esahubble-heic0401e-m81.webp",
+        "sky/esahubble-heic0414b-ngc6543-thumb.webp",
+        "sky/esahubble-heic0414b-ngc6543.webp",
+        "sky/esahubble-heic0506a-m51-thumb.webp",
+        "sky/esahubble-heic0506a-m51.webp",
+        "sky/esahubble-heic0515a-m1-thumb.webp",
+        "sky/esahubble-heic0515a-m1.webp",
+        "sky/esahubble-heic0604a-m82-thumb.webp",
+        "sky/esahubble-heic0604a-m82.webp",
+        "sky/esahubble-heic1310a-m57-thumb.webp",
+        "sky/esahubble-heic1310a-m57.webp",
+        "sky/esahubble-heic1321b-m15-thumb.webp",
+        "sky/esahubble-heic1321b-m15.webp",
+        "sky/esahubble-opo0328a-m104-thumb.webp",
+        "sky/esahubble-opo0328a-m104.webp",
+        "sky/esahubble-potw1514a-m22-thumb.webp",
+        "sky/esahubble-potw1514a-m22.webp"
       ],
       "originalSource": {
-        "title": "Natural Earth 1:110m Land GeoJSON",
-        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/693f11422f4e08d2da4566b854dda53eb7c39fb3/geojson/ne_110m_land.geojson",
-        "publicationUrl": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/110m-land/",
-        "publisher": "Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors",
-        "version": "natural-earth-vector commit 693f11422f4e08d2da4566b854dda53eb7c39fb3 (2018-06-01)",
-        "retrievedAt": "2026-07-25",
-        "originalSha256": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+        "title": "ESA/Hubble deep-sky photographs used as Tracker hero imagery",
+        "url": "https://esahubble.org/images/",
+        "publicationUrl": "https://esahubble.org/images/",
+        "publisher": "ESA/Hubble and NASA",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
       },
       "localSha256": {
-        "src/data/natural-earth/ne_110m_land.geojson.json": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+        "public/sky/esahubble-heic0401e-m81-thumb.webp": "2c2f9f9b2edc4b23fa05d702553730e7fe3d3a0bf4d8e66ac4c104a4af7392ba",
+        "public/sky/esahubble-heic0401e-m81.webp": "0fafe1fa35604533643c23cf81a4a3bcd700527f93398cc0773557960e5e8687",
+        "public/sky/esahubble-heic0414b-ngc6543-thumb.webp": "c7ca8bd7296fba2ddefc75ff2aa0e2671e74dd2bd7e786530d8e7cae531590a6",
+        "public/sky/esahubble-heic0414b-ngc6543.webp": "3fa9a3369d877a800aa28fd1dbc910dcf8734f04c5c5e17829c7566333f790d2",
+        "public/sky/esahubble-heic0506a-m51-thumb.webp": "7920ca5c6065949a03b8bd3cc7854272a847303c444f40f620865ee684e37790",
+        "public/sky/esahubble-heic0506a-m51.webp": "f5661c0f5b4607420fae5bc019ac8bd94a6eb989574e14e09997b18d638a99bc",
+        "public/sky/esahubble-heic0515a-m1-thumb.webp": "6f09d9499b4490fd59848ee95187a9cf33a501a1fe6f137922f56863da35312d",
+        "public/sky/esahubble-heic0515a-m1.webp": "2dc6de00d45df397834ad175076ae4588688349f349a0c5cd6078f2ee30a1599",
+        "public/sky/esahubble-heic0604a-m82-thumb.webp": "946c45b9e212fc5377720f0bd0d417785ac4335306248a633e9803e609464e10",
+        "public/sky/esahubble-heic0604a-m82.webp": "55fd6a74cc379088deabfc24f456c828deef51c182ffcf38c37008386572fcd9",
+        "public/sky/esahubble-heic1310a-m57-thumb.webp": "f910c4fc91ee4260fb1e1dab2fc1a3f303e1d1270c1c2c5299f7f5949600d149",
+        "public/sky/esahubble-heic1310a-m57.webp": "df12d4b53bdcf8f68bc18f96529cf180bea4428a2649ced996b55bca0ce5f384",
+        "public/sky/esahubble-heic1321b-m15-thumb.webp": "7c1fa38a2a07b4c9abfb95b41637e525ea7660ffaeb9263a8e237b8ce226ba1b",
+        "public/sky/esahubble-heic1321b-m15.webp": "05d0e899225e403c9c336d55108841f70f0ac8994cdc8f1afd29dede0f3070fe",
+        "public/sky/esahubble-opo0328a-m104-thumb.webp": "08e78400cc087a326ce16cf754bb482ba76ea539e00db25bac580fdb4346d9d8",
+        "public/sky/esahubble-opo0328a-m104.webp": "b29af4d49bd0f1f905c87046fb29ae3359905852c63b8bbc3baad65c11175a91",
+        "public/sky/esahubble-potw1514a-m22-thumb.webp": "11d9660f13089be3532a1521a7ea75f11a2bd5a0393ae63f641213cc7ff10b26",
+        "public/sky/esahubble-potw1514a-m22.webp": "989f4de835694303a6eab2849f79211ce5bdaacff837d37d7a4866152df82199"
       },
       "processing": [
-        "No byte-level transformation; local file matches the immutable upstream GeoJSON."
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "esahubble-heic0401e-m81.webp — \"Grand Spiral Messier 81 (ground-based)\", credit: ESA /INT/DSS2, source: https://esahubble.org/images/heic0401e/, presented in the interface as a long-exposure photograph.",
+        "esahubble-heic0414b-ngc6543.webp — \"The Cat’s Eye Nebula imaged with the Nordic Optical Telescope\", credit: Nordic Optical Telescope and Romano Corradi (Isaac Newton Group of Telescopes, Spain), source: https://esahubble.org/images/heic0414b/, presented in the interface as a long-exposure photograph.",
+        "esahubble-heic0506a-m51.webp — \"Out of this whirl: The Whirlpool Galaxy (M51) and companion galaxy\", credit: NASA , ESA , S. Beckwith ( STScI ), and The Hubble Heritage Team ( STScI / AURA ), source: https://esahubble.org/images/heic0506a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic0515a-m1.webp — \"Most detailed image of the Crab Nebula\", credit: NASA , ESA and Allison Loll/Jeff Hester (Arizona State University). Acknowledgement: Davide De Martin ( ESA / Hubble ), source: https://esahubble.org/images/heic0515a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic0604a-m82.webp — \"The magnificent starburst galaxy Messier 82\", credit: NASA , ESA and the Hubble Heritage Team ( STScI / AURA ). Acknowledgment: J. Gallagher (University of Wisconsin), M. Mountain ( STScI ) and P. Puxley (NSF)., source: https://esahubble.org/images/heic0604a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1310a-m57.webp — \"Hubble image of the Ring Nebula (Messier 57)\", credit: NASA, ESA, and C. Robert O’Dell (Vanderbilt University)., source: https://esahubble.org/images/heic1310a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1321b-m15.webp — \"Wide field image of star cluster Messier 15 (ground-based view)\", credit: NASA, ESA, Digitized Sky Survey 2, source: https://esahubble.org/images/heic1321b/, presented in the interface as a long-exposure photograph.",
+        "esahubble-opo0328a-m104.webp — \"Hubble mosaic of the majestic Sombrero Galaxy\", credit: NASA / ESA and The Hubble Heritage Team ( STScI / AURA ), source: https://esahubble.org/images/opo0328a/, presented in the interface as a space-telescope image.",
+        "esahubble-potw1514a-m22.webp — \"The crammed centre of Messier 22\", credit: ESA/Hubble & NASA, source: https://esahubble.org/images/potw1514a/, presented in the interface as a space-telescope image.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
         "evidenceUrls": [
-          "https://www.naturalearthdata.com/about/terms-of-use/"
+          "https://esahubble.org/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
         ],
-        "attribution": "Made with Natural Earth.",
+        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
-        "modification": "permitted"
+        "modification": "permitted-with-attribution"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
       }
     },
     {
-      "id": "hyg-database-v4-1-bright-stars",
-      "category": "astronomical-catalog-data",
+      "id": "esa-hubble-planetary-photography",
+      "category": "planetary-photography",
       "repositoryPaths": [
-        "src/data/stars/hygBrightStars.v41.json",
-        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt"
+        "public/sky/esahubble-heic1917a-saturn.webp",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "public/sky/esahubble-heic1609a-mars.webp"
       ],
       "productionBundlePaths": [
-        "assets/index-*.js"
+        "sky/esahubble-heic1917a-saturn.webp",
+        "sky/esahubble-heic2017a-jupiter-and-europa.webp",
+        "sky/esahubble-heic1609a-mars.webp"
       ],
       "originalSource": {
-        "title": "HYG Database v4.1",
-        "url": "https://raw.githubusercontent.com/astronexus/HYG-Database/3bf37f4b2d5460e1278286320d1d62fab9b493c1/hyg/CURRENT/hygdata_v41.csv",
-        "publicationUrl": "https://github.com/astronexus/HYG-Database",
-        "publisher": "David Nash / Astronomy Nexus",
-        "version": "v4.1 at commit 3bf37f4b2d5460e1278286320d1d62fab9b493c1 (2024-08-17)",
-        "retrievedAt": "2026-07-25",
-        "originalSha256": "d9f69fd8ed39072a9562d54c89ff0747728817dc2f1242c2062704ec52f4ad0a"
+        "title": "ESA/Hubble planetary portraits used as Tracker hero photography",
+        "url": "https://esahubble.org/images/",
+        "publicationUrl": "https://esahubble.org/images/",
+        "publisher": "ESA/Hubble and NASA",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
       },
       "localSha256": {
-        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937",
-        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f"
+        "public/sky/esahubble-heic1609a-mars.webp": "2512bb4cf01ce4ad993bee923e2d03c10ed10b3dc0f8a76751b2b9bc61fa005b",
+        "public/sky/esahubble-heic1917a-saturn.webp": "3d67752df20339b6f48e3da5f80569ebcce34cb0b59b6b05ec6bdf37a05d0224",
+        "public/sky/esahubble-heic2017a-jupiter-and-europa.webp": "7c3ca5f7d134871504dc44fee88ecde048aa7afeb709eac9248ac892447b67cc"
       },
       "processing": [
-        "scripts/build-hyg-bright-stars.mjs selects nonzero HYG identifiers with apparent magnitude <= 5.1.",
-        "The generator preserves identifiers, names, coordinates, magnitudes, color index, Cartesian values, velocities, and constellation codes.",
-        "Records are sorted deterministically by magnitude and HYG identifier."
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. No cropping, recolouring or compositing was applied to the photographs themselves; cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "esahubble-heic1917a-saturn.webp — \"Latest Saturn Portrait\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center) and M. H. Wong (University of California, Berkeley), source: https://esahubble.org/images/heic1917a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic2017a-jupiter-and-europa.webp — \"Hubble's View of Jupiter and Europa in August 2020\", credit: NASA, ESA, A. Simon (Goddard Space Flight Center), M. H. Wong (University of California, Berkeley) and the OPAL team, source: https://esahubble.org/images/heic2017a/, presented in the interface as a space-telescope image.",
+        "esahubble-heic1609a-mars.webp — \"Mars in opposition 2016\", credit: NASA, ESA, the Hubble Heritage Team (STScI/AURA), J. Bell (ASU) and M. Wolff (Space Science Institute), source: https://esahubble.org/images/heic1609a/, presented in the interface as a space-telescope image.",
+        "These are space-telescope images and are the exact case the perception classification exists for: each is labelled a space-telescope image and carries a written naked-eye expectation, so that nothing implies a Hubble portrait is what an observer will see through a garden telescope."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESA/Hubble releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented with the wording unaltered. The ESA/Hubble logo is excluded and is not used.",
         "evidenceUrls": [
-          "https://github.com/astronexus/HYG-Database/blob/3bf37f4b2d5460e1278286320d1d62fab9b493c1/LICENSE",
-          "https://creativecommons.org/licenses/by-sa/4.0/"
+          "https://esahubble.org/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
         ],
-        "attribution": "HYG Database v4.1 by David Nash / Astronomy Nexus, licensed CC BY-SA 4.0; Orbit Studio magnitude-limited transformed subset.",
+        "attribution": "ESA/Hubble and NASA. Full per-image credits are rendered on each image in the interface.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-share-alike"
+        "modification": "permitted-with-attribution"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description."
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
+      }
+    },
+    {
+      "id": "eso-deep-sky-photography",
+      "category": "deep-sky-photography",
+      "repositoryPaths": [
+        "public/sky/eso-eso1103a-m42-thumb.webp",
+        "public/sky/eso-eso1103a-m42.webp",
+        "public/sky/eso-eso1403a-m8-thumb.webp",
+        "public/sky/eso-eso1403a-m8.webp",
+        "public/sky/eso-eso1406a-m7-thumb.webp",
+        "public/sky/eso-eso1406a-m7.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/eso-eso1103a-m42-thumb.webp",
+        "sky/eso-eso1103a-m42.webp",
+        "sky/eso-eso1403a-m8-thumb.webp",
+        "sky/eso-eso1403a-m8.webp",
+        "sky/eso-eso1406a-m7-thumb.webp",
+        "sky/eso-eso1406a-m7.webp"
+      ],
+      "originalSource": {
+        "title": "ESO deep-sky photographs used as Tracker hero imagery",
+        "url": "https://www.eso.org/public/images/",
+        "publicationUrl": "https://www.eso.org/public/images/",
+        "publisher": "ESO",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/eso-eso1103a-m42-thumb.webp": "609a4a44d7fe744f3d95b094eec46cb5e2e7dcc6419c2f9b2f1d0066eb18338e",
+        "public/sky/eso-eso1103a-m42.webp": "52978e85cca8ad3f50b8c7e582114690d5a9abc326262ef33b473473d5b2b0c7",
+        "public/sky/eso-eso1403a-m8-thumb.webp": "e0f5f491a7a5a302b05b6a5e5391c10cc041f9b803290ac7063a41a1ea0bb761",
+        "public/sky/eso-eso1403a-m8.webp": "f1b5a40809a78eb4714a73f1fac917f3414dfb686b3bb3372cd0c56db3f0f152",
+        "public/sky/eso-eso1406a-m7-thumb.webp": "d59cd8020eb03a722956c55e163f112159242373c5dae13f6f8cd172e9a25791",
+        "public/sky/eso-eso1406a-m7.webp": "6caa41c68be2bcca4110913f91a3dba9f16a413c40f1f6c9c53e4cc1a3930ecb"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "eso-eso1103a-m42.webp — \"The Orion Nebula*\", credit: ESO/Igor Chekalin, source: https://www.eso.org/public/images/eso1103a/, presented in the interface as a long-exposure photograph.",
+        "eso-eso1403a-m8.webp — \"VST images the Lagoon Nebula\", credit: ESO/VPHAS+ team, source: https://www.eso.org/public/images/eso1403a/, presented in the interface as a long-exposure photograph.",
+        "eso-eso1406a-m7.webp — \"The star cluster Messier 7\", credit: ESO, source: https://www.eso.org/public/images/eso1406a/, presented in the interface as a long-exposure photograph.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.",
+        "evidenceUrls": [
+          "https://www.eso.org/public/outreach/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESO. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
+      "id": "eso-night-sky-photography",
+      "category": "night-sky-photography",
+      "repositoryPaths": [
+        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
+        "public/sky/eso-potw1033a-night-sky-detail.webp",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
+      ],
+      "productionBundlePaths": [
+        "sky/eso-potw1033a-perseid-in-a-dark-sky.webp",
+        "sky/eso-potw1033a-night-sky-detail.webp",
+        "sky/eso-potw2136a-eclipsed-moon-at-paranal.webp",
+        "sky/eso-potw2031a-moon-and-venus-at-dusk.webp"
+      ],
+      "originalSource": {
+        "title": "ESO public image releases used as Tracker hero photography",
+        "url": "https://www.eso.org/public/images/",
+        "publicationUrl": "https://www.eso.org/public/images/",
+        "publisher": "European Southern Observatory",
+        "version": "Public release images, retrieved 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "public/sky/eso-potw1033a-night-sky-detail.webp": "9560c9de312e5505ef2ab08c6d68718112b72b5823fcef048c2664698348d0da",
+        "public/sky/eso-potw1033a-perseid-in-a-dark-sky.webp": "e6394e8be8d7718e5bf9545ebfe5d60632d650b3b7e77c60b6e4ae1efcaab3a7",
+        "public/sky/eso-potw2031a-moon-and-venus-at-dusk.webp": "4f5ac2a551f7a318be94dad5e0d06719713e4f49270e7de0ff87c1884f1a5e35",
+        "public/sky/eso-potw2136a-eclipsed-moon-at-paranal.webp": "c33b70f5c8e40da14c7522b002e98516b74d759a1809b5d1584d9ad02d0938ec"
+      },
+      "processing": [
+        "Retrieved from the publisher's own CDN at publication resolution, resized and re-encoded to WebP for the web. Three files are rectangular crops of their source frame, listed individually below with the crop that was taken; the rest are whole frames. No recolouring, retouching or compositing was applied to any of them, and every crop is a plain rectangular selection that removes content without altering what remains. Further cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "Cropping is a licence question as well as a design one. CC BY 4.0 permits adaptation, and ESO's terms require the credit to stay with the image rather than requiring the frame to stay whole, so cropping is allowed — but a cropped photograph is no longer the photograph the credit line names. Each crop therefore records what was removed, and the interface continues to name the original release and photographer.",
+        "eso-potw1033a-perseid-in-a-dark-sky.webp — a crop of \"The 2010 Perseids over the VLT\", credit: ESO/S. Guisard, source: https://www.eso.org/public/images/potw1033a/. Pixels (0, 760) to (2600, 2280) of the 5616×3744 original, resized to 1800px wide. The crop is the sky above the telescope enclosures: it keeps the meteor streak and the surrounding starfield and removes the observatory entirely. Presented in the interface as a long-exposure photograph.",
+        "eso-potw1033a-night-sky-detail.webp — a second, wider crop of the same release, used as the ground the sky diagram is drawn on. Pixels (0, 0) to (5616, 1500) of the original, resized to 1800px wide. Sky only: no observatory, and no meteor. Presented as a photographic backdrop, not as a depiction of any particular night.",
+        "eso-potw2136a-eclipsed-moon-at-paranal.webp — \"Eclipsed Moon at Paranal\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2136a/, presented in the interface as a long-exposure photograph. Whole frame: the eclipsed Moon is the subject of this composition rather than the buildings beneath it, so there was nothing to crop away.",
+        "eso-potw2031a-moon-and-venus-at-dusk.webp — a crop of \"Spheres on Spheres\", credit: Y. Beletsky (LCO)/ESO, source: https://www.eso.org/public/images/potw2031a/. Pixels (0, 0) to (4633, 2280) of the 4633×5791 original, resized to 1800px wide. The published frame is composed around a telescope dome with the Moon and Venus above it; the crop keeps the two objects and the twilight gradient and removes the dome and the foreground. Presented in the interface as a long-exposure photograph.",
+        "None of these images contains identifiable people, so the licence's restriction on commercial use of such images does not apply."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). ESO releases its public images under CC BY 4.0 as a blanket policy, on condition that the full credit is presented clearly and visibly to all users and is not hidden or disassociated from the image. The ESO logo is excluded from the licence and is not used.",
+        "evidenceUrls": [
+          "https://www.eso.org/public/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "ESO. Individual photographer credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself. Both publishers require the credit to be clearly and visibly presented and not hidden or separated from the material, so moving it behind a disclosure control, a tooltip or a separate credits page would breach the licence. Each image must also keep the perception classification and, where the picture differs from the naked-eye view, the sentence saying how."
       }
     },
     {
@@ -425,7 +723,7 @@
         "data/satellite-source-of-truth/scripts/build.py": "11fab2676d7fccdf3c54788c3c12766f24e68c3c9c61fb699c1ba5fe0ba06f5b",
         "data/satellite-source-of-truth/scripts/update_from_gcat.py": "15bfee17f4bfb29009d6775f52dd95022068d56818831ca2634a06f6c88d4d5e",
         "data/satellite-source-of-truth/scripts/verify.py": "e47ddb7a815f1d66f40f0c406527af6bf83e331e72baea3a176f4da9a2a6d196",
-        "src/data/generated/satelliteCatalog.web.json": "cd718d210d33769657b428c96f4467f243a79055373a77d30180bcc549321880"
+        "src/data/generated/satelliteCatalog.web.json": "68d20bf4e01d91b017cf230641f0d5a1ab14201d7f472b402b0a3b79646a93bb"
       },
       "processing": [
         "The verified v1.0.0 package preserves the immutable 2026-06-27 GCAT satcat snapshot, its exact original checksum, normalized 69,703-record products, SQLite query database, 1957-2026 annual presence, reconstruction candidates, quality ledger, schemas, build scripts, and package checksums.",
@@ -455,55 +753,470 @@
       }
     },
     {
-      "id": "orbit-studio-curated-explorer-reference-data",
-      "category": "project-authored-curated-reference-data",
+      "id": "github-actions-release-validation-dependencies",
+      "category": "ci-action-dependencies",
       "repositoryPaths": [
-        "src/data/explorerCatalog.ts",
-        "src/data/explorerConstellationArchitecture.ts",
-        "src/data/explorerEducation.ts",
-        "src/lib/scenario.ts"
+        ".github/workflows/release-validation.yml"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "GitHub-authored Actions used by release validation",
+        "publicationUrl": "https://github.com/actions",
+        "publisher": "GitHub, Inc. and contributors",
+        "version": "checkout 11d5960a326750d5838078e36cf38b85af677262; setup-node 49933ea5288caeca8642d1e84afbd3f7d6820020; upload-artifact ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "retrievedAt": "2026-07-25",
+        "components": [
+          {
+            "id": "actions/checkout",
+            "url": "https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262",
+            "commit": "11d5960a326750d5838078e36cf38b85af677262",
+            "licenseUrl": "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE"
+          },
+          {
+            "id": "actions/setup-node",
+            "url": "https://github.com/actions/setup-node/commit/49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "commit": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "licenseUrl": "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE"
+          },
+          {
+            "id": "actions/upload-artifact",
+            "url": "https://github.com/actions/upload-artifact/commit/ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "licenseUrl": "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
+          }
+        ]
+      },
+      "localSha256": {
+        ".github/workflows/release-validation.yml": "06f7f3a40f036f6811ceb9d682dc53d7d8e7c3418522ee5d2d6ae4fc50a3bd53"
+      },
+      "processing": [
+        "Resolved each mutable v4 reference through the official GitHub API on 2026-07-25.",
+        "Pinned the workflow to the exact commit currently addressed by each reviewed v4 reference.",
+        "No GitHub Action implementation code is copied into the repository or production deployment.",
+        "Runs the accessibility gate (npm run a11y:verify) after the provenance and licence checks, against the production build served by vite preview. Its providers are stubbed at the browser level so the job neither fails for an upstream outage nor puts continuous-integration traffic on a free service."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Each referenced GitHub-maintained Action is published under the MIT License at the pinned commit.",
+        "evidenceUrls": [
+          "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE",
+          "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE",
+          "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
+        ],
+        "attribution": "GitHub Actions: checkout, setup-node, and upload-artifact; each MIT-licensed by GitHub, Inc. and contributors.",
+        "sourceRedistribution": "source-safe-reference-only",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "not-modified"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Action revisions must remain commit-pinned. Updating a commit requires an intentional inventory checksum, version, and rights-evidence update."
+      }
+    },
+    {
+      "id": "hyg-database-v4-1-bright-stars",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "src/data/stars/hygBrightStars.v41.json",
+        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt"
       ],
       "productionBundlePaths": [
         "assets/index-*.js"
       ],
       "originalSource": {
-        "title": "Orbit Studio curated Explorer educational reference compilation",
-        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
-        "publisher": "Orbit Studio",
-        "version": "Release 1.0 curated reference definitions audited 2026-07-25",
-        "retrievedAt": "2026-07-25"
+        "title": "HYG Database v4.1",
+        "url": "https://raw.githubusercontent.com/astronexus/HYG-Database/3bf37f4b2d5460e1278286320d1d62fab9b493c1/hyg/CURRENT/hygdata_v41.csv",
+        "publicationUrl": "https://github.com/astronexus/HYG-Database",
+        "publisher": "David Nash / Astronomy Nexus",
+        "version": "v4.1 at commit 3bf37f4b2d5460e1278286320d1d62fab9b493c1 (2024-08-17)",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "d9f69fd8ed39072a9562d54c89ff0747728817dc2f1242c2062704ec52f4ad0a"
       },
       "localSha256": {
-        "src/data/explorerCatalog.ts": "196b3e5ac6e71ad47324565a359ab0cb262e17cc72af583747647647261e1eb3",
-        "src/data/explorerConstellationArchitecture.ts": "4c133d532fb0c25a74642384d1b5aacb208478c71152aaf84713a141fef310b1",
-        "src/data/explorerEducation.ts": "9c730c2e36e561049898787c2364e790326626bdbec1f20b24a2cce2f34d68ca",
-        "src/lib/scenario.ts": "5f40fbe901f13d68e4aab77ef0d7bf9abd5b7248a0459c4c831178bff74454d3"
+        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937"
       },
       "processing": [
-        "Orbit Studio authors wrote the catalog selection, educational summaries, semantic search terms, simplified regions, representative orbit elements, and display geometry.",
-        "Curated names, aliases, constellation associations, and educational content are keyed onto matching GCAT catalog numbers as a presentation layer; they do not replace GCAT membership or source orbital constraints.",
-        "Official publisher pages were used to verify mission identities, nominal constellation architecture, orbit-family context, and the existence and geographic arrangement of NASA Deep Space Network complexes.",
-        "The representative plane samples, display colors, tolerances, synthetic orbital angles, approximate populations, and simplified geographic boundaries are Orbit Studio presentation data rather than copied operational ephemerides, boundary datasets, or live catalog records."
+        "scripts/build-hyg-bright-stars.mjs selects nonzero HYG identifiers with apparent magnitude <= 5.1.",
+        "The generator preserves identifiers, names, coordinates, magnitudes, color index, Cartesian values, velocities, and constellation codes.",
+        "Records are sorted deterministically by magnitude and HYG identifier."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "First-party Orbit Studio-authored compilation and expression; no third-party file, image, passage, catalog snapshot, or operational ephemeris is incorporated.",
+        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
         "evidenceUrls": [
-          "https://www.gps.gov/systems/gps/space/",
-          "https://www.esa.int/Applications/Satellite_navigation/Galileo/Galileo_satellites",
-          "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/dsn-complexes/",
-          "https://www.nesdis.noaa.gov/our-satellites/currently-flying",
-          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+          "https://github.com/astronexus/HYG-Database/blob/3bf37f4b2d5460e1278286320d1d62fab9b493c1/LICENSE",
+          "https://creativecommons.org/licenses/by-sa/4.0/"
         ],
-        "attribution": "Orbit Studio-authored educational compilation. NASA/JPL, GPS.gov, ESA, NOAA NESDIS, and the linked mission publishers are acknowledged as factual reference publishers; no endorsement is implied.",
+        "attribution": "HYG Database v4.1 by David Nash / Astronomy Nexus, licensed CC BY-SA 4.0; Orbit Studio magnitude-limited transformed subset.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
-        "modification": "permitted"
+        "modification": "permitted-share-alike"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive."
+        "restrictions": "The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description."
+      }
+    },
+    {
+      "id": "jpl-horizons-usno-validation-fixture",
+      "category": "scientific-reference-fixture",
+      "repositoryPaths": [
+        "src/astronomy/reference/jplHorizonsUsnoReference.json"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications API reference results",
+        "publicationUrl": "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
+        "publisher": "NASA/JPL Solar System Dynamics and U.S. Naval Observatory",
+        "version": "Horizons API 1.3 / DE441; USNO Astronomical Applications API 4.0.1",
+        "retrievedAt": "2026-07-18"
+      },
+      "localSha256": {
+        "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7"
+      },
+      "processing": [
+        "scripts/fetch-celestial-reference.mjs records fixed-timestamp Horizons vectors and apparent coordinates plus USNO sidereal-time results.",
+        "The fixture retains numeric API results and exact query semantics; it is test input and is not included in the production bundle."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA science data is reusable under NASA science-data policy unless marked otherwise; the USNO API expressly supports results embedded in web and mobile applications. No restrictive marking appeared in the returned factual results.",
+        "evidenceUrls": [
+          "https://science.data.nasa.gov/about/license",
+          "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
+          "https://aa.usno.navy.mil/data/api.html"
+        ],
+        "attribution": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications Department.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "factual-output-transformation-permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained-test-only",
+        "release1Included": true,
+        "restrictions": "The fixture verifies model agreement at declared instants; it does not transfer JPL or USNO endorsement."
+      }
+    },
+    {
+      "id": "legacy-hipparcos-derived-star-file",
+      "category": "excluded-astronomical-catalog-data",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Former Hipparcos-derived TypeScript star subset",
+        "publicationUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239",
+        "publisher": "ESA Hipparcos mission / CDS VizieR",
+        "version": "Former local adapted file; exact source query and redistribution evidence were not retained",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "The former derived TypeScript subset was removed before this checkpoint.",
+        "The production star layer uses the separately verified HYG v4.1 subset."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Exact provenance and redistribution permission for the former adapted file were not established.",
+        "evidenceUrls": [
+          "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239"
+        ],
+        "attribution": "Not applicable because the material is excluded.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "unresolved"
+      },
+      "release": {
+        "inclusionStatus": "excluded",
+        "release1Included": false,
+        "restrictions": "Do not restore the former derived file without exact source, license, checksum, and processing evidence."
+      }
+    },
+    {
+      "id": "legacy-review-evidence-with-unresolved-current-data",
+      "category": "generated-review-evidence",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Previously tracked screenshots and evidence generated from the unresolved CelesTrak snapshot",
+        "publicationUrl": null,
+        "publisher": "Orbit Studio",
+        "version": "Pre-provenance Release 1 review artifacts",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "Generated by earlier Orbit Studio review and manual capture workflows."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The images are project-generated but visually derive from an orbital dataset whose public redistribution basis was not verified.",
+        "evidenceUrls": [],
+        "attribution": "Not applicable because the artifacts are excluded.",
+        "sourceRedistribution": "unresolved",
+        "deployedRedistribution": "unresolved",
+        "modification": "not-applicable"
+      },
+      "release": {
+        "inclusionStatus": "excluded",
+        "release1Included": false,
+        "restrictions": "Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices."
+      }
+    },
+    {
+      "id": "mallama-starlink-orbit-raising-brightness",
+      "category": "scientific-reference-output",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "The Brightness of Starlink Mini Satellites During Orbit-Raising",
+        "url": "https://arxiv.org/abs/2405.12007",
+        "publicationUrl": "https://arxiv.org/abs/2405.12007",
+        "publisher": "Mallama, A., Cole, R. E., Respler, J., Harrington, S., Lee, R. and Worley, A. (2024)",
+        "version": "arXiv:2405.12007v1, 2024-05-20",
+        "retrievedAt": "2026-09-02"
+      },
+      "localSha256": {},
+      "processing": [
+        "Five figures are quoted from the paper and nothing else: the 357 km height at which SpaceX appears to begin brightness mitigation, the mean magnitudes adjusted to 1000 km either side of it (4.58 and 7.52), the 2.94-magnitude separation between them, and the 250 km floor below which the study excluded objects as de-orbiting rather than orbit-raising.",
+        "They are population means over 580 observations, not predictions for one pass, and Tracker treats them as such: only range is applied to them, because the paper's adjustment normalised distance and not phase; half the separation between the two modes is required as headroom before a train is offered at all; and a stack within seventeen kilometres of the mitigation threshold is withheld rather than assigned to either population.",
+        "No text, figure or table from the paper is reproduced."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Measured quantities reported in a published study are facts, cited here with full attribution. No expressive content from the paper is reproduced.",
+        "evidenceUrls": [
+          "https://arxiv.org/abs/2405.12007"
+        ],
+        "attribution": "Starlink orbit-raising brightness from Mallama et al. (2024), arXiv:2405.12007.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "quoted-values-only"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The citation must remain with the values. The figures describe a population and must not be presented as a prediction for an individual pass."
+      }
+    },
+    {
+      "id": "mccants-quicksat-intrinsic-magnitudes",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "scripts/build-satellite-brightness.mjs",
+        "src/data/satellites/brightness.json"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Quicksat intrinsic magnitude file (qs.mag)",
+        "url": "https://mmccants.org/programs/qsmag.zip",
+        "publicationUrl": "https://mmccants.org/programs/",
+        "publisher": "Mike McCants",
+        "version": "Published 2020-09-14, SHA-256 3f3f507014a047b6319813e73e818f065a029355c37a4b4e644213408f6a70a9",
+        "retrievedAt": "2026-09-02"
+      },
+      "localSha256": {
+        "scripts/build-satellite-brightness.mjs": "04c1a14252b7a75ad91ccdbafc711b3216a9c166a11b282297ba2d8f873e191a",
+        "src/data/satellites/brightness.json": "68120298b48caf2a37ee14f388761857861cc4e7681210f12f68bfa25c1f207f"
+      },
+      "processing": [
+        "The long-standing amateur reference for satellite standard magnitudes, compiled from visual and electronic observation. Tracker quotes a single value from it — the International Space Station's standard magnitude of −2.5 — with attribution. The file itself is neither committed nor redistributed; the build script fetches it, verifies its checksum and reads the one row.",
+        "The checksum is pinned so that a revision of the source fails the build rather than silently moving a number the product admits things on.",
+        "The convention is stated with the value: visual magnitude at 1000 km range and 50 per cent illumination. Tracker carries it through the real slant range and phase angle of each pass rather than presenting it as an apparent magnitude."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Individual measured magnitudes are facts rather than expressive content, and Tracker quotes one of them with attribution rather than reproducing the compilation. The file is not committed, bundled or redistributed.",
+        "evidenceUrls": [
+          "https://mmccants.org/programs/"
+        ],
+        "attribution": "Standard magnitude from Mike McCants' Quicksat intrinsic magnitude file (qs.mag), 14 September 2020.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "quoted-value-only"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Only the specific values Tracker uses may be quoted, with attribution. The compilation must not be committed or redistributed, and the pinned checksum must not be updated without reviewing what changed."
+      }
+    },
+    {
+      "id": "meteor-stream-parameters-2026-08-16",
+      "category": "meteor-stream-parameters",
+      "repositoryPaths": [
+        "src/data/tracker/meteorShowers.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers",
+        "url": "https://www.imo.net/resources/calendar/",
+        "publicationUrl": "https://www.ta3.sk/IAUC22DB/MDC2007/",
+        "publisher": "International Meteor Organization; IAU Meteor Data Center",
+        "version": "Transcribed working-list parameters, snapshot dated 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/meteorShowers.ts": "39344b784246c9b1a75b7c5465330a0e279122dc3837a8978924e099824aae06"
+      },
+      "processing": [
+        "Twelve established showers are recorded with IAU stream number and code, parent body, solar longitude of maximum, activity interval in solar longitude, J2000 radiant at maximum, geocentric velocity, population index and nominal zenithal hourly rate.",
+        "The values were transcribed into a TypeScript module rather than retrieved as a file. There is therefore no upstream artifact to checksum and no originalSha256 is claimed; the recorded localSha256 pins the transcription, not the source.",
+        "peakWidthDays is not an IMO quantity and is not attributed to one. It is an editorial approximation of each peak's full width at half maximum, adjusted so the activity profile in src/data/tracker/meteorActivity.ts reproduces the published character of each shower. src/data/tracker/meteorShowers.ts states this in the module header.",
+        "Per R9.4, evidence class varies within a record: stream identity and elements are catalog, radiant position and peak date for a given year are analytic, and the nominal zenithal hourly rate is a forecast regardless of arriving in a catalog.",
+        "Per R9.3, the snapshot is replaced deliberately and never automatically, and a replacement records what changed."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.",
+        "evidenceUrls": [
+          "https://www.imo.net/resources/calendar/",
+          "https://www.ta3.sk/IAUC22DB/MDC2007/"
+        ],
+        "attribution": "Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
+      }
+    },
+    {
+      "id": "nasa-blue-marble-january-2004",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/earth/nasa-blue-marble-january-5400.jpg"
+      ],
+      "productionBundlePaths": [
+        "earth/nasa-blue-marble-january-5400.jpg"
+      ],
+      "originalSource": {
+        "title": "Blue Marble: Next Generation with Topography and Bathymetry, January",
+        "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/january/world.topo.bathy.200401.3x5400x2700.jpg",
+        "publicationUrl": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/",
+        "publisher": "NASA Earth Observatory",
+        "version": "January 2004, 5400 x 2700 JPEG",
+        "retrievedAt": "2026-07-04",
+        "originalSha256": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
+      },
+      "localSha256": {
+        "public/earth/nasa-blue-marble-january-5400.jpg": "1684c4f8f51970dcb4a7451302bf3be17bed657aed9fece6f80d7b191e8afa3d"
+      },
+      "processing": [
+        "Downloaded from the official NASA asset URL.",
+        "No resizing, cropping, color editing, or recompression."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines; unmarked NASA content may be used factually for educational or informational computer simulations and web pages.",
+        "evidenceUrls": [
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+        ],
+        "attribution": "NASA Blue Marble: Next Generation. NASA is acknowledged as the source; no endorsement is implied.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-for-factual-educational-or-informational-use"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Do not imply NASA endorsement; re-check if a future replacement carries a third-party copyright notice, logo, or identifiable-person restriction."
+      }
+    },
+    {
+      "id": "nasa-gibs-external-provider",
+      "category": "runtime-external-service",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "NASA Global Imagery Browse Services",
+        "publicationUrl": "https://www.earthdata.nasa.gov/about/esdis/eosdis/gibs",
+        "publisher": "NASA Earthdata / ESDIS",
+        "version": "GOES-East and GOES-West ABI Band 13 clean infrared; queried for its timestamp only",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "Not consulted at runtime. Tracker briefly asked this service for the timestamp of the latest GOES infrared image, as a way of saying when a satellite had last looked at the reader's sky. That was a stand-in for an observation rather than one: brightness temperature is not a cloud mask, since warm ground and low stratus overlap in it.",
+        "NOAA's own clear-sky mask is a classification and is what Tracker uses instead — see noaa-goes-clear-sky-mask. This entry is retained because the URL-construction code and the evaluation are part of the record, and because the imagery remains the obvious candidate for any future layer that wants a picture rather than a decision."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Earthdata policy states that unmarked NASA-led mission data are CC0 and that ESDIS content may be used factually with NASA acknowledgment.",
+        "evidenceUrls": [
+          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+        ],
+        "attribution": "Cloud observation times from NASA Global Imagery Browse Services (GIBS), GOES ABI.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "service-output-subject-to-layer-metadata"
+      },
+      "release": {
+        "inclusionStatus": "external-acquisition-disabled",
+        "release1Included": true,
+        "restrictions": "Any future use must carry the product's own metadata and must not present a brightness temperature as a cloud fraction."
+      }
+    },
+    {
+      "id": "nasa-hoosf-16e-fragmentation-causes",
+      "category": "current-and-historical-space-object-data",
+      "repositoryPaths": [
+        "data/fragmentation-causes/PROVENANCE.md",
+        "data/fragmentation-causes/nasa-hoosf-16e-causes.csv",
+        "scripts/build-fragmentation-causes.py",
+        "src/data/generated/fragmentationCauses.json"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "History of On-orbit Satellite Fragmentations, 16th Edition (NASA/TP-20220019160)",
+        "url": "https://orbitaldebris.jsc.nasa.gov/library/hoosf_16e.pdf",
+        "publicationUrl": "https://orbitaldebris.jsc.nasa.gov/library/",
+        "publisher": "NASA Orbital Debris Program Office, Lyndon B. Johnson Space Center",
+        "version": "16th Edition, December 2022",
+        "retrievedAt": "2026-08-13",
+        "originalSha256": "3c82039474625f321a1ed12556adbb8ea62ce149e1f052b8a41e81ba5914a61b"
+      },
+      "localSha256": {
+        "data/fragmentation-causes/PROVENANCE.md": "1967e2bef7bf7ea759c9d573a81bb2b7221f15a33db0e0e68293209735128120",
+        "data/fragmentation-causes/nasa-hoosf-16e-causes.csv": "525415db799f362599e31b86c430ac0a16a47189bf1e32421380f181d927e4f4",
+        "scripts/build-fragmentation-causes.py": "58de8efa9156483254895734d4f38e071cbc4f7327579b401f9228ddf49afc90",
+        "src/data/generated/fragmentationCauses.json": "0b11567973e1046b315748bcb21df45ed8d9a2570c7497d412e70a46ce718314"
+      },
+      "processing": [
+        "Only the assessed-cause field is extracted: international designator, NORAD catalogue number, break-up date, and assessed cause. No document text, figure, or table layout is reproduced.",
+        "The reference's own DEBRIS CATALOGED and DEBRIS LEFT counts are deliberately not imported. They are correct for December 2022 and would contradict the 2026-06-27 GCAT snapshot; all fragment counts come from GCAT and only cause comes from this reference.",
+        "scripts/build-fragmentation-causes.py joins the extracted table to the web catalog on NORAD catalogue number and exact break-up date, so a parent that fragmented more than once cannot inherit another event's cause.",
+        "Join result: 198 of 1,034 GCAT fragmentation events (19.1%), covering 22,078 of 27,681 debris objects (79.8%). Events outside the reference are rendered as unassessed, which the interface keeps distinct from the reference's own UNKNOWN finding.",
+        "Extraction recovers 248 break-up events and is not claimed to be exhaustive; events it misses are absent rather than misattributed. See data/fragmentation-causes/PROVENANCE.md."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Work of the U.S. Government prepared by NASA; not subject to copyright protection in the United States (17 U.S.C. 105). Factual cause assessments only.",
+        "evidenceUrls": [
+          "https://orbitaldebris.jsc.nasa.gov/library/",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "Fragmentation cause assessments from NASA Orbital Debris Program Office, History of On-orbit Satellite Fragmentations, 16th Edition (NASA/TP-20220019160).",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "This is the complete packaged GCAT Earth-object membership for the supported four classes at the dated snapshot, not proof of operational status or observational completeness. Preserve attribution, source/reconstruction separation, partial-2026 semantics, catalog-only rows, package checksums, and the prohibition on live/exact wording."
       }
     },
     {
@@ -573,159 +1286,742 @@
       }
     },
     {
-      "id": "jpl-horizons-usno-validation-fixture",
-      "category": "scientific-reference-fixture",
+      "id": "nasa-photojournal-venus",
+      "category": "planetary-photography",
       "repositoryPaths": [
-        "src/astronomy/reference/jplHorizonsUsnoReference.json"
+        "public/sky/nasa-PIA23791-planet-venus-thumb.webp",
+        "public/sky/nasa-PIA23791-planet-venus.webp"
       ],
-      "productionBundlePaths": [],
+      "productionBundlePaths": [
+        "sky/nasa-PIA23791-planet-venus-thumb.webp",
+        "sky/nasa-PIA23791-planet-venus.webp"
+      ],
       "originalSource": {
-        "title": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications API reference results",
-        "publicationUrl": "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
-        "publisher": "NASA/JPL Solar System Dynamics and U.S. Naval Observatory",
-        "version": "Horizons API 1.3 / DE441; USNO Astronomical Applications API 4.0.1",
-        "retrievedAt": "2026-07-18"
+        "title": "NASA Photojournal PIA23791, Venus from Mariner 10",
+        "url": "https://photojournal.jpl.nasa.gov/catalog/PIA23791",
+        "publicationUrl": "https://photojournal.jpl.nasa.gov/catalog/PIA23791",
+        "publisher": "NASA/JPL-Caltech",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
       },
       "localSha256": {
-        "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7"
+        "public/sky/nasa-PIA23791-planet-venus-thumb.webp": "03e747d0719acc9e70e3bb7a68452c56dad7f769c9c3ae39661c7058654f43a9",
+        "public/sky/nasa-PIA23791-planet-venus.webp": "bb73e10a8b9bc77b9c6752e0b2d1318d59d853cf6519d81e482359b03c524468"
       },
       "processing": [
-        "scripts/fetch-celestial-reference.mjs records fixed-timestamp Horizons vectors and apparent coordinates plus USNO sidereal-time results.",
-        "The fixture retains numeric API results and exact query semantics; it is test input and is not included in the production bundle."
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "The published frame is two panels — natural colour and contrast-enhanced — which as a hero reads as two planets. Cropped to the left, natural-colour panel; nothing else was altered.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "nasa-PIA23791-planet-venus.webp — \"Venus from Mariner 10\", credit: NASA/JPL-Caltech, source: https://photojournal.jpl.nasa.gov/catalog/PIA23791, presented in the interface as a spacecraft mosaic.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "NASA science data is reusable under NASA science-data policy unless marked otherwise; the USNO API expressly supports results embedded in web and mobile applications. No restrictive marking appeared in the returned factual results.",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes; the credit line is retained and no endorsement is implied.",
         "evidenceUrls": [
-          "https://science.data.nasa.gov/about/license",
-          "https://ssd-api.jpl.nasa.gov/doc/horizons.html",
-          "https://aa.usno.navy.mil/data/api.html"
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
         ],
-        "attribution": "NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications Department.",
+        "attribution": "NASA/JPL-Caltech. The per-image credit is rendered on the image in the interface.",
         "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "not-in-production-bundle",
-        "modification": "factual-output-transformation-permitted"
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
       },
       "release": {
-        "inclusionStatus": "retained-test-only",
+        "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "The fixture verifies model agreement at declared instants; it does not transfer JPL or USNO endorsement."
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
       }
     },
     {
-      "id": "vallado-python-sgp4-reference-vector",
-      "category": "adapted-code-and-verification-vector",
+      "id": "nasa-spacecraft-photography",
+      "category": "spacecraft-photography",
       "repositoryPaths": [
-        "scripts/report-orbital-population-validation.ts",
-        "src/rendering/catalogPopulationValidation.test.ts",
-        "src/rendering/catalogMotion.test.ts",
-        "src/rendering/orbitPathSampling.test.ts"
+        "public/sky/nasaimages-iss066e081189-satellite-iss-thumb.webp",
+        "public/sky/nasaimages-iss066e081189-satellite-iss.webp"
       ],
-      "productionBundlePaths": [],
+      "productionBundlePaths": [
+        "sky/nasaimages-iss066e081189-satellite-iss-thumb.webp",
+        "sky/nasaimages-iss066e081189-satellite-iss.webp"
+      ],
       "originalSource": {
-        "title": "Vanguard 1 example from Python-SGP4 package metadata, based on Vallado et al. AIAA-2006-6753",
-        "publicationUrl": "https://github.com/brandon-rhodes/python-sgp4",
-        "publisher": "Brandon Rhodes; reference implementation lineage credited to David A. Vallado and coauthors",
-        "version": "Example reproduced in satellite.js 5.0.0 ORIGINAL-PKG-INFO from Python-SGP4 1.1",
-        "retrievedAt": "2026-07-18"
+        "title": "NASA Image and Video Library photograph of the International Space Station",
+        "url": "https://images.nasa.gov/details/iss066e081189",
+        "publicationUrl": "https://images.nasa.gov/",
+        "publisher": "NASA",
+        "version": "iss066e081189, photographed 8 November 2021 from Crew Dragon Endeavour",
+        "retrievedAt": "2026-09-02"
       },
       "localSha256": {
-        "scripts/report-orbital-population-validation.ts": "66b4e41ee170c394766d96bb3d4c7c28d45ae66d56486c96b7c4d993c40565b6",
-        "src/rendering/catalogPopulationValidation.test.ts": "7efc5acd3a091373f1ec2651c75055c164c1bdb3cd20f24f031a921d1febc1ae",
-        "src/rendering/catalogMotion.test.ts": "c126f9ed3c82d8bf1fa97db3b48d229e657d6d4d7cc1bf0dbb533e8aff155cf8",
-        "src/rendering/orbitPathSampling.test.ts": "4a8ebf6106f94ce24355697d331a12157d2cd9a0b72379564ac1fe7bc71d1268"
+        "public/sky/nasaimages-iss066e081189-satellite-iss-thumb.webp": "c84cdf2a36fe5f7740e08f89477260b82d97d4fd245e10b6bb4140772450f054",
+        "public/sky/nasaimages-iss066e081189-satellite-iss.webp": "2aaf4ea0876c171d9a00f92c608f15de77fe4a530ef48db998066d8e77189a93"
       },
       "processing": [
-        "Copied the published Vanguard 1 TLE and expected position/velocity values into an independent conformance test and report generator.",
-        "Converted the Python-SGP4 example's stated meter and meter-per-second outputs to kilometer and kilometer-per-second test units."
+        "Retrieved by scripts/build-tracker-imagery.mjs, which checks the library's own description of the frame names the International Space Station before downloading it, and resized to at most 1280 pixels with a thumbnail for the rail.",
+        "nasaimages-iss066e081189-satellite-iss.webp — \"The Space Station, photographed from Crew Dragon in 2021\", credit: NASA, source: https://images.nasa.gov/details/iss066e081189, presented in the interface as a photograph taken from orbit.",
+        "Presented as a photograph taken from orbit, with the sentence saying what the view from the ground is instead: a single steady point with no shape at all."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Python-SGP4 and satellite.js publish the relevant package material under the MIT License.",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines. NASA content is generally not copyrighted and may be used for informational purposes with the credit retained and no implication of endorsement.",
         "evidenceUrls": [
-          "https://github.com/brandon-rhodes/python-sgp4/blob/master/LICENSE",
-          "https://github.com/shashwatak/satellite-js/blob/v5.0.0/LICENSE.md"
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
         ],
-        "attribution": "Vallado et al., AIAA-2006-6753; example reproduced by Python-SGP4 and satellite.js under MIT terms.",
+        "attribution": "NASA.",
         "sourceRedistribution": "source-safe",
-        "deployedRedistribution": "not-in-production-bundle",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The credit must remain rendered on the image, and the perception classification and eye-expectation sentence must remain with it."
+      }
+    },
+    {
+      "id": "nasa-svs-lroc-color-moon-1k",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/moon/nasa-lroc-color-1k.jpg"
+      ],
+      "productionBundlePaths": [
+        "moon/nasa-lroc-color-1k.jpg",
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "CGI Moon Kit: LROC WAC Color Mosaic",
+        "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_1k.jpg",
+        "publicationUrl": "https://svs.gsfc.nasa.gov/4720/",
+        "publisher": "NASA Scientific Visualization Studio",
+        "contributors": [
+          "Ernie Wright (USRA), visualizer",
+          "Noah Petro (NASA/GSFC), scientist",
+          "LROC WAC data collected by Arizona State University"
+        ],
+        "version": "SVS visualization 4720, 1K color texture, published 2019-09-06",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+      },
+      "localSha256": {
+        "public/moon/nasa-lroc-color-1k.jpg": "b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109"
+      },
+      "processing": [
+        "Downloaded from the official NASA SVS asset URL.",
+        "No resizing, cropping, color editing, or recompression.",
+        "Also used by Tracker as the lunar hero image, clipped to a disc and overlaid with the unlit portion computed for the observer's actual phase. The mosaic itself is unmodified; the shadow is drawn over it. Classified in the interface as a spacecraft mosaic, with a stated naked-eye expectation, so it is never presented as a backyard view."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA Images and Media Usage Guidelines; NASA SVS supplies an explicit credit request and identifies the contributing data.",
+        "evidenceUrls": [
+          "https://svs.gsfc.nasa.gov/4720/",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "NASA's Scientific Visualization Studio; visualization by Ernie Wright (USRA), science by Noah Petro (NASA/GSFC), using LROC WAC data collected by Arizona State University.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-for-factual-educational-or-informational-use"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Display-optimized texture, not a precision lunar cartography product; no NASA endorsement implied."
+      }
+    },
+    {
+      "id": "natural-earth-110m-land",
+      "category": "geographic-boundary-data",
+      "repositoryPaths": [
+        "src/data/natural-earth/ne_110m_land.geojson.json"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "Natural Earth 1:110m Land GeoJSON",
+        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/693f11422f4e08d2da4566b854dda53eb7c39fb3/geojson/ne_110m_land.geojson",
+        "publicationUrl": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/110m-land/",
+        "publisher": "Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors",
+        "version": "natural-earth-vector commit 693f11422f4e08d2da4566b854dda53eb7c39fb3 (2018-06-01)",
+        "retrievedAt": "2026-07-25",
+        "originalSha256": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+      },
+      "localSha256": {
+        "src/data/natural-earth/ne_110m_land.geojson.json": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+      },
+      "processing": [
+        "No byte-level transformation; local file matches the immutable upstream GeoJSON."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.",
+        "evidenceUrls": [
+          "https://www.naturalearthdata.com/about/terms-of-use/"
+        ],
+        "attribution": "Made with Natural Earth.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
         "modification": "permitted"
       },
       "release": {
-        "inclusionStatus": "retained-test-only",
+        "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Retain attribution and dependency MIT notices."
+        "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
       }
     },
     {
-      "id": "celestrak-current-gp-local-acquisition",
-      "category": "current-orbital-data",
-      "repositoryPaths": [],
-      "productionBundlePaths": [],
-      "originalSource": {
-        "title": "CelesTrak current General Perturbations data",
-        "url": "https://celestrak.org/NORAD/elements/gp.php",
-        "publicationUrl": "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
-        "publisher": "CelesTrak / Dr. T.S. Kelso",
-        "version": "Live service; no release snapshot retained in public source",
-        "retrievedAt": null
-      },
-      "localSha256": {},
-      "processing": [
-        "No CelesTrak response, transformed record, acquisition script, runtime override, or test fixture is included.",
-        "Production and review have no code path that reads ignored local CelesTrak material.",
-        "Any future acquisition or redistribution path requires a new explicit provenance and architecture decision."
+      "id": "natural-earth-110m-reference-layers",
+      "category": "geographic-boundary-data",
+      "repositoryPaths": [
+        "src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json",
+        "src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json",
+        "src/data/natural-earth/ne_110m_lakes.json",
+        "src/data/natural-earth/ne_110m_places.json"
       ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "CelesTrak's official usage policy permits documented consumer acquisition and requires rate-conscious caching behavior, but no authoritative grant was found for committing, deploying, or redistributing snapshots or transformed records.",
-        "evidenceUrls": [
-          "https://celestrak.org/usage-policy.php",
-          "https://celestrak.org/NORAD/documentation/gp-data-formats.php"
-        ],
-        "attribution": "CelesTrak / Dr. T.S. Kelso.",
-        "sourceRedistribution": "unresolved",
-        "deployedRedistribution": "unresolved",
-        "modification": "unresolved-for-redistribution"
-      },
-      "release": {
-        "inclusionStatus": "local-only",
-        "release1Included": false,
-        "restrictions": "Excluded from public source, tests, review fixtures, and production deployment. Local users must acquire it directly and must not publish the resulting snapshot without separate permission."
-      }
-    },
-    {
-      "id": "nasa-gibs-external-provider",
-      "category": "runtime-external-service",
-      "repositoryPaths": [],
-      "productionBundlePaths": [],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
       "originalSource": {
-        "title": "NASA Global Imagery Browse Services",
-        "publicationUrl": "https://www.earthdata.nasa.gov/about/esdis/eosdis/gibs",
-        "publisher": "NASA Earthdata / ESDIS",
-        "version": "WMS and WMTS service descriptors; disabled by default",
-        "retrievedAt": null
+        "title": "Natural Earth 1:110m cultural and physical vectors: land boundaries, state and province lines, lakes, and populated places",
+        "url": "https://github.com/nvkelso/natural-earth-vector/tree/master/geojson",
+        "publicationUrl": "https://www.naturalearthdata.com/downloads/110m-cultural-vectors/",
+        "publisher": "Natural Earth, Tom Patterson, Nathaniel Vaughn Kelso, and contributors",
+        "version": "110m cultural and physical vectors, trimmed for the eclipse map's reference geography",
+        "retrievedAt": "2026-08-28"
       },
-      "localSha256": {},
+      "localSha256": {
+        "src/data/natural-earth/ne_110m_admin_0_boundary_lines_land.json": "3ba9f607e4ac055a2542875c70dc3f5687fd763143d738291c8a95f8fa933651",
+        "src/data/natural-earth/ne_110m_admin_1_states_provinces_lines.json": "ce37690ee6ed6a86ea5aa88fb091af497e13bdc80e76b22439b8c684d1a3390e",
+        "src/data/natural-earth/ne_110m_lakes.json": "6bf0743158a5ea1cd7249ef4aef11edcd25d5933fcf25b7f5ee5c6ee4a79fe54",
+        "src/data/natural-earth/ne_110m_places.json": "7f748fc0592107b3a32c78aa37b2a8b3c1f4a836e62faea7022107671afda2e7"
+      },
       "processing": [
-        "Orbit Studio contains URL-construction code but does not commit or production-bundle GIBS response imagery.",
-        "The provider is disabled by default and labels true-color imagery as an overlay rather than a cloud mask."
+        "Trimmed rather than transcribed: geometry is upstream's, with per-feature properties reduced to the few the drawing reads, which is why no upstream checksum is claimed for these files.",
+        "Used by the eclipse geographic map and the Explorer globe texture for coastlines, borders and place labels. They are reference geography drawn by Tracker, not a basemap: the basemap is vector tiles fetched at runtime and has nothing to do with these files.",
+        "Left in the tree when the hand-built basemap was deleted, because both of those consumers still read them."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "NASA Earthdata policy states that unmarked NASA-led mission data are CC0 and that ESDIS content may be used factually with NASA acknowledgment.",
+        "licenseOrBasis": "Natural Earth states that all versions of its raster and vector map data are public domain and may be modified and electronically disseminated.",
         "evidenceUrls": [
-          "https://www.earthdata.nasa.gov/engage/open-data-services-software/data-use-policy"
+          "https://www.naturalearthdata.com/about/terms-of-use/"
         ],
-        "attribution": "NASA Global Imagery Browse Services (GIBS), Earthdata.",
-        "sourceRedistribution": "not-applicable-external-service",
-        "deployedRedistribution": "not-bundled",
-        "modification": "service-output-subject-to-layer-metadata"
+        "attribution": "Made with Natural Earth.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
       },
       "release": {
-        "inclusionStatus": "external-acquisition-disabled",
+        "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Future enabled layers must preserve product-specific metadata, attribution, and any marked restriction."
+        "restrictions": "Natural Earth does not require attribution; Orbit Studio includes the recommended citation."
+      }
+    },
+    {
+      "id": "noaa-goes-clear-sky-mask",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "netlify/functions/goes-cloud-mask.mts",
+        "src/data/tracker/cloudObservation.ts",
+        "src/data/tracker/cloudSuitability.ts",
+        "src/data/tracker/goesGrid.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "GOES-R ABI Level-2 Clear Sky Mask (ABI-L2-ACMC), by way of Unidata's THREDDS server",
+        "url": "https://thredds.ucar.edu/thredds/catalog/satellite/goes/east/products/CloudMask/CONUS/current/catalog.html",
+        "publicationUrl": "https://www.goes-r.gov/products/baseline-clear-sky-mask.html",
+        "publisher": "NOAA NESDIS; redistributed by UCAR/Unidata",
+        "version": "ABI-L2-ACMC-M6, CONUS scene, five-minute cadence",
+        "retrievedAt": "2026-09-03"
+      },
+      "localSha256": {
+        "netlify/functions/goes-cloud-mask.mts": "9c6e8f59513ad6aa973bda94d76ce9ffcce89c3d3cec05e1445878c5e57a1a7b",
+        "src/data/tracker/cloudObservation.ts": "985b352b1d8598d47338ed7d6115d641be79012f2a332e6dbd8885ee40f04540",
+        "src/data/tracker/cloudSuitability.ts": "49a1413dc7d785b197cd8f8832ecef1aba6dad4ae3e4e6ce6b92e9c60328402c",
+        "src/data/tracker/goesGrid.ts": "1ba3d7c61820b62e7f14794d6103d28ff8dcf0d1a2d48f2c01f7692d38180220"
+      },
+      "processing": [
+        "The fields used are the ones the granule actually carries, confirmed by inspecting a live file rather than by reading documentation: ACM, a four-level mask whose flag_meanings read 'clear probably_clear probably_cloudy cloudy'; Cloud_Probabilities, a uint16 with scale_factor 1.5261e-05 giving the probability that the pixel is cloudy; and DQF, whose flag_meanings distinguish good, bad, space and degraded quality. Pixels the product calls unusable are reported as no observation rather than as clear sky.",
+        "A reading for a place is always the native pixel covering it, at the product's own two-kilometre resolution. Map requests may skip pixels by stride when the view holds more of them than can be drawn, and the stride falls to one as the reader zooms in; a stride skips pixels and never averages them, so every value shown is one NOAA published.",
+        "Nothing is interpolated between categories. A classification has nothing between its levels, and a value invented between two of them would be a measurement nobody made. Rendering may be smoothed; the evidence is not.",
+        "The probability is presented as a per-pixel confidence and never as a sky-cover fraction. The two are different quantities and Tracker does not convert one into the other.",
+        "A small Netlify function stands between the browser and the service. NOAA's own object storage sets permissive CORS but distributes HDF5, which would mean shipping an HDF5 reader to every reader; the THREDDS server subsets the same product over DAP4 into a few kilobytes but sends no CORS headers. The function asks for exactly the pixels requested, decodes the DAP4 chunk stream, and returns the values unaltered. It resamples nothing.",
+        "Every grid constant — the sub-satellite longitude, the ellipsoid, the scan-angle offsets and steps, the scene size — is read from the granule being used, because the two spacecraft differ and the grid has been redefined before."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "GOES-R products are US Government works in the public domain. Unidata distributes them for research and education and asks that the service not be scraped; requests are subset to the pixels needed and cached rather than bulk-downloaded.",
+        "evidenceUrls": [
+          "https://www.goes-r.gov/products/baseline-clear-sky-mask.html",
+          "https://www.unidata.ucar.edu/software/tds/",
+          "https://www.unidata.ucar.edu/legal/"
+        ],
+        "attribution": "Cloud observations from the NOAA GOES-R ABI clear-sky mask, served by UCAR/Unidata.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "values-passed-through-unaltered"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Requests must stay subset and cached rather than bulk. The classification must be presented as a classification: it may not be converted into a cloud-cover percentage, and the cloud probability may not be presented as sky cover."
+      }
+    },
+    {
+      "id": "noirlab-deep-sky-photography",
+      "category": "deep-sky-photography",
+      "repositoryPaths": [
+        "public/sky/noirlab-noao-02211-ngc7009-thumb.webp",
+        "public/sky/noirlab-noao-02211-ngc7009.webp",
+        "public/sky/noirlab-noao-02464-ngc457-thumb.webp",
+        "public/sky/noirlab-noao-02464-ngc457.webp",
+        "public/sky/noirlab-noao-02637-m6-thumb.webp",
+        "public/sky/noirlab-noao-02637-m6.webp",
+        "public/sky/noirlab-noao-04086-m16-thumb.webp",
+        "public/sky/noirlab-noao-04086-m16.webp",
+        "public/sky/noirlab-noao-hcper-double-cluster-thumb.webp",
+        "public/sky/noirlab-noao-hcper-double-cluster.webp",
+        "public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp",
+        "public/sky/noirlab-noao-m13kpno4m-m13.webp",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp",
+        "public/sky/noirlab-noao-m35-m35-thumb.webp",
+        "public/sky/noirlab-noao-m35-m35.webp",
+        "public/sky/noirlab-noao-m44bash-m44-thumb.webp",
+        "public/sky/noirlab-noao-m44bash-m44.webp",
+        "public/sky/noirlab-noao-m45-m45-thumb.webp",
+        "public/sky/noirlab-noao-m45-m45.webp",
+        "public/sky/noirlab-noao-m92-m92-thumb.webp",
+        "public/sky/noirlab-noao-m92-m92.webp",
+        "public/sky/noirlab-noao0001a-m31-thumb.webp",
+        "public/sky/noirlab-noao0001a-m31.webp",
+        "public/sky/noirlab-noirlab2206b-satellite-train-thumb.webp",
+        "public/sky/noirlab-noirlab2206b-satellite-train.webp",
+        "scripts/build-tracker-imagery.mjs",
+        "src/data/tracker/heroImagery.json"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js",
+        "sky/noirlab-noao-02211-ngc7009-thumb.webp",
+        "sky/noirlab-noao-02211-ngc7009.webp",
+        "sky/noirlab-noao-02464-ngc457-thumb.webp",
+        "sky/noirlab-noao-02464-ngc457.webp",
+        "sky/noirlab-noao-02637-m6-thumb.webp",
+        "sky/noirlab-noao-02637-m6.webp",
+        "sky/noirlab-noao-04086-m16-thumb.webp",
+        "sky/noirlab-noao-04086-m16.webp",
+        "sky/noirlab-noao-hcper-double-cluster-thumb.webp",
+        "sky/noirlab-noao-hcper-double-cluster.webp",
+        "sky/noirlab-noao-m13kpno4m-m13-thumb.webp",
+        "sky/noirlab-noao-m13kpno4m-m13.webp",
+        "sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp",
+        "sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp",
+        "sky/noirlab-noao-m35-m35-thumb.webp",
+        "sky/noirlab-noao-m35-m35.webp",
+        "sky/noirlab-noao-m44bash-m44-thumb.webp",
+        "sky/noirlab-noao-m44bash-m44.webp",
+        "sky/noirlab-noao-m45-m45-thumb.webp",
+        "sky/noirlab-noao-m45-m45.webp",
+        "sky/noirlab-noao-m92-m92-thumb.webp",
+        "sky/noirlab-noao-m92-m92.webp",
+        "sky/noirlab-noao0001a-m31-thumb.webp",
+        "sky/noirlab-noao0001a-m31.webp",
+        "sky/noirlab-noirlab2206b-satellite-train-thumb.webp",
+        "sky/noirlab-noirlab2206b-satellite-train.webp"
+      ],
+      "originalSource": {
+        "title": "NSF NOIRLab deep-sky photographs used as Tracker hero imagery",
+        "url": "https://noirlab.edu/public/images/",
+        "publicationUrl": "https://noirlab.edu/public/images/",
+        "publisher": "NSF NOIRLab/AURA",
+        "version": "Public release images, retrieved 2026-09-01",
+        "retrievedAt": "2026-09-01"
+      },
+      "localSha256": {
+        "public/sky/noirlab-noao-02211-ngc7009-thumb.webp": "ae2eacdd764ae40b0d95af71c23b24a2a56eaa4feb2b7379ba58dd656bbc7ec0",
+        "public/sky/noirlab-noao-02211-ngc7009.webp": "25c588a86c005417f8b7d472c35134a12d7cdf58c0f73b731f84a63c36b88753",
+        "public/sky/noirlab-noao-02464-ngc457-thumb.webp": "1e13edab06f65c9bdb349e264d604e7c36ac972da134181c39906866b296b1ed",
+        "public/sky/noirlab-noao-02464-ngc457.webp": "237522594f837cdeeba5765404d81f3ae7e1e9a775917fafd9cd511a1f897ba4",
+        "public/sky/noirlab-noao-02637-m6-thumb.webp": "eb5e5e414a692ce9573ba258491ac27195415d18d40390bf26b4a3cdb849f162",
+        "public/sky/noirlab-noao-02637-m6.webp": "582fb583fa0f9b40a97e2b79059a37bf84a16aebd40b0193331372c175f0f739",
+        "public/sky/noirlab-noao-04086-m16-thumb.webp": "f428b07d8d3c88130c9719429270c355fd2f1afe06a77d3bec9e1b8ff0281417",
+        "public/sky/noirlab-noao-04086-m16.webp": "0af474bbb8c2a6e5aa2e0839d700a3597f236ff66a0afce3e788e8dda637e006",
+        "public/sky/noirlab-noao-hcper-double-cluster-thumb.webp": "5730e052f2e48c5290cfc5d5d892f8f3813651cc529d1992f71919836e0de483",
+        "public/sky/noirlab-noao-hcper-double-cluster.webp": "9ae5a166fcc805d2e6477d1f8f24bc093a2acdc23bf801ccef8fe1828c5663a0",
+        "public/sky/noirlab-noao-m13kpno4m-m13-thumb.webp": "42fec6bf99ab8155bdf6ee07afa79b27ca3f011c6a06d7eb33406bfa41fe6d19",
+        "public/sky/noirlab-noao-m13kpno4m-m13.webp": "021f21b52bb7550a7094a02966d39f3eebcfdf985bd8ae0f08054dc1db423455",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27-thumb.webp": "3bbffbfc7314d77be8c9896a3efe8f87fe809ab114c3ab4f681363f364ee9919",
+        "public/sky/noirlab-noao-m27-kpno-mayall-4-m-m27.webp": "67e28585be4a461ff54da60c36df22c048cb024ff734a0d54c5f3f6f87de3ea0",
+        "public/sky/noirlab-noao-m35-m35-thumb.webp": "28378f6678c56083d4979286bf3618cd0e2274c5f736753803c17d8170e5c7a3",
+        "public/sky/noirlab-noao-m35-m35.webp": "8042ab1e3d7c810727e8c7a5d9e271fe782d021f89e311abc2b47978db872a8d",
+        "public/sky/noirlab-noao-m44bash-m44-thumb.webp": "553b719bbd24be05502c36fcf72e5c61cce29dd8d439ec3b0144bd74d16c872c",
+        "public/sky/noirlab-noao-m44bash-m44.webp": "d6dc0ef055b5814e322d752dc74dcfe0b0782af5d6352ac3ffb7567f3dbc4a61",
+        "public/sky/noirlab-noao-m45-m45-thumb.webp": "67ef1d975b59450f003543843390e848faa17485e9ec17ff649035d06f5f21de",
+        "public/sky/noirlab-noao-m45-m45.webp": "0a3c52ca0d0daeb2f8949b73450b2d05b9153f2333745bfdb688dd00fd31ab01",
+        "public/sky/noirlab-noao-m92-m92-thumb.webp": "1e1c1d22706b3c731fca1719bdbe7a984cf80db917fb31ab0b1d9680d47c5874",
+        "public/sky/noirlab-noao-m92-m92.webp": "d59c692b591bfc69c66c0d769009567fb97b6881338bec8ab116beff7aaa3600",
+        "public/sky/noirlab-noao0001a-m31-thumb.webp": "64c430252e8311e54a25bde94d9f657e6152d1db63f0994551c77d8a2a53730b",
+        "public/sky/noirlab-noao0001a-m31.webp": "85dc12b392a4898b47cffd53d8f840113c3562f9e81d2666f437f8c8627c87d4",
+        "public/sky/noirlab-noirlab2206b-satellite-train-thumb.webp": "938291df8a703764e3278ba9bb73a7995d9198909f1dfa6c9529ba6710e38379",
+        "public/sky/noirlab-noirlab2206b-satellite-train.webp": "60ac1b8a97356cebee7f7f21a82985d09cc9b1d8f32d69365ef045c5fd10d74d",
+        "scripts/build-tracker-imagery.mjs": "ebd9f122f518f09a256cc3f9ba39e0ca4267eeea43d0f619914b72614900a681",
+        "src/data/tracker/heroImagery.json": "43b2d04df5b73327026f072e6326f9ff7b025ff7255fc14d5bbabceb98630bcf"
+      },
+      "processing": [
+        "Retrieved from the publisher's own archive by scripts/build-tracker-imagery.mjs, which reads each image's own page, refuses to download one whose record does not name the object Tracker means, and takes the credit line from that page rather than restating it. Files are the publisher's screen rendition, resized to at most 1280 pixels and re-encoded to WebP. Cropping for the hero frame is done at display time by CSS object-fit and is reversible.",
+        "A small derivative of each hero file is built alongside it for the rail cards, which draw eight pictures at once at forty pixels across; it is the same photograph resized, and carries the same credit.",
+        "noirlab-noao-02211-ngc7009.webp — \"The Saturn Nebula, NGC 7009\", credit: NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02211/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-02464-ngc457.webp — \"NGC 457 in Cassiopeia\", credit: NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02464/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-02637-m6.webp — \"M6, NGC 6405; Butterfly Cluster\", credit: N.A.Sharp, Mark Hanna, REU program/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-02637/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-04086-m16.webp — \"The Eagle Nebula, M16\", credit: T.A.Rector (NRAO/AUI/ NSF and NOIRLab/ NSF /AURA) and B.A.Wolpa (NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-04086/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-hcper-double-cluster.webp — \"h and chi Persei\", credit: N.A.Sharp/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-hcper/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m13kpno4m-m13.webp — \"M13, NGC 6205\", credit: T.A. Rector (University of Alaska Anchorage) and H. Schweiker (WIYN and NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-m13kpno4m/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m27-kpno-mayall-4-m-m27.webp — \"M27 Dumbbell Nebula\", credit: T.A. Rector (University of Alaska Anchorage) and H. Schweiker (WIYN and NOIRLab/ NSF /AURA), source: https://noirlab.edu/public/images/noao-m27-kpno-mayall-4-m/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m35-m35.webp — \"M35, NGC 2158\", credit: N.A.Sharp/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-m35/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m44bash-m44.webp — \"M44: The Beehive Cluster\", credit: KPNO/NOIRLab/NSF/AURA/Tom Bash and John Fox/Adam Block, source: https://noirlab.edu/public/images/noao-m44bash/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m45-m45.webp — \"M45 Pleiades\", credit: NOIRLab/NSF/AURA/T.A. Rector (University of Alaska Anchorage), R. Cool (University of Arizona) and WIYN, source: https://noirlab.edu/public/images/noao-m45/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao-m92-m92.webp — \"M92, NGC 6341\", credit: Hillary Mathis, REU program/NOIRLab/ NSF /AURA, source: https://noirlab.edu/public/images/noao-m92/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noao0001a-m31.webp — \"The Andromeda Galaxy\", credit: Bill Schoening, Vanessa Harvey/REU program/NOIRLab/ NSF /AURA/, source: https://noirlab.edu/public/images/noao0001a/, presented in the interface as a long-exposure photograph.",
+        "noirlab-noirlab2206b-satellite-train.webp — \"Starlink Satellites over Carson National Forest, New Mexico\", credit: M. Lewinsky/Creative Commons Attribution, source: https://noirlab.edu/public/images/noirlab2206b/, presented in the interface as a long-exposure photograph.",
+        "These replace a single generic long exposure of the Milky Way, which every deep-sky page and Venus were showing. Each carries its perception classification and a written sentence saying how the view through the reader's own equipment differs from the photograph."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution 4.0 International (CC BY 4.0). NOIRLab releases its public images under CC BY 4.0, requiring the credit to be clearly and visibly presented.",
+        "evidenceUrls": [
+          "https://noirlab.edu/public/copyright/",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "NSF NOIRLab/NSF/AURA. Full per-image credits are rendered on each image in the interface.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The per-image credit must remain rendered on the image itself; the publisher requires it to be clearly and visibly presented rather than hidden behind a disclosure control. Each image must keep its perception classification and the sentence saying how the eye differs from the photograph."
+      }
+    },
+    {
+      "id": "npm-lockfile-dependencies",
+      "category": "software-dependencies",
+      "repositoryPaths": [
+        "package-lock.json"
+      ],
+      "productionBundlePaths": [
+        "assets/*.js",
+        "assets/*.css"
+      ],
+      "originalSource": {
+        "title": "npm dependency graph",
+        "publicationUrl": "https://registry.npmjs.org/",
+        "publisher": "Individual package authors and rights holders",
+        "version": "package-lock.json lockfileVersion 3, 281 package entries",
+        "retrievedAt": "2026-07-25"
+      },
+      "localSha256": {
+        "package-lock.json": "1c7bc5dd1a97e590da5ff22d2cc5c3dec818c29b3713f06c87df7a2dd17ab705"
+      },
+      "processing": [
+        "package-lock.json is the source of truth.",
+        "scripts/provenance/dependency-licenses.mjs checks every locked package license expression and renders THIRD_PARTY_NOTICES.md.",
+        "The only lockfile entry lacking a license field is webgl-constants@1.1.1; official npm metadata identifies published git head 3ed05e37a29cc15cc1f612913723a4c39f808d9d, whose immutable MIT LICENSE has SHA-256 0969fa65680b694452c2c65981df14af5c192da24f2b1f87bdd51d8ed24efcfa."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Locked packages declare MIT, ISC, BSD-3-Clause, Apache-2.0, or CC-BY-4.0; webgl-constants@1.1.1 is MIT per its upstream LICENSE.",
+        "evidenceUrls": [
+          "https://github.com/TimvanScherpenzeel/webgl-constants/blob/3ed05e37a29cc15cc1f612913723a4c39f808d9d/LICENSE"
+        ],
+        "attribution": "See THIRD_PARTY_NOTICES.md for the lockfile-derived package inventory and notices.",
+        "sourceRedistribution": "source-safe-lockfile-only",
+        "deployedRedistribution": "deployment-safe-with-notices",
+        "modification": "per-package-license"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "node_modules is excluded. Dependency changes require an intentional lockfile and notice update."
+      }
+    },
+    {
+      "id": "openngc-deep-sky-showpieces",
+      "category": "astronomical-catalog-data",
+      "repositoryPaths": [
+        "src/data/deep-sky/showpieces.json",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt",
+        "src/data/deep-sky/README.md",
+        "scripts/build-deep-sky-showpieces.mjs"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "OpenNGC",
+        "url": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
+        "publicationUrl": "https://github.com/mattiaverga/OpenNGC",
+        "publisher": "Mattia Verga",
+        "version": "master, database_files/NGC.csv and database_files/addendum.csv",
+        "retrievedAt": "2026-09-01",
+        "originalSha256": "be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae"
+      },
+      "localSha256": {
+        "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb",
+        "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3"
+      },
+      "processing": [
+        "scripts/build-deep-sky-showpieces.mjs fetches OpenNGC's NGC.csv and addendum.csv, records the SHA-256 of each, and selects twenty-six objects named explicitly in the generator. The addendum is read as well because the Messier list is not a subset of the NGC: the Pleiades is Melotte 22 and has no NGC number.",
+        "Selection is the only editorial step. Every position, magnitude and size in the generated file is OpenNGC's; nothing is remembered or estimated. Sexagesimal right ascension and declination are converted to degrees and rounded to five decimals.",
+        "Each object's equipment tier is derived from its own visual magnitude by one rule applied uniformly: V <= 4.5 the unaided eye, V <= 7.0 binoculars, otherwise a telescope. Objects with no recorded visual magnitude are dropped rather than assigned a tier by judgement, which excludes the Rosette, the Veil and the North America Nebula.",
+        "One sentence per object describing what an observer actually sees is Orbit Studio's own text and is not derived from OpenNGC.",
+        "Output is sorted by magnitude then identifier, so the same source produces the same bytes."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "evidenceUrls": [
+          "https://github.com/mattiaverga/OpenNGC#license",
+          "https://creativecommons.org/licenses/by-sa/4.0/"
+        ],
+        "attribution": "OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-share-alike"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary."
+      }
+    },
+    {
+      "id": "openweather-placeholder-no-data",
+      "category": "disabled-external-service-placeholder",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "OpenWeather API placeholder",
+        "publicationUrl": "https://openweathermap.org/api",
+        "publisher": "OpenWeather Ltd.",
+        "version": "No API product, key, response, icon, or map tile acquired",
+        "retrievedAt": null
+      },
+      "localSha256": {},
+      "processing": [
+        "The project contains a disabled provider descriptor and explicit requires-key state only."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "No third-party material is included. Future acquisition or activation requires review of the selected OpenWeather product terms.",
+        "evidenceUrls": [
+          "https://openweathermap.org/api"
+        ],
+        "attribution": "OpenWeather, if a future user configures the service.",
+        "sourceRedistribution": "not-applicable-no-material",
+        "deployedRedistribution": "not-applicable-no-material",
+        "modification": "not-applicable"
+      },
+      "release": {
+        "inclusionStatus": "placeholder-only",
+        "release1Included": false,
+        "restrictions": "No key, data, image, icon, or tile may be committed or deployed without a new provenance entry and rights review."
+      }
+    },
+    {
+      "id": "orbit-studio-curated-explorer-reference-data",
+      "category": "project-authored-curated-reference-data",
+      "repositoryPaths": [
+        "src/data/explorerCatalog.ts",
+        "src/data/explorerConstellationArchitecture.ts",
+        "src/data/explorerEducation.ts",
+        "src/lib/scenario.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/index-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio curated Explorer educational reference compilation",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio",
+        "version": "Release 1.0 curated reference definitions audited 2026-07-25",
+        "retrievedAt": "2026-07-25"
+      },
+      "localSha256": {
+        "src/data/explorerCatalog.ts": "2ec381be2ec2d81b44881a76510b8f3dec042a3722d28b528c3928f35f225762",
+        "src/data/explorerConstellationArchitecture.ts": "4c133d532fb0c25a74642384d1b5aacb208478c71152aaf84713a141fef310b1",
+        "src/data/explorerEducation.ts": "9c730c2e36e561049898787c2364e790326626bdbec1f20b24a2cce2f34d68ca",
+        "src/lib/scenario.ts": "1db5da01f38edd645ffe2d16d2032ae36b8e14d6b8ccfae3848d5b34f6e39471"
+      },
+      "processing": [
+        "Orbit Studio authors wrote the catalog selection, educational summaries, semantic search terms, simplified regions, representative orbit elements, and display geometry.",
+        "Curated names, aliases, constellation associations, and educational content are keyed onto matching GCAT catalog numbers as a presentation layer; they do not replace GCAT membership or source orbital constraints.",
+        "Official publisher pages were used to verify mission identities, nominal constellation architecture, orbit-family context, and the existence and geographic arrangement of NASA Deep Space Network complexes.",
+        "The representative plane samples, display colors, tolerances, synthetic orbital angles, approximate populations, and simplified geographic boundaries are Orbit Studio presentation data rather than copied operational ephemerides, boundary datasets, or live catalog records."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "First-party Orbit Studio-authored compilation and expression; no third-party file, image, passage, catalog snapshot, or operational ephemeris is incorporated.",
+        "evidenceUrls": [
+          "https://www.gps.gov/systems/gps/space/",
+          "https://www.esa.int/Applications/Satellite_navigation/Galileo/Galileo_satellites",
+          "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/dsn-complexes/",
+          "https://www.nesdis.noaa.gov/our-satellites/currently-flying",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "Orbit Studio-authored educational compilation. NASA/JPL, GPS.gov, ESA, NOAA NESDIS, and the linked mission publishers are acknowledged as factual reference publishers; no endorsement is implied.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Representative and simplified educational data are not operational catalog membership, measured current positions, precise geographic boundaries, or complete constellation inventories. Population and architecture summaries are approximate and time-sensitive."
+      }
+    },
+    {
+      "id": "orbit-studio-home-product-imagery",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/home/tracker-home.webp",
+        "public/home/explorer-home.webp",
+        "public/home/playground-home.webp"
+      ],
+      "productionBundlePaths": [
+        "home/tracker-home.webp",
+        "home/explorer-home.webp",
+        "home/playground-home.webp"
+      ],
+      "originalSource": {
+        "title": "Screenshots and renders of Orbit Studio's own interfaces, framed for the homepage product list",
+        "url": "https://github.com/hendrikv-dev/orbit-studio",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio (this project)",
+        "version": "Regenerated 2026-08-30 for the vertical product-row layout",
+        "retrievedAt": "2026-08-30"
+      },
+      "localSha256": {
+        "public/home/explorer-home.webp": "d2f4b2164023a8c59f2e9fff0940eb2dce19ec70ef978afe5229c72b16ea219a",
+        "public/home/playground-home.webp": "79f7969e7a2a02c9a1b9f945e8d9bc82d5801cd8fb69d883567754a2a7da3cf3",
+        "public/home/tracker-home.webp": "aec0a640b9b8667573b0f42b5309fa934dd34324a2b7e2830c36837a248c21b4"
+      },
+      "processing": [
+        "All three are pictures of this project's own software, produced by running it. They were previously untracked by this inventory, which is why the two older ones show as newly classified rather than newly added.",
+        "tracker-home.webp is a screenshot of Orbit Studio Tracker at Big Sur, California, captured from the production build at zoom 10 with the interface chrome hidden. It therefore contains rendered third-party map data and inherits those attributions: OpenStreetMap contributors under ODbL via OpenFreeMap and the OpenMapTiles schema for the basemap, and Mapterhorn's elevation composite (USGS 3DEP, Copernicus DEM and other open sources, CC BY 4.0 and public-domain components) for the hillshaded relief. The homepage does not reprint those credits under the image; they are rendered in Tracker's own attribution control wherever the same data is shown live, and recorded here.",
+        "explorer-home.webp and playground-home.webp are renders of Orbit Studio's own 3D scenes. They were not re-rendered in this pass: the existing images were recomposited onto a wider canvas so that all three product rows share one framing, with each globe scaled to a common radius and its centre placed on a shared vertical axis. No pixel content was generated or altered beyond scaling, positioning and edge feathering.",
+        "The Earth surface in those two renders is the Blue Marble texture recorded separately under nasa-blue-marble-january-2004; this entry does not restate that provenance, it depends on it."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The imagery is this project's own output and is redistributed under the project's licence. The third-party data visible inside tracker-home.webp is open and permits the rendering and redistribution of derived map images with attribution, which is recorded above and rendered live in Tracker; the Earth texture in the other two is NASA imagery, which is not subject to copyright in the United States.",
+        "evidenceUrls": [
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/",
+          "https://mapterhorn.com/attribution",
+          "https://visibleearth.nasa.gov/collection/1484/blue-marble"
+        ],
+        "attribution": "Orbit Studio. Tracker's map contains OpenStreetMap data via OpenFreeMap and OpenMapTiles, and terrain from Mapterhorn.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "If the Tracker screenshot is replaced, the replacement inherits the same basemap and terrain attributions for as long as it shows rendered map data."
+      }
+    },
+    {
+      "id": "orbit-studio-satellite-pass-prediction",
+      "category": "orbit-studio-original-work",
+      "repositoryPaths": [
+        "src/data/tracker/satelliteVisibility.ts",
+        "src/data/tracker/satellites.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio satellite pass prediction and naked-eye screening",
+        "url": "https://github.com/hendrikv-dev/orbit-studio",
+        "publicationUrl": "https://github.com/hendrikv-dev/orbit-studio",
+        "publisher": "Orbit Studio",
+        "version": "Written for this repository",
+        "retrievedAt": null
+      },
+      "localSha256": {
+        "src/data/tracker/satelliteVisibility.ts": "53ac4da9cfadcc754ba09c32ba648f0f971e5151cf3c007fe30edfd222dec467",
+        "src/data/tracker/satellites.ts": "325789e367e2ca8f577963657415c159a71fcf236dfd2692beadcdac2aa1e740"
+      },
+      "processing": [
+        "Propagation is SGP4 by way of satellite.js. Everything else here is Orbit Studio's: the conical umbra and penumbra test with a 90 km atmospheric allowance, the phase geometry, the reduction of a published standard magnitude to the slant range and phase of a particular pass, and the screening of the result against the same limiting-magnitude model the rest of Tracker ranks with.",
+        "No brightness is derived from orbital geometry. Geometry only scales a published measurement, and an object with no published measurement is not offered."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Original work in this repository, governed by its own licence.",
+        "evidenceUrls": [
+          "https://github.com/hendrikv-dev/orbit-studio"
+        ],
+        "attribution": "Orbit Studio.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "None."
+      }
+    },
+    {
+      "id": "orbit-studio-tracker-scene-artwork",
+      "category": "first-party-illustration",
+      "repositoryPaths": [
+        "src/components/tracker/TrackerScene.tsx",
+        "src/data/tracker/imagery.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Orbit Studio Tracker imagery policy and lunar phase composite",
+        "publisher": "Orbit Studio",
+        "version": "Vector scenes drawn for the Tracker presentation rebuild, 2026-08-16",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
+        "src/data/tracker/imagery.ts": "4d734dee376a4cb1c68ecf24a8f25f6ab6d05d932517fec37ebf765dc0ed5b07"
+      },
+      "processing": [
+        "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",
+        "The lunar composite draws the separately registered NASA LROC mosaic and overlays the unlit portion computed for the observer's actual illuminated fraction and waxing or waning sense. A stock photograph would be the wrong shape on most nights, which the reader can check by looking up.",
+        "An earlier version of this file drew every scene as original vector art. That was replaced with licensed photography: the drawings were honest and flat, and a product whose purpose is to get somebody outside cannot afford to look like a diagram.",
+        "Every image carries an ImageryClass from src/data/tracker/imagery.ts — telescope-image, eyepiece-view, long-exposure, composite, simulation, forecast-visualisation or spacecraft-mosaic — rendered together with an observation expectation wherever the picture and the eye differ.",
+        "Phase 2 additionally requires and renders an explicit media claim (representative, event-specific, or live), origin (historical capture, current model, or live feed), capture date where applicable, and expected visual mode. None of the current Tracker assets claims to be live.",
+        "Conjunctions no longer receive a photograph. One frame of the Moon beside Venus was served for every pairing, which is the wrong planet for any pairing that is not Moon-and-Venus and the wrong lunar phase for any date but the one it was taken on. Those events are now drawn from their own ephemeris by TrackerConjunctionScene — real altitudes, azimuths, separation and Moon phase at the recommended instant — and the imagery layer returns a generic night sky to anything that still asks. The Moon-and-Venus frame still ships and is still attributed; it is simply no longer used to depict events it does not depict."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Original code and the lunar composite are this project's own work under the repository's MIT licence. The photographs it displays are third-party and registered separately under eso-night-sky-photography and esa-hubble-planetary-photography; the lunar surface is the separately registered NASA LROC mosaic.",
+        "evidenceUrls": [
+          "https://github.com/hendrikv-dev/orbit-studio"
+        ],
+        "attribution": "Scene artwork by Orbit Studio. Lunar surface: NASA's Scientific Visualization Studio (LROC WAC mosaic).",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Every image must keep an ImageryClass and must render it, and every third-party image must render its credit on the image itself. Any future image must be registered with its own source, licence, credit and perception classification before it ships."
       }
     },
     {
@@ -763,204 +2059,583 @@
       }
     },
     {
-      "id": "openweather-placeholder-no-data",
-      "category": "disabled-external-service-placeholder",
-      "repositoryPaths": [],
-      "productionBundlePaths": [],
-      "originalSource": {
-        "title": "OpenWeather API placeholder",
-        "publicationUrl": "https://openweathermap.org/api",
-        "publisher": "OpenWeather Ltd.",
-        "version": "No API product, key, response, icon, or map tile acquired",
-        "retrievedAt": null
-      },
-      "localSha256": {},
-      "processing": [
-        "The project contains a disabled provider descriptor and explicit requires-key state only."
-      ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "No third-party material is included. Future acquisition or activation requires review of the selected OpenWeather product terms.",
-        "evidenceUrls": [
-          "https://openweathermap.org/api"
-        ],
-        "attribution": "OpenWeather, if a future user configures the service.",
-        "sourceRedistribution": "not-applicable-no-material",
-        "deployedRedistribution": "not-applicable-no-material",
-        "modification": "not-applicable"
-      },
-      "release": {
-        "inclusionStatus": "placeholder-only",
-        "release1Included": false,
-        "restrictions": "No key, data, image, icon, or tile may be committed or deployed without a new provenance entry and rights review."
-      }
-    },
-    {
-      "id": "legacy-hipparcos-derived-star-file",
-      "category": "excluded-astronomical-catalog-data",
-      "repositoryPaths": [],
-      "productionBundlePaths": [],
-      "originalSource": {
-        "title": "Former Hipparcos-derived TypeScript star subset",
-        "publicationUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239",
-        "publisher": "ESA Hipparcos mission / CDS VizieR",
-        "version": "Former local adapted file; exact source query and redistribution evidence were not retained",
-        "retrievedAt": null
-      },
-      "localSha256": {},
-      "processing": [
-        "The former derived TypeScript subset was removed before this checkpoint.",
-        "The production star layer uses the separately verified HYG v4.1 subset."
-      ],
-      "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "Exact provenance and redistribution permission for the former adapted file were not established.",
-        "evidenceUrls": [
-          "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/239"
-        ],
-        "attribution": "Not applicable because the material is excluded.",
-        "sourceRedistribution": "unresolved",
-        "deployedRedistribution": "unresolved",
-        "modification": "unresolved"
-      },
-      "release": {
-        "inclusionStatus": "excluded",
-        "release1Included": false,
-        "restrictions": "Do not restore the former derived file without exact source, license, checksum, and processing evidence."
-      }
-    },
-    {
-      "id": "github-actions-release-validation-dependencies",
-      "category": "ci-action-dependencies",
+      "id": "tracker-aerosol-air-quality",
+      "category": "runtime-air-quality",
       "repositoryPaths": [
-        ".github/workflows/release-validation.yml"
-      ],
-      "productionBundlePaths": [],
-      "originalSource": {
-        "title": "GitHub-authored Actions used by release validation",
-        "publicationUrl": "https://github.com/actions",
-        "publisher": "GitHub, Inc. and contributors",
-        "version": "checkout 11d5960a326750d5838078e36cf38b85af677262; setup-node 49933ea5288caeca8642d1e84afbd3f7d6820020; upload-artifact ea165f8d65b6e75b540449e92b4886f43607fa02",
-        "retrievedAt": "2026-07-25",
-        "components": [
-          {
-            "id": "actions/checkout",
-            "url": "https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262",
-            "commit": "11d5960a326750d5838078e36cf38b85af677262",
-            "licenseUrl": "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE"
-          },
-          {
-            "id": "actions/setup-node",
-            "url": "https://github.com/actions/setup-node/commit/49933ea5288caeca8642d1e84afbd3f7d6820020",
-            "commit": "49933ea5288caeca8642d1e84afbd3f7d6820020",
-            "licenseUrl": "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE"
-          },
-          {
-            "id": "actions/upload-artifact",
-            "url": "https://github.com/actions/upload-artifact/commit/ea165f8d65b6e75b540449e92b4886f43607fa02",
-            "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
-            "licenseUrl": "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
-          }
-        ]
-      },
-      "localSha256": {
-        ".github/workflows/release-validation.yml": "17eb78967e7fb9a0c8d4061c2d20ce118ea44bd45fb056da1dc55e7bb519b821"
-      },
-      "processing": [
-        "Resolved each mutable v4 reference through the official GitHub API on 2026-07-25.",
-        "Pinned the workflow to the exact commit currently addressed by each reviewed v4 reference.",
-        "No GitHub Action implementation code is copied into the repository or production deployment."
-      ],
-      "rights": {
-        "verification": "verified",
-        "licenseOrBasis": "Each referenced GitHub-maintained Action is published under the MIT License at the pinned commit.",
-        "evidenceUrls": [
-          "https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/LICENSE",
-          "https://github.com/actions/setup-node/blob/49933ea5288caeca8642d1e84afbd3f7d6820020/LICENSE",
-          "https://github.com/actions/upload-artifact/blob/ea165f8d65b6e75b540449e92b4886f43607fa02/LICENSE"
-        ],
-        "attribution": "GitHub Actions: checkout, setup-node, and upload-artifact; each MIT-licensed by GitHub, Inc. and contributors.",
-        "sourceRedistribution": "source-safe-reference-only",
-        "deployedRedistribution": "not-in-production-bundle",
-        "modification": "not-modified"
-      },
-      "release": {
-        "inclusionStatus": "retained",
-        "release1Included": true,
-        "restrictions": "Action revisions must remain commit-pinned. Updating a commit requires an intentional inventory checksum, version, and rights-evidence update."
-      }
-    },
-    {
-      "id": "npm-lockfile-dependencies",
-      "category": "software-dependencies",
-      "repositoryPaths": [
-        "package-lock.json"
+        "src/data/tracker/airQuality.ts"
       ],
       "productionBundlePaths": [
-        "assets/*.js",
-        "assets/*.css"
+        "assets/TrackerApp-*.js"
       ],
       "originalSource": {
-        "title": "npm dependency graph",
-        "publicationUrl": "https://registry.npmjs.org/",
-        "publisher": "Individual package authors and rights holders",
-        "version": "package-lock.json lockfileVersion 3, 281 package entries",
-        "retrievedAt": "2026-07-25"
+        "title": "Open-Meteo Air Quality API (Copernicus Atmosphere Monitoring Service)",
+        "url": "https://air-quality-api.open-meteo.com/v1/air-quality",
+        "publicationUrl": "https://open-meteo.com/en/docs/air-quality-api",
+        "publisher": "Open-Meteo, serving Copernicus Atmosphere Monitoring Service model output",
+        "version": "Runtime API, not a pinned snapshot; hourly aerosol_optical_depth and pm2_5, requested with past_days=1 and forecast_days=3",
+        "retrievedAt": "2026-08-21"
       },
       "localSha256": {
-        "package-lock.json": "b3cf83c5902f735fe58ea85052b4b6be3f7a34202561f6326cc8416bc52a4a9d"
+        "src/data/tracker/airQuality.ts": "7b08a580c9585b2af12699ce53c304d124d37b15d8cd571ac068dc2b11a474d9"
       },
       "processing": [
-        "package-lock.json is the source of truth.",
-        "scripts/provenance/dependency-licenses.mjs checks every locked package license expression and renders THIRD_PARTY_NOTICES.md.",
-        "The only lockfile entry lacking a license field is webgl-constants@1.1.1; official npm metadata identifies published git head 3ed05e37a29cc15cc1f612913723a4c39f808d9d, whose immutable MIT LICENSE has SHA-256 0969fa65680b694452c2c65981df14af5c192da24f2b1f87bdd51d8ed24efcfa."
+        "Fetched from the browser at the observer’s selected location, coordinates rounded to two decimal places so observers in one model cell share a cache entry and a precise location is never used as a cache key. One past day is requested alongside three forecast days because the NowCast below needs the twelve hours preceding the instant being asked about; without it the series begins at 00:00 UTC of the current day and no twelve-hour window exists before noon.",
+        "Aerosol optical depth at 550 nm is the value the interface reasons from; it is converted to magnitudes of extinction (1.0857 per unit optical depth) rather than shown as a bare index, because magnitudes are the unit the observing judgement is made in. The conversion is the definition of optical depth, not a calibration.",
+        "Surface PM2.5 is used for one purpose only: a health reading. It is NOT converted directly to an AQI. The US AQI's PM2.5 breakpoints are defined against a 24-hour average, so an index is derived only from an EPA NowCast — the twelve hourly values ending at the instant in question, weighted by w^i where w = max(0.5, 1 - (max-min)/max) over the available values, summed and divided by the same weights, truncated to one decimal place. EPA's validity rule is applied unchanged: at least two of the three most recent hours must be present, and where it is not met no index is computed and none is displayed. Missing hours are dropped from both sums and are never forward-filled. The AQI category thresholds are a separate function that takes the NowCast concentration as its only input. Where no NowCast is available the interface may still report the hourly concentration as a concentration in µg/m³, without an index and without any AQI category name, since those names belong to a scale that has not been evaluated.",
+        "Aerosol optical depth is merged into the weather snapshots by timestamp with a 45-minute tolerance; a snapshot with no aerosol sample within tolerance keeps its nulls and renders as unmeasured rather than as clean air. The PM2.5 series is read separately and in full, because a NowCast cannot be computed from a single merged snapshot value.",
+        "Requested as a separate query from the weather providers so that losing it costs one condition card rather than the whole row.",
+        "Aerosol optical depth and surface PM2.5 are never combined into a single figure. Where no aerosol model covers a location the interface shows no transparency card rather than substituting the ground-level particulate reading for it.",
+        "Both quantities are modelled output from the Copernicus Atmosphere Monitoring Service, not monitor observations, and hours after the present are forecasts. The interface distinguishes a NowCast whose window has already elapsed from one that projects forward, and states which on the card."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Locked packages declare MIT, ISC, BSD-3-Clause, Apache-2.0, or CC-BY-4.0; webgl-constants@1.1.1 is MIT per its upstream LICENSE.",
+        "licenseOrBasis": "Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. The underlying model output is the Copernicus Atmosphere Monitoring Service, whose data are available under the Copernicus licence permitting free use and redistribution with attribution. The endpoint sends access-control-allow-origin: *, so direct browser use is the intended access pattern.",
         "evidenceUrls": [
-          "https://github.com/TimvanScherpenzeel/webgl-constants/blob/3ed05e37a29cc15cc1f612913723a4c39f808d9d/LICENSE"
+          "https://open-meteo.com/en/features",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://atmosphere.copernicus.eu/"
         ],
-        "attribution": "See THIRD_PARTY_NOTICES.md for the lockfile-derived package inventory and notices.",
-        "sourceRedistribution": "source-safe-lockfile-only",
-        "deployedRedistribution": "deployment-safe-with-notices",
-        "modification": "per-package-license"
+        "attribution": "Aerosol and particulate data from Open-Meteo, derived from the Copernicus Atmosphere Monitoring Service, licensed CC BY 4.0. Rendered in the Tracker conditions caption and in the data-and-privacy panel.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "node_modules is excluded. Dependency changes require an intentional lockfile and notice update."
+        "restrictions": "Attribution must remain visible wherever aerosol figures are shown. Optical depth must not be presented as a smoke concentration, and surface particulate must not be presented as sky transparency. Caching must stay keyed by model cell and never by user. If Orbit Studio ever becomes commercial, Open-Meteo’s non-commercial terms must be re-reviewed before this remains on the free path."
       }
     },
     {
-      "id": "legacy-review-evidence-with-unresolved-current-data",
-      "category": "generated-review-evidence",
-      "repositoryPaths": [],
-      "productionBundlePaths": [],
+      "id": "tracker-aurora-space-weather",
+      "category": "runtime-space-weather",
+      "repositoryPaths": [
+        "src/data/tracker/aurora.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
       "originalSource": {
-        "title": "Previously tracked screenshots and evidence generated from the unresolved CelesTrak snapshot",
-        "publicationUrl": null,
-        "publisher": "Orbit Studio",
-        "version": "Pre-provenance Release 1 review artifacts",
-        "retrievedAt": null
+        "title": "NOAA SWPC OVATION aurora nowcast and planetary K-index products",
+        "url": "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json",
+        "publicationUrl": "https://www.swpc.noaa.gov/products/aurora-30-minute-forecast",
+        "publisher": "NOAA Space Weather Prediction Center",
+        "version": "Runtime API, not a pinned snapshot; ovation_aurora_latest.json, noaa-planetary-k-index-forecast.json, planetary_k_index_1m.json",
+        "retrievedAt": "2026-08-21"
       },
-      "localSha256": {},
+      "localSha256": {
+        "src/data/tracker/aurora.ts": "d73c51da47e0224ff80745dd348002f168489c03de4e05eb3f53a49427fd0b2a"
+      },
       "processing": [
-        "Generated by earlier Orbit Studio review and manual capture workflows."
+        "Tracker's second runtime external request, and the only one that is not per-location: NOAA publishes one global grid, so the request carries no coordinates and every observer shares one fetch. Nothing about the observer is transmitted.",
+        "The OVATION grid is parsed into a typed array indexed by whole degrees. NOAA’s published quantity — the probability of visible aurora in percent — is carried through unmodified and is attributed to NOAA wherever it is shown. Tracker applies no model of its own on top of it.",
+        "Three horizons are kept apart rather than merged: the OVATION nowcast (valid roughly half an hour), the three-day planetary K-index forecast, and nothing at all beyond that. The interface refuses to speak past the third.",
+        "The nowcast and the K-index are separate queries so that a dropped request for one retries without discarding the other. Neither response is stored; both are held in memory for the session only.",
+        "Freshness is read from the product’s own forecast time rather than from a chosen interval: a grid past its forecast time is ageing, and past a further grace period is stale. A stale grid stops producing a probability, an outlook and a ranking weight entirely, and what NOAA last reported is carried separately so the interface can show it as history rather than as advice.",
+        "The ranking weight Tracker derives from NOAA’s probability is an editorial transformation and is declared as one in code (auroraRankingStrength returns editorial: true with a stated basis). NOAA publishes a probability of visible aurora; it does not publish an opinion about whether that beats Saturn.",
+        "Whether aurora could be seen from a location, as distinct from being overhead at it, is derived by Tracker rather than read from NOAA. OVATION reports the probability of aurora overhead; emission occurs at altitude, so it clears the horizon from far outside the oval. SWPC publishes exactly this as the aurora viewline, but only as rendered rasters under /experimental/images/aurora_dashboard/ — there is no coordinate form in /json/, /experimental/json/ or /products/ — so it is not consumed. Instead the horizon reach is computed as R*arccos(R/(R+h)) and the apparent elevation by spherical geometry, with h taken from NOAA's published range of 80-500 km (100 km for the bright lower border, 400 km for tall red emission). The resulting angle and direction are Tracker's derivation and are never attributed to NOAA.",
+        "Copy pass: the sentences Tracker builds from this data were rewritten for plainness without changing what they claim. Nowcast-versus-forecast wording, the expiry language, the attribution of NOAA's probability and the disclaimer that the derived horizon angle is Tracker's own are all preserved verbatim in meaning."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Works of the United States government prepared by NOAA employees in the course of their duties are not subject to domestic copyright. NOAA’s data policy and the SWPC service terms permit free use and redistribution of these products with acknowledgment. The endpoints send access-control-allow-origin: * and a one-minute cache header, so direct browser use is the intended access pattern and no proxy or key is required.",
+        "evidenceUrls": [
+          "https://www.swpc.noaa.gov/content/data-access",
+          "https://www.nesdis.noaa.gov/about/data-and-information-policy",
+          "https://www.spaceweather.gov/"
+        ],
+        "attribution": "Aurora nowcast (OVATION) and planetary K-index from the NOAA Space Weather Prediction Center (public domain). Rendered in the Tracker conditions caption and in the data-and-privacy panel.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "NOAA acknowledgment must remain visible wherever aurora figures are shown, and no endorsement may be implied. Any percentage shown must be NOAA's published figure, unmodified and attributed; a value Tracker derives from it may not be presented as a probability or as NOAA's. Nothing beyond the three-day K-index horizon may be presented as a forecast. If the operator ever adds a proxy, its caching must respect the one-minute publication cadence. The derived horizon-visibility angle and look direction are Tracker's own geometry, not a NOAA product, and must not be presented as NOAA's viewline."
+      }
+    },
+    {
+      "id": "tracker-basemap-tiles",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "src/data/tracker/basemapSource.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "OpenFreeMap public vector tile service, serving the OpenMapTiles schema over OpenStreetMap data",
+        "url": "https://tiles.openfreemap.org/styles/dark",
+        "publicationUrl": "https://openfreemap.org/",
+        "publisher": "OpenFreeMap (service); OpenMapTiles (schema); OpenStreetMap contributors (data)",
+        "version": "Runtime tile service, not a pinned snapshot; style and tiles fetched per session",
+        "retrievedAt": "2026-08-28"
+      },
+      "localSha256": {
+        "src/data/tracker/basemapSource.ts": "5e14196e9c1e1f65e813cba83aa551f018b14993f320010e3aada00f1cf129b6"
+      },
+      "processing": [
+        "The basemap style, its sprites and its vector tiles are fetched from the public OpenFreeMap instance at runtime. No API key is used and no account exists; requests carry the viewport and nothing that identifies the reader.",
+        "The style's own palette is not used as published. Tracker walks the loaded style and repaints it by layer role so the geography recedes far enough for an observing overlay to read on top of it, and so place names appear in ordinary case rather than as uppercase at every rank.",
+        "wiki.openstreetmap.org appears in the bundle inside the style's own attribution string. Tracker does not request it; it is a link the attribution control renders.",
+        "This dependency is temporary and is recorded as such in basemapSource.ts. The intended end state is a Protomaps PMTiles archive on project-controlled static storage, capped at zoom 10, read over HTTP range requests with no third-party tile request at runtime. docs/tracker-spatial-reuse-matrix.md selected that path; the archive and its hosting do not exist yet.",
+        "Measured against the live Protomaps planet build, a whole-world extract is 14 MB to zoom 5 and 179 MB to zoom 7; the chosen zoom-10 ceiling lands near 2.2 GB."
       ],
       "rights": {
         "verification": "unresolved",
-        "licenseOrBasis": "The images are project-generated but visually derive from an orbital dataset whose public redistribution basis was not verified.",
-        "evidenceUrls": [],
-        "attribution": "Not applicable because the artifacts are excluded.",
-        "sourceRedistribution": "unresolved",
-        "deployedRedistribution": "unresolved",
-        "modification": "not-applicable"
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and the OpenMapTiles schema and OpenFreeMap's own stack are openly licensed, so rendering and redistribution of map images are not in question, and the required attribution is rendered in the map's attribution control. What is unresolved is exactly what is unresolved for place search: production reliance on a courtesy public endpoint with no usage agreement. Resolving it means serving our own tiles, which is the recorded plan rather than an aspiration.",
+        "evidenceUrls": [
+          "https://openfreemap.org/",
+          "https://github.com/hyperknot/openfreemap/blob/main/LICENSE",
+          "https://openmaptiles.org/",
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/"
+        ],
+        "attribution": "© OpenStreetMap contributors · OpenFreeMap · OpenMapTiles.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
       },
       "release": {
-        "inclusionStatus": "excluded",
-        "release1Included": false,
-        "restrictions": "Tracked evidence/ and screenshots/ artifacts are removed. Fresh ignored review output is generated from the release-safe production bundle and includes the current notices."
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The OpenStreetMap, OpenFreeMap and OpenMapTiles attribution must remain visible on the map. This entry must not be marked verified while the public instance is the tile source: it is a development and prototyping source, and shipping it as the permanent one was explicitly ruled out."
+      }
+    },
+    {
+      "id": "tracker-cloud-forecast",
+      "category": "runtime-weather-forecast",
+      "repositoryPaths": [
+        "src/data/tracker/cloud.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Open-Meteo Forecast API cloud cover, from NOAA HRRR and the best available global model",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "publicationUrl": "https://open-meteo.com/en/docs",
+        "publisher": "Open-Meteo, from NOAA NCEP (HRRR) and the global models Open-Meteo selects",
+        "version": "Live service; no snapshot retained",
+        "retrievedAt": null
+      },
+      "localSha256": {
+        "src/data/tracker/cloud.ts": "edd96cd924e5cbd040dcb44694146839fc61deb33a7936f7ea372f3188b62d8a"
+      },
+      "processing": [
+        "Total cloud cover is requested for one hour on a twelve-by-eight lattice covering the visible map, in one request of about thirty kilobytes, and only while the reader has the layer switched on. HRRR is named explicitly inside its own domain, where it is the highest-resolution model available; elsewhere Open-Meteo's own model selection answers and the interface says so rather than claiming HRRR.",
+        "The values are interpolated bilinearly and drawn through Tracker's own field pipeline in Tracker's own neutral ramp. The same sampler answers the reading at the reader's coordinate, so the colour on the map and the percentage in the panel come from one set of numbers and cannot disagree.",
+        "Nothing is read back out of a rendered tile. Outside the lattice the field draws nothing rather than extending its edge, so a flat band is never mistaken for a forecast.",
+        "A grid that comes back entirely empty is treated as no forecast rather than as clear sky, and the layer says it has nothing for this view."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Open-Meteo publishes its APIs for free non-commercial use without an API key and licenses the data under CC BY 4.0. HRRR is a NOAA product in the public domain.",
+        "evidenceUrls": [
+          "https://open-meteo.com/en/license",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://rapidrefresh.noaa.gov/hrrr/"
+        ],
+        "attribution": "Cloud forecast from Open-Meteo, licensed CC BY 4.0, using NOAA's HRRR model where it applies.",
+        "sourceRedistribution": "not-applicable-external-service",
+        "deployedRedistribution": "not-bundled",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The attribution must remain with the layer. The model that actually answered must be named in the reading rather than assumed to be HRRR."
+      }
+    },
+    {
+      "id": "tracker-light-pollution-viirs",
+      "category": "scientific-dataset",
+      "repositoryPaths": [
+        "public/tracker/light-pollution-v21-2024.json",
+        "scripts/build-light-pollution-tiles.py",
+        "src/data/tracker/lightPollution.ts"
+      ],
+      "productionBundlePaths": [
+        "tracker/light-pollution-v21-2024.json"
+      ],
+      "originalSource": {
+        "title": "Earth Observation Group Annual VIIRS Nighttime Lights V2.1, annual average, 2024, 15 arc-second",
+        "url": "https://zenodo.org/records/17294744",
+        "publicationUrl": "https://eogdata.mines.edu/products/vnl/",
+        "publisher": "Earth Observation Group, Payne Institute for Public Policy, Colorado School of Mines (data); obtained through the OpenLandMap redistribution on Zenodo (T. Hengl), record 17294744",
+        "version": "nightlights.average_viirs.v21_m_500m_s_20240101_20241231_go_epsg4326_v20250904.tif",
+        "retrievedAt": "2026-08-30",
+        "originalSha256": "md5:0b976892d40c2d0d99177c727289eaf2 (Zenodo-published checksum, verified on download; 63,713,625 bytes)"
+      },
+      "localSha256": {
+        "public/tracker/light-pollution-v21-2024.bin": "8679b8f1f695e5c2df69c6bf10b54c42f9051aa0801d7ef2d2db77deeb70ec8d",
+        "public/tracker/light-pollution-v21-2024.json": "1d974acc36226ccbd261906abe01c0b17b9031e4d2e1a672b5154d74f082413d",
+        "scripts/build-light-pollution-tiles.py": "c3ae8d1376b1bd209b37487c0f879f9c608b40afbce785f1ed32a7cfa3f6c028",
+        "src/data/tracker/lightPollution.ts": "832a745aa9bf44aafb765ba11a58d08b8b4b693adf4826451f62acf8e1373948"
+      },
+      "processing": [
+        "Obtained from the Zenodo redistribution rather than from EOG directly, because eogdata.mines.edu now requires an account: every path under it, including direct file URLs, 302-redirects to a Keycloak sign-in. The Zenodo record is CC BY 4.0 and states that its 2012-2024 layers are the Annual VNL V2 images of Elvidge et al. (2021); only its pre-2012 layers are extrapolated, and none of those are used here. Swapping in EOG's own average_masked GeoTIFF is a one-argument change to the build script for anyone who holds an account.",
+        "The source is EPSG:4326 at 15 arc-seconds, 86400x35849, int16, holding radiance in nW/cm2/sr multiplied by ten. Verified on download against the publisher's own md5.",
+        "scripts/build-light-pollution-tiles.py resamples it into Web Mercator XYZ tiles, 256px, zoom 0 to 8, and writes them as one sparse archive with a JSON index. Zoom 8 is 611m per pixel at the equator and about 430m at 45 degrees, which is where the source's own grid lands; storing finer tiles would store interpolation rather than data.",
+        "Each output pixel is the mean of the source pixels inside it, computed from a summed-area table. Nearest-neighbour was the first implementation and was replaced: the two grids never align, so it returned whichever neighbour was closest to the output centre, which across a city gradient is a real error - central Portland measures 9.7 nW and its neighbour 14.4, and nearest-neighbour returned the neighbour.",
+        "Tiles are 8-bit RGB PNGs with the value split across red (high byte) and green (low byte). 16-bit greyscale is 8% smaller and was tried first, but a browser cannot read one back: decoding needs a 2D canvas and a canvas is 8 bits per channel, so a 16-bit PNG is silently truncated. This is the same reason Terrarium elevation tiles encode the way they do.",
+        "Only tiles containing light exist - 14,928 of them, 47.8 MB. A missing tile means no artificial light was detected anywhere in it, which is true of most of the planet: 2.6% of the source's valid pixels carry any light at all. The browser reads single tiles by HTTP range request, so a reader fetches the 400 KB index once and then a handful of tiles, not the archive.",
+        "The value is carried as radiance all the way to the interface and quoted there alongside its band. It is NOT presented as a Bortle class, an SQM reading, or a limiting magnitude, and no claim is made about which objects will be visible: those are statements about the sky, and deriving them from upward radiance needs an atmospheric scattering model that Tracker does not have. The bands are fixed thresholds on a log scale - 0.25, 1, 4, 16 and 64 nW/cm2/sr - documented in lightPollution.ts and chosen as round numbers before checking where any particular town fell.",
+        "Replaces a 2048x966 render of NASA's Black Marble, about 14 km per pixel, which could not resolve a city: Bend, Oregon, population 100,000, registered as unlit and was reported to the reader as dark. Validated after the change at central Portland 12.3, Wood Village 3.4, Bend 2.9, Sisters 0.8, Manhattan 47.7 and London 14.4 nW/cm2/sr, with the Alvord Desert and the Atacama at zero. Each of those figures was confirmed against the source raster's own pixels before tiling, so the differences are in the measurement and not in the rendering.",
+        "The 46 MB tile archive is not committed and not bundled: .gitignore excludes public/tracker/*.bin and the deployment serves it from R2. It was previously recorded as a repository path and a bundle path, which made a clean checkout look like a repository missing one of its own files — the audit reported it missing on every CI run while it was simply somewhere else. The sparse index beside it stays tracked and bundled, and scripts/build-light-pollution-tiles.py rebuilds the archive from the source recorded here."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The Zenodo record carries CC BY 4.0 and the underlying EOG VIIRS Nighttime Lights products are released under CC BY 4.0. Attribution is required and is satisfied two ways: the map's attribution control names the Earth Observation Group, and the archive's own index file carries the Elvidge et al. (2021) citation the publisher asks for. Redistribution of a derived, resampled product is permitted with that attribution.",
+        "evidenceUrls": [
+          "https://zenodo.org/records/17294744",
+          "https://eogdata.mines.edu/products/vnl/",
+          "https://creativecommons.org/licenses/by/4.0/",
+          "https://doi.org/10.3390/rs13050922"
+        ],
+        "attribution": "Night-time lights: Earth Observation Group, Colorado School of Mines - Annual VIIRS Nighttime Lights V2.1 (Elvidge, Zhizhin, Ghosh, Hsu & Taneja 2021), CC BY 4.0.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The Earth Observation Group credit and the Elvidge et al. (2021) citation must remain, both being conditions of CC BY 4.0. The value must not be presented as a Bortle class, an SQM reading, a limiting magnitude, or as a prediction of what will be visible overhead."
+      },
+      "externallyDeliveredPaths": [
+        "public/tracker/light-pollution-v21-2024.bin"
+      ]
+    },
+    {
+      "id": "tracker-map-renderer",
+      "category": "software-dependencies",
+      "repositoryPaths": [
+        "src/components/tracker/map/TrackerMapCanvas.tsx"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js",
+        "assets/maplibre-gl-worker-*.js"
+      ],
+      "originalSource": {
+        "title": "MapLibre GL JS, an open-source WebGL renderer for vector map tiles",
+        "url": "https://maplibre.org/",
+        "publicationUrl": "https://github.com/maplibre/maplibre-gl-js",
+        "publisher": "MapLibre contributors",
+        "version": "6.6.0, from the npm registry and pinned in package-lock.json",
+        "retrievedAt": "2026-08-28"
+      },
+      "localSha256": {
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "8dbb0286aedacfd1e7c4a261ede3432c00ead6f662abd0068ccfba6eb962e2d4"
+      },
+      "processing": [
+        "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
+        "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",
+        "The renderer's own hostname appears in the bundle only inside the library's licence banner and error strings. Tracker makes no request to maplibre.org at runtime.",
+        "Repeated world copies are on, because the Pacific is one place and a map that stops at the antimeridian makes the reader drag back around to see the other half. Everything Tracker draws over the geography is emitted into the copies either side as well, so a repeated world is never lit where the real one is dark, and a click on any copy is wrapped back to the one longitude that names that place."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "MapLibre GL JS is published under the 3-Clause BSD licence, which permits use, modification and redistribution in source and binary form with the copyright notice and disclaimer retained. The notice travels in the bundled licence banner and in THIRD_PARTY_NOTICES.md.",
+        "evidenceUrls": [
+          "https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt",
+          "https://opensource.org/license/bsd-3-clause"
+        ],
+        "attribution": "Map rendering by MapLibre GL JS, 3-Clause BSD.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The BSD copyright notice and disclaimer must remain in the distributed bundle and in THIRD_PARTY_NOTICES.md."
+      }
+    },
+    {
+      "id": "tracker-place-search-adapter",
+      "category": "runtime-place-search",
+      "repositoryPaths": [
+        "src/data/tracker/geocoding.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Photon geocoder over OpenStreetMap data",
+        "url": "https://photon.komoot.io/api/",
+        "publicationUrl": "https://photon.komoot.io/",
+        "publisher": "Komoot GmbH (service); OpenStreetMap contributors (data)",
+        "version": "Runtime API, not a pinned snapshot; queried per search",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/geocoding.ts": "0be85757996b87ef17a51860533e5732da39b2be07d1c39e9968c903ca2fad92"
+      },
+      "processing": [
+        "Place search runs from the browser against a public Photon instance. Queries are the text the reader typed; no identifier accompanies them and nothing is stored.",
+        "Requests are debounced so a free service is not asked for a result per keystroke, and searches shorter than three characters are not sent at all.",
+        "Results are re-ranked locally to favour the categories an observer means — campsites, parks, reserves, summits, viewpoints and trailheads above street addresses — because the campground case is the one the location contract exists for.",
+        "A coordinate pair typed into the same field is parsed locally and never sent anywhere, which is the fallback for a site too remote to be in any database.",
+        "The adapter declares its cost as public-no-fee and the router will not return a cost-bearing geocoder on the free path, enforced the same way as for weather.",
+        "Results without a `name` are labelled from housenumber and street rather than discarded. Requiring a name dropped every street address, which is why a valid full address reported no matches while queries near a named building resolved to the building instead."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "The underlying data is OpenStreetMap under ODbL 1.0 and attribution is rendered in the Tracker sources detail, so redistribution of results is not in question. What is unresolved is production reliance on a courtesy public endpoint: no usage agreement has been sought with the instance operator, and a product sending real traffic to a free community service should either have one or run its own. Resolving it means either an agreement, a self-hosted Photon, or a paid provider — and the last of those is barred from the free path by the cost rule.",
+        "evidenceUrls": [
+          "https://photon.komoot.io/",
+          "https://www.openstreetmap.org/copyright",
+          "https://opendatacommons.org/licenses/odbl/1-0/"
+        ],
+        "attribution": "Place search © OpenStreetMap contributors, ODbL 1.0. Geocoding by Photon.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "OpenStreetMap attribution must remain visible. Searches must stay debounced and must not carry a user identifier. No cost-bearing geocoder may be added to the free path. This entry must not be marked verified until production use of the endpoint is put on a footing the operator has agreed to."
+      }
+    },
+    {
+      "id": "tracker-terrain-elevation",
+      "category": "runtime-external-service",
+      "repositoryPaths": [
+        "src/data/tracker/terrainSource.ts",
+        "src/data/tracker/terrainHorizon.ts",
+        "src/data/tracker/demService.ts",
+        "src/data/tracker/eventTerrain.ts",
+        "src/data/tracker/geodesy.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "Mapterhorn public terrain tiles, Terrarium-encoded elevation built from 148 open elevation datasets",
+        "url": "https://tiles.mapterhorn.com/tilejson.json",
+        "publicationUrl": "https://mapterhorn.com/attribution",
+        "publisher": "Mapterhorn (tile build and service); the 148 national, regional and agency producers listed at mapterhorn.com/attribution (data)",
+        "version": "Runtime tile service, not a pinned snapshot; TileJSON read per session, tiles fetched on demand",
+        "retrievedAt": "2026-08-30"
+      },
+      "localSha256": {
+        "src/data/tracker/demService.ts": "2b228b2dd610cca8133fb60a5992e0a34a201333da9e57df3dc18e48ee165002",
+        "src/data/tracker/eventTerrain.ts": "6735e7a81b6cba976bacd01b0b5303faf53429fb05f691f27f37c06c4ae4da26",
+        "src/data/tracker/geodesy.ts": "b1e680275d6dffefd0cf9dcb9dd39997a767001eb9dc720732c20ffe004a68b3",
+        "src/data/tracker/terrainHorizon.ts": "71e61b09418c0f007de0d5c984ef5bd6e5461ffaba6b73a6e48ed1d5e7edbab5",
+        "src/data/tracker/terrainSource.ts": "1a47e4c87581c81bacebcac05f39b23366d5e9732feaba729b18e90e6bb51bb5"
+      },
+      "processing": [
+        "Terrain tiles are fetched from the public Mapterhorn instance at runtime, as 512px Terrarium-encoded WebP. Requests carry a tile coordinate and nothing that identifies the reader. No API key is used and no account exists.",
+        "The tiles are read twice, for different purposes. The map draws them as a MapLibre hillshade layer for relief. Separately, Tracker decodes them off-screen to elevations and computes a horizon profile along the bearing of the event a reader has opened: elevation = (R*256 + G + B/256) - 32768 metres, then apparent angle tan(a) = (h - d^2/2R) / d against a refracted Earth radius of 7/6 R.",
+        "The analytical read is capped at zoom 11 and 40 km, and at zoom 10 and 18 km for an event's own track. Not for cartographic reasons: the service throttles, and a measured 21-way concurrent fetch returned 11 tiles, 8 timeouts and 2 aborts inside 20 seconds. Four concurrent requests with a 20-second budget completes in about 2 seconds.",
+        "Sampling stops at Mapterhorn's zoom 15, which is where the service stops serving distinct data. Asking for more returns an overzoomed tile with the same posts resampled, which would manufacture precision the terrain does not have.",
+        "The horizon result is reported in half-degree steps and can return 'unknown'. The underlying post spacing varies by more than two orders of magnitude across the 148 sources — 0.5 m in parts of France, 30 m where only Copernicus GLO-30 covers — so a single stated accuracy for the layer would be false anywhere but the source it was measured on.",
+        "This dependency is a courtesy public endpoint on the same terms as the basemap, and is recorded as such in terrainSource.ts.",
+        "Verified against ground truth at four sites: Kansas plains 544 m with a 0-0.1 degree horizon; Portland 21 m with West Hills at 4.2 degrees west; Chamonix 1035 m, matching the town's published elevation exactly, with valley walls at 22.4 degrees east and 20.4 degrees west; Sahara 544 m at 1-2 degrees."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "Mapterhorn's own code is BSD-3-Clause and its published source catalogue lists 148 datasets, every one of them open: 37 CC BY 4.0, 34 US Government public domain, 21 Licence Ouverte 2.0, the Copernicus full, free and open licence, and the remainder open government or CC0/CC-BY variants. Nothing in the catalogue is non-commercial, share-alike or research-only, so drawing and redistributing derived map images is not in question. Most of those licences do require attribution and no map corner can carry 148 credits; the publisher's own mechanism, which those licences accept, is a link to the full list, and Tracker's attribution control renders that link. What is unresolved is the same thing that is unresolved for the basemap and for place search: production reliance on a free public endpoint with no usage agreement, on a service that is measurably rate-limited.",
+        "evidenceUrls": [
+          "https://mapterhorn.com/attribution",
+          "https://download.mapterhorn.com/attribution.json",
+          "https://github.com/mapterhorn/mapterhorn/blob/main/LICENSE",
+          "https://www.usgs.gov/3d-elevation-program",
+          "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM"
+        ],
+        "attribution": "Terrain © Mapterhorn, from USGS 3DEP, Copernicus DEM and other open elevation sources, linked to the full source list at mapterhorn.com/attribution.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The Mapterhorn credit must remain a live link to mapterhorn.com/attribution: that link is what satisfies the attribution terms of the CC BY and open-government datasets underneath, and replacing it with plain text would leave those credits undischarged. This entry must not be marked verified while the public instance is the tile source."
+      }
+    },
+    {
+      "id": "tracker-weather-forecast-adapters",
+      "category": "runtime-weather-forecast",
+      "repositoryPaths": [
+        "src/data/tracker/weatherProviders.ts"
+      ],
+      "productionBundlePaths": [
+        "assets/TrackerApp-*.js"
+      ],
+      "originalSource": {
+        "title": "MET Norway Locationforecast 2.0 and the US National Weather Service API",
+        "url": "https://api.met.no/weatherapi/locationforecast/2.0/",
+        "publicationUrl": "https://docs.api.met.no/doc/locationforecast/HowTO.html",
+        "publisher": "Norwegian Meteorological Institute; NOAA National Weather Service",
+        "version": "Runtime API, not a pinned snapshot; queried live per observing location",
+        "retrievedAt": "2026-08-16"
+      },
+      "localSha256": {
+        "src/data/tracker/weatherProviders.ts": "10e1da46ff3f455a7148f98e64254e5e85d35ec98230884613697a0734f706bc"
+      },
+      "processing": [
+        "This is Tracker's first runtime external request. Forecasts are fetched from the browser at the observer's selected location and are never bundled, stored on a server, or attributed to a user.",
+        "Requests are keyed and cached by forecast grid cell, coordinates rounded to two decimal places, rather than by user. Rounding is both a caching requirement of the providers and a deliberate limit on the precision of the location that is transmitted.",
+        "Routing prefers the National Weather Service inside the United States for its finer grid and falls back to MET Norway globally. Both are declared public-no-fee; the router will not return a cost-bearing adapter on the free path.",
+        "Provider schemas are normalised into one internal ConditionSnapshot. MET Norway's fog area fraction is converted to a nominal visibility in metres, which is the only place a provider's value is reinterpreted rather than renamed.",
+        "No smoke or air-quality source is fetched. Those snapshot fields stay null, and the model treats null as unknown rather than as clean air."
+      ],
+      "rights": {
+        "verification": "unresolved",
+        "licenseOrBasis": "MET Norway Locationforecast is published under CC BY 4.0 and the National Weather Service API is US Government work in the public domain, so redistribution of the *data* is not in question. What is unresolved is compliance with the providers' identification requirement: both ask a caller to send a User-Agent identifying the application, and a browser cannot — User-Agent is a forbidden header name in the Fetch standard, so the browser discards it and sends its own. Verified empirically against an echo service. Resolving this means routing through a caching proxy that can set the header, which is a server and therefore a running cost.",
+        "evidenceUrls": [
+          "https://api.met.no/doc/TermsOfService",
+          "https://www.weather.gov/documentation/services-web-api",
+          "https://creativecommons.org/licenses/by/4.0/"
+        ],
+        "attribution": "Weather data from MET Norway, licensed CC BY 4.0. Forecast data from the US National Weather Service (public domain). Both attributions are rendered in the Tracker conditions detail.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Attribution must remain visible in the conditions detail. Caching must stay keyed by grid cell and never by user. The identification gap above must not be marked resolved until requests carry an identifying User-Agent. No cost-bearing weather or geocoding provider may be added to the free path."
+      }
+    },
+    {
+      "id": "vallado-python-sgp4-reference-vector",
+      "category": "adapted-code-and-verification-vector",
+      "repositoryPaths": [
+        "scripts/report-orbital-population-validation.ts",
+        "src/rendering/catalogPopulationValidation.test.ts",
+        "src/rendering/catalogMotion.test.ts",
+        "src/rendering/orbitPathSampling.test.ts"
+      ],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Vanguard 1 example from Python-SGP4 package metadata, based on Vallado et al. AIAA-2006-6753",
+        "publicationUrl": "https://github.com/brandon-rhodes/python-sgp4",
+        "publisher": "Brandon Rhodes; reference implementation lineage credited to David A. Vallado and coauthors",
+        "version": "Example reproduced in satellite.js 5.0.0 ORIGINAL-PKG-INFO from Python-SGP4 1.1",
+        "retrievedAt": "2026-07-18"
+      },
+      "localSha256": {
+        "scripts/report-orbital-population-validation.ts": "66b4e41ee170c394766d96bb3d4c7c28d45ae66d56486c96b7c4d993c40565b6",
+        "src/rendering/catalogMotion.test.ts": "c126f9ed3c82d8bf1fa97db3b48d229e657d6d4d7cc1bf0dbb533e8aff155cf8",
+        "src/rendering/catalogPopulationValidation.test.ts": "7efc5acd3a091373f1ec2651c75055c164c1bdb3cd20f24f031a921d1febc1ae",
+        "src/rendering/orbitPathSampling.test.ts": "4a8ebf6106f94ce24355697d331a12157d2cd9a0b72379564ac1fe7bc71d1268"
+      },
+      "processing": [
+        "Copied the published Vanguard 1 TLE and expected position/velocity values into an independent conformance test and report generator.",
+        "Converted the Python-SGP4 example's stated meter and meter-per-second outputs to kilometer and kilometer-per-second test units."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Python-SGP4 and satellite.js publish the relevant package material under the MIT License.",
+        "evidenceUrls": [
+          "https://github.com/brandon-rhodes/python-sgp4/blob/master/LICENSE",
+          "https://github.com/shashwatak/satellite-js/blob/v5.0.0/LICENSE.md"
+        ],
+        "attribution": "Vallado et al., AIAA-2006-6753; example reproduced by Python-SGP4 and satellite.js under MIT terms.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained-test-only",
+        "release1Included": true,
+        "restrictions": "Retain attribution and dependency MIT notices."
+      }
+    },
+    {
+      "id": "wikimedia-perseid-realtime-footage",
+      "category": "experiential-motion-media",
+      "repositoryPaths": [
+        "public/media/perseids-realtime-bautsch-cc0.webm",
+        "public/media/perseids-realtime-bautsch-cc0-poster.webp"
+      ],
+      "productionBundlePaths": [
+        "media/perseids-realtime-bautsch-cc0.webm",
+        "media/perseids-realtime-bautsch-cc0-poster.webp"
+      ],
+      "originalSource": {
+        "title": "Perseiden.Echtzeit.2020-08-12.webm",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Perseiden.Echtzeit.2020-08-12.webm",
+        "publicationUrl": "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
+        "publisher": "Wikimedia Commons",
+        "version": "Natural-speed historical Perseid footage recorded 2020-08-12, 1920×1080, retrieved 2026-08-18",
+        "retrievedAt": "2026-08-18"
+      },
+      "localSha256": {
+        "public/media/perseids-realtime-bautsch-cc0-poster.webp": "cc8b6b123e35baa061e0a4dddb66f8fb72ac846c2ccd262c13c7f591711703da",
+        "public/media/perseids-realtime-bautsch-cc0.webm": "73fa16841240d546952ab7cbbd3b1b9e52175a8b6de5519b2ebb4f4c0cb0d958"
+      },
+      "processing": [
+        "Downloaded from the Wikimedia upload host at publication resolution (1920×1080, 6,818,693 bytes, SHA-256 ae083f54063cb4ec7bcb30aa6ba959bab6854c04c781d8c2491d347bd470c1b7). Rescaled to 1280×720 and re-encoded VP9 at CRF 36, taking it from 6.8 MB to 594 kB; the audio track was dropped, since the clip is used muted and shipping an unused stream is dead weight. The poster is frame one of the same clip, encoded to WebP.",
+        "No frames were altered, recoloured, composited or reordered. The footage is a real historical capture and is presented as representative natural-speed footage, never as a live feed or the reader's current sky.",
+        "The licence was verified against this individual file rather than inherited from the host. The Commons API returns LicenseShortName CC0, UsageTerms \"Creative Commons Zero, Public Domain Dedication\", Artist Bautsch, Credit \"Own work\". Wikimedia hosts files under many different licences and one file's terms say nothing about the next."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "Creative Commons Zero 1.0 Universal public-domain dedication. The author has waived copyright and neighbouring rights worldwide, so no permission or attribution is legally required. Attribution is rendered anyway: the reader is being shown someone else's night, and saying whose is a matter of honesty rather than compliance.",
+        "evidenceUrls": [
+          "https://commons.wikimedia.org/wiki/File:Perseiden.Echtzeit.2020-08-12.webm",
+          "https://creativecommons.org/publicdomain/zero/1.0/"
+        ],
+        "attribution": "Bautsch, via Wikimedia Commons. CC0 1.0.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "This is representative historical footage of the phenomenon, not a recording of the reader's sky. The interface must retain its representative claim, historical capture date, and naked-eye/natural-speed context. Presenting it as a live view, a forecast, or a depiction of tonight from the reader's location would be a factual claim the product cannot support."
+      }
+    },
+    {
+      "id": "webfont-typefaces-ofl",
+      "category": "webfont-typefaces",
+      "originalSource": {
+        "title": "IBM Plex Sans, Space Grotesk and Space Mono, packaged by Fontsource",
+        "url": "https://fontsource.org/",
+        "publicationUrl": "https://openfontlicense.org/",
+        "publisher": "IBM Corp.; the Space Grotesk Project Authors; the Space Mono Project Authors — packaged by Fontsource",
+        "version": "@fontsource-variable/ibm-plex-sans 5.3.0, @fontsource-variable/space-grotesk 5.3.0, @fontsource/space-mono 5.3.0",
+        "retrievedAt": null
+      },
+      "repositoryPaths": [],
+      "productionBundlePaths": [
+        "assets/ibm-plex-sans-*.woff2",
+        "assets/space-grotesk-*.woff2",
+        "assets/space-mono-*.woff2",
+        "assets/space-mono-*.woff"
+      ],
+      "processing": [
+        "Installed as npm dependencies and imported in src/main.tsx; Vite emits the subset files each package ships and content-hashes their names, which is why these are claimed by pattern rather than by filename.",
+        "The font binaries are redistributed byte for byte. Nothing is subset, re-hinted, renamed or otherwise modified, so the OFL's reserved-name and modification clauses are not engaged.",
+        "Each package declares OFL-1.1 in its own package.json and ships the licence text, and THIRD_PARTY_NOTICES.md reproduces it in full alongside the copyright lines."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "SIL Open Font License 1.1, declared as the SPDX identifier OFL-1.1 in all three packages and reproduced from each package's own LICENSE file. The OFL permits redistribution of the fonts, bundled with software, provided the copyright and licence notice travel with them and the fonts are not sold on their own. Both conditions are met: the notices are reproduced in THIRD_PARTY_NOTICES.md, which the build copies into the deployment, and the fonts are shipped as part of the application rather than sold.",
+        "evidenceUrls": [
+          "https://openfontlicense.org/",
+          "https://fontsource.org/fonts/ibm-plex-sans",
+          "https://fontsource.org/fonts/space-grotesk",
+          "https://fontsource.org/fonts/space-mono"
+        ],
+        "attribution": "IBM Plex Sans © 2019 IBM Corp. Space Grotesk © 2020 The Space Grotesk Project Authors. Space Mono © 2016 The Space Mono Project Authors. All three under the SIL Open Font License 1.1.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "permitted-with-attribution"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The OFL notices in THIRD_PARTY_NOTICES.md must keep reaching the deployment; they are the condition on which these files may be redistributed at all. The fonts must not be renamed, and any future subsetting would engage the reserved-name clause and needs its own review. They must never be offered for sale on their own, bundled or otherwise."
       }
     }
   ]

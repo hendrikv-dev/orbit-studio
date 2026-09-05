@@ -1,14 +1,21 @@
-import { useEffect, useRef, useState } from "react";
-import { Check, Eye, EyeOff, Github, MoreHorizontal } from "lucide-react";
+import { useEffect, useRef, useState, useCallback} from "react";
+import { Check, Eye, EyeOff, Github, Heart, MoreHorizontal } from "lucide-react";
+import { orbitStudioRepositoryUrl, orbitStudioSponsorUrl } from "../../lib/projectLinks";
+import { useDismissableSurface } from "../../data/tracker/dismissable";
 
-export type OrbitAppId = "explorer" | "playground";
+export type OrbitAppId = "explorer" | "playground" | "tracker";
 
 interface OrbitAppMenuProps {
   activeApp: OrbitAppId;
   onOpenHome: () => void;
   onOpenExplorer: () => void;
   onOpenPlayground: () => void;
-  onHideInterface: () => void;
+  onOpenTracker: () => void;
+  /**
+   * Tracker has no "hide the interface" mode — its interface *is* the map's
+   * controls, and a map with no controls is not a cleaner view of anything.
+   */
+  onHideInterface?: () => void;
 }
 
 interface DestinationItemProps {
@@ -39,9 +46,14 @@ export function OrbitAppMenu({
   onOpenHome,
   onOpenExplorer,
   onOpenPlayground,
+  onOpenTracker,
   onHideInterface,
 }: OrbitAppMenuProps) {
   const [open, setOpen] = useState(false);
+  const closeSurface = useCallback(() => setOpen(false), []);
+  // While this is open, a click on the map dismisses it rather than
+  // moving the reader's observing location.
+  useDismissableSurface(open, closeSurface);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -105,18 +117,20 @@ export function OrbitAppMenu({
             label="Playground"
             onSelect={() => activeApp === "playground" ? setOpen(false) : select(onOpenPlayground)}
           />
+          <DestinationItem
+            active={activeApp === "tracker"}
+            iconSrc="/brand/orbit-studio-tracker-icon.png"
+            label="Tracker"
+            onSelect={() => activeApp === "tracker" ? setOpen(false) : select(onOpenTracker)}
+          />
 
           <div aria-hidden="true" className="orbit-app-menu-divider" />
 
-          <button role="menuitem" type="button" onClick={() => select(onHideInterface)}>
-            <EyeOff aria-hidden="true" size={17} />
-            <span>Hide interface</span>
-          </button>
-
-          <div aria-hidden="true" className="orbit-app-menu-divider" />
-
+          {/* Project links are grouped together: both leave the app, so they read
+              as one kind of action. Support sits beside GitHub rather than in its
+              own group, which would give it emphasis it should not have. */}
           <a
-            href="https://github.com/hendrikv-dev/orbit-studio"
+            href={orbitStudioRepositoryUrl}
             rel="noreferrer"
             role="menuitem"
             target="_blank"
@@ -125,6 +139,28 @@ export function OrbitAppMenu({
             <Github aria-hidden="true" size={17} />
             <span>GitHub</span>
           </a>
+
+          <a
+            href={orbitStudioSponsorUrl}
+            rel="noreferrer"
+            role="menuitem"
+            target="_blank"
+            onClick={() => setOpen(false)}
+          >
+            <Heart aria-hidden="true" size={17} />
+            <span>Support Orbit Studio</span>
+          </a>
+
+          {onHideInterface ? (
+            <>
+              <div aria-hidden="true" className="orbit-app-menu-divider" />
+              {/* View control last: it acts on the current screen, not the project. */}
+              <button role="menuitem" type="button" onClick={() => select(onHideInterface!)}>
+                <EyeOff aria-hidden="true" size={17} />
+                <span>Hide interface</span>
+              </button>
+            </>
+          ) : null}
         </div>
       )}
     </div>

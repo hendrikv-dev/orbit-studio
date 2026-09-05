@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 import {
   cartesianToKeplerian,
   isValidCartesian,
@@ -167,14 +167,6 @@ interface SimulationStore {
   loadScenarioJson: (json: string) => void;
   clearImportError: () => void;
 }
-
-const initialScenario = createPlaygroundScenario();
-resetStudioPlaybackClock({
-  simulationTimeUtc: initialScenario.simulationTimeUtc,
-  isPlaying: true,
-  timeScale: initialScenario.timeScale,
-  isReverse: initialScenario.isReverse,
-});
 
 function selectedSatelliteIdForScenario(scenario: Scenario): string | null {
   if (scenario.selectedObjectType === "satellite") {
@@ -353,7 +345,15 @@ function addGeneratedConstellation(
   };
 }
 
-export const useSimulationStore = create<SimulationStore>((set, get) => ({
+function createSimulationStore(initialScenario: Scenario): UseBoundStore<StoreApi<SimulationStore>> {
+  resetStudioPlaybackClock({
+    simulationTimeUtc: initialScenario.simulationTimeUtc,
+    isPlaying: true,
+    timeScale: initialScenario.timeScale,
+    isReverse: initialScenario.isReverse,
+  });
+
+  return create<SimulationStore>((set, get) => ({
   scenario: initialScenario,
   selectedSatelliteId: selectedSatelliteIdForScenario(initialScenario),
   selectedGroundStationId: selectedGroundStationIdForScenario(initialScenario),
@@ -1551,3 +1551,40 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
 
   clearImportError: () => set({ importError: null }),
 }));
+}
+
+export type SimulationEnvironment = "explorer" | "playground";
+
+const explorerSimulationStore = createSimulationStore(createPlaygroundScenario());
+const playgroundSimulationStore = createSimulationStore(createPlaygroundScenario());
+let activeSimulationEnvironment: SimulationEnvironment = "playground";
+
+function activeSimulationStore(): UseBoundStore<StoreApi<SimulationStore>> {
+  return activeSimulationEnvironment === "explorer"
+    ? explorerSimulationStore
+    : playgroundSimulationStore;
+}
+
+export function setActiveSimulationEnvironment(environment: SimulationEnvironment): void {
+  activeSimulationEnvironment = environment;
+}
+
+export function getSimulationStoreForEnvironment(
+  environment: SimulationEnvironment,
+): UseBoundStore<StoreApi<SimulationStore>> {
+  return environment === "explorer" ? explorerSimulationStore : playgroundSimulationStore;
+}
+
+export const useSimulationStore = Object.assign(
+  function useActiveSimulationStore<T>(selector: (state: SimulationStore) => T): T {
+    return activeSimulationStore()(selector);
+  },
+  {
+    getState: () => activeSimulationStore().getState(),
+    getInitialState: () => activeSimulationStore().getInitialState(),
+    setState: (...args: Parameters<StoreApi<SimulationStore>["setState"]>) =>
+      activeSimulationStore().setState(...args),
+    subscribe: (...args: Parameters<StoreApi<SimulationStore>["subscribe"]>) =>
+      activeSimulationStore().subscribe(...args),
+  },
+) as UseBoundStore<StoreApi<SimulationStore>>;

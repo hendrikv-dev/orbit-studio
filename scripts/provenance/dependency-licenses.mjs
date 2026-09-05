@@ -9,12 +9,57 @@ export const projectRoot = path.resolve(scriptDirectory, "../..");
 export const dependencyNoticePath = path.join(projectRoot, "THIRD_PARTY_NOTICES.md");
 
 const supportedLicenses = new Set([
+  // BSD Zero Clause: OSI-approved and strictly more permissive than MIT, which
+  // is already allowed — it grants the same rights and drops the attribution
+  // requirement. Reached the tree as a transitive dependency of
+  // react-aria-components (tslib, via @swc/helpers and aria-hidden).
+  "0BSD",
   "Apache-2.0",
+  // BSD 2-Clause: BSD-3-Clause without the non-endorsement clause, so it grants
+  // the same rights under strictly fewer conditions than a licence already on
+  // this list. Reached the tree through maplibre-gl, via @mapbox/unitbezier —
+  // Apple's cubic-bezier solver, which MapLibre uses for camera easing.
+  "BSD-2-Clause",
   "BSD-3-Clause",
+  // A dual licence offering the choice of MIT or Apache-2.0, both of which are
+  // already allowed on their own. Taking either satisfies the whole obligation,
+  // so this is not a new set of terms to review — it is two reviewed sets with
+  // an "or" between them. Reached the tree through maplibre-gl, via
+  // @maplibre/mlt (the MapLibre Tile specification).
+  "(MIT OR Apache-2.0)",
+  // CC0 1.0 Universal: a public-domain dedication rather than a licence. The
+  // owner relinquishes copyright and related rights entirely, so it imposes no
+  // condition at all — weaker than CC-BY-4.0, which is already allowed and does
+  // require attribution. Reached the tree via @photostructure/tz-lookup, whose
+  // timezone boundaries derive from Evan Siroky's timezone-boundary-builder.
+  "CC0-1.0",
   "CC-BY-4.0",
   "ISC",
   "MIT",
+  // SIL Open Font License 1.1, the standard licence for open typefaces and the
+  // one Space Grotesk, IBM Plex Sans and Space Mono all ship under. It permits
+  // bundling, embedding and redistribution, including in a commercial product.
+  // Its two real conditions are both satisfied here: the fonts are not sold on
+  // their own — they are shipped as part of an application — and neither the
+  // font files nor their reserved names are modified. A derivative typeface
+  // would have to be renamed and released under OFL itself, which is why this
+  // sits in the allowlist rather than being waved through as "permissive".
+  "OFL-1.1",
 ]);
+
+/**
+ * Licences accepted only for development dependencies.
+ *
+ * MPL-2.0 is weak copyleft: its obligations attach to distributing the covered
+ * files, and a package used to test the build is never distributed — it is not
+ * in the bundle, the source archive, or the release. That reasoning holds only
+ * while the package stays development-only, so it is encoded as a rule rather
+ * than written in a comment beside a blanket allowance. A runtime dependency
+ * arriving under MPL-2.0 still fails.
+ *
+ * Reached the tree via @axe-core/playwright, which runs the accessibility gate.
+ */
+const developmentOnlyLicenses = new Set(["MPL-2.0"]);
 
 const licenseOverrides = new Map([
   [
@@ -83,16 +128,20 @@ export async function readDependencyAudit(root = projectRoot) {
     const override = licenseOverrides.get(key);
     const license = metadata.license ?? override?.license ?? null;
 
-    if (!license) failures.push(`license-missing:${key}`);
-    if (license && !supportedLicenses.has(license)) {
-      failures.push(`license-unreviewed:${key}:${license}`);
-    }
-
     const classification = metadata.dev
       ? "development"
       : metadata.optional
         ? "optional-platform"
         : "runtime";
+
+    if (!license) failures.push(`license-missing:${key}`);
+    if (license && !supportedLicenses.has(license)) {
+      if (classification === "development" && developmentOnlyLicenses.has(license)) {
+        // Allowed here and nowhere else. See developmentOnlyLicenses.
+      } else {
+        failures.push(`license-unreviewed:${key}:${license}`);
+      }
+    }
     const packageDirectory = path.join(root, lockPath);
     const files = classification === "runtime"
       ? await noticeFiles(packageDirectory)

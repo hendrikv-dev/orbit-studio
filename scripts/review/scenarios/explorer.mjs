@@ -1,3 +1,8 @@
+import {
+  reviewPlaybackSpeeds as playbackSpeeds,
+  reviewPlaybackTimeScales as playbackTimeScales,
+} from "../playback-speeds.mjs";
+
 const timelineCaptures = [1957, 1965, 1980, 1990, 2000, 2015];
 const historicalMilestones = [
   { id: "snapshot-1957", year: "1957" },
@@ -9,14 +14,6 @@ const historicalMilestones = [
   { id: "snapshot-2015", year: "2015" },
   { id: "snapshot-2019", year: "2019" },
 ];
-const playbackSpeeds = ["1x", "10x", "100x", "1000x", "max"];
-const playbackTimeScales = {
-  "1x": 1,
-  "10x": 10,
-  "100x": 100,
-  "1000x": 1_000,
-  max: 2_500,
-};
 const timelineVideoSampleRate = 4;
 const timelineVideoDurationSeconds = 12;
 export const rendererDiagnosticsObservationIntervalWallMs = 500;
@@ -223,6 +220,13 @@ export function playbackMotionValidation(speed, timeScale, samples) {
 export const explorerReviewScenario = {
   id: "explorer",
   title: "Explorer",
+  /**
+   * This review renders the current satellite catalog, so every state it
+   * captures has to prove the catalog it rendered was the release-safe one.
+   * See `catalogAuthority` in scripts/release/source-identity.mjs for what that
+   * obliges each state to carry.
+   */
+  catalogAuthority: "current-catalog",
   notes: {
     featuresImplemented: [
       "Release-safe complete latest-public GCAT membership with explicitly reconstructed educational positions",

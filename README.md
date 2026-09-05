@@ -1,10 +1,13 @@
 # Orbit Studio
 
-Orbit Studio is an open-source platform for exploring orbital data and building space simulations. The current release includes two apps:
+Orbit Studio is a platform for exploring orbital data, building space simulations, and planning what
+to observe from Earth. The current release includes three apps:
 
-- **Explorer**: review the publicly available catalog over time, inspect objects, and understand
-  catalog sources and historical reconstruction quality.
-- **Playground**: change orbital elements and see how each parameter affects an orbit.
+- **Explorer** (open source): review the publicly available catalog over time, inspect objects, and
+  understand catalog sources and historical reconstruction quality.
+- **Playground** (open source): change orbital elements and see how each parameter affects an orbit.
+- **Tracker**: pick a place and a date, and see what is worth observing from there, with timing,
+  direction and conditions. Source-available; see `LICENSES.md`.
 
 ## Core Features
 
@@ -154,8 +157,10 @@ public/             Static assets served by Vite
 
 ## Source use and proposed changes
 
-The source may be inspected, adapted, forked, and used as a foundation for other projects under the
-MIT License. The official Orbit Studio repository, roadmap, releases, and brand remain
+Explorer, Playground, the shared shell and the tooling may be inspected, adapted, forked, and used
+as a foundation for other projects under the MIT License. Tracker is source-available rather than
+open source: it may be read, run and verified, and `LICENSES.md` says exactly which paths that
+covers. The official Orbit Studio repository, roadmap, releases, and brand remain
 maintainer-controlled. Issues and pull requests are proposals and may be accepted, revised, or
 declined. Read `CONTRIBUTING.md`, `AGENTS.md`, `docs/ORBIT_CONSTITUTION.md`, and
 `docs/MAINTAINER_HANDOFF.md` before proposing a change.
@@ -168,11 +173,93 @@ Ko-fi, Open Collective, or enabled GitHub Sponsors destination. The Support and 
 hidden when the variable is unset, so the public build never ships a dead or invented payment link.
 See `.env.example`.
 
+## Light-pollution archive
+
+Tracker's light-pollution layer reads measured VIIRS radiance from a 47.8 MB
+numeric archive. It is generated data: the repository carries the index, the
+build script, the source and its checksum, and `.gitignore` excludes the blob.
+Because the blob is not in the repository, a deployed build does not have one:
+the layer reports `Measurements unavailable` until an archive is served to it.
+Serve it from object storage — Cloudflare R2 — and set
+`VITE_LIGHT_POLLUTION_BASE` to the bucket's public base URL in the site host's
+build environment, then redeploy. Leave it unset for development, which reads
+the copy in `public/tracker/`.
+`docs/LIGHT_POLLUTION_DELIVERY.md` has the format, the build, the upload and
+CORS steps, and how to verify a published archive.
+
 ## License
 
-Source code is released under the MIT License. See `LICENSE`.
+This repository has two licences, and `LICENSES.md` is the map of which applies where.
 
-The MIT license applies to Orbit Studio's original source code, not to third-party material governed
-by separate terms. Required attribution, rights bases, restrictions, and inclusion decisions are in
-`ATTRIBUTION.md`, `THIRD_PARTY_NOTICES.md`, and `provenance/inventory.json`. Locally acquired current
-or historical catalogs are not part of the public release.
+- **MIT** (`LICENSE`) for everything by default — Explorer, Playground, the shared application
+  shell, and the build and verification tooling.
+- **All rights reserved** (`LICENSE-TRACKER`) for Tracker's own code, listed by path in
+  `LICENSES.md`. It stays public and readable: a product that makes claims about the sky should be
+  checkable. It is not offered for reuse.
+
+Nothing there is retroactive. Files published previously under the MIT License remain available
+under the MIT License at the commits where they were published.
+
+Neither licence applies to third-party material, which keeps its own terms wherever it appears.
+Required attribution, rights bases, restrictions, and inclusion decisions are in `ATTRIBUTION.md`,
+`THIRD_PARTY_NOTICES.md`, and `provenance/inventory.json`. Locally acquired current or historical
+catalogs are not part of the public release.
+
+## Use Orbit Studio as a website
+
+Orbit Studio is a browser application. Open the hosted site, then choose **Explorer** or **Playground** from the homepage.
+
+### Explorer
+
+Use Explorer to search the public orbital catalog, select an object, change the historical date, control playback, and inspect the displayed orbit and source-backed metadata. On phones and narrow tablets, use the bottom dock to open Explore, Display, Orbit, and Playback sheets. Each sheet has one mobile-only drag handle and can be dismissed by dragging downward or tapping the handle.
+
+Historical positions may be reconstructed from the best available public data rather than directly observed at every date. Orbit Studio communicates the available reconstruction and provenance rather than presenting all positions as equally verified. It is an educational visualization, not a live operational tracking service.
+
+### Playground
+
+Use Playground to add satellites and change altitude, eccentricity, inclination, RAAN, argument of periapsis, and true anomaly. The visualization updates as values change. Playback controls support pause, forward or reverse time, and selectable speed. On mobile, Orbit and Playback open as bottom sheets; drag handles are not shown on desktop.
+
+### Run the website locally
+
+```bash
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite. For a production-equivalent local build:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Data access and API status
+
+Orbit Studio does not currently operate a hosted REST API. The website uses a generated static catalog artifact. Treating an internal build asset as a stable API is not supported because its deployed filename and schema may change between releases.
+
+For programmatic use, build the repository and read the generated catalog at:
+
+```text
+src/data/generated/satelliteCatalog.web.json
+```
+
+JavaScript:
+
+```js
+import catalog from "./src/data/generated/satelliteCatalog.web.json" with { type: "json" };
+console.log(catalog);
+```
+
+Python:
+
+```python
+import json
+from pathlib import Path
+
+catalog = json.loads(
+    Path("src/data/generated/satelliteCatalog.web.json").read_text()
+)
+print(catalog.keys())
+```
+
+Before relying on the data, review `docs/sources.md`, `ATTRIBUTION.md`, and the source-of-truth package manifest. A future public API should be versioned under `/api/v1`, publish an OpenAPI schema, and define filtering, pagination, caching, provenance, reconstruction quality, and deprecation rules before it is advertised as stable.

@@ -21,12 +21,49 @@ jobs:
     steps:
       - name: Check out the release source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # releases/v4, 2026-07-16
+        with:
+          # The satellite authority is a 124 MB SQLite database tracked in Git
+          # LFS. This input defaults to false, so without it the checkout leaves
+          # the 134-byte pointer on disk and every later step runs against a file
+          # that is not the database. The action fetches and checks out the LFS
+          # objects itself, which is why no separate `git lfs pull` follows.
+          lfs: true
 
       - name: Use the pinned Node.js runtime
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: npm
+
+      # First, and before `npm ci`, for two reasons.
+      #
+      # It needs nothing installed — it reads `netlify.toml` and a directory
+      # listing using Node builtins alone — so this is the earliest point a
+      # deploy-shaped mistake can be reported, about two minutes ahead of
+      # anything else here.
+      #
+      # And it has to be its own step rather than riding along inside
+      # `npm run build`, which also runs it: the test suite above currently
+      # exits non-zero on this repository because the LFS-backed satellite
+      # authority checks out as a 134-byte pointer, so the build step never
+      # runs at all. A guard registered only inside a step that is skipped is
+      # not registered. Same reasoning as the accessibility step below.
+      - name: Validate the Netlify functions tree
+        run: npm run netlify:functions:verify
+
+      # Immediately after the guard above and still before `npm ci`, because it
+      # needs nothing installed either, and because the failure it reports is
+      # the one that is otherwise unrecognisable. Without it a checkout that
+      # skipped LFS surfaces minutes later inside the catalogue verification as
+      # "Size mismatch ... 134 != 124649472", which reads like a corrupt
+      # authority rather than a file that was never fetched.
+      #
+      # It does not replace that verification. `verify.py` still checks every
+      # artefact's size and SHA-256 against manifest.json and CHECKSUMS.sha256,
+      # and remains the authority on whether this is the right database. This
+      # only answers whether there is a database here at all.
+      - name: Verify Git LFS assets are materialised
+        run: npm run lfs:verify
 
       - name: Install locked dependencies
         run: npm ci
@@ -45,10 +82,22 @@ jobs:
       - name: Build the production application
         run: npm run build
 
+      # Runs against the production build served by vite preview, and reaches
+      # the states the faults actually lived in: the picker open, a place
+      # confirmed, a recommendation on screen, and the same again on a phone.
+      # The geocoder and forecast are stubbed, so it neither goes red for
+      # somebody else's outage nor puts CI traffic on a free service.
+      #
+      # Placed before the provenance step deliberately. That step currently
+      # exits non-zero on this repository, and anything after it never runs.
+      - name: Check accessibility
+        run: npm run a11y:verify
+
       - name: Validate provenance and dependency licenses
         run: |
           npm run provenance:validate
           npm run licenses:validate
+
 
       - name: Generate the deterministic review package
         run: npm run review

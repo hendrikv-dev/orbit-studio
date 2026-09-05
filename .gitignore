@@ -25,6 +25,10 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+# Local dev-server configuration for the preview tool, not project policy.
+.claude/launch.json
+# Wrangler's local state and R2 cache, written when publishing the archive.
+.wrangler/
 *.swp
 *.swo
 
@@ -51,3 +55,16 @@ data/generated/**
 data/local-only/**
 public/earth/*.jpg
 !public/earth/nasa-blue-marble-january-5400.jpg
+
+# The VIIRS light-pollution archive: ~46 MB of derived numeric data, delivered
+# from R2 rather than the static bundle. The sparse index beside it is tracked,
+# and scripts/build-light-pollution-tiles.py rebuilds the archive from the
+# source recorded in provenance/inventory.json.
+public/tracker/*.bin
+
+.orbit-studio-backups/
+
+# Netlify CLI working directory: the local build's packaged functions, and the
+# link state for whichever site the CLI is pointed at. `netlify build` writes it
+# on every run, so it is output, not source.
+.netlify/

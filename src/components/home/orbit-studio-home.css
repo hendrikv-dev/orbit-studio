@@ -3,6 +3,11 @@
   --home-border: rgba(112, 151, 204, 0.24);
   --home-text: #f5f7fd;
   --home-muted: #aebbd0;
+  /* The same focus treatment Tracker uses, so one keyboard journey through the
+     product does not change colour when it crosses from the homepage into an
+     app. */
+  --home-focus: #93a7ff;
+  --home-focus-halo: rgba(103, 122, 232, 0.32);
   min-height: 100dvh;
   overflow-x: hidden;
   background:
@@ -65,436 +70,307 @@
   color: #fff;
 }
 
-.orbit-home-header .orbit-home-support-link {
-  min-height: 36px;
-  justify-content: center;
-  border: 1px solid rgba(109, 190, 255, 0.44);
-  border-radius: 9px;
-  padding: 0 14px;
-  color: #eef8ff;
-}
+/* --- intro ---------------------------------------------------------------
+   "Welcome to Orbit Studio" greeted the reader and told them nothing. The name
+   alone is the heading; the sentence under it does the work, and now has to
+   cover observing from the ground as well as orbital data. */
 
-.orbit-home-hero {
-  display: grid;
-  width: min(900px, calc(100% - 36px));
-  justify-items: center;
-  gap: 12px;
-  margin: 0 auto;
-  padding: clamp(28px, 4.8vh, 54px) 0 clamp(22px, 3.5vh, 38px);
-  text-align: center;
-}
-
-.orbit-home-hero h1 {
-  margin: 0;
-  color: #f7f9ff;
-  font-size: clamp(2.2rem, 4.2vw, 4rem);
-  font-weight: 760;
-  letter-spacing: -0.052em;
-  line-height: 0.98;
-  text-wrap: balance;
-}
-
-.orbit-home-hero p {
-  max-width: 700px;
-  margin: 0;
-  color: #bac5d8;
-  font-size: clamp(0.98rem, 1.2vw, 1.16rem);
-  line-height: 1.5;
-  text-wrap: balance;
-}
-
-.orbit-home-apps {
-  display: grid;
-  width: min(1440px, calc(100% - 40px));
-  min-height: clamp(390px, 51vh, 500px);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(16px, 1.7vw, 26px);
-  margin: 0 auto;
-}
-
-.orbit-home-card {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
-  overflow: hidden;
-  border: 1px solid var(--home-border);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(9, 20, 41, 0.95), rgba(3, 8, 19, 0.98));
-  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28);
-}
-
-.orbit-home-card-explorer {
-  border-color: rgba(48, 159, 255, 0.34);
-}
-
-.orbit-home-card-playground {
-  border-color: rgba(158, 82, 245, 0.38);
-}
-
-.orbit-home-card-copy {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  min-width: 0;
-  align-content: center;
-  gap: 14px;
-  padding: clamp(22px, 2.2vw, 34px);
-  background: linear-gradient(90deg, rgba(5, 13, 28, 1) 0%, rgba(5, 13, 28, 0.98) 88%, rgba(5, 13, 28, 0.84) 100%);
-}
-
-.orbit-home-app-logo {
-  display: block;
-  width: min(220px, 100%);
-  height: 82px;
-  margin-left: -8px;
-  object-fit: contain;
-  object-position: left center;
-}
-
-.orbit-home-card h2 {
-  max-width: 22ch;
-  margin: 0;
-  color: #f5f8ff;
-  font-size: clamp(1.34rem, 1.72vw, 1.9rem);
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-  text-wrap: balance;
-}
-
-.orbit-home-card p {
-  max-width: 36ch;
-  margin: 0;
-  color: var(--home-muted);
-  font-size: clamp(0.84rem, 0.92vw, 0.98rem);
-  line-height: 1.48;
-}
-
-.orbit-home-card-copy > button {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  margin-top: 2px;
-  border: 0;
-  border-radius: 9px;
-  color: white;
-  padding: 0 17px;
-  font-size: 0.84rem;
-  font-weight: 760;
-  cursor: pointer;
-}
-
-.orbit-home-card-explorer .orbit-home-card-copy > button {
-  background: linear-gradient(135deg, #176cff, #20b8e5);
-}
-
-.orbit-home-card-playground .orbit-home-card-copy > button {
-  background: linear-gradient(135deg, #7837ed, #d34caa);
-}
-
-.orbit-home-card-copy > button:hover {
-  filter: brightness(1.08);
-}
-
-.orbit-home-preview-button {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  place-items: center;
-  overflow: hidden;
-  border: 0;
-  border-left: 1px solid rgba(128, 157, 203, 0.16);
-  border-radius: 0;
-  background: #02060d;
-  padding: clamp(8px, 1.1vw, 16px);
-  cursor: pointer;
-}
-
-.orbit-home-preview-button img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center center;
-}
-
-/* Preview imagery remains completely stable on hover and focus. */
-.orbit-home-preview-button:hover,
-.orbit-home-preview-button:focus-visible {
-  border-left-color: rgba(128, 157, 203, 0.16);
-  background: #02060d;
-}
-
-.orbit-home-about,
-.orbit-home-support,
-.orbit-home-footer {
+.orbit-home-intro {
   width: min(1200px, calc(100% - 40px));
-  margin-right: auto;
-  margin-left: auto;
+  margin: 0 auto;
+  padding: clamp(38px, 7vh, 68px) 0 clamp(26px, 4vh, 40px);
 }
 
-.orbit-home-about {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: clamp(36px, 7vw, 92px);
-  padding: clamp(76px, 10vh, 120px) 0 54px;
-}
-
-.orbit-home-about-copy {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-
-.orbit-home-about h2,
-.orbit-home-support h2 {
-  margin: 0;
-  color: #f5f8ff;
-  font-size: clamp(1.75rem, 2.8vw, 2.8rem);
+.orbit-home-intro h1 {
+  margin: 0 0 14px;
+  color: #f7f9ff;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
   letter-spacing: -0.04em;
   line-height: 1.02;
 }
 
-.orbit-home-about p,
-.orbit-home-support p {
-  max-width: 62ch;
+.orbit-home-intro p {
+  max-width: 60ch;
   margin: 0;
   color: var(--home-muted);
-  font-size: 1rem;
+  font-size: clamp(1rem, 1.5vw, 1.12rem);
   line-height: 1.6;
 }
 
-.orbit-home-resource-list {
+/* --- the product list -----------------------------------------------------
+
+   Rows, not a grid. Three products in a two-column grid left Tracker alone on
+   a second row; a fourth in a three-column grid would do the same. A list has
+   no column arithmetic to get wrong, so adding a product is adding a row.
+
+   Every row is laid out identically — copy left, product image right. The
+   temptation to alternate sides is a landing-page reflex, and this is an index
+   of peer tools: a reader scanning it should find the launch action in the same
+   place every time. */
+
+.orbit-home-catalogue {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.orbit-home-products {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.orbit-home-resource-list a {
+.orbit-home-product {
+  position: relative;
   display: grid;
-  min-height: 122px;
-  align-content: start;
-  gap: 7px;
-  border: 1px solid rgba(120, 155, 202, 0.2);
-  border-radius: 14px;
-  background: rgba(6, 14, 29, 0.72);
-  padding: 18px;
-  color: inherit;
-  text-decoration: none;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  /* The row's height is the copy's height, floored here so a short product
+     description cannot collapse the picture to a strip. */
+  min-height: 252px;
+  overflow: hidden;
+  border: 1px solid var(--home-border);
+  border-radius: 18px;
+  background: var(--home-panel);
+  transition: border-color 160ms ease, transform 160ms ease;
 }
 
-.orbit-home-resource-list strong {
-  color: #f3f7ff;
-  font-size: 0.98rem;
+.orbit-home-product:hover {
+  border-color: rgba(140, 178, 232, 0.42);
 }
 
-.orbit-home-resource-list span {
-  color: var(--home-muted);
-  font-size: 0.86rem;
-  line-height: 1.48;
+/* The row's focus ring comes from the one control inside it, so a keyboard
+   user sees the whole row highlighted rather than a fragment of text. */
+.orbit-home-product:has(.orbit-home-product-open:focus-visible) {
+  border-color: var(--home-focus);
+  outline: 2px solid var(--home-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--home-focus-halo);
 }
 
-.orbit-home-resource-list a:hover {
-  border-color: rgba(101, 184, 255, 0.46);
-}
-
-.orbit-home-support {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 28px;
-  border-top: 1px solid rgba(120, 155, 202, 0.18);
-  border-bottom: 1px solid rgba(120, 155, 202, 0.18);
-  padding: 40px 0;
-}
-
-.orbit-home-support > div:first-child {
+.orbit-home-product-copy {
   display: grid;
+  align-content: center;
+  justify-items: start;
   gap: 10px;
+  padding: clamp(24px, 3vw, 36px);
 }
 
-.orbit-home-primary-link {
+/* Height comes from the product, because the three assets do not carry the
+   same amount of transparent padding and a single height rendered three
+   wordmarks at three different sizes. 26px was also simply too small: these are
+   two-line marks, and the second line was illegible. */
+.orbit-home-product-logo {
+  width: auto;
+  margin-bottom: 10px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.orbit-home-product-job {
+  margin: 0;
+  text-wrap: balance;
+  font-size: clamp(1.15rem, 1.9vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.orbit-home-product-open {
+  margin: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #f4f7ff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Stretched over the row, so the whole thing is the target while the accessible
+   name stays the sentence the heading already reads out. */
+.orbit-home-product-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.orbit-home-product-open:focus-visible {
+  outline: none;
+}
+
+.orbit-home-product-note {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--home-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  /* Keeps the last line from being a single orphaned word, which every one of
+     these sentences produced at the row's width. */
+  text-wrap: pretty;
+}
+
+.orbit-home-product-cta {
   display: inline-flex;
-  min-width: 118px;
-  min-height: 44px;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #176cff, #7847ef);
-  color: white;
-  padding: 0 18px;
-  font-size: 0.86rem;
-  font-weight: 760;
-  text-decoration: none;
+  gap: 7px;
+  margin-top: 4px;
+  color: #9fc0f0;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.orbit-home-primary-link:hover {
-  filter: brightness(1.08);
+.orbit-home-product:hover .orbit-home-product-cta {
+  color: #c6dcff;
+}
+
+.orbit-home-product-visual {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Taken out of flow so the picture never decides how tall the row is. Left in
+   flow, each image contributed its own aspect ratio and the rows came out 643,
+   643 and 363 pixels tall — a list of peers in which two products were twice
+   the size of the third, decided by nothing but the crop of a screenshot. */
+.orbit-home-product-visual img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* The image meets the copy on a soft edge rather than a hard seam, so the row
+   reads as one panel instead of two tiles pushed together. */
+.orbit-home-product-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--home-panel) 0%, rgba(6, 16, 32, 0) 38%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-home-product { transition: none; }
+}
+
+/* --- about and footer -----------------------------------------------------
+
+   Five resource cards used to sit here in a two-column grid, one of them
+   hanging alone at the bottom, duplicating three links the header already
+   carries and the footer carried a third time. What is left is a paragraph and
+   the three destinations the header does not offer. */
+
+.orbit-home-about {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(40px, 5vh, 60px) 0 0;
+}
+
+.orbit-home-about h2 {
+  margin: 0 0 12px;
+  color: #f5f8ff;
+  font-size: clamp(1.3rem, 2.2vw, 1.7rem);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.orbit-home-about p {
+  max-width: 66ch;
+  margin: 0;
+  color: var(--home-muted);
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .orbit-home-footer {
   display: flex;
-  min-height: 86px;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1200px, calc(100% - 40px));
+  margin: clamp(30px, 4vh, 44px) auto 0;
+  border-top: 1px solid var(--home-border);
+  padding: 20px 0 clamp(28px, 4vh, 40px);
+}
+
+.orbit-home-footer-name {
+  color: var(--home-muted);
+  font-size: 0.88rem;
+}
+
+.orbit-home-footer nav {
+  display: flex;
+  flex-wrap: wrap;
   gap: 22px;
-  color: #8998ad;
-  font-size: 0.78rem;
 }
 
 .orbit-home-footer a {
-  color: #aebbd0;
+  color: var(--home-muted);
+  font-size: 0.88rem;
   text-decoration: none;
 }
 
-.orbit-home button:focus-visible,
-.orbit-home a:focus-visible {
-  outline: 2px solid #69c9ff;
+.orbit-home-footer a:hover { color: #dce7fb; }
+
+.orbit-home-footer a:focus-visible,
+.orbit-home-header nav a:focus-visible,
+.orbit-home-brand:focus-visible {
+  outline: 2px solid var(--home-focus);
   outline-offset: 3px;
+  border-radius: 5px;
+  box-shadow: 0 0 0 5px var(--home-focus-halo);
 }
 
-@media (max-width: 1080px) {
-  .orbit-home-header,
-  .orbit-home-apps,
-  .orbit-home-about,
-  .orbit-home-support,
-  .orbit-home-footer {
-    width: min(100% - 28px, 1440px);
-  }
+/* --- narrower screens -----------------------------------------------------
 
-  .orbit-home-header nav a:nth-child(2) {
-    display: none;
-  }
+   The row becomes a stacked item and stays one item: copy above, image below,
+   in the same order for every product. There is no separate mobile product
+   architecture to keep in sync. */
 
-  .orbit-home-apps {
-    min-height: 420px;
-    gap: 12px;
+@media (max-width: 860px) {
+  .orbit-home-product {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
   }
-
-  .orbit-home-card {
-    grid-template-columns: minmax(170px, 0.92fr) minmax(0, 1.08fr);
-    border-radius: 16px;
-  }
-
-  .orbit-home-card-copy {
-    gap: 10px;
-    padding: 18px;
-  }
-
-  .orbit-home-app-logo {
-    width: 176px;
-    height: 66px;
-  }
-
-  .orbit-home-card h2 {
-    font-size: clamp(1.08rem, 2.1vw, 1.45rem);
-  }
-
-  .orbit-home-card p {
-    font-size: 0.8rem;
-    line-height: 1.4;
+  .orbit-home-product-copy { padding: 22px 22px 20px; }
+  .orbit-home-product-visual { position: relative; height: 190px; order: 2; }
+  .orbit-home-product-visual::before {
+    background: linear-gradient(180deg, var(--home-panel) 0%, rgba(6, 16, 32, 0) 34%);
   }
 }
 
-@media (max-width: 800px) {
-  .orbit-home-header nav a:not(.orbit-home-support-link):not(:last-of-type) {
-    display: none;
-  }
-
-  .orbit-home-hero {
-    padding-top: 34px;
-  }
-
-  .orbit-home-apps {
-    min-height: 390px;
-  }
-
-  .orbit-home-card {
-    grid-template-columns: minmax(145px, 0.96fr) minmax(0, 1.04fr);
-  }
-
-  .orbit-home-card-copy {
-    gap: 8px;
-    padding: 14px;
-  }
-
-  .orbit-home-app-logo {
-    width: 150px;
-    height: 58px;
-    margin-left: -5px;
-  }
-
-  .orbit-home-card h2 {
-    font-size: 1rem;
-  }
-
-  .orbit-home-card p {
-    font-size: 0.74rem;
-  }
-
-  .orbit-home-card-copy > button {
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 0.75rem;
-  }
-
-  .orbit-home-about {
-    grid-template-columns: 1fr;
-  }
-
-  .orbit-home-resource-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .orbit-home-support {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+@media (max-width: 520px) {
+  .orbit-home-product-visual { height: 156px; }
+  .orbit-home-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
 
-@media (max-width: 680px) {
+/* --- narrow header --------------------------------------------------------
+
+   The brand mark is 166px and the three nav links are `white-space: nowrap`;
+   below about 430px that totals more than the viewport, and because the page
+   clips horizontal overflow the GitHub link simply disappeared off the right
+   edge rather than producing a scrollbar. The mark shrinks first, then the
+   header stacks — the links stay reachable either way. */
+
+@media (max-width: 640px) {
+  .orbit-home-brand img { width: 132px; height: 46px; }
+  .orbit-home-header nav { gap: 14px; }
+  .orbit-home-header nav a { font-size: 0.74rem; }
+}
+
+@media (max-width: 430px) {
   .orbit-home-header {
-    min-height: 66px;
-  }
-
-  .orbit-home-brand img {
-    width: 146px;
-    height: 52px;
-  }
-
-  .orbit-home-hero {
-    justify-items: start;
-    text-align: left;
-  }
-
-  .orbit-home-apps {
-    grid-template-columns: 1fr;
-  }
-
-  .orbit-home-card {
-    min-height: 360px;
-    grid-template-columns: minmax(170px, 0.92fr) minmax(0, 1.08fr);
-  }
-
-  .orbit-home-resource-list {
-    grid-template-columns: 1fr;
-  }
-
-  .orbit-home-footer {
     flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 4px;
+    padding-bottom: 10px;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orbit-home *,
-  .orbit-home *::before,
-  .orbit-home *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-  }
+  .orbit-home-brand img { width: 118px; height: 42px; }
+  .orbit-home-header nav { width: 100%; gap: 18px; }
 }

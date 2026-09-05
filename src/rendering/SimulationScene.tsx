@@ -1,3 +1,4 @@
+import { signalAppReady } from "../lib/appReady";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import {
@@ -152,16 +153,32 @@ function coverageLabel(coveredPercent: number): string {
   return "Not visible";
 }
 
+function browserRendersCanvas(): boolean {
+  if (typeof document === "undefined") return false;
+  return typeof document.createElement("canvas").getContext === "function";
+}
+
+/**
+ * React Three Fiber renders this as the <canvas> element's fallback content, so
+ * a browser only paints it when canvas itself is unsupported. Chrome still
+ * exposes focusable children of that content to the keyboard, which put a 0x0
+ * "Reset local app state" button in the tab order of a perfectly healthy page.
+ * WebGL initialization failures surface through AppErrorBoundary instead, so the
+ * recovery control belongs here only when canvas genuinely cannot render.
+ */
 function RendererCanvasFallback() {
+  const canvasUnsupported = !browserRendersCanvas();
   return (
-    <section className="renderer-fallback" role="alert">
+    <section className="renderer-fallback" role={canvasUnsupported ? "alert" : undefined}>
       <div>
         <strong>Earth renderer unavailable</strong>
         <span>WebGL or a critical scene resource failed to initialize.</span>
       </div>
-      <button type="button" className="danger-button" onClick={resetLocalAppStateAndReload}>
-        Reset local app state
-      </button>
+      {canvasUnsupported && (
+        <button type="button" className="danger-button" onClick={resetLocalAppStateAndReload}>
+          Reset local app state
+        </button>
+      )}
     </section>
   );
 }
@@ -590,6 +607,23 @@ interface SimulationSceneProps {
   showStarField?: boolean;
   auroraModeEnabled?: boolean;
   onClearSelection?: () => void;
+}
+
+/**
+ * Announces the first frame the renderer actually draws.
+ *
+ * The boot indicator cannot infer this from the DOM: the canvas element exists
+ * and is sized well before WebGL has drawn anything, so a DOM-presence check
+ * cleared the indicator over a still-blank viewport. Only the render loop knows.
+ */
+function SceneFirstFrameSignal() {
+  const announced = useRef(false);
+  useFrame(() => {
+    if (announced.current) return;
+    announced.current = true;
+    signalAppReady();
+  });
+  return null;
 }
 
 export function SimulationScene({
@@ -1211,6 +1245,7 @@ export function SimulationScene({
           far: missionFrame ? EARTH_RADIUS_KM * 90 : EARTH_RADIUS_KM * 40,
         }}
       >
+        <SceneFirstFrameSignal />
         <SceneMotionClock />
         <SceneSunDirection earthToSunWorldRef={earthToSunWorldRef} />
         <color attach="background" args={["#05070b"]} />

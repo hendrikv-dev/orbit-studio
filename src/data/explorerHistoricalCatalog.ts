@@ -71,12 +71,28 @@ export interface ExplorerHistoricalCatalogObject {
   existenceStartDate?: string;
   decayDate?: string;
   reentryDate?: string;
+  /**
+   * GCAT's authoritative parentage. Present only where the parent resolves to
+   * another object in this catalog, so it is always followable. The separation
+   * date is the fragmentation or deployment moment; its precision ranges from
+   * a recorded minute to a bare year, and GCAT flags some as uncertain — both
+   * travel with the link so a consumer can never present a guessed date as an
+   * observed one.
+   */
+  fragmentation?: {
+    parentRecordId: string;
+    separationDateIso: string;
+    separationDatePrecision: "second" | "minute" | "day" | "month" | "year";
+    separationDateUncertain: boolean;
+  };
   periodEndPresence?: {
     firstYear: number;
     lastYear: number;
     semantics: "present_at_period_end";
   };
   owner?: string;
+  /** GCAT's responsible state code, distinct from the owner organisation. */
+  stateCode?: string;
   status?: string;
   /**
    * Source-reported orbital envelope. These values constrain an educational
@@ -307,6 +323,12 @@ type SatelliteWebCatalogRow = [
   raanDegReconstructed: number | null,
   argumentOfPerigeeDegReconstructed: number | null,
   meanAnomalyDegReconstructed: number | null,
+  /** GCAT's authoritative fragmentation link, null unless it resolves in this export. */
+  parentJcat: string | null,
+  separationDatePrecision: "second" | "minute" | "day" | "month" | "year" | null,
+  /** 1 where GCAT marks the separation date itself as uncertain. */
+  separationDateUncertain: 0 | 1,
+  stateCode: string | null,
 ];
 
 interface SatelliteWebCatalogPeriod {
@@ -346,6 +368,9 @@ interface SatelliteWebCatalogArtifact {
     latestCatalogOnlyCount: number;
     latestClassCounts: Record<SatelliteObjectClass, number>;
     latestRenderableClassCounts: Record<SatelliteObjectClass, number>;
+    declaredParentCount: number;
+    resolvedParentCount: number;
+    resolvedDebrisParentCount: number;
   };
   periods: SatelliteWebCatalogPeriod[];
   rows: SatelliteWebCatalogRow[];
@@ -452,6 +477,10 @@ function historicalObjectForRow(
     separationDateIso,
     decayDateIso,
   ] = row;
+  const parentJcat = row[20];
+  const separationDatePrecision = row[21];
+  const separationDateUncertain = row[22] === 1;
+  const stateCode = row[23];
   const sourceObjectClass = sourceObjectClassForCode[objectClassCode];
   const numericCatalogNumber = satcatNumber && /^\d+$/.test(satcatNumber)
     ? satcatNumber
@@ -476,6 +505,15 @@ function historicalObjectForRow(
     launchDate: launchDateIso ?? undefined,
     existenceStartDate: separationDateIso ?? launchDateIso ?? undefined,
     decayDate: decayDateIso ?? undefined,
+    fragmentation:
+      parentJcat && separationDatePrecision && separationDateIso
+        ? {
+            parentRecordId: parentJcat,
+            separationDateIso,
+            separationDatePrecision,
+            separationDateUncertain,
+          }
+        : undefined,
     periodEndPresence:
       firstYear !== null && lastYear !== null
         ? {
@@ -485,6 +523,7 @@ function historicalObjectForRow(
           }
         : undefined,
     owner: ownerCode ?? undefined,
+    stateCode: stateCode ?? undefined,
     status: statusRaw ?? undefined,
     orbitalSummary: finiteOrbitSummary(row),
     sources: [source],

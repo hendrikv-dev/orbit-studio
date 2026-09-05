@@ -35,6 +35,12 @@ interface Window {
 
 interface ImportMetaEnv {
   readonly VITE_SUPPORT_URL?: string;
+  /**
+   * Base URL for the VIIRS light-pollution archive, e.g. an R2 bucket's public
+   * address. Unset means the copy in `public/tracker/`, which is what
+   * development uses. See `docs/LIGHT_POLLUTION_DELIVERY.md`.
+   */
+  readonly VITE_LIGHT_POLLUTION_BASE?: string;
 }
 
 interface ImportMeta {

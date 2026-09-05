@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { reviewPlaybackTimeScales } from "../playback-speeds.mjs";
 import {
   explorerReviewScenario,
   historicalMilestoneValidation,
@@ -68,7 +69,7 @@ describe("Explorer review scenario", () => {
         playback: {
           isPlaying: false,
           speed,
-          timeScale: { "1x": 1, "10x": 10, "100x": 100, "1000x": 1_000, max: 2_500 }[speed],
+          timeScale: reviewPlaybackTimeScales[speed],
         },
         visibleObjectCount: historical ? 2 : 33_474,
         catalogObjectCount: historical ? 2 : 33_489,

@@ -14,13 +14,17 @@ import {
 import {
   Box,
   ChevronRight,
+  Columns2,
   Clock,
   CircleDot,
   Crosshair,
   Eye,
   ExternalLink,
   Filter,
+  Globe2,
   ImageOff,
+  Map as MapIcon,
+  Maximize2,
   Menu,
   Palette,
   Pause,
@@ -28,15 +32,54 @@ import {
   RadioTower,
   Rocket,
   Satellite,
+  ScatterChart,
   Search,
   Settings,
   SkipBack,
   Sparkles,
   StepBack,
   StepForward,
+  Orbit,
   X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ExplorerDebrisView } from "./ExplorerDebrisView";
+import { ExplorerPopulationView } from "./ExplorerPopulationView";
+import { ExplorerCoverageCaveat, ExplorerCoverageReadout } from "./ExplorerCoverageReadout";
+import { ExplorerCoverageMap } from "./ExplorerCoverageMap";
 import {
+  coverageEnvelope,
+  estimateStationAccess,
+  longitudeDriftPerRevolutionDeg,
+  normalizeLongitudeDeg,
+  orbitalPeriodMinutes,
+  revolutionsPerDay,
+  type CoverageStation,
+  type SubSatellitePoint,
+} from "../../data/explorerCoverage";
+import { propagateSatellite } from "../../lib/propagation";
+import type { SatelliteModel } from "../../lib/scenario";
+import { EARTH_RADIUS_KM } from "../../physics/constants";
+import { ecefToGeodetic, eciToEcef } from "../../physics/coordinates";
+import {
+  explorerCountBreakdown,
+  explorerCountReconciliation,
+} from "../../data/explorerCounts";
+import { explorerPopulationPoints } from "../../data/explorerPopulation";
+import {
+  historicalOnlyMatches,
+  searchResultDetail,
+} from "../../data/explorerSearchContext";
+import { readExplorerUrlState, writeExplorerUrlState } from "../../lib/explorerUrlState";
+import {
+  elementProvenanceLabel,
+  explorerElementProvenance,
+  type ElementProvenance,
+} from "../../data/explorerElementProvenance";
+import { explorerFragmentationEvents } from "../../data/explorerFragmentation";
+import type { FragmentationEvent } from "../../data/explorerFragmentation";
+import {
+  catalogSatellite,
   explorerCategoryHierarchy,
   explorerCategoryLabel,
   currentExplorerSnapshot,
@@ -63,6 +106,7 @@ import {
 import {
   explorerEntryMatchesFilters,
   explorerFilterChangeShouldReframe,
+  isExplorerSceneEntry,
   explorerFilterConflict,
   explorerRegimeForEntry,
   type ExplorerRegimeFilter,
@@ -102,6 +146,8 @@ import {
   type ExplorerColorMode,
   type ExplorerFocusPreset,
 } from "../../data/explorerVisuals";
+import { useMobileSheetDrag } from "../../lib/useMobileSheetDrag";
+import { PlaybackSpeedSlider } from "../PlaybackSpeedSlider";
 
 interface ExplorerViewProps {
   activeSnapshot: ExplorerSnapshot;
@@ -150,20 +196,12 @@ const explorerColorModes: Array<{ id: ExplorerColorMode; label: string; tooltip:
   },
   {
     id: "white",
-    label: "White",
+    label: "Neutral",
     tooltip: "Displays all satellites using a neutral color.",
   },
 ];
-const explorerSpeedPresets = [
-  { id: "1x", label: "1×", timeScale: 1 },
-  { id: "10x", label: "10×", timeScale: 10 },
-  { id: "100x", label: "100×", timeScale: 100 },
-  { id: "1000x", label: "1000×", timeScale: 1_000 },
-  { id: "max", label: "2,500×", timeScale: 2_500 },
-] as const;
-type ExplorerSpeedPresetId = (typeof explorerSpeedPresets)[number]["id"];
-const defaultExplorerSpeedPreset: ExplorerSpeedPresetId = "1x";
-const followExplorerSpeedPreset: ExplorerSpeedPresetId = "100x";
+const defaultExplorerSpeed = 1;
+const followExplorerSpeed = 100;
 
 function initialExplorerPlaybackRunning(): boolean {
   return !(isOrbitStudioReviewMode() || (
@@ -173,17 +211,9 @@ function initialExplorerPlaybackRunning(): boolean {
   ));
 }
 
-function explorerSpeedPresetFor(id: ExplorerSpeedPresetId) {
-  return explorerSpeedPresets.find((preset) => preset.id === id) ?? explorerSpeedPresets[0];
-}
 
-function isExplorerSceneEntry(entry: ExplorerCatalogEntry): boolean {
-  return (
-    entry.selectionKind === "satellite" ||
-    entry.selectionKind === "ground-station" ||
-    entry.selectionKind === "constellation"
-  );
-}
+/** Explorer draws one state; the mode chooses which representation. */
+type ExplorerViewMode = "globe" | "population" | "debris";
 
 function isExplorerCatalogResult(entry: ExplorerCatalogEntry): boolean {
   return isExplorerRenderableEntry(entry) || entry.visualRole === "catalog-reference";
@@ -336,98 +366,6 @@ function ExplorerObjectTypeIcon({
   if (id === "rocket-bodies") return <Rocket size={size} />;
   return <Box size={size} />;
 }
-const MOBILE_SHEET_DRAG_DISMISS_PX = 82;
-const MOBILE_SHEET_DRAG_MAX_OFFSET_PX = 150;
-
-function useMobileSheetDrag(onDismiss: () => void): {
-  sheetStyle: CSSProperties | undefined;
-  dragHandleProps: {
-    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerCancel: (event: ReactPointerEvent<HTMLElement>) => void;
-  };
-} {
-  const dragStartYRef = useRef<number | null>(null);
-  const dragOffsetRef = useRef(0);
-  const [dragState, setDragState] = useState({ active: false, offset: 0 });
-
-  const resetDrag = useCallback(() => {
-    dragStartYRef.current = null;
-    dragOffsetRef.current = 0;
-    setDragState({ active: false, offset: 0 });
-  }, []);
-
-  const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement;
-    const isInteractiveTarget = Boolean(
-      target.closest("button, input, select, textarea, a"),
-    );
-    const isMobileSheet =
-      typeof window === "undefined" ||
-      window.matchMedia("(max-width: 743px)").matches;
-
-    if (isInteractiveTarget || !isMobileSheet || (event.pointerType === "mouse" && event.button !== 0)) {
-      return;
-    }
-
-    dragStartYRef.current = event.clientY;
-    dragOffsetRef.current = 0;
-    setDragState({ active: true, offset: 0 });
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }, []);
-
-  const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (dragStartYRef.current === null) return;
-
-    const offset = Math.max(0, event.clientY - dragStartYRef.current);
-    const boundedOffset = Math.min(offset, MOBILE_SHEET_DRAG_MAX_OFFSET_PX);
-    dragOffsetRef.current = offset;
-    setDragState({ active: true, offset: boundedOffset });
-  }, []);
-
-  const onPointerUp = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      if (dragStartYRef.current === null) return;
-
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-
-      if (dragOffsetRef.current >= MOBILE_SHEET_DRAG_DISMISS_PX) {
-        onDismiss();
-      }
-      resetDrag();
-    },
-    [onDismiss, resetDrag],
-  );
-
-  const onPointerCancel = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-      resetDrag();
-    },
-    [resetDrag],
-  );
-
-  return {
-    sheetStyle: dragState.offset > 0
-      ? {
-          transform: `translateY(${dragState.offset}px)`,
-          transition: dragState.active ? "none" : undefined,
-        }
-      : undefined,
-    dragHandleProps: {
-      onPointerDown,
-      onPointerMove,
-      onPointerUp,
-      onPointerCancel,
-    },
-  };
-}
-
 function ExplorerPanelCloseButton({
   label,
   onClick,
@@ -497,7 +435,19 @@ function ExplorerPanelHeader({
   dragHandleProps?: ReturnType<typeof useMobileSheetDrag>["dragHandleProps"];
 }) {
   return (
-    <header className={`explorer-panel-header ${className}`.trim()} {...dragHandleProps}>
+    <header className={`explorer-panel-header ${className}`.trim()}>
+      {dragHandleProps && (
+        <button
+          aria-label={closeLabel}
+          className="explorer-mobile-sheet-handle"
+          title={`${closeLabel}. Drag down or tap to close.`}
+          type="button"
+          {...dragHandleProps}
+          onClick={onClose}
+        >
+          <span aria-hidden="true" />
+        </button>
+      )}
       <div className="explorer-panel-heading-copy">
         {eyebrow && <span className="explorer-panel-eyebrow">{eyebrow}</span>}
         {titleLevel === "h1" ? <h1>{title}</h1> : <h2>{title}</h2>}
@@ -787,7 +737,11 @@ function ExplorerKeyFactGrid({ facts }: { facts: ExplorerKeyFact[] }) {
 function ExplorerSourceLinks({ sources }: { sources: ExplorerOfficialSource[] }) {
   return (
     <div className="explorer-source-links">
-      <span>Official sources</span>
+      {/* Reference links for further reading. Not the provenance of the data on
+          screen — that is GCAT, stated in the data-quality section. Calling these
+          "official sources" implied CelesTrak supplied the orbit, which it never
+          does: no catalog entry carries a celestrak source id. */}
+      <span>Further reading</span>
       <div>
         {sources.slice(0, 3).map((source) => (
           <a href={source.url} key={source.url} target="_blank" rel="noreferrer">
@@ -800,13 +754,288 @@ function ExplorerSourceLinks({ sources }: { sources: ExplorerOfficialSource[] })
   );
 }
 
+const COVERAGE_PRIMARY_COLOR = "rgba(255, 214, 140, 0.95)";
+const COVERAGE_PRIMARY_BAND = "rgba(255, 205, 120, 0.08)";
+
+export interface CoverageSeries {
+  shape: { semiMajorAltitudeKm: number; eccentricity: number; inclinationDeg: number };
+  envelope: ReturnType<typeof coverageEnvelope>;
+  track: SubSatellitePoint[];
+  marker: SubSatellitePoint | null;
+  access: ReturnType<typeof estimateStationAccess>[];
+}
+
+/**
+ * Coverage geometry for one object.
+ *
+ * The split matters: `track` is anchored to the snapshot so it is built once per
+ * selection, while `marker` follows the playback clock. Keying the whole track to
+ * the clock rebuilt ~4,400 propagation steps per tick.
+ */
+function useCoverageSeries(
+  satellite: SatelliteModel | null,
+  anchorIso: string,
+  markerIso: string,
+  stations: readonly CoverageStation[],
+): CoverageSeries | null {
+  const shape = useMemo(() => {
+    if (!satellite) return null;
+    return {
+      semiMajorAltitudeKm: satellite.keplerian.semiMajorAxisKm - EARTH_RADIUS_KM,
+      eccentricity: satellite.keplerian.eccentricity,
+      inclinationDeg: satellite.keplerian.inclinationDeg,
+    };
+  }, [satellite]);
+
+  const track = useMemo<SubSatellitePoint[]>(() => {
+    if (!satellite || !shape) return [];
+    const start = Date.parse(anchorIso);
+    if (!Number.isFinite(start)) return [];
+    const stepSeconds = Math.max(
+      20,
+      Math.round((orbitalPeriodMinutes(shape.semiMajorAltitudeKm) * 60) / 220),
+    );
+    const totalSteps = Math.min(4400, Math.round(86400 / stepSeconds));
+    const points: SubSatellitePoint[] = [];
+    for (let step = 0; step <= totalSteps; step += 1) {
+      const timeMs = start + step * stepSeconds * 1000;
+      const date = new Date(timeMs);
+      try {
+        const geodetic = ecefToGeodetic(eciToEcef(propagateSatellite(satellite, date), date));
+        points.push({
+          latitudeDeg: geodetic.latitudeDeg,
+          longitudeDeg: normalizeLongitudeDeg(geodetic.longitudeDeg),
+          altitudeKm: geodetic.altitudeKm,
+          timeMs,
+        });
+      } catch {
+        break;
+      }
+    }
+    return points;
+  }, [anchorIso, satellite, shape]);
+
+  const marker = useMemo<SubSatellitePoint | null>(() => {
+    if (!satellite) return null;
+    const timeMs = Date.parse(markerIso);
+    if (!Number.isFinite(timeMs)) return null;
+    const date = new Date(timeMs);
+    try {
+      const geodetic = ecefToGeodetic(eciToEcef(propagateSatellite(satellite, date), date));
+      return {
+        latitudeDeg: geodetic.latitudeDeg,
+        longitudeDeg: normalizeLongitudeDeg(geodetic.longitudeDeg),
+        altitudeKm: geodetic.altitudeKm,
+        timeMs,
+      };
+    } catch {
+      return null;
+    }
+  }, [markerIso, satellite]);
+
+  const envelope = useMemo(() => shape ? coverageEnvelope(shape, 5) : null, [shape]);
+  const access = useMemo(
+    () => shape ? stations.map((station) => estimateStationAccess(station, shape, track)) : [],
+    [shape, stations, track],
+  );
+
+  if (!shape || !envelope) return null;
+  return { shape, envelope, track, marker, access };
+}
+
+export type CoveragePresentation = "docked" | "split" | "expanded";
+
+export interface CoveragePanel {
+  presentation: CoveragePresentation;
+  setPresentation: (next: CoveragePresentation) => void;
+  primary: CoverageSeries | null;
+  stations: CoverageStation[];
+  entry: ExplorerCatalogEntry | undefined;
+}
+
+/**
+ * Coverage state lives in the shell rather than the inspector because the map
+ * has to be renderable in two different places: docked inside the info panel,
+ * and beside the globe in split view. Both read the same series.
+ */
+function useCoveragePanel(activeSnapshot: ExplorerSnapshot): CoveragePanel {
+  const scenario = useSimulationStore((state) => state.scenario);
+  const snapshotView = useMemo(() => explorerSnapshotView(activeSnapshot), [activeSnapshot]);
+  const entry = scenario.selectedObjectId
+    ? explorerEntryForId(scenario.selectedObjectId, activeSnapshot)
+    : undefined;
+  const satellite =
+    scenario.selectedObjectType === "satellite"
+      ? scenario.satellites.find((item) => item.id === scenario.selectedObjectId)
+      : undefined;
+
+  const [presentation, setPresentation] = useState<CoveragePresentation>("docked");
+  useEffect(() => {
+    setPresentation("docked");
+  }, [scenario.selectedObjectId]);
+
+  // Playback advances an out-of-React clock; `scenario.simulationTimeUtc` only
+  // moves on discrete events, which is why the globe animates and React does
+  // not. The marker samples the same clock the scene uses, on its own modest
+  // ticker, exactly as the time chip does. The tick rate is also the throttle.
+  const [markerTimeIso, setMarkerTimeIso] = useState(() => readStudioPlaybackTimeIso());
+  useEffect(() => {
+    if (!satellite) return;
+    const update = () => setMarkerTimeIso(readStudioPlaybackTimeIso());
+    update();
+    const intervalId = window.setInterval(update, 125);
+    return () => window.clearInterval(intervalId);
+  }, [satellite]);
+
+  const stations = useMemo<CoverageStation[]>(
+    () =>
+      snapshotView.records
+        .filter((record) => record.groundStation)
+        .map((record) => ({
+          id: record.id,
+          name: record.name,
+          latitudeDeg: record.groundStation!.latitudeDeg,
+          longitudeDeg: record.groundStation!.longitudeDeg,
+          minimumElevationDeg: record.groundStation!.minimumElevationDeg,
+        })),
+    [snapshotView.records],
+  );
+
+
+  const primary = useCoverageSeries(
+    satellite ?? null, activeSnapshot.timestampIso, markerTimeIso, stations,
+  );
+
+  // Split view needs the globe, the map and the inspector on screen together,
+  // which a phone cannot give. Fall back to full screen rather than stacking them.
+  useEffect(() => {
+    if (presentation !== "split" || typeof window === "undefined") return;
+    const query = window.matchMedia("(max-width: 743px)");
+    const apply = () => { if (query.matches) setPresentation("expanded"); };
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, [presentation]);
+
+  // Only the full-screen state is a modal; split view leaves the shell usable.
+  useEffect(() => {
+    if (presentation !== "expanded") return;
+    const shell = document.querySelector<HTMLElement>(".explorer-shell");
+    if (!shell) return;
+    shell.setAttribute("inert", "");
+    return () => shell.removeAttribute("inert");
+  }, [presentation]);
+
+
+  return { presentation, setPresentation, primary, stations, entry };
+}
+
+/**
+ * The coverage map outside the info panel.
+ *
+ * `split` keeps the 3D globe on screen and puts the 2D map beside it, so the
+ * same object can be watched in space and over the ground at once — both driven
+ * by the same playback clock. `expanded` gives the map the whole viewport.
+ */
+function ExplorerCoveragePanel({ coverage }: { coverage: CoveragePanel }) {
+  const { presentation, primary, entry } = coverage;
+  if (presentation === "docked" || !primary || !entry) return null;
+
+  const series = [{
+    id: entry.id, name: entry.name,
+    colorTrack: COVERAGE_PRIMARY_COLOR, colorBand: COVERAGE_PRIMARY_BAND,
+    shape: primary.shape, track: primary.track, marker: primary.marker,
+  }];
+
+  const body = (
+    <div className={`explorer-coverage-surface explorer-coverage-surface-${presentation}`}
+         role={presentation === "expanded" ? "dialog" : undefined}
+         aria-modal={presentation === "expanded" ? true : undefined}
+         aria-label={`${entry.name} mission coverage`}>
+      <header>
+        <div className="explorer-coverage-promoted-title">
+          <strong>{entry.name}</strong>
+          <span>Mission coverage geometry</span>
+        </div>
+        <div className="explorer-coverage-actions">
+          <button
+            aria-pressed={presentation === "split"}
+            className={presentation === "split" ? "active" : ""}
+            type="button"
+            onClick={() => coverage.setPresentation("split")}
+          >
+            <Columns2 aria-hidden="true" size={14} />
+            <span>Split</span>
+          </button>
+          <button
+            aria-pressed={presentation === "expanded"}
+            className={presentation === "expanded" ? "active" : ""}
+            type="button"
+            onClick={() => coverage.setPresentation("expanded")}
+          >
+            <Maximize2 aria-hidden="true" size={14} />
+            <span>Full screen</span>
+          </button>
+          <button className="explorer-coverage-close" type="button"
+                  onClick={() => coverage.setPresentation("docked")}>
+            <X aria-hidden="true" size={15} />
+            <span>Close</span>
+          </button>
+        </div>
+      </header>
+
+      <ExplorerCoverageMap
+        series={series}
+        trackIsReconstructed
+        stations={coverage.stations}
+        selectedStationId={null}
+        onSelectStation={() => undefined}
+        variant="expanded"
+        onToggleExpanded={() =>
+          coverage.setPresentation(presentation === "expanded" ? "split" : "expanded")}
+      />
+
+      {/* A 2:1 map on a tall screen leaves most of the surface empty. The
+          readout the inspector would have shown goes there, so promoting the
+          map adds detail instead of trading it away. */}
+      {presentation === "expanded" && (
+        <div className="explorer-coverage-readout">
+          <ExplorerCoverageReadout
+            access={primary.access}
+            envelope={primary.envelope}
+            shape={primary.shape}
+            stations={coverage.stations}
+          />
+          <ExplorerCoverageCaveat />
+        </div>
+      )}
+    </div>
+  );
+
+  // Split lives inside the shell so the globe stays interactive; full screen is
+  // a modal and must escape .explorer-globe, which is a containing block.
+  return presentation === "expanded" ? createPortal(body, document.body) : body;
+}
+
+/**
+ * Marks a displayed element with where its value came from. Sourced values
+ * carry no badge: the absence is the signal that the number is measured.
+ */
+function ElementSource({ provenance }: { provenance: ElementProvenance }) {
+  const label = elementProvenanceLabel(provenance);
+  if (!label) return null;
+  return <span className={`explorer-element-source is-${provenance}`}>{label}</span>;
+}
+
 function ExplorerInspector({
   activeSnapshot,
+  coverage,
   filterConflictMessage,
   onClearSelection,
   onResolveFilterConflict,
 }: {
   activeSnapshot: ExplorerSnapshot;
+  coverage: CoveragePanel;
   filterConflictMessage: string | null;
   onClearSelection: () => void;
   onResolveFilterConflict: () => void;
@@ -816,6 +1045,7 @@ function ExplorerInspector({
   const entry = scenario.selectedObjectId
     ? explorerEntryForId(scenario.selectedObjectId, activeSnapshot)
     : undefined;
+  const elementProvenance = explorerElementProvenance(entry?.orbitAvailability);
   const satellite =
     scenario.selectedObjectType === "satellite"
       ? scenario.satellites.find((item) => item.id === scenario.selectedObjectId)
@@ -844,6 +1074,17 @@ function ExplorerInspector({
     () => satellite ? createSelectedOrbitFrame(satellite) : null,
     [satellite],
   );
+
+  const [activeInspectorTab, setActiveInspectorTab] =
+    useState<"overview" | "data">("overview");
+  const overviewTabRef = useRef<HTMLButtonElement | null>(null);
+  const dataTabRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    setActiveInspectorTab("overview");
+  }, [entry?.id]);
+
+
   const education = useMemo(
     () => entry ? explorerEducationForEntry(entry) : null,
     [entry],
@@ -901,14 +1142,6 @@ function ExplorerInspector({
       { label: "Status", value: entry.status },
     ];
   }, [constellationSummary, education?.keyFacts, entry, readouts, satellite, selectedOrbitFrame]);
-  const [activeInspectorTab, setActiveInspectorTab] =
-    useState<"overview" | "data">("overview");
-  const overviewTabRef = useRef<HTMLButtonElement | null>(null);
-  const dataTabRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    setActiveInspectorTab("overview");
-  }, [entry?.id]);
 
   const selectInspectorTab = useCallback((tab: "overview" | "data", focus = false) => {
     setActiveInspectorTab(tab);
@@ -1043,15 +1276,109 @@ function ExplorerInspector({
                     <div><dt>Apogee</dt><dd>{selectedOrbitFrame ? `${formatNumber(selectedOrbitFrame.apogeeAltitudeKm, 1)} km` : "--"}</dd></div>
                   </dl>
                 </section>
-                <section className="explorer-inspector-data-section">
+<section className="explorer-inspector-data-section">
                   <h3>Orbital elements</h3>
-                  <dl>
-                    <div><dt>Inclination</dt><dd>{formatNumber(satellite.keplerian.inclinationDeg, 2)}°</dd></div>
-                    <div><dt>Eccentricity</dt><dd>{satellite.keplerian.eccentricity.toFixed(5)}</dd></div>
-                    <div><dt>Semi-major axis</dt><dd>{formatNumber(satellite.keplerian.semiMajorAxisKm, 1)} km</dd></div>
-                    <div><dt>RAAN</dt><dd>{formatNumber(satellite.keplerian.raanDeg, 1)}°</dd></div>
+                  {/* All six, and each marked with where it came from. Showing
+                      four of six hid two generated angles while displaying a
+                      third as though it were measured. */}
+                  <dl className="explorer-element-list">
+                    <div>
+                      <dt>Inclination</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.inclinationDeg, 2)}°
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Eccentricity</dt>
+                      <dd>
+                        {satellite.keplerian.eccentricity.toFixed(5)}
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Semi-major axis</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.semiMajorAxisKm, 1)} km
+                        <ElementSource provenance={elementProvenance.shape} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>RAAN</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.raanDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Argument of perigee</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.argumentOfPeriapsisDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>True anomaly</dt>
+                      <dd>
+                        {formatNumber(satellite.keplerian.trueAnomalyDeg, 1)}°
+                        <ElementSource provenance={elementProvenance.angles} />
+                      </dd>
+                    </div>
                   </dl>
+                  <p className="explorer-element-note">{elementProvenance.note}</p>
                 </section>
+                {coverage.primary && (
+                  <section className="explorer-inspector-data-section">
+                    <h3>Mission coverage</h3>
+                    {/* The map lives in exactly one place at a time. Rendering it
+                        here as well while it is open beside the globe put the same
+                        map on screen twice, which is worst on a tablet where both
+                        copies are large. */}
+                    {coverage.presentation === "docked" ? (
+                      <ExplorerCoverageMap
+                        series={[{
+                          id: entry.id,
+                          name: entry.name,
+                          colorTrack: COVERAGE_PRIMARY_COLOR,
+                          colorBand: COVERAGE_PRIMARY_BAND,
+                          shape: coverage.primary.shape,
+                          track: coverage.primary.track,
+                          marker: coverage.primary.marker,
+                        }]}
+                        trackIsReconstructed
+                        stations={coverage.stations}
+                        selectedStationId={null}
+                        onSelectStation={() => undefined}
+                        variant="docked"
+                        onToggleExpanded={() => coverage.setPresentation("expanded")}
+                      />
+                    ) : (
+                      <p className="explorer-coverage-elsewhere">
+                        The map is open {coverage.presentation === "split"
+                          ? "beside the globe" : "full screen"}.
+                        <button type="button" onClick={() => coverage.setPresentation("docked")}>
+                          Bring it back here
+                        </button>
+                      </p>
+                    )}
+                    <ExplorerCoverageReadout
+                      access={coverage.primary.access}
+                      envelope={coverage.primary.envelope}
+                      shape={coverage.primary.shape}
+                      stations={coverage.stations}
+                    />
+                    {coverage.presentation === "docked" && (
+                      <button
+                        className="explorer-coverage-compare-open"
+                        type="button"
+                        onClick={() => coverage.setPresentation("split")}
+                      >
+                        Open beside the globe
+                      </button>
+                    )}
+                    <ExplorerCoverageCaveat />
+                  </section>
+                )}
               </>
             )}
             {entry.groundStation && (
@@ -1131,8 +1458,11 @@ function ExplorerInspector({
               <h3>Catalog record</h3>
               <dl>
                 <div><dt>Object type</dt><dd>{entry.objectType}</dd></div>
-                <div><dt>Operator</dt><dd>{entry.operator}</dd></div>
-                <div><dt>Region</dt><dd>{entry.country}</dd></div>
+                {/* GCAT records an owner organisation as a short code and has no
+                    table of full names, so the code is shown as a code rather than
+                    passed off as a name. The state beside it is resolved. */}
+                <div><dt>Operator code</dt><dd>{entry.operator}</dd></div>
+                <div><dt>State</dt><dd>{entry.country}</dd></div>
                 <div><dt>Launch year</dt><dd>{entry.launched}</dd></div>
                 {entry.catalogNumber && <div><dt>NORAD catalog</dt><dd>{entry.catalogNumber}</dd></div>}
                 {entry.internationalDesignator && (
@@ -1156,8 +1486,8 @@ function ExplorerTimeline({
   activeSnapshot,
   onSelectSnapshot,
   explorerPlaybackRunning,
-  explorerSpeedPreset,
-  onApplySpeedPreset,
+  explorerPlaybackSpeed,
+  onChangePlaybackSpeed,
   onTogglePlayback,
   visibleCatalogObjectCount,
   visibleRenderableOrbitStateCount,
@@ -1165,8 +1495,8 @@ function ExplorerTimeline({
   activeSnapshot: ExplorerSnapshot;
   onSelectSnapshot: (snapshot: ExplorerSnapshot) => void;
   explorerPlaybackRunning: boolean;
-  explorerSpeedPreset: ExplorerSpeedPresetId;
-  onApplySpeedPreset: (presetId: ExplorerSpeedPresetId) => void;
+  explorerPlaybackSpeed: number;
+  onChangePlaybackSpeed: (speed: number) => void;
   onTogglePlayback: () => void;
   visibleCatalogObjectCount: number;
   visibleRenderableOrbitStateCount: number;
@@ -1204,7 +1534,17 @@ function ExplorerTimeline({
           : null,
       ].filter(Boolean).join(" · ")
     : activeCoverage.status === "latest-public-catalog"
-      ? `${visibleRenderableOrbitStateCount.toLocaleString()} reconstructed`
+      // The historical branch above already names the objects it cannot place.
+      // This one did not, so the timeline read "33,468 reconstructed" while the
+      // Explore panel counted 33,489 and nothing accounted for the difference.
+      ? [
+          `${visibleRenderableOrbitStateCount.toLocaleString()} reconstructed ${
+            visibleRenderableOrbitStateCount === 1 ? "orbit" : "orbits"
+          }`,
+          (activeCoverage.catalogOnlyObjectCount ?? 0) > 0
+            ? `${activeCoverage.catalogOnlyObjectCount!.toLocaleString()} unavailable`
+            : null,
+        ].filter(Boolean).join(" · ")
       : `${visibleRenderableOrbitStateCount.toLocaleString()} source-backed`;
   const historicalCatalogOnly = activeCoverage.status === "historical-loaded" &&
     activeCoverage.catalogObjectCount > 0 && activeCoverage.renderableOrbitStateCount === 0;
@@ -1250,6 +1590,47 @@ function ExplorerTimeline({
       onSelectSnapshot(explorerTimelineSnapshots[boundedIndex]);
     },
     [onSelectSnapshot],
+  );
+
+  // Milestone bands tile the whole track, so they sit on top of the scrub line.
+  // A press resolves to the milestone, but dragging out of one has to keep
+  // scrubbing rather than dead-end on the dot the finger started from.
+  const milestoneDragRef = useRef<{ startX: number; scrubbing: boolean } | null>(null);
+  const MILESTONE_DRAG_SLOP_PX = 6;
+
+  const handleMilestonePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    milestoneDragRef.current = { startX: event.clientX, scrubbing: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleMilestonePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = milestoneDragRef.current;
+      if (!drag) return;
+      if (!drag.scrubbing && Math.abs(event.clientX - drag.startX) < MILESTONE_DRAG_SLOP_PX) return;
+      drag.scrubbing = true;
+      scheduleTimelineSelection(event.clientX, false);
+    },
+    [scheduleTimelineSelection],
+  );
+
+  const handleMilestonePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      const drag = milestoneDragRef.current;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      if (!drag?.scrubbing) return;
+      if (timelineAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(timelineAnimationFrameRef.current);
+        timelineAnimationFrameRef.current = null;
+        pendingTimelineSelectionRef.current = null;
+      }
+      selectFromClientX(event.clientX, true);
+    },
+    [selectFromClientX],
   );
 
   return (
@@ -1350,40 +1731,84 @@ function ExplorerTimeline({
           </i>
         </div>
         <div className="explorer-milestones">
-          {explorerTimelineSnapshots.map((snapshot, index) => (
-            <button
-              aria-current={snapshot.id === activeSnapshot.id ? "date" : undefined}
-              className={[
-                snapshot.id === activeSnapshot.id ? "active" : "",
-                index === 0 ? "first" : "",
-                index === explorerTimelineSnapshots.length - 1 ? "last" : "",
-              ].filter(Boolean).join(" ")}
-              key={snapshot.id}
-              style={{ left: `${explorerVisibleTimelinePosition(snapshot) * 100}%` }}
-              title={snapshot.label}
-              type="button"
-              onClick={() => onSelectSnapshot(snapshot)}
-            >
-              <i />
-              <strong>{snapshot.year}</strong>
-              <span>{snapshot.milestone}</span>
-            </button>
-          ))}
+          {explorerTimelineSnapshots.map((snapshot, index) => {
+            // Milestones are only a few years apart in places, so fixed-width hit
+            // boxes overlapped and stole each other's taps. Each button instead
+            // owns the strip running to the midpoint of each neighbour: the bands
+            // tile the track without overlapping, every point resolves to its
+            // nearest milestone, and the dot still marks the true year.
+            const position = explorerVisibleTimelinePosition(snapshot);
+            const previous = explorerTimelineSnapshots[index - 1];
+            const next = explorerTimelineSnapshots[index + 1];
+            const bandStart = previous
+              ? (explorerVisibleTimelinePosition(previous) + position) / 2
+              : 0;
+            const bandEnd = next ? (position + explorerVisibleTimelinePosition(next)) / 2 : 1;
+            const bandWidth = Math.max(bandEnd - bandStart, Number.EPSILON);
+            // The end milestones sit on the track edge, so their band is half-width
+            // by construction. Nothing competes beyond the track, so let them reach
+            // a little further out rather than leave a 9px target.
+            const outerReachPx = 12;
+            const left = previous
+              ? `${bandStart * 100}%`
+              : `calc(${bandStart * 100}% - ${outerReachPx}px)`;
+            const width = `calc(${bandWidth * 100}% + ${previous && next ? 0 : outerReachPx}px)`;
+
+            return (
+              <button
+                aria-current={snapshot.id === activeSnapshot.id ? "date" : undefined}
+                className={[
+                  snapshot.id === activeSnapshot.id ? "active" : "",
+                  index === 0 ? "first" : "",
+                  index === explorerTimelineSnapshots.length - 1 ? "last" : "",
+                ].filter(Boolean).join(" ")}
+                key={snapshot.id}
+                style={{
+                  left,
+                  width,
+                  transform: "none",
+                  // The dot's true position, expressed within its own band. Used by
+                  // the stylesheet to place the dot and anchor the edge labels. The
+                  // end bands reach `outerReachPx` past their milestone, so their
+                  // dot is that far in from the extended edge.
+                  "--milestone-dot": !previous
+                    ? `${outerReachPx}px`
+                    : !next
+                      ? `calc(100% - ${outerReachPx}px)`
+                      : `${((position - bandStart) / bandWidth) * 100}%`,
+                } as CSSProperties}
+                title={snapshot.label}
+                type="button"
+                // The surrounding scrubber captures the pointer on pointerdown and
+                // derives a year from the raw x position, which overrode the
+                // milestone before its click could ever fire.
+                onPointerDown={handleMilestonePointerDown}
+                onPointerMove={handleMilestonePointerMove}
+                onPointerUp={handleMilestonePointerUp}
+                onClick={() => {
+                  // A drag already resolved to a scrubbed year; don't snap back.
+                  if (milestoneDragRef.current?.scrubbing) {
+                    milestoneDragRef.current = null;
+                    return;
+                  }
+                  milestoneDragRef.current = null;
+                  onSelectSnapshot(snapshot);
+                }}
+              >
+                <i />
+                <strong>{snapshot.year}</strong>
+                <span>{snapshot.milestone}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
-      <div className="explorer-timeline-speeds" aria-label="Explorer playback speed">
-        {explorerSpeedPresets.map((preset) => (
-          <button
-            aria-pressed={explorerSpeedPreset === preset.id}
-            className={explorerSpeedPreset === preset.id ? "active" : ""}
-            key={preset.id}
-            type="button"
-            onClick={() => onApplySpeedPreset(preset.id)}
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
+      <PlaybackSpeedSlider
+        className="explorer-timeline-speed-slider"
+        value={explorerPlaybackSpeed}
+        onChange={onChangePlaybackSpeed}
+        label="Explorer timeline playback speed"
+      />
     </footer>
   );
 }
@@ -1402,13 +1827,58 @@ export function ExplorerView({
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(0);
+  const [mobileSearchViewportHeight, setMobileSearchViewportHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (!searchOpen || typeof window === "undefined") {
+      setMobileSearchViewportHeight(null);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    const updateViewportHeight = () => {
+      setMobileSearchViewportHeight(Math.round(viewport?.height ?? window.innerHeight));
+    };
+
+    updateViewportHeight();
+    viewport?.addEventListener("resize", updateViewportHeight);
+    viewport?.addEventListener("scroll", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateViewportHeight);
+      viewport?.removeEventListener("scroll", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, [searchOpen]);
+  const [viewMode, setViewMode] = useState<ExplorerViewMode>("globe");
+  // Fragmentation is history, not a snapshot: events span 1957 to the present
+  // and include fragments that have long since decayed.
+  const fragmentationEvents = useMemo(
+    () => explorerFragmentationEvents(explorerHistoricalCatalog.objects),
+    [],
+  );
+  const [highlightedEvent, setHighlightedEvent] = useState<FragmentationEvent | null>(null);
+
+  const highlightedFragmentIds = useMemo(() => {
+    if (!highlightedEvent) return undefined;
+    const ids = new Set<string>();
+    for (const object of explorerHistoricalCatalog.objects) {
+      if (
+        object.fragmentation?.parentRecordId === highlightedEvent.parentRecordId &&
+        object.fragmentation.separationDateIso === highlightedEvent.dateIso
+      ) {
+        ids.add(object.id);
+      }
+    }
+    return ids;
+  }, [highlightedEvent]);
+  const coveragePanel = useCoveragePanel(activeSnapshot);
   const [typeFilters, setTypeFilters] = useState<ExplorerCategoryId[]>([]);
   const [colorMode, setColorMode] = useState<ExplorerColorMode>("type");
   const [regimeFilter, setRegimeFilter] = useState<ExplorerRegimeFilter>("all");
   const [focusPreset, setFocusPreset] = useState<ExplorerFocusPreset>("earth-orbit");
   const [focusRequestKey, setFocusRequestKey] = useState(0);
-  const [explorerSpeedPreset, setExplorerSpeedPreset] =
-    useState<ExplorerSpeedPresetId>(defaultExplorerSpeedPreset);
+  const [explorerPlaybackSpeed, setExplorerPlaybackSpeed] = useState(defaultExplorerSpeed);
   const [explorerPlaybackRunning, setExplorerPlaybackRunning] = useState(
     initialExplorerPlaybackRunning,
   );
@@ -1427,8 +1897,15 @@ export function ExplorerView({
   const layersPanelRef = useRef<HTMLElement | null>(null);
   const catalogLauncherRef = useRef<HTMLButtonElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const detailsInvokerRef = useRef<{ entryId: string; element: HTMLElement } | null>(null);
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    const input = searchInputRef.current;
+    if (input && document.activeElement === input) input.blur();
+  }, []);
   const catalogPanel = useExplorerPanelController(setCatalogOpen);
   const layersPanel = useExplorerPanelController(setLayersOpen);
   const orbitPanel = useExplorerPanelController(setOrbitSheetOpen);
@@ -1444,7 +1921,6 @@ export function ExplorerView({
   const setPlaying = useSimulationStore((state) => state.setPlaying);
   const setTimeScale = useSimulationStore((state) => state.setTimeScale);
   const setFollowSelectedObject = useSimulationStore((state) => state.setFollowSelectedObject);
-  const currentSpeedPreset = explorerSpeedPresetFor(explorerSpeedPreset);
   const currentColorMode =
     explorerColorModes.find((mode) => mode.id === colorMode) ?? explorerColorModes[0];
   const selectedObjectTypeFilter =
@@ -1465,27 +1941,29 @@ export function ExplorerView({
     },
     [scenario.selectedObjectId, setFollowSelectedObject],
   );
-  const applyExplorerSpeedPreset = useCallback(
-    (presetId: ExplorerSpeedPresetId) => {
-      const preset = explorerSpeedPresetFor(presetId);
-      setExplorerSpeedPreset(preset.id);
-      if (explorerPlaybackRunning) setTimeScale(preset.timeScale);
+  const changeExplorerPlaybackSpeed = useCallback(
+    (speed: number) => {
+      const normalizedSpeed = Math.max(1, Math.min(3000, Math.round(speed)));
+      setExplorerPlaybackSpeed(normalizedSpeed);
+      setTimeScale(normalizedSpeed);
     },
-    [explorerPlaybackRunning, setTimeScale],
+    [setTimeScale],
   );
   const toggleExplorerPlayback = useCallback(() => {
     setExplorerPlaybackRunning((running) => {
       const next = !running;
       setPlaying(next);
-      if (next) setTimeScale(currentSpeedPreset.timeScale);
+      if (next) setTimeScale(explorerPlaybackSpeed);
       return next;
     });
-  }, [currentSpeedPreset.timeScale, setPlaying, setTimeScale]);
+  }, [explorerPlaybackSpeed, setPlaying, setTimeScale]);
   const selectExplorerTimelineSnapshot = useCallback((snapshot: ExplorerSnapshot) => {
-    setExplorerPlaybackRunning(false);
-    setPlaying(false);
     onSelectSnapshot(snapshot);
-  }, [onSelectSnapshot, setPlaying]);
+    if (explorerPlaybackRunning) {
+      setPlaying(true);
+      setTimeScale(explorerPlaybackSpeed);
+    }
+  }, [explorerPlaybackRunning, explorerPlaybackSpeed, onSelectSnapshot, setPlaying, setTimeScale]);
   const snapshotView = useMemo(() => explorerSnapshotView(activeSnapshot), [activeSnapshot]);
   const typeFilterSet = useMemo(() => new Set(typeFilters), [typeFilters]);
   const matchesExplorerFilters = useCallback(
@@ -1528,6 +2006,28 @@ export function ExplorerView({
       (entry) => isExplorerSceneEntry(entry) && matchesExplorerFilters(entry),
     );
   }, [matchesExplorerFilters, snapshotView.records]);
+
+  // The population view is deliberately anchored to the current catalog rather
+  // than the timeline. Orbit shape is only sourced at each object's own epoch —
+  // there is no historical element series — so plotting a 1990 membership set in
+  // parameter space would place today's shapes at a date they never had. The
+  // same Explorer filters apply, so the two representations stay in step.
+  const populationSnapshotView = useMemo(
+    () => explorerSnapshotView(currentExplorerSnapshot),
+    [],
+  );
+  const populationPoints = useMemo(
+    () =>
+      explorerPopulationPoints(
+        populationSnapshotView.records.filter(
+          (entry) => isExplorerSceneEntry(entry) && matchesExplorerFilters(entry),
+        ),
+      ),
+    [matchesExplorerFilters, populationSnapshotView.records],
+  );
+  const populationSnapshotLabel = currentExplorerSnapshot.year === activeSnapshot.year
+    ? `current catalog (${currentExplorerSnapshot.year})`
+    : `current catalog (${currentExplorerSnapshot.year}) — timeline is at ${activeSnapshot.year}`;
   const resolvedVisibility = useMemo(
     () =>
       resolveExplorerVisibility(
@@ -1589,7 +2089,11 @@ export function ExplorerView({
       activeLabels.length === 1 ? "filter" : "filters"
     }. It remains visible while selected.`;
   }, [regimeFilter, selectedFilterConflict, selectedObjectTypeFilter.label]);
-  const globalSearchResults = useMemo(
+  const SEARCH_RESULT_LIMIT = 10;
+  // The full match set is kept so the status line can report the real total.
+  // Reporting the sliced length told a reader searching 1,716 fragments that
+  // there were ten of them.
+  const globalSearchMatches = useMemo(
     () =>
       searchActive
         ? prioritizeExplorerSearchResults(
@@ -1601,10 +2105,22 @@ export function ExplorerView({
               constellationId: "all",
             }),
             query,
-          ).slice(0, 10)
+          )
         : [],
     [query, searchActive, snapshotView],
   );
+  const globalSearchResults = useMemo(
+    () => globalSearchMatches.slice(0, SEARCH_RESULT_LIMIT),
+    [globalSearchMatches],
+  );
+  // An exact-name match that decayed out of the current snapshot. Without this
+  // a search for a famous satellite returns only its debris, with nothing
+  // saying why the satellite itself is missing.
+  const historicalSearchMatches = useMemo(() => {
+    if (!searchActive) return [];
+    const present = new Set(snapshotView.records.map((record) => record.id));
+    return historicalOnlyMatches(query, present);
+  }, [query, searchActive, snapshotView]);
   useEffect(() => {
     setHighlightedSearchIndex(0);
   }, [globalSearchResults.length, query, searchOpen]);
@@ -1632,6 +2148,13 @@ export function ExplorerView({
   );
   const selectedSatelliteAvailable = scenario.selectedObjectType === "satellite";
   const loadedCatalogObjectCount = snapshotView.catalogObjectCount;
+  // One derivation for every total the interface shows, so the three surfaces
+  // cannot drift into three unexplained numbers again.
+  const countBreakdown = useMemo(() => explorerCountBreakdown(snapshotView), [snapshotView]);
+  const countReconciliation = useMemo(
+    () => explorerCountReconciliation(countBreakdown),
+    [countBreakdown],
+  );
   const loadedRenderableOrbitStateCount = snapshotView.renderableOrbitStateCount;
   const historicalCatalogOnly = explorerHistoricalWarningState({
     catalogObjectCount: loadedCatalogObjectCount,
@@ -1711,7 +2234,7 @@ export function ExplorerView({
 
   const selectEntry = useCallback((entry: ExplorerCatalogEntry, invoker?: HTMLElement) => {
     if (invoker) detailsInvokerRef.current = { entryId: entry.id, element: invoker };
-    setSearchOpen(false);
+    closeSearch();
     closeExplorerSheets();
     if (entry.selectionKind !== "satellite") setFollowSelectedObject(false);
     if (entry.selectionKind === "satellite" && sceneSatelliteIds.has(entry.id)) {
@@ -1733,6 +2256,7 @@ export function ExplorerView({
     }
   }, [
     closeExplorerSheets,
+    closeSearch,
     sceneConstellationIds,
     sceneGroundStationIds,
     sceneSatelliteIds,
@@ -1742,6 +2266,124 @@ export function ExplorerView({
     selectSatellite,
     setFollowSelectedObject,
   ]);
+
+  /**
+   * Restore the state a link carries, once. Runs after mount so the catalog and
+   * scene exist to select into; a link that names an object no longer in the
+   * catalog restores everything else rather than failing.
+   */
+  const urlStateRestored = useRef(false);
+  const [urlRestoreTick, setUrlRestoreTick] = useState(0);
+  useEffect(() => {
+    if (urlStateRestored.current || typeof window === "undefined") return;
+    urlStateRestored.current = true;
+    const linked = readExplorerUrlState(window.location.search);
+    if (linked.view) setViewMode(linked.view);
+    if (linked.regime) applyExplorerRegimeFilter(linked.regime as ExplorerRegimeFilter);
+    if (linked.year !== null) {
+      const snapshot = explorerTimelineSnapshots.find((item) => Number(item.year) === linked.year);
+      if (snapshot) onSelectSnapshot(snapshot);
+    }
+  }, [applyExplorerRegimeFilter, onSelectSnapshot]);
+
+  /**
+   * The object is restored separately, once the scene has objects to select
+   * into. selectEntry routes to a scene satellite when one exists and falls
+   * back to a catalog-only selection when it does not — so restoring at mount
+   * silently produced the catalog-only path and a panel reading "no
+   * source-backed position is available", for an object that has one.
+   */
+  /**
+   * Restore the linked object, retrying briefly.
+   *
+   * selectEntry routes to a scene satellite when the scene holds one and to a
+   * catalog-only selection otherwise, and the scene hydrates an object shortly
+   * after it is first asked for. A single attempt at mount therefore selected
+   * the catalog record and left the panel without the orbit sections — the
+   * object was named, but Current orbit and Orbital elements were missing.
+   * Re-applying while the selection has not settled lets the scene catch up.
+   */
+  const urlObjectRestored = useRef(false);
+  const urlObjectAttempts = useRef(0);
+  useEffect(() => {
+    if (!urlStateRestored.current || urlObjectRestored.current) return;
+    if (typeof window === "undefined") return;
+    const linked = readExplorerUrlState(window.location.search);
+    if (!linked.object) {
+      urlObjectRestored.current = true;
+      return;
+    }
+    const entry = explorerEntryForId(linked.object, currentExplorerSnapshot);
+    if (!entry) {
+      urlObjectRestored.current = true;
+      return;
+    }
+    const settled =
+      entry.selectionKind !== "satellite" ||
+      (scenario.selectedObjectId === entry.id && scenario.selectedObjectType === "satellite");
+    if (settled) {
+      urlObjectRestored.current = true;
+      if (scenario.selectedObjectId !== entry.id) selectEntry(entry);
+      return;
+    }
+    if (urlObjectAttempts.current >= 8) {
+      // Give up rather than retry forever; the catalog selection still stands.
+      urlObjectRestored.current = true;
+      return;
+    }
+    urlObjectAttempts.current += 1;
+    selectEntry(entry);
+    const timer = window.setTimeout(() => setUrlRestoreTick((tick) => tick + 1), 700);
+    return () => window.clearTimeout(timer);
+  }, [
+    scenario.selectedObjectId,
+    scenario.selectedObjectType,
+    sceneSatelliteIds,
+    selectEntry,
+    urlRestoreTick,
+  ]);
+
+  /**
+   * Reflect state into the address bar. replaceState rather than pushState:
+   * a link has to be copyable, but scrubbing a timeline should not bury the
+   * Back button under a hundred history entries.
+   */
+  useEffect(() => {
+    // Both restores must have finished. Writing earlier overwrote the incoming
+    // ?object= with whatever the scene had selected by default — a runtime
+    // sat-<uuid> — so the restore then read its own clobbered URL and could
+    // never find the object.
+    if (!urlStateRestored.current || !urlObjectRestored.current) return;
+    if (typeof window === "undefined") return;
+    // Only a catalog id survives a reload. Scene-generated ids are meaningless
+    // in a link, so an unresolvable selection writes no object at all.
+    const selectedCatalogId =
+      scenario.selectedObjectId &&
+      explorerEntryForId(scenario.selectedObjectId, currentExplorerSnapshot)
+        ? scenario.selectedObjectId
+        : null;
+    const href = writeExplorerUrlState(window.location.search, {
+      view: viewMode,
+      regime: regimeFilter,
+      object: selectedCatalogId,
+      year: Number(activeSnapshot.year),
+      defaultYear: Number(currentExplorerSnapshot.year),
+    });
+    const next = `${window.location.pathname}${href}${window.location.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(window.history.state, "", next);
+    }
+  }, [activeSnapshot.year, regimeFilter, scenario.selectedObjectId, urlRestoreTick, viewMode]);
+
+  // A point in the population view is the same Explorer object the globe would
+  // select, so the selection survives switching representation either way.
+  const selectPopulationObject = useCallback(
+    (id: string) => {
+      const entry = explorerEntryForId(id, currentExplorerSnapshot);
+      if (entry) selectEntry(entry);
+    },
+    [selectEntry],
+  );
 
   const explorerReviewState = useMemo<ExplorerReviewState>(() => {
     const selectedEntry = scenario.selectedObjectId
@@ -1813,7 +2455,7 @@ export function ExplorerView({
       objectTypeFilters: [...typeFilters],
       playback: {
         isPlaying,
-        speed: currentSpeedPreset.label,
+        speed: `${explorerPlaybackSpeed.toLocaleString()}×`,
         timeScale: scenario.timeScale,
       },
       dataCoverage: {
@@ -1842,7 +2484,7 @@ export function ExplorerView({
     };
   }, [
     activeSnapshot,
-    currentSpeedPreset.label,
+    explorerPlaybackSpeed,
     catalogCollectionId,
     isPlaying,
     query,
@@ -1895,10 +2537,11 @@ export function ExplorerView({
       setPlayback: (playing: boolean) => {
         setExplorerPlaybackRunning(playing);
         setPlaying(playing);
-        if (playing) setTimeScale(currentSpeedPreset.timeScale);
+        if (playing) setTimeScale(explorerPlaybackSpeed);
       },
-      setPlaybackSpeed: (speed: ExplorerSpeedPresetId) => {
-        applyExplorerSpeedPreset(speed);
+      setPlaybackSpeed: (speed) => {
+        const reviewSpeeds = { "1x": 1, "10x": 10, "100x": 100, "1000x": 1000, max: 3000 } as const;
+        changeExplorerPlaybackSpeed(reviewSpeeds[speed]);
       },
     } satisfies Window["__ORBIT_STUDIO_REVIEW__"];
 
@@ -1911,9 +2554,9 @@ export function ExplorerView({
     };
   }, [
     applyExplorerRegimeFilter,
-    applyExplorerSpeedPreset,
+    changeExplorerPlaybackSpeed,
     clearExplorerSelection,
-    currentSpeedPreset.timeScale,
+    explorerPlaybackSpeed,
     selectExplorerTimelineSnapshot,
     setPlaying,
     setTimeScale,
@@ -1925,7 +2568,7 @@ export function ExplorerView({
       if (filterMenuOpen) {
         filterMenu.close();
       } else if (searchOpen) {
-        setSearchOpen(false);
+        closeSearch();
       } else if (catalogOpen) {
         catalogPanel.close();
       } else if (layersOpen) {
@@ -1948,6 +2591,7 @@ export function ExplorerView({
     catalogOpen,
     catalogPanel,
     clearExplorerSelection,
+    closeSearch,
     filterMenu,
     filterMenuOpen,
     layersOpen,
@@ -2006,12 +2650,25 @@ export function ExplorerView({
     return () => window.removeEventListener("pointerdown", handlePointerDown);
   }, [filterMenu, filterMenuOpen]);
 
+  // Touch platforms do not reliably fire `blur` when the user taps a non-focusable
+  // surface, which otherwise left the field expanded with the keyboard dismissed.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (searchWrapRef.current?.contains(target)) return;
+      closeSearch();
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [closeSearch, searchOpen]);
+
   useEffect(() => {
     setPlaying(explorerPlaybackRunning);
-    if (explorerPlaybackRunning) setTimeScale(currentSpeedPreset.timeScale);
+    if (explorerPlaybackRunning) setTimeScale(explorerPlaybackSpeed);
   }, [
     activeSnapshot.id,
-    currentSpeedPreset.timeScale,
+    explorerPlaybackSpeed,
     explorerPlaybackRunning,
     setPlaying,
     setTimeScale,
@@ -2038,16 +2695,28 @@ export function ExplorerView({
           />
         </button>
         <div
+          ref={searchWrapRef}
           className="explorer-global-search"
           data-explorer-catalog-context
+          data-search-open={searchOpen ? "true" : "false"}
+          data-search-active={searchActive ? "true" : "false"}
+          style={
+            mobileSearchViewportHeight
+              ? ({
+                  "--explorer-search-viewport-height": `${mobileSearchViewportHeight}px`,
+                } as CSSProperties)
+              : undefined
+          }
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
-            if (!nextTarget || !event.currentTarget.contains(nextTarget)) setSearchOpen(false);
+            if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+            setSearchOpen(false);
           }}
         >
           <label>
             <Search size={16} />
             <input
+              ref={searchInputRef}
               aria-activedescendant={
                 searchOpen && globalSearchResults[highlightedSearchIndex]
                   ? `explorer-search-option-${highlightedSearchIndex}`
@@ -2078,7 +2747,7 @@ export function ExplorerView({
                 if (event.key === "Escape" && searchOpen) {
                   event.preventDefault();
                   event.stopPropagation();
-                  setSearchOpen(false);
+                  closeSearch();
                   return;
                 }
 
@@ -2122,7 +2791,8 @@ export function ExplorerView({
                 type="button"
                 onClick={() => {
                   setQuery("");
-                  setSearchOpen(false);
+                  setHighlightedSearchIndex(0);
+                  searchInputRef.current?.focus();
                 }}
               >
                 <X size={14} />
@@ -2136,10 +2806,19 @@ export function ExplorerView({
               role="listbox"
             >
               <div className="explorer-search-dropdown-status" role="status">
-                {globalSearchResults.length
-                  ? `${globalSearchResults.length.toLocaleString()} matches`
+                {globalSearchMatches.length
+                  ? globalSearchMatches.length > globalSearchResults.length
+                    ? `Showing ${globalSearchResults.length} of ${globalSearchMatches.length.toLocaleString()} matches`
+                    : `${globalSearchMatches.length.toLocaleString()} ${globalSearchMatches.length === 1 ? "match" : "matches"}`
                   : "No matches"}
               </div>
+              {historicalSearchMatches.map((match) => (
+                <p className="explorer-search-historical" key={match.id}>
+                  <strong>{match.name}</strong> is not in the {activeSnapshot.year} catalog:
+                  it decayed on {match.decayDate?.slice(0, 10)} and was last present in{" "}
+                  {match.lastPresentYear}. The results below are its debris.
+                </p>
+              ))}
               {globalSearchResults.map((entry, index) => (
                 <button
                   aria-selected={index === highlightedSearchIndex}
@@ -2155,12 +2834,15 @@ export function ExplorerView({
                   <i style={{ background: markerStyles.get(entry.id)?.color ?? entry.orbit?.color }} />
                   <span>
                     <strong>{entry.name}</strong>
-                    <small>{explorerResultKindLabel(entry)} · {entry.objectType}</small>
+                    <small>
+                      {explorerResultKindLabel(entry)} · {entry.objectType}
+                      {searchResultDetail(entry) ? ` · ${searchResultDetail(entry)}` : ""}
+                    </small>
                   </span>
                   <ChevronRight size={14} />
                 </button>
               ))}
-              {globalSearchResults.length === 0 && (
+              {globalSearchResults.length === 0 && historicalSearchMatches.length === 0 && (
                 <p>Try a catalog number, operator, category, or constellation name.</p>
               )}
             </div>
@@ -2227,6 +2909,9 @@ export function ExplorerView({
             onHideInterface={onHideInterface}
             onOpenExplorer={onOpenExplorer}
             onOpenHome={onOpenHome}
+            onOpenTracker={() =>
+              window.location.assign(`${window.location.pathname}?app=tracker`)
+            }
             onOpenPlayground={onOpenPlayground}
           />
         </div>
@@ -2268,6 +2953,41 @@ export function ExplorerView({
         <Settings size={20} />
       </button>
 
+      {/* One Explorer state, two representations. The switch changes how the
+          catalog is drawn; it never changes selection, filters or the timeline. */}
+      <div className="explorer-view-switch" role="group" aria-label="Explorer representation">
+        <button
+          aria-pressed={viewMode === "globe"}
+          className={viewMode === "globe" ? "active" : ""}
+          title="Globe view"
+          type="button"
+          onClick={() => setViewMode("globe")}
+        >
+          <Globe2 size={16} />
+          <span>Globe</span>
+        </button>
+        <button
+          aria-pressed={viewMode === "population"}
+          className={viewMode === "population" ? "active" : ""}
+          title="Orbital population view"
+          type="button"
+          onClick={() => setViewMode("population")}
+        >
+          <ScatterChart size={16} />
+          <span>Population</span>
+        </button>
+        <button
+          aria-pressed={viewMode === "debris"}
+          className={viewMode === "debris" ? "active" : ""}
+          title="Debris and fragmentation history"
+          type="button"
+          onClick={() => setViewMode("debris")}
+        >
+          <Orbit size={16} />
+          <span>Debris</span>
+        </button>
+      </div>
+
       {catalogOpen && (
       <aside
         id="explorer-catalog-panel"
@@ -2281,7 +3001,11 @@ export function ExplorerView({
           className="explorer-mobile-sheet-drag-region"
           closeLabel="Close Explore"
           dragHandleProps={catalogSheetDrag.dragHandleProps}
-          supporting={`${loadedCatalogObjectCount.toLocaleString()} objects in this snapshot`}
+          supporting={
+            countBreakdown.catalogOnly > 0
+              ? `${countBreakdown.catalogObjects.toLocaleString()} catalog objects · ${countBreakdown.catalogOnly.toLocaleString()} without a usable orbit`
+              : `${countBreakdown.catalogObjects.toLocaleString()} catalog objects`
+          }
           title="Explore"
           onClose={catalogPanel.close}
         />
@@ -2496,63 +3220,47 @@ export function ExplorerView({
       )}
 
       {playbackSheetOpen && (
-        <aside
-          className="explorer-mobile-sheet explorer-mobile-playback-sheet"
-          aria-label="Explorer playback controls"
-          style={playbackSheetDrag.sheetStyle}
-        >
-          <ExplorerPanelHeader
-            className="explorer-mobile-sheet-drag-region"
-            closeLabel="Close playback controls"
-            dragHandleProps={playbackSheetDrag.dragHandleProps}
-            title="Playback"
-            onClose={playbackPanel.close}
+        <>
+          <button
+            aria-label="Close playback controls"
+            className="explorer-mobile-playback-backdrop"
+            type="button"
+            onClick={() => playbackPanel.close()}
           />
-          <section className="explorer-mobile-playback-options">
+          <aside
+            className="explorer-mobile-sheet explorer-mobile-playback-sheet"
+            aria-label="Explorer playback controls"
+            style={playbackSheetDrag.sheetStyle}
+          >
             <button
-              aria-pressed={explorerPlaybackRunning}
-              className={`explorer-playback-toggle ${explorerPlaybackRunning ? "running" : ""}`}
+              aria-label="Close playback controls"
+              className="explorer-mobile-sheet-handle"
+              title="Close playback controls. Drag down or tap to close."
               type="button"
-              onClick={toggleExplorerPlayback}
+              {...playbackSheetDrag.dragHandleProps}
+              onClick={() => playbackPanel.close()}
             >
-              {explorerPlaybackRunning ? <Pause size={13} /> : <Play size={13} />}
-              <span>{explorerPlaybackRunning ? "Running" : "Paused"}</span>
+              <span aria-hidden="true" />
             </button>
-            <div className="explorer-mobile-speed-options" aria-label="Explorer playback speed">
-              {explorerSpeedPresets.map((preset) => (
-                <button
-                  aria-pressed={explorerSpeedPreset === preset.id}
-                  className={explorerSpeedPreset === preset.id ? "active" : ""}
-                  key={preset.id}
-                  type="button"
-                  onClick={() => applyExplorerSpeedPreset(preset.id)}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            {selectedSatelliteAvailable && (
+            <section className="explorer-mobile-playback-options">
               <button
-                aria-pressed={scenario.cameraSettings.followSelectedObject}
-                className={scenario.cameraSettings.followSelectedObject ? "active follow-active" : ""}
+                aria-label={explorerPlaybackRunning ? "Pause Explorer playback" : "Start Explorer playback"}
+                aria-pressed={explorerPlaybackRunning}
+                className={`explorer-mobile-playback-toggle ${explorerPlaybackRunning ? "running" : ""}`}
                 type="button"
-                onClick={() => {
-                  const next = !scenario.cameraSettings.followSelectedObject;
-                  setFollowSelectedObject(next);
-                  if (next && !explorerPlaybackRunning) {
-                    applyExplorerSpeedPreset(followExplorerSpeedPreset);
-                    setExplorerPlaybackRunning(true);
-                    setPlaying(true);
-                    setTimeScale(explorerSpeedPresetFor(followExplorerSpeedPreset).timeScale);
-                  }
-                }}
+                onClick={toggleExplorerPlayback}
               >
-                <Eye size={13} />
-                {scenario.cameraSettings.followSelectedObject ? "Following" : "Follow Sat"}
+                {explorerPlaybackRunning ? <Pause size={18} /> : <Play size={18} />}
               </button>
-            )}
-          </section>
-        </aside>
+              <PlaybackSpeedSlider
+                className="explorer-mobile-playback-slider"
+                value={explorerPlaybackSpeed}
+                onChange={changeExplorerPlaybackSpeed}
+                label="Explorer playback speed"
+              />
+            </section>
+          </aside>
+        </>
       )}
 
       <section className="explorer-globe" aria-label="Orbital environment globe">
@@ -2661,10 +3369,72 @@ export function ExplorerView({
                 setMobileMenuOpen(false);
               }}
             >
-              {currentSpeedPreset.label}
+              {explorerPlaybackSpeed.toLocaleString()}×
             </button>
           </div>
         )}
+        <nav className="explorer-mobile-dock" aria-label="Explorer controls">
+          <button
+            aria-pressed={orbitSheetOpen}
+            className={orbitSheetOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              orbitSheetOpen ? orbitPanel.close() : orbitPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setLayersOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Crosshair size={19} />
+            <span>Orbit</span>
+          </button>
+          <button
+            aria-pressed={layersOpen}
+            className={layersOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              layersOpen ? layersPanel.close() : layersPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setOrbitSheetOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Filter size={19} />
+            <span>Display</span>
+          </button>
+          <button
+            aria-pressed={catalogOpen}
+            className={catalogOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              catalogOpen ? catalogPanel.close() : catalogPanel.openFrom(catalogLauncherRef.current);
+              setLayersOpen(false);
+              setOrbitSheetOpen(false);
+              setPlaybackSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Search size={19} />
+            <span>Explore</span>
+          </button>
+          <button
+            aria-pressed={playbackSheetOpen}
+            className={playbackSheetOpen ? "active" : ""}
+            type="button"
+            onClick={() => {
+              playbackSheetOpen ? playbackPanel.close() : playbackPanel.openFrom(mobileMenuButtonRef.current);
+              setCatalogOpen(false);
+              setLayersOpen(false);
+              setOrbitSheetOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            {explorerPlaybackRunning ? <Pause size={19} /> : <Play size={19} />}
+            <span>Playback</span>
+          </button>
+        </nav>
         <div className="explorer-globe-toolbar">
           <div className="explorer-control-group explorer-workspace-controls" aria-label="Explorer workspace panels">
             <button
@@ -2743,22 +3513,12 @@ export function ExplorerView({
               {explorerPlaybackRunning ? <Pause size={13} /> : <Play size={13} />}
               <span>{explorerPlaybackRunning ? "Running" : "Paused"}</span>
             </button>
-            <label className="explorer-speed-select">
-              <span>Speed</span>
-              <select
-                aria-label="Explorer playback speed"
-                value={explorerSpeedPreset}
-                onChange={(event) =>
-                  applyExplorerSpeedPreset(event.target.value as ExplorerSpeedPresetId)
-                }
-              >
-                {explorerSpeedPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <PlaybackSpeedSlider
+              className="explorer-desktop-speed-slider"
+              value={explorerPlaybackSpeed}
+              onChange={changeExplorerPlaybackSpeed}
+              label="Explorer playback speed"
+            />
             {selectedSatelliteAvailable && (
               <button
                 aria-pressed={scenario.cameraSettings.followSelectedObject}
@@ -2768,10 +3528,10 @@ export function ExplorerView({
                   const next = !scenario.cameraSettings.followSelectedObject;
                   setFollowSelectedObject(next);
                   if (next && !explorerPlaybackRunning) {
-                    applyExplorerSpeedPreset(followExplorerSpeedPreset);
+                    changeExplorerPlaybackSpeed(followExplorerSpeed);
                     setExplorerPlaybackRunning(true);
                     setPlaying(true);
-                    setTimeScale(explorerSpeedPresetFor(followExplorerSpeedPreset).timeScale);
+                    setTimeScale(followExplorerSpeed);
                   }
                 }}
               >
@@ -2791,7 +3551,9 @@ export function ExplorerView({
             explorerSelectedOrbitVisible={sceneVisibility.selectedOrbitVisible}
             explorerVisibleGroundStationIds={explorerVisibleGroundStationIds}
             explorerVisibleSatelliteIds={resolvedVisibility.satelliteIds}
-            explorerAnimate={explorerAnimate && isPlaying}
+            // The globe keeps its state while the population view is shown, but
+            // there is no reason to keep animating a scene nobody can see.
+            explorerAnimate={explorerAnimate && isPlaying && viewMode === "globe"}
             explorerFocusPreset={focusPreset}
             explorerFocusRequestKey={focusRequestKey}
             explorerMarkerStyles={markerStyles}
@@ -2815,7 +3577,33 @@ export function ExplorerView({
             onClearSelection={clearExplorerSelection}
           />
         </AppErrorBoundary>
-        {historicalCatalogOnly && (
+        {coveragePanel.presentation === "split" && viewMode === "globe" && (
+          <ExplorerCoveragePanel coverage={coveragePanel} />
+        )}
+        {viewMode === "population" && (
+          <ExplorerPopulationView
+            points={populationPoints}
+            selectedId={scenario.selectedObjectId}
+            snapshotLabel={populationSnapshotLabel}
+            highlightIds={highlightedFragmentIds}
+            highlightLabel={highlightedEvent?.parentName}
+            countNote={countReconciliation}
+            onSelect={selectPopulationObject}
+          />
+        )}
+        {viewMode === "debris" && (
+          <ExplorerDebrisView
+            events={fragmentationEvents}
+            objects={explorerHistoricalCatalog.objects}
+            snapshotYear={Number(currentExplorerSnapshot.year)}
+            snapshotLabel={populationSnapshotLabel}
+            onShowInPopulation={(event) => {
+              setHighlightedEvent(event);
+              setViewMode("population");
+            }}
+          />
+        )}
+        {historicalCatalogOnly && viewMode === "globe" && (
           <div className="explorer-historical-data-notice" role="status" aria-live="polite">
             <strong>Historical positions unavailable</strong>
             <span>
@@ -2825,8 +3613,13 @@ export function ExplorerView({
         )}
       </section>
 
+      {coveragePanel.presentation === "expanded" && (
+        <ExplorerCoveragePanel coverage={coveragePanel} />
+      )}
+
       <ExplorerInspector
         activeSnapshot={activeSnapshot}
+        coverage={coveragePanel}
         filterConflictMessage={selectedFilterConflictMessage}
         onClearSelection={closeExplorerDetails}
         onResolveFilterConflict={resolveSelectedFilterConflict}
@@ -2835,8 +3628,8 @@ export function ExplorerView({
         activeSnapshot={activeSnapshot}
         onSelectSnapshot={selectExplorerTimelineSnapshot}
         explorerPlaybackRunning={explorerPlaybackRunning}
-        explorerSpeedPreset={explorerSpeedPreset}
-        onApplySpeedPreset={applyExplorerSpeedPreset}
+        explorerPlaybackSpeed={explorerPlaybackSpeed}
+        onChangePlaybackSpeed={changeExplorerPlaybackSpeed}
         onTogglePlayback={toggleExplorerPlayback}
         visibleCatalogObjectCount={loadedCatalogObjectCount}
         visibleRenderableOrbitStateCount={loadedRenderableOrbitStateCount}
