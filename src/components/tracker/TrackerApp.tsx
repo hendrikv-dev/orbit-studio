@@ -1012,6 +1012,20 @@ function TrackerScreen() {
    * cloud crossing the pixel from a night that has closed, and the difference
    * is the whole point — so the series is fetched even though the map only
    * draws the newest of them.
+   *
+   * ## Why this is not gated on the cloud layer
+   *
+   * It feeds `cloudTimeline`, and the rail suppresses a repeatable target whose
+   * whole window is closed. Gating it on the switch made the recommendation a
+   * function of a display preference: under a shut sky the rail offered four
+   * things with the layer off and none with it on, so turning a layer on to
+   * look at the weather silently deleted the answer — and turning it off
+   * brought back four opportunities that were still behind cloud.
+   *
+   * A layer decides what is drawn over the map. It does not decide what Tracker
+   * knows, and it must never decide what Tracker recommends. The layer's own
+   * surfaces — the reading, the scrubber, the drawn field — stay switched,
+   * because those genuinely are the layer.
    */
   const cloudSeries = useQuery({
     queryKey: [
@@ -1020,7 +1034,7 @@ function TrackerScreen() {
       "series",
       place ? `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}` : null,
     ],
-    enabled: activeLayers.has("cloud") && Boolean(place),
+    enabled: Boolean(place),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     retry: false,
@@ -1065,7 +1079,13 @@ function TrackerScreen() {
     return { startUtc: night.period.startUtc, endUtc: night.period.endUtc };
   }, [night]);
 
-  /** The hourly forecast at the reader's place across that window. */
+  /**
+   * The hourly forecast at the reader's place across that window.
+   *
+   * Ungated for the same reason as the scan series above: it is the other half
+   * of `cloudTimeline`, and the night's verdict has to be the same night's
+   * verdict whether or not the reader is looking at the cloud field.
+   */
   const cloudForecastSeries = useQuery({
     queryKey: [
       "tracker",
@@ -1074,7 +1094,7 @@ function TrackerScreen() {
       place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
       cloudWindow?.startUtc ?? null,
     ],
-    enabled: activeLayers.has("cloud") && Boolean(place) && Boolean(cloudWindow),
+    enabled: Boolean(place) && Boolean(cloudWindow),
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
     retry: false,

@@ -2298,6 +2298,126 @@ async function main() {
     await context.close();
   }
 
+  /* --- the layer draws the sky; it does not decide it ---------------------- */
+  /**
+   * Turning Clouds on and off must not change what is worth going out for.
+   *
+   * The rail does suppress a repeatable target whose whole window is closed —
+   * that is the product working, and the count of what cloud cost is stated
+   * beside it. What it must not do is depend on whether the reader happens to
+   * be looking at the cloud field.
+   *
+   * It did. Every cloud query was gated on the layer switch, so `cloudTimeline`
+   * only existed while the overlay was on, and under a shut sky the rail
+   * offered four things with the layer off and none with it on. Turning a layer
+   * on to check the weather deleted the answer; turning it off brought back
+   * four opportunities that were still behind cloud. A display preference was
+   * silently choosing between two different recommendations, and neither the
+   * reader nor this gate could see it happening.
+   *
+   * So the fix ungated the two queries the timeline is built from and left the
+   * layer's own surfaces switched. These checks pin both halves: the rail is
+   * the same either way, and cloud still decides what is on it.
+   */
+  console.log("\nClouds layer invariance");
+  {
+    const railOf = (page) =>
+      page.locator(".tk-rail-card").evaluateAll((cards) =>
+        cards.map((card) => card.getAttribute("data-card") ?? "").join(","),
+      );
+
+    /** One night, one place, one sky — opened with the layer already off or on. */
+    const railUnder = async (sky, layers) => {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      await stub(context);
+      await seed(context);
+      await cloudForecast(context, sky === "clear" ? 5 : 95);
+      await cloudMask(context, { acm: sky === "clear" ? 0 : 3, ...cloudNow });
+      const page = await cloudPage(context);
+      await page.goto(`${TRACKER}&at=45.5,-122.7&z=7${layers ? "&layers=cloud" : ""}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await openCloud(page);
+      const rail = await railOf(page);
+      await context.close();
+      return rail;
+    };
+
+    const clearOff = await railUnder("clear", false);
+    const clearOn = await railUnder("clear", true);
+    const closedOff = await railUnder("closed", false);
+    const closedOn = await railUnder("closed", true);
+
+    /**
+     * Asserted first, because every check below it is vacuous without it: a
+     * rail that was always empty, or a build that had stopped reading cloud at
+     * all, would satisfy "the same either way" perfectly.
+     */
+    check(clearOff.length > 0, `a clear night offers something (${clearOff || "nothing"})`);
+    check(
+      closedOff !== clearOff,
+      "and a closed night does not offer the same things as a clear one",
+    );
+
+    check(
+      clearOff === clearOn,
+      `the rail under a clear sky ignores the layer switch (off ${clearOff || "-"} / on ${clearOn || "-"})`,
+    );
+    check(
+      closedOff === closedOn,
+      `the rail under a closed sky ignores it too (off ${closedOff || "-"} / on ${closedOn || "-"})`,
+    );
+  }
+
+  /* --- and switching it back leaves nothing behind ------------------------- */
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await stub(context);
+    await seed(context);
+    await cloudForecast(context, 5);
+    await cloudMask(context, { acm: 0, ...cloudNow });
+    const page = await cloudPage(context);
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=7`, { waitUntil: "domcontentloaded" });
+    await openCloud(page);
+
+    const railOf = () =>
+      page.locator(".tk-rail-card").evaluateAll((cards) =>
+        cards.map((card) => card.getAttribute("data-card") ?? "").join(","),
+      );
+    const toggleCloud = async () => {
+      await openLayerPanel(page);
+      await page
+        .locator('.tk-layers-item[role="switch"]:has-text("Cloud viewing conditions")')
+        .first()
+        .click();
+      await page.waitForTimeout(3000);
+      await closeLayerPanel(page);
+      await page.waitForTimeout(1500);
+    };
+
+    const before = await railOf();
+    check(before.length > 0, `the rail has something to lose (${before || "nothing"})`);
+
+    await toggleCloud();
+    const during = await railOf();
+    const readingOn = await page.locator(".tk-map-layer-reading").count();
+    check(during === before, `turning Clouds on changes nothing on the rail (${during || "-"})`);
+
+    await toggleCloud();
+    const after = await railOf();
+    const readingOff = await page.locator(".tk-map-layer-reading").count();
+    check(after === before, `and turning it off restores exactly what was there (${after || "-"})`);
+
+    /**
+     * The other half of the contract. Ungating the data must not have dragged
+     * the layer's own furniture into a map that has it switched off.
+     */
+    check(readingOn > 0, "the layer still states its own reading while it is on");
+    check(readingOff === 0, "and takes that reading away again when it is off");
+
+    await context.close();
+  }
+
   /* --- spacecraft overhead ------------------------------------------------- */
   console.log("\nSatellites");
   {
