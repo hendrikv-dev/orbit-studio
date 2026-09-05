@@ -2384,6 +2384,14 @@ async function main() {
       page.locator(".tk-rail-card").evaluateAll((cards) =>
         cards.map((card) => card.getAttribute("data-card") ?? "").join(","),
       );
+    /**
+     * Returns the layer's own reading while the panel is still open.
+     *
+     * The reading is rendered inside the panel's list item, so counting it
+     * after closing the panel counts zero whatever the layer is doing — which
+     * is what the first version of this check did, and it failed against a
+     * product that was working.
+     */
     const toggleCloud = async () => {
       await openLayerPanel(page);
       await page
@@ -2391,21 +2399,21 @@ async function main() {
         .first()
         .click();
       await page.waitForTimeout(3000);
+      const readings = await page.locator(".tk-map-layer-reading").count();
       await closeLayerPanel(page);
       await page.waitForTimeout(1500);
+      return readings;
     };
 
     const before = await railOf();
     check(before.length > 0, `the rail has something to lose (${before || "nothing"})`);
 
-    await toggleCloud();
+    const readingOn = await toggleCloud();
     const during = await railOf();
-    const readingOn = await page.locator(".tk-map-layer-reading").count();
     check(during === before, `turning Clouds on changes nothing on the rail (${during || "-"})`);
 
-    await toggleCloud();
+    const readingOff = await toggleCloud();
     const after = await railOf();
-    const readingOff = await page.locator(".tk-map-layer-reading").count();
     check(after === before, `and turning it off restores exactly what was there (${after || "-"})`);
 
     /**

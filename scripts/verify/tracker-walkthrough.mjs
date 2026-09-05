@@ -1,6 +1,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
+import { stubCloudUnavailable } from "./tracker-fixtures.mjs";
 
 /**
  * A scripted walk through every Tracker state this redesign claims to have
@@ -568,7 +569,28 @@ async function bestTonightHas(page, pattern) {
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  const browser = await chromium.launch();
+  const chrome = await chromium.launch();
+  /**
+   * Every context on the walk, with the sky pinned before it can be asked for.
+   *
+   * Tracker reads cloud whether or not the layer is drawing it, so the rail is
+   * a function of tonight's weather — and this file opens nineteen contexts of
+   * its own without going through the shared `stubTracker`. The ones that had
+   * not thought to stub cloud went to the live forecast, and the aurora section
+   * began timing out on evenings when its test location was overcast: a gate
+   * whose answer depends on real weather is not a gate.
+   *
+   * Wrapped at the factory rather than fixed at the call sites that broke, so
+   * the twentieth context cannot reintroduce it. A section that wants a real
+   * sky routes one afterwards and overrides this.
+   */
+  const browser = {
+    newContext: async (options) => {
+      const context = await chrome.newContext(options);
+      await stubCloudUnavailable(context);
+      return context;
+    },
+  };
   const captured = {};
 
   /* --- 1. location, from nothing ---------------------------------------- */
@@ -3406,7 +3428,7 @@ async function main() {
   await sheet.close();
   await sheetContext.close();
 
-  await browser.close();
+  await chrome.close();
 
   await writeFile(
     path.join(OUT, "walkthrough.json"),

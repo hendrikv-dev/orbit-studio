@@ -171,26 +171,35 @@ export async function stubTracker(
     return route.fulfill({ status: 404, contentType: "text/plain", body: "" });
   });
 
-  /**
-   * Cloud, answered with nothing at all unless a caller says otherwise.
-   *
-   * Tracker reads cloud whether or not the layer is drawing it, because the
-   * rail withholds a repeatable target whose whole window is closed and that
-   * judgement cannot depend on a display switch. The consequence for a gate is
-   * that the observing rail is now a function of the sky, so a run that does
-   * not pin one is asking the live forecast what tonight looks like — and a
-   * check about card geometry starts failing on evenings when Portland happens
-   * to be overcast.
-   *
-   * Nothing rather than a clear sky. An empty body leaves `cloudTimeline` null,
-   * which is exactly the state every one of these gates was already written
-   * against, so pinning it changes no existing expectation. Claiming 0% cloud
-   * would be a different night from the one they were written for.
-   *
-   * `stubCloudMask` and `stubCloudForecast` override this: Playwright matches
-   * the most recently registered route first, so a caller that wants a real sky
-   * simply asks for one after this.
-   */
+  await stubCloudUnavailable(context);
+}
+
+/**
+ * Cloud, answered with nothing at all.
+ *
+ * Tracker reads cloud whether or not the layer is drawing it, because the rail
+ * withholds a repeatable target whose whole window is closed and that judgement
+ * cannot depend on a display switch. The consequence for a gate is that the
+ * observing rail is now a function of the sky, so a run that does not pin one is
+ * asking the live forecast what tonight looks like — and a check about card
+ * geometry starts failing on evenings when Portland happens to be overcast.
+ *
+ * Nothing rather than a clear sky. An empty body leaves `cloudTimeline` null,
+ * which is exactly the state these gates were already written against, so
+ * pinning it changes no existing expectation. Claiming 0% cloud would be a
+ * different night from the one they were written for.
+ *
+ * `stubCloudMask` and `stubCloudForecast` override this: Playwright matches the
+ * most recently registered route first, so a caller that wants a real sky simply
+ * asks for one after this.
+ *
+ * Exported because not every gate builds its contexts through `stubTracker`.
+ * The walkthrough opens nineteen of its own, and when cloud became something
+ * Tracker always reads, the ones it had not thought to stub went to the live
+ * forecast — which is how a settled gate started timing out on the nights
+ * Portland was overcast.
+ */
+export async function stubCloudUnavailable(context) {
   const nothing = (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   await context.route("**/api/goes-cloud-mask*", nothing);
