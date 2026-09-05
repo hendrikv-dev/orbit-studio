@@ -319,59 +319,21 @@ async function scan(page, state, disabledRules = []) {
 }
 
 /**
- * `aria-hidden-focus`, disabled for the open inline combobox only.
+ * Every state is scanned with the full rule set now.
  *
- * React Aria's combobox calls ariaHideOutside whenever its list is open: while
- * you are choosing a suggestion, the rest of the page is hidden from assistive
- * technology, exactly as a modal does. On the entry screen the combobox lives
- * in the document rather than in a dialog, so what gets hidden is the page
- * itself — including the skip link and the photograph's credit link, which stay
- * focusable. axe reads that snapshot and reports focusable elements inside an
- * aria-hidden subtree.
+ * `aria-hidden-focus` used to be disabled for one of them. React Aria's combobox
+ * calls ariaHideOutside whenever its list is open, and the entry screen rendered
+ * the picker in the document rather than in a dialog — so what got hidden was
+ * the page itself, including the skip link and the photograph's credit link,
+ * which stayed focusable. axe reported them, correctly, and the gate answered by
+ * disabling the rule for that state and asserting the behaviour instead: Tab
+ * from the open list closed it and un-hid everything before focus moved.
  *
- * Nobody can reach them. Tab from the open list closes it, which un-hides
- * everything before focus moves. That is a claim about behaviour rather than
- * about markup, so it is not left as a comment: assertTabLeavesNothingHidden
- * checks it, and it is checked in place of the rule, not as well as suppressing
- * it quietly. The rule stays on for every other state, including the header
- * picker, which does not hide the page at all.
+ * The entry screen and its in-page picker are gone, and nothing renders the
+ * panel outside a popover any more, so the page is never hidden around a bare
+ * input and the rule needs no exception. The suppression and the assertion that
+ * replaced it both went with the thing they were about.
  */
-const INLINE_COMBOBOX_RULE = "aria-hidden-focus";
-
-async function assertTabLeavesNothingHidden(page) {
-  expect(
-    await page.evaluate(() => document.querySelectorAll('[aria-hidden="true"]').length > 0),
-    "the open inline combobox should hide the page from assistive technology",
-  );
-  await page.keyboard.press("Tab");
-  // React Aria removes the overlay and restores aria-hidden in its layout
-  // effect. Wait for that committed state rather than sampling between the
-  // native Tab event and React's cleanup.
-  await page.waitForFunction(
-    () =>
-      document.querySelectorAll('[role="option"]').length === 0 &&
-      !document.activeElement?.closest('[aria-hidden="true"]'),
-    null,
-    { timeout: 1_000 },
-  ).catch(() => {});
-  const after = await page.evaluate(() => ({
-    listOpen: document.querySelectorAll('[role="option"]').length > 0,
-    focusHidden: Boolean(document.activeElement?.closest('[aria-hidden="true"]')),
-    focusExists: document.activeElement !== document.body,
-    active: {
-      tag: document.activeElement?.tagName,
-      className: document.activeElement?.className,
-      role: document.activeElement?.getAttribute("role"),
-      text: document.activeElement?.textContent?.trim().slice(0, 80),
-    },
-  }));
-  expect(!after.listOpen, `Tab should close the suggestion list rather than move into it (${JSON.stringify(after.active)})`);
-  expect(after.focusExists, "Tab should move focus somewhere, not drop it on the body");
-  expect(
-    !after.focusHidden,
-    `Tab out of the suggestion list must not land on an aria-hidden element (${JSON.stringify(after.active)})`,
-  );
-}
 
 /** Fails loudly rather than silently passing when an expectation is not met. */
 function expect(condition, message) {
@@ -385,30 +347,22 @@ function expect(condition, message) {
  * broken and because synthetic events do not exercise React Aria's press and
  * focus handling — a `.click()` on an option does nothing at all.
  *
- * The same panel appears in two forms. On the entry screen it is inline: there
- * is no trigger and nothing to open, because asking somebody to open a dialog
- * before they can type a place name was the extra step the entry rebuild
- * removed. In the header, after a place exists, it is still a popover behind a
- * trigger. Both are driven here, from the same assertions, so neither can lose
- * its keyboard behaviour unnoticed.
+ * The panel is always a popover behind a trigger. It briefly had a second,
+ * in-page form on the entry screen, and this function drove both from the same
+ * assertions so neither could lose its keyboard behaviour unnoticed; that form
+ * no longer exists, so there is one path again.
  */
 async function chooseFirstResult(page, query) {
-  const inline = (await page.locator(".tk-locate").count()) > 0;
-  if (!inline) {
-    await page.locator(".tracker-place-current").first().click();
-    await page.waitForSelector(".tracker-place-panel");
-  }
+  await page.locator(".tracker-place-current").first().click();
+  await page.waitForSelector(".tracker-place-panel");
 
   const input = page.locator(".tracker-place-search input");
-  // Only the popover moves focus on open. The inline field is already in the
-  // page and stealing focus into it on load would fight a screen reader
-  // working through the headline above it.
-  if (!inline) {
-    expect(
-      await input.evaluate((el) => el === document.activeElement),
-      "opening the picker should focus the search field",
-    );
-  }
+  // The popover moves focus on open, which is what the reader asked for by
+  // opening it.
+  expect(
+    await input.evaluate((el) => el === document.activeElement),
+    "opening the picker should focus the search field",
+  );
   expect(
     (await input.getAttribute("role")) === "combobox",
     "the search field should expose role=combobox",
@@ -422,18 +376,7 @@ async function chooseFirstResult(page, query) {
   await input.click();
   await input.fill(query);
   await page.waitForSelector('[role="option"]', { timeout: 20_000 });
-  await scan(page, "picker open with results", inline ? [INLINE_COMBOBOX_RULE] : []);
-
-  if (inline) {
-    await assertTabLeavesNothingHidden(page);
-    // Tab closed the list. Reopen it and carry on with the selection. Focus
-    // alone is not enough to reopen a list the user has just dismissed, so the
-    // query is retyped.
-    await input.click();
-    await input.fill("");
-    await input.fill(query);
-    await page.waitForSelector('[role="option"]', { timeout: 20_000 });
-  }
+  await scan(page, "picker open with results");
 
   await page.keyboard.press("ArrowDown");
   const active = await input.getAttribute("aria-activedescendant");

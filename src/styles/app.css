@@ -11903,99 +11903,6 @@ button.primary,
   line-height: 1.08;
   letter-spacing: -0.012em;
 }
-/* --- the entry's single location control ---------------------------------
-   Rendered in the page rather than in a popover, so the expanded state cannot
-   overlap the composition it belongs to, and there is no second copy of the
-   same control behind it. */
-
-.tk-locate .tracker-place-body.is-inline { gap: 10px; }
-
-.tk-locate .tracker-place-search {
-  order: 0;
-  min-height: 52px;
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 12px;
-  background: var(--tk-panel-lift);
-  padding: 0 15px;
-  margin: 0;
-}
-.tk-locate .tracker-place-search:focus-within {
-  border-color: var(--tk-accent);
-  box-shadow: 0 0 0 3px rgba(79, 216, 176, 0.16);
-}
-.tk-locate .tracker-place-search input {
-  min-height: 52px;
-  font-size: 0.98rem;
-  color: var(--tk-ink);
-}
-.tk-locate .tracker-place-search svg { color: var(--tk-ink-dim); }
-
-/* Secondary to the search, because most readers will type a place. Teal is the
-   accent for action, not the whole surface. */
-.tk-locate .tracker-place-device {
-  order: 1;
-  justify-content: center;
-  min-height: 44px;
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 11px;
-  background: transparent;
-  color: var(--tk-ink-soft);
-  font-size: 0.86rem;
-}
-.tk-locate .tracker-place-device:hover:not([data-disabled]) {
-  border-color: var(--tk-accent);
-  color: var(--tk-ink);
-}
-.tk-locate .tracker-place-device svg { color: var(--tk-accent); }
-
-.tk-locate .tracker-place-results {
-  order: 2;
-  max-height: 232px;
-  border: 1px solid var(--tk-line);
-  border-radius: 11px;
-  background: var(--tk-panel-lift);
-  padding: 5px;
-}
-.tk-locate .tracker-place-results:empty { display: none; }
-.tk-locate .tracker-place-messages { order: 3; }
-.tk-locate .tracker-place-status { order: 4; }
-
-/* Confirmation. Nothing is computed until the reader agrees this is the place
-   they will actually be standing in. */
-/* Inline control order, stated after the generic rules so it wins: the search
-   is the primary way in and leads; the device action follows it. */
-.tk-locate .tracker-place-body.is-inline .tracker-place-search { order: 0; }
-.tk-locate .tracker-place-body.is-inline .tracker-place-results { order: 1; }
-.tk-locate .tracker-place-body.is-inline .tracker-place-messages { order: 2; }
-.tk-locate .tracker-place-body.is-inline .tracker-place-device { order: 3; }
-.tk-locate .tracker-place-body.is-inline .tracker-place-status { order: 4; }
-
-/* React Aria keeps a placeholder child inside the listbox when there is
-   nothing to show, so neither :empty nor :has(*) catches it — it was rendering
-   as a stray bar under the field. It marks the real state with data-empty. */
-.tk-locate .tracker-place-results[data-empty="true"],
-.tracker-place-overlay .tracker-place-results[data-empty="true"] {
-  display: none;
-}
-
-/* The inline suggestions, as an overlay the width of the field they belong to.
-   --trigger-width is React Aria's own measurement of the combobox input. */
-.tracker-place-overlay {
-  /* Width is set from the measured field in TrackerPlace. This is the fallback
-     for the first render, before the field has been laid out. */
-  min-width: var(--trigger-width);
-  max-height: 320px;
-  overflow-y: auto;
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 12px;
-  background: var(--tk-panel-lift);
-  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.55);
-}
-.tracker-place-overlay .tracker-place-results {
-  border: 0;
-  background: none;
-  padding: 5px;
-}
 
 /* Not-observable context. Deliberately quieter than a ranked card: this is a
    list of things you cannot go and look at, and it should not compete with the
@@ -16134,11 +16041,9 @@ button.primary,
 @media (max-width: 720px) {
   /* Unscoped for the place field, deliberately. Its panel is a React Aria
      `Popover`, which portals to the body, so it is not inside `.tk-map-shell`
-     and a rule scoped there never reaches it. The locate variant is listed
-     separately because it sets its own size at a higher specificity. */
+     and a rule scoped there never reaches it. */
   .tk-map-shell .tk-eventfinder-field input,
-  .tracker-place-search input,
-  .tk-locate .tracker-place-search input {
+  .tracker-place-search input {
     font-size: 1rem;
   }
 }

@@ -75,17 +75,6 @@ interface Props {
    * than a second copy of it or a guess from an IP address.
    */
   triggerRef?: RefObject<HTMLButtonElement>;
-  /**
-   * `bar` is the compact trigger that opens a popover, used once a place is
-   * chosen. `inline` is the entry state's own control: the same panel, rendered
-   * open and in the page.
-   *
-   * The entry screen used to open the popover variant, which meant the expanded
-   * panel floated over the composition it was supposed to be part of, and a
-   * second copy of the same control sat in the bar behind it. Inline removes
-   * both problems: nothing overlaps, because nothing is layered.
-   */
-  variant?: "bar" | "inline";
 }
 
 const KIND_HINT: Record<string, string> = {
@@ -128,15 +117,7 @@ function PlaceSearchInput({ autoFocus }: { autoFocus: boolean }) {
   );
 }
 
-export function TrackerPlace({ place, onSelect, variant = "bar", triggerRef }: Props) {
-  if (variant === "inline") {
-    return (
-      <div className="tk-locate">
-        <PlacePanel onSelect={onSelect} close={() => {}} inline />
-      </div>
-    );
-  }
-
+export function TrackerPlace({ place, onSelect, triggerRef }: Props) {
   return (
     <DialogTrigger>
       <Button
@@ -171,14 +152,10 @@ export function TrackerPlace({ place, onSelect, variant = "bar", triggerRef }: P
 function PlacePanel({
   onSelect,
   close,
-  inline = false,
 }: {
   onSelect: (place: SelectedPlace) => void;
   close: () => void;
-  /** Rendered in the page rather than in a popover. */
-  inline?: boolean;
 }) {
-  const fieldRef = useRef<HTMLDivElement>(null);
   const searchVersion = useRef(0);
 
   const [query, setQuery] = useState("");
@@ -321,7 +298,6 @@ function PlacePanel({
       className={[
         "tracker-place-body",
         blockedUpFront ? "is-blocked" : "",
-        inline ? "is-inline" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -431,59 +407,31 @@ function PlacePanel({
         {/* A real label. The placeholder was doing this job before, which it
             cannot: it disappears on the first keystroke and is not a name. */}
         <Label className="tracker-visually-hidden">Search for a place to observe from</Label>
-        <div className="tracker-place-search" ref={fieldRef}>
+        <div className="tracker-place-search">
           <Search size={15} aria-hidden />
           {/* Focused on open. Without it the dialog itself took focus, so the
               first thing typed went nowhere and a keyboard user had to tab past
               the location button to reach the field they came for. */}
-          {/* Autofocused only in the popover, where the reader opened it on
-              purpose. Stealing focus on page load is hostile. */}
-          <PlaceSearchInput autoFocus={!inline} />
+          {/* The panel only exists inside the popover, which the reader opened
+              on purpose, so taking focus is what they asked for. */}
+          <PlaceSearchInput autoFocus />
         </div>
         <Text slot="description" className="tracker-visually-hidden">
           Type at least three characters, or paste a latitude and longitude.
         </Text>
 
         {/* Announced by the combobox itself as the collection changes.
-            Inline, the list is an overlay rather than part of the flow. That is
-            not a visual preference: React Aria's combobox calls
-            ariaHideOutside whenever it is open, passing the input and its
-            popover. With no popover to pass, it hid the rest of the page around
-            a bare input — which left the skip link and the photograph's credit
-            link focusable inside an aria-hidden subtree, a WCAG failure the
-            accessibility gate caught. Inside a popover the same call is the
-            ordinary overlay behaviour. It also stops the suggestions shoving
-            the rest of the column downwards on every keystroke. */}
-        {inline ? (
-          <Popover
-            className="tracker-place-overlay"
-            // Anchored to the field, not to the input inside it. Left to
-            // itself the popover measures the input, which sits inside the
-            // field's padding — so the list came out inset and narrower than
-            // the box it belonged to.
-            triggerRef={fieldRef}
-            // Measured rather than derived. --trigger-width is the input's
-            // width: the field minus its border, its padding and the search
-            // icon, a chain of unrelated numbers to reproduce in CSS and wrong
-            // the moment any of them changes.
-            style={fieldRef.current ? { width: fieldRef.current.offsetWidth } : undefined}
-            // Anchored to the field, not to the input inside it. Left to itself
-            // the popover measures the input, which sits inside the field's
-            // padding — so the list came out inset and narrower than the box it
-            // belonged to.
-            // Measured rather than derived. --trigger-width is the input's
-            // width, which is the field minus its border, its padding and the
-            // search icon — a chain of unrelated numbers to reproduce in CSS,
-            // and wrong the moment any of them changes. The popover only mounts
-            // when it opens, by which time the field has been laid out.
-            offset={6}
-            placement="bottom start"
-          >
-            {resultList}
-          </Popover>
-        ) : (
-          resultList
-        )}
+
+            The panel is always inside the trigger's popover now, so the list is
+            simply part of it. There used to be a second, inline rendering that
+            had to wrap this in a popover of its own: React Aria's combobox
+            calls ariaHideOutside whenever it is open, passing the input and its
+            popover, and with no popover to pass it hid the rest of the page
+            around a bare input — leaving the skip link and the photograph's
+            credit link focusable inside an aria-hidden subtree, a WCAG failure
+            the accessibility gate caught. Nothing renders the panel bare any
+            more, so the workaround went with it. */}
+        {resultList}
       </ComboBox>
 
       {/* Status messages live outside the listbox so they are announced as
