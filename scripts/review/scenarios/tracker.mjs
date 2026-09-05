@@ -274,24 +274,67 @@ async function stubGeocoder(context) {
 }
 
 /**
- * Every source of weather, air and space weather, refused.
+ * Every source of weather, air and space weather, answering with nothing.
  *
- * Refused rather than answered: Tracker's honest-degradation behaviour is what
- * a review most needs to be able to photograph, and an absent forecast is the
- * state most readers are in when a provider is down. The cloud and
- * light-pollution layers have their own gates against real fixtures.
+ * Tracker's honest-degradation behaviour is what a review most needs to be able
+ * to photograph, and an absent forecast is the state most readers are in when a
+ * provider is down. The cloud and light-pollution layers have their own gates
+ * against real fixtures.
+ *
+ * ## Why these answer 200 rather than 503
+ *
+ * A release review must contain no unexpected browser diagnostics, and a
+ * browser logs every non-2xx subresource as `Failed to load resource` before
+ * any application code sees it. Refusing six services therefore wrote 27
+ * console errors into the package that had nothing to do with the product —
+ * the adapters were already handling every one of them silently.
+ *
+ * So each service answers instead, with the payload its own client already
+ * reads as "there is no data here". The product state is identical: no grid, no
+ * forecast, no samples, no relief.
+ *
+ * ## Why a payload and never a value
+ *
+ * Each body below is empty in the shape its parser understands. None of them
+ * carries a *reading*. An aurora grid of zeroes, a cloud cover of 0% or a
+ * sea-level elevation would each be a claim about tonight, and the whole
+ * argument of this product is that it does not make claims it cannot source.
+ * Absence has to stay absence, so these say "nothing", never "none".
  */
+export const NO_DATA_BODIES = [
+  // The planetary K-index products, carrying no samples: the parsers return a
+  // null current Kp and an empty forecast rather than a Kp of zero.
+  //
+  // Listed before the nowcast because Playwright matches the most recently
+  // registered route first, so the narrower OVATION pattern has to be
+  // registered after this one to win.
+  ["**/services.swpc.noaa.gov/**", []],
+  // The OVATION nowcast, carrying no grid: `parseAuroraGrid` rejects a body
+  // with no coordinates, which is the adapter's own path to `grid: null` and a
+  // freshness of "unavailable" — not an aurora that is quiet everywhere.
+  ["**/services.swpc.noaa.gov/json/ovation_aurora_latest.json*", { coordinates: [] }],
+  // No hourly series, so there is no PM2.5 and no aerosol depth to read.
+  ["**/air-quality-api.open-meteo.com/**", {}],
+  // No gridpoint URL and no timeseries, so each forecast provider fails over
+  // and the night ends with no forecast at all.
+  ["**/api.weather.gov/**", {}],
+  ["**/api.met.no/**", {}],
+  ["**/api.open-meteo.com/**", {}],
+  // A valid TileJSON that publishes no tiles. MapLibre adds the source, finds
+  // nothing to request and draws no relief; the analytical sightline path finds
+  // no elevation and says so. Serving a decodable DEM instead would flatten
+  // Oregon to sea level, which is a landscape, not a missing one.
+  ["**/tiles.mapterhorn.com/**", { tilejson: "2.2.0", tiles: [], minzoom: 0, maxzoom: 15 }],
+];
+
 async function stubEnvironment(context) {
-  for (const pattern of [
-    "**/api.weather.gov/**",
-    "**/api.met.no/**",
-    "**/api.open-meteo.com/**",
-    "**/air-quality-api.open-meteo.com/**",
-    "**/services.swpc.noaa.gov/**",
-    "**/tiles.mapterhorn.com/**",
-  ]) {
+  for (const [pattern, body] of NO_DATA_BODIES) {
     await context.route(pattern, (route) =>
-      route.fulfill({ status: 503, contentType: "text/plain", body: "review-controlled failure" }),
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      }),
     );
   }
 }
@@ -301,6 +344,15 @@ export const trackerReviewScenario = {
   title: "Tracker",
   reviewUrl: "http://127.0.0.1:4179/?app=tracker",
   requiresReviewBridge: false,
+  /**
+   * Tracker answers "what is worth seeing from here tonight" out of ephemerides,
+   * a shower calendar and an event catalogue. It never loads the current
+   * satellite catalog Explorer renders, so its states have no catalog identity
+   * to certify — and must not invent one. Declaring "none" is what obliges them
+   * to stay empty of catalog metadata rather than what excuses them from it; see
+   * `catalogAuthority` in scripts/release/source-identity.mjs.
+   */
+  catalogAuthority: "none",
   readySelector: ".tracker-shell",
   notes: {
     featuresImplemented: [
@@ -333,7 +385,14 @@ export const trackerReviewScenario = {
    */
   async prepare({ context, page }) {
     await page.clock.setFixedTime(REVIEW_AT);
-    await stubTracker(context, { basemap: "empty", satellites: "unavailable" });
+    await stubTracker(context, {
+      basemap: "empty",
+      satellites: "unavailable",
+      // The review is the one caller that needs a clean browser console, so the
+      // refused feed answers with an empty body rather than a 503. The
+      // ephemeris still resolves to null and Tracker still offers no spacecraft.
+      unavailable: "empty",
+    });
     await stubEnvironment(context);
     await stubGeocoder(context);
   },

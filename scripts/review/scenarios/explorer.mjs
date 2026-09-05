@@ -220,6 +220,13 @@ export function playbackMotionValidation(speed, timeScale, samples) {
 export const explorerReviewScenario = {
   id: "explorer",
   title: "Explorer",
+  /**
+   * This review renders the current satellite catalog, so every state it
+   * captures has to prove the catalog it rendered was the release-safe one.
+   * See `catalogAuthority` in scripts/release/source-identity.mjs for what that
+   * obliges each state to carry.
+   */
+  catalogAuthority: "current-catalog",
   notes: {
     featuresImplemented: [
       "Release-safe complete latest-public GCAT membership with explicitly reconstructed educational positions",

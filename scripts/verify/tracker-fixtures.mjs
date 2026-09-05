@@ -82,17 +82,47 @@ export const TRACKER_FIXTURE_AT = new Date("2026-09-03T05:00:00Z");
 export const SATELLITE_CLOCK = TRACKER_FIXTURE_AT;
 
 /**
+ * How a deliberately unavailable service answers.
+ *
+ * Both mean the same thing to the product — there is no data — and they differ
+ * only in the transport that carries it.
+ *
+ * `refused` answers 503. That is the most faithful imitation of a provider
+ * being down, and it is what every interactive gate wants.
+ *
+ * `empty` answers 200 with the payload the client already reads as "no data".
+ * The release review needs this one. A browser logs every non-2xx subresource
+ * as a console error *before* any application code sees the response, so a
+ * refusal writes `Failed to load resource` into the console no matter how
+ * gracefully the adapter then handles it — and a release review is required to
+ * contain no unexpected browser diagnostics. The distinction is transport-only:
+ * `empty` must never carry a *value*, because a zero reading is a claim about
+ * the sky and absence is not.
+ */
+export const UNAVAILABLE_TRANSPORTS = ["refused", "empty"];
+
+/**
  * Basemap tiles, satellites and the cloud mask, routed for one browser context.
  *
  * `basemap: "empty"` keeps a run off the tile server, which is what the gate
  * wants: a check about a rail's geometry should not fail because somebody
  * else's CDN was slow. `basemap: "live"` is for the review package, where the
  * point is to show the product as a reader sees it.
+ *
+ * `unavailable` chooses how a refused satellite feed answers; it defaults to
+ * the 503 every interactive gate has always seen, so only a caller that needs a
+ * clean browser console opts into the other one.
  */
 export async function stubTracker(
   context,
-  { basemap = "empty", satellites = "unavailable" } = {},
+  { basemap = "empty", satellites = "unavailable", unavailable = "refused" } = {},
 ) {
+  if (!UNAVAILABLE_TRANSPORTS.includes(unavailable)) {
+    throw new Error(
+      `Unknown unavailable transport ${JSON.stringify(unavailable)}; ` +
+        `expected one of ${UNAVAILABLE_TRANSPORTS.join(", ")}.`,
+    );
+  }
   if (basemap === "empty") {
     await context.route("**/tiles.openfreemap.org/**", (route) =>
       route.fulfill({
@@ -116,7 +146,13 @@ export async function stubTracker(
   await context.route("**/celestrak.org/**", (route) => {
     const url = route.request().url();
     if (satellites === "unavailable") {
-      return route.fulfill({ status: 503, contentType: "text/plain", body: "" });
+      // Either way `satelliteSources.text()` yields nothing — a 503 fails its
+      // `response.ok` check, and an empty 200 body is falsy at the call site —
+      // so the ephemeris resolves to null and the product reports no orbit
+      // rather than an orbit with no passes.
+      return unavailable === "empty"
+        ? route.fulfill({ status: 200, contentType: "text/plain", body: "" })
+        : route.fulfill({ status: 503, contentType: "text/plain", body: "" });
     }
     const text = (body) => route.fulfill({ status: 200, contentType: "text/plain", body });
     if (url.includes("FILE=iss")) return text(ISS_TLE);

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  NO_DATA_BODIES,
   trackerBackToMapValidation,
   trackerRailValidation,
   trackerReviewFixtures,
@@ -278,5 +279,118 @@ describe("Tracker review no longer certifies the destination-page architecture",
     expect(notes).not.toMatch(/four condition cards/i);
     expect(notes).not.toMatch(/universal event page/i);
     expect(notes).toMatch(/map-first/i);
+  });
+});
+
+/**
+ * The unavailable-data fixtures.
+ *
+ * These replaced six blanket 503s. A refused subresource is written to the
+ * browser console before any application code sees it, so refusing every
+ * environmental service put 27 console errors into a release package that is
+ * required to contain none — none of which described anything wrong with the
+ * product, because the adapters were already handling each one silently.
+ *
+ * Answering instead is only safe while the answers stay empty. A body that
+ * carries a reading would turn "we could not find out" into "we found out, and
+ * it is nothing", which is the one thing this product must never do.
+ */
+describe("Tracker review unavailable-data fixtures", () => {
+  const bodyFor = (pattern) => NO_DATA_BODIES.find(([glob]) => glob === pattern)?.[1];
+
+  it("answers every refused service rather than failing the request", () => {
+    expect(NO_DATA_BODIES.length).toBeGreaterThanOrEqual(6);
+    for (const [pattern, body] of NO_DATA_BODIES) {
+      expect(typeof pattern).toBe("string");
+      expect(body).toBeDefined();
+      expect(() => JSON.stringify(body)).not.toThrow();
+    }
+  });
+
+  /**
+   * The measurement fields each adapter would read. None may be present: an
+   * aurora grid of zeroes, a Kp of 0, a cloud cover of 0% or a sea-level
+   * elevation are all claims about tonight.
+   */
+  it("carries no reading any adapter could mistake for a measurement", () => {
+    const readings = [
+      "kp", "kp_index", "estimated_kp", "cloud_cover", "cloudCover", "pm2_5",
+      "aerosol_optical_depth", "temperature", "elevation", "properties", "timeseries",
+    ];
+    /**
+     * The fields that describe a service rather than a sky.
+     *
+     * A TileJSON has to declare its own zoom range to be a TileJSON at all, and
+     * those numbers say what the endpoint would serve if it served anything.
+     * Everything outside this list is a quantity about tonight, which is what
+     * an unavailable service must not supply.
+     */
+    const structural = new Set(["tilejson", "minzoom", "maxzoom"]);
+    for (const [pattern, body] of NO_DATA_BODIES) {
+      const serialised = JSON.stringify(body);
+      for (const reading of readings) {
+        expect(serialised, `${pattern} carries ${reading}`).not.toContain(`"${reading}"`);
+      }
+      for (const [key, value] of Object.entries(body ?? {})) {
+        if (structural.has(key)) continue;
+        expect(
+          Array.isArray(value) ? value.length : value,
+          `${pattern} carries a value under ${key}`,
+        ).toEqual(Array.isArray(value) ? 0 : expect.anything());
+        expect(typeof value, `${pattern} carries a number under ${key}`).not.toBe("number");
+      }
+    }
+  });
+
+  it("gives the aurora nowcast a grid with no coordinates", () => {
+    const ovation = bodyFor("**/services.swpc.noaa.gov/json/ovation_aurora_latest.json*");
+    expect(ovation).toEqual({ coordinates: [] });
+  });
+
+  it("gives the K-index products no samples at all", () => {
+    expect(bodyFor("**/services.swpc.noaa.gov/**")).toEqual([]);
+  });
+
+  /**
+   * Registered last so it wins: Playwright matches the most recently registered
+   * route first, so listing the narrow OVATION pattern before the broad SWPC one
+   * would silently hand the nowcast an array and lose the intent of both bodies.
+   */
+  it("registers the narrow aurora route after the broad one", () => {
+    const broad = NO_DATA_BODIES.findIndex(([p]) => p === "**/services.swpc.noaa.gov/**");
+    const narrow = NO_DATA_BODIES.findIndex(([p]) => p.includes("ovation_aurora_latest"));
+    expect(broad).toBeGreaterThan(-1);
+    expect(narrow).toBeGreaterThan(broad);
+  });
+
+  /**
+   * A DEM that decodes would flatten Oregon to sea level and read as terrain
+   * rather than as missing terrain, so the service publishes no tiles instead.
+   */
+  it("publishes a terrain source with no tiles rather than a flat one", () => {
+    const terrain = bodyFor("**/tiles.mapterhorn.com/**");
+    expect(terrain.tiles).toEqual([]);
+    expect(terrain.tilejson).toBe("2.2.0");
+  });
+
+  it("asks for the console-clean satellite transport", () => {
+    expect(scenarioSource).toMatch(/unavailable:\s*"empty"/);
+  });
+
+  it("no longer refuses anything with a status code", () => {
+    expect(scenarioSource).not.toMatch(/status:\s*503/);
+  });
+});
+
+/**
+ * Tracker states carry no catalog identity, and say so.
+ *
+ * The declaration is what obliges them to stay empty of Explorer's catalog
+ * metadata. Removing it would not relax the release rule — it would fail the
+ * package, because a state that declares nothing is rejected outright.
+ */
+describe("Tracker review catalog authority", () => {
+  it("declares that it never certifies the current satellite catalog", () => {
+    expect(trackerReviewScenario.catalogAuthority).toBe("none");
   });
 });

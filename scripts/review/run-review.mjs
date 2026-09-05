@@ -239,7 +239,29 @@ async function readScreenshotPopulationEvidence(page, screenshotBuffer) {
   }, `data:image/webp;base64,${screenshotBuffer.toString("base64")}`);
 }
 
+/**
+ * What a scenario is allowed to say about the current satellite catalog.
+ *
+ * Read from the scenario registry rather than taken from the state a scenario
+ * hands back, and stamped after that state is spread, so a surface cannot
+ * declare its own authority — neither to claim a catalog identity it never
+ * loaded, nor to disclaim one it did. The release verifier trusts this field to
+ * decide which states owe it release-safe catalog metadata, so the moment a
+ * scenario could write it the check would be self-certifying.
+ */
+function catalogAuthorityOf(scenarioId) {
+  const scenario = reviewScenarios.find((candidate) => candidate.id === scenarioId);
+  if (!scenario?.catalogAuthority) {
+    throw new Error(
+      `Review scenario ${scenarioId} declares no catalogAuthority. ` +
+        `Every scenario must state whether its states certify the current catalog.`,
+    );
+  }
+  return scenario.catalogAuthority;
+}
+
 function createScenarioTools(page, scenarioId, extras = {}) {
+  const catalogAuthority = catalogAuthorityOf(scenarioId);
   const captureSurface = async (id, state = {}) => {
     await page.evaluate(
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
@@ -247,7 +269,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
     await page.waitForTimeout(250);
     const screenshot = `screenshots/${id}.webp`;
     await captureWebp(page, path.join(outputRoot, screenshot));
-    const captured = { id, scenario: scenarioId, ...state, screenshot };
+    const captured = { id, scenario: scenarioId, ...state, catalogAuthority, screenshot };
     artifactStates.push(captured);
     return captured;
   };
@@ -394,6 +416,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
       playback: state.playback,
       dataCoverage: state.dataCoverage,
       datasets: state.datasets,
+      catalogAuthority,
       warningState: state.warningState,
       renderer: state.renderer,
       visualEvidence,
@@ -652,6 +675,7 @@ async function main() {
         scenarios: activeReviewScenarios.map((scenario) => ({
           id: scenario.id,
           title: scenario.title,
+          catalogAuthority: scenario.catalogAuthority,
           stateIds: artifactStates
             .filter((state) => state.scenario === scenario.id)
             .map((state) => state.id),
