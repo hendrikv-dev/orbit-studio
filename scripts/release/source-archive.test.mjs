@@ -6,8 +6,17 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   createSourceArchive,
+  expectedContentArgs,
+  isGitLfsPointer,
   validateSourceArchiveEntries,
 } from "./source-archive.mjs";
+
+/** A Git LFS pointer, in the shape git-lfs actually writes one. */
+const LFS_POINTER = Buffer.from(
+  "version https://git-lfs.github.com/spec/v1\n" +
+    `oid sha256:${"7".repeat(64)}\n` +
+    "size 124649472\n",
+);
 
 function git(repositoryRoot, args) {
   return execFileSync("git", args, {
@@ -139,5 +148,136 @@ describe("release source archive", () => {
     } finally {
       await rm(repositoryRoot, { recursive: true, force: true });
     }
+  });
+});
+
+/**
+ * Filtered paths, which is what Git LFS is.
+ *
+ * `git archive` runs the smudge side of a `filter` attribute, so a filtered
+ * path is materialised into the archive. Verification that read the raw object
+ * instead got the stored form back and reported every such path as
+ * `archive-entry-content-mismatch` — which is exactly what happened to the
+ * satellite authority, a 134-byte pointer being compared against the 124 MB
+ * database the archive correctly contained.
+ *
+ * Reproduced here with a plain Git filter rather than git-lfs: the mechanism
+ * that broke is the attribute, not the tool, and a test that needed git-lfs
+ * installed would be skipped exactly where it matters.
+ */
+describe("release source archive with filtered paths", () => {
+  it("expects the materialised content that git archive writes, not the stored blob", async () => {
+    const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "orbit-archive-filter-"));
+
+    try {
+      git(repositoryRoot, ["init", "--initial-branch=main"]);
+      git(repositoryRoot, ["config", "user.name", "Orbit Studio Test"]);
+      git(repositoryRoot, ["config", "user.email", "orbit-test@example.invalid"]);
+      // Stored one way, checked out another — the shape of an LFS pointer.
+      git(repositoryRoot, ["config", "filter.stand-in.clean", "sed s/PAYLOAD/STAND-IN/"]);
+      git(repositoryRoot, ["config", "filter.stand-in.smudge", "sed s/STAND-IN/PAYLOAD/"]);
+      await writeFile(path.join(repositoryRoot, ".gitattributes"), "big.bin filter=stand-in\n");
+      await writeFile(path.join(repositoryRoot, ".gitignore"), "release-artifacts/\n");
+      await writeFile(path.join(repositoryRoot, "big.bin"), "PAYLOAD the real bytes\n");
+      await writeFile(path.join(repositoryRoot, "plain.js"), "export const plain = true;\n");
+      git(repositoryRoot, ["add", "."]);
+      git(repositoryRoot, ["commit", "-m", "filtered source"]);
+
+      // The stored blob really is the stand-in, so the archive and the raw
+      // object genuinely differ — without that this test would pass vacuously.
+      const stored = git(repositoryRoot, ["cat-file", "blob", "HEAD:big.bin"]);
+      expect(stored).toContain("STAND-IN");
+
+      const result = await createSourceArchive({
+        repositoryRoot,
+        inventory: fixtureInventory(),
+      });
+      expect(result.failures).toEqual([]);
+      expect(result.paths).toContain("big.bin");
+      expect(result.paths).toContain("plain.js");
+    } finally {
+      await rm(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("reads a filtered file through the checkout conversion and a symlink raw", () => {
+    expect(expectedContentArgs("file", "data/authority.sqlite", "abc123")).toEqual([
+      "cat-file",
+      "--filters",
+      "--path=data/authority.sqlite",
+      "abc123",
+    ]);
+    expect(expectedContentArgs("symlink", "link", "def456")).toEqual([
+      "cat-file",
+      "blob",
+      "def456",
+    ]);
+  });
+});
+
+/**
+ * The failure the content comparison cannot see.
+ *
+ * Where git-lfs is not installed, `git archive` writes the pointer and the
+ * verification reads that same pointer back, so the two agree and a tarball
+ * that cannot rebuild the product passes as faithful. This is the check that
+ * the tree the archive matches was actually resolved.
+ */
+describe("release source archive LFS pointer detection", () => {
+  it("recognises a pointer", () => {
+    expect(isGitLfsPointer(LFS_POINTER)).toBe(true);
+  });
+
+  it("does not mistake ordinary content for one", () => {
+    expect(isGitLfsPointer(Buffer.from("SQLite format 3\u0000"))).toBe(false);
+    expect(isGitLfsPointer(Buffer.from(""))).toBe(false);
+    expect(isGitLfsPointer(Buffer.from("export const x = 1;\n"))).toBe(false);
+  });
+
+  it("does not mistake prose about the format for one", () => {
+    expect(isGitLfsPointer(Buffer.from(
+      "The archive must never contain version https://git-lfs.github.com/spec/v1 entries.\n",
+    ))).toBe(false);
+  });
+
+  it("does not accept a truncated or malformed pointer as a real file", () => {
+    expect(isGitLfsPointer(Buffer.from("version https://git-lfs.github.com/spec/v1\n"))).toBe(false);
+  });
+
+  it("fails an archive that shipped a pointer instead of the file", () => {
+    const entry = {
+      path: "orbit-studio-source-abc/data/authority.sqlite",
+      kind: "file",
+      content: LFS_POINTER,
+    };
+    const { failures } = validateSourceArchiveEntries({
+      entries: [entry],
+      expectedEntries: [{
+        path: "data/authority.sqlite",
+        kind: "file",
+        content: LFS_POINTER,
+      }],
+      prefix: "orbit-studio-source-abc/",
+      inventory: fixtureInventory(),
+    });
+    // The content comparison is satisfied — both sides are the pointer — and
+    // the archive is still broken.
+    expect(failures).not.toContain("archive-entry-content-mismatch:data/authority.sqlite");
+    expect(failures).toContain("archive-entry-lfs-pointer:data/authority.sqlite");
+  });
+
+  it("passes an archive that shipped the resolved file", () => {
+    const content = Buffer.from("SQLite format 3\u0000 real bytes");
+    const { failures } = validateSourceArchiveEntries({
+      entries: [{
+        path: "orbit-studio-source-abc/data/authority.sqlite",
+        kind: "file",
+        content,
+      }],
+      expectedEntries: [{ path: "data/authority.sqlite", kind: "file", content }],
+      prefix: "orbit-studio-source-abc/",
+      inventory: fixtureInventory(),
+    });
+    expect(failures).toEqual([]);
   });
 });
