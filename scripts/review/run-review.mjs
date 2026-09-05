@@ -461,6 +461,13 @@ async function openReviewPage(browser, scenarioOrId, options = {}) {
   });
   const page = await context.newPage();
   attachBrowserDiagnostics(page, scenarioId);
+  // Fixtures go in before the first navigation, not inside run(). A scenario that
+  // pins its clock or routes a feed after the page has already loaded has let the
+  // real one answer the opening request, which is the difference between a
+  // deterministic run and one that happens to agree with the network that morning.
+  if (typeof scenario?.prepare === "function") {
+    await scenario.prepare({ context, page });
+  }
   await page.goto(scenario?.reviewUrl ?? reviewUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
   if (scenario?.requiresReviewBridge === false) {
     await page.locator(scenario.readySelector ?? "main").waitFor({ state: "visible", timeout: 45_000 });

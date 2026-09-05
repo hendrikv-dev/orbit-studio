@@ -273,6 +273,57 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await context.close();
   }
 
+  /* --- the two surfaces the deterministic scenario opens ------------------- */
+  /**
+   * The place search and the event search, photographed open.
+   *
+   * Both are behind a trigger, and that is the point: the deterministic review
+   * scenario asserts that neither exists until a reader asks for it, which is
+   * the assertion whose absence let the old harness reach for a combobox that
+   * was not on the page. A package that only ever shows the resting map cannot
+   * show that the closed state is deliberate.
+   */
+  console.log("\nOpened surfaces");
+  {
+    const { context, page } = await open(browser, { viewport: desktop });
+    await page.goto(`${TRACKER}&at=45.52,-122.68&z=8`, { waitUntil: "domcontentloaded" });
+    await settled(page, 3500);
+    await dismissTour(page);
+
+    await page.locator(".tracker-place-current").click();
+    await page.waitForTimeout(900);
+    await capture(
+      page,
+      "03c-place-picker-open",
+      "The location picker, opened from the map's own trigger. The place search exists only here — Tracker does not put a search box on the map until a reader opens one.",
+      async () =>
+        (await page.locator(".tracker-place-combobox input").count()) > 0
+          ? "place search present once opened"
+          : "",
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(600);
+
+    await page.locator(".tk-eventfinder-trigger").click();
+    await page.waitForTimeout(500);
+    await page.locator('.tk-eventfinder-open input[type="search"]').pressSequentially(
+      "Total solar eclipse",
+      { delay: 30 },
+    );
+    await page.locator(".tk-eventfinder-results button").first().waitFor({ timeout: 20_000 });
+    await settled(page, 1200);
+    await capture(
+      page,
+      "03d-event-finder-open",
+      "Find an event, open over the map with its catalogue results. Choosing one moves the map and the night to the event and leaves the observing location where the reader put it.",
+      async () => {
+        const results = await page.locator(".tk-eventfinder-results button").count();
+        return results > 0 ? `${results} catalogue results` : "";
+      },
+    );
+    await context.close();
+  }
+
   /* --- the equipment rule, proved as a pair -------------------------------- */
   //
   // A single Telescope screenshot proves nothing. The previous package showed
