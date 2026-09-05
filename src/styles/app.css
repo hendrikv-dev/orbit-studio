@@ -11893,15 +11893,6 @@ button.primary,
 
 /* --- shared type ---------------------------------------------------------- */
 
-.tk-eyebrow {
-  margin: 0 0 14px;
-  color: var(--tk-blue-lit);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
 .tk-display {
   margin: 0 0 12px;
   max-width: 15ch;
@@ -11912,227 +11903,6 @@ button.primary,
   line-height: 1.08;
   letter-spacing: -0.012em;
 }
-
-.tk-lede {
-  margin: 0;
-  max-width: 44ch;
-  color: var(--tk-ink-soft);
-  font-size: 1.02rem;
-  line-height: 1.55;
-}
-
-.tk-tag {
-  display: inline-block;
-  border: 1px solid var(--tk-line);
-  border-radius: 5px;
-  background: rgba(126, 166, 207, 0.09);
-  color: var(--tk-ink-dim);
-  padding: 2px 7px;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.tk-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.tk-section-head h2 {
-  margin: 0;
-  color: var(--tk-ink);
-  font-family: var(--tk-display);
-  font-size: 1.3rem;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-}
-
-/* --- the entry state ------------------------------------------------------ */
-
-.tk-entry {
-  display: grid;
-  gap: 30px;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: clamp(26px, 4vw, 52px) clamp(20px, 4vw, 44px) 44px;
-  /* Centred in what is left below the header rather than hanging from the top,
-     which left a third of a desktop viewport empty underneath. min-height
-     rather than height, so the block still grows past the fold when the picker
-     opens results or a recovery message. */
-  min-height: calc(100vh - 96px);
-  align-content: center;
-}
-
-.tk-entry-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 30px;
-  align-items: center;
-}
-
-@media (min-width: 940px) {
-  .tk-entry-grid {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-    gap: 46px;
-  }
-}
-
-.tk-entry-locate { margin-top: 26px; }
-
-.tk-entry-privacy {
-  margin: 14px 0 0;
-  max-width: 42ch;
-  color: var(--tk-ink-faint);
-  font-size: 0.76rem;
-  line-height: 1.5;
-}
-
-/* --- the sky instrument --------------------------------------------------- */
-
-.tk-sky {
-  margin: 0;
-  border: 1px solid var(--tk-line);
-  border-radius: 14px;
-  background: var(--tk-panel);
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-}
-
-.tk-sky svg { display: block; width: 100%; height: auto; }
-
-.tk-sky-guide {
-  stroke: rgba(150, 186, 222, 0.3);
-  stroke-width: 0.6;
-  stroke-dasharray: 2 4;
-}
-.tk-sky-guide-label {
-  fill: var(--tk-ink-faint);
-  font-size: 6px;
-  text-anchor: end;
-  letter-spacing: 0.04em;
-}
-
-.tk-sky-arc {
-  fill: none;
-  stroke: rgba(126, 166, 207, 0.4);
-  stroke-width: 1;
-  stroke-dasharray: 2.5 3;
-}
-
-/* The window is the part worth going outside for, so it is the only lit line. */
-/* Teal is reserved for action and selection, so the neutral example uses the
-   astronomical blue and only a real phenomenon brings its own hue. */
-.tk-sky-arc-window {
-  fill: none;
-  stroke: var(--tk-blue-lit);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.tk-sky[data-tone="meteor"] .tk-sky-arc-window { stroke: var(--tk-meteor); }
-.tk-sky[data-tone="planet"] .tk-sky-arc-window { stroke: var(--tk-planet); }
-.tk-sky[data-tone="moon"] .tk-sky-arc-window { stroke: var(--tk-moon); }
-
-.tk-sky-drop {
-  stroke: rgba(126, 166, 207, 0.3);
-  stroke-width: 0.6;
-  stroke-dasharray: 1.5 2.5;
-}
-.tk-sky-peak { fill: var(--tk-ink); }
-.tk-sky-callout {
-  fill: var(--tk-ink);
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.tk-sky-ground { fill: #04060b; fill-opacity: 0.96; }
-.tk-sky-horizon { stroke: rgba(126, 166, 207, 0.42); stroke-width: 0.8; }
-.tk-sky-tick { stroke: rgba(126, 166, 207, 0.34); stroke-width: 0.6; }
-.tk-sky-compass {
-  fill: var(--tk-ink-faint);
-  font-size: 6.4px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-}
-.tk-sky-compass.is-active { fill: var(--tk-ink); }
-
-.tk-sky-caption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 9px;
-  border-top: 1px solid var(--tk-line);
-  padding: 11px 14px;
-  color: var(--tk-ink-dim);
-  font-size: 0.76rem;
-  line-height: 1.5;
-}
-.tk-sky-caption-key { display: inline-flex; align-items: center; gap: 6px; }
-.tk-sky-swatch {
-  display: inline-block;
-  width: 14px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--tk-blue-lit);
-}
-
-/* --- the preview list ----------------------------------------------------- */
-
-.tk-entry-preview {
-  border-top: 1px solid var(--tk-line);
-  padding-top: 26px;
-}
-
-.tk-preview-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tk-preview-card {
-  display: grid;
-  grid-template-columns: 3px 1fr auto;
-  align-items: center;
-  gap: 13px;
-  border: 1px dashed var(--tk-line);
-  border-radius: 11px;
-  background: var(--tk-panel);
-  padding: 13px 15px 13px 0;
-}
-
-/* The hue is the only thing distinguishing the phenomena here, so it does the
-   work a photograph would do in a real card. */
-.tk-preview-rank {
-  align-self: stretch;
-  border-radius: 0 3px 3px 0;
-  background: var(--tk-blue);
-}
-.tk-preview-card[data-tone="meteor"] .tk-preview-rank { background: var(--tk-meteor); }
-.tk-preview-card[data-tone="planet"] .tk-preview-rank { background: var(--tk-planet); }
-.tk-preview-card[data-tone="moon"] .tk-preview-rank { background: var(--tk-moon); }
-.tk-preview-card[data-tone="satellite"] .tk-preview-rank { background: var(--tk-satellite); }
-
-.tk-preview-body { display: grid; gap: 3px; }
-.tk-preview-name { color: var(--tk-ink); font-size: 0.94rem; font-weight: 600; }
-.tk-preview-note { color: var(--tk-ink-dim); font-size: 0.78rem; line-height: 1.45; }
-
-.tk-preview-meta { display: grid; gap: 6px; justify-items: end; }
-.tk-skeleton-bar {
-  display: block;
-  width: 54px;
-  height: 7px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, rgba(126, 166, 207, 0.2), rgba(126, 166, 207, 0.08));
-}
-.tk-skeleton-bar.is-short { width: 32px; }
-
 /* --- the entry's single location control ---------------------------------
    Rendered in the page rather than in a popover, so the expanded state cannot
    overlap the composition it belongs to, and there is no second copy of the
@@ -12192,52 +11962,6 @@ button.primary,
 
 /* Confirmation. Nothing is computed until the reader agrees this is the place
    they will actually be standing in. */
-/* --- photography and annotation in one frame ------------------------------
-   The instrument sits on a real photograph of a real sky — the direction asked
-   for, and the reason the arc had to stay legible against it rather than being
-   drawn on flat colour. The image is a sky-only crop: no observatory, no
-   silhouetted telescope, just what somebody standing outside looks up at. */
-
-/* The photograph backs the drawing only. It used to be stretched across the
-   caption too, which pushed that text onto a black gradient and made it
-   unreadable. */
-.tk-sky-frame { position: relative; }
-
-.tk-sky-plate {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.tk-sky-plate img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 38%;
-  /* Present enough to read as a real sky, held back enough that the
-     annotations stay the subject. */
-  opacity: 0.85;
-}
-.tk-sky-plate::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(5, 7, 13, 0.1) 0%, rgba(5, 7, 13, 0.34) 55%, rgba(4, 6, 11, 0.9) 100%);
-}
-.tk-sky-frame svg { position: relative; }
-
-.tk-sky-credit {
-  position: absolute;
-  right: 10px;
-  top: 8px;
-  z-index: 2;
-  margin: 0;
-  color: rgba(226, 238, 248, 0.5);
-  font-size: 0.6rem;
-  letter-spacing: 0.02em;
-}
-.tk-sky-credit a { color: rgba(226, 238, 248, 0.7); text-decoration: none; }
-
 /* Inline control order, stated after the generic rules so it wins: the search
    is the primary way in and leads; the device action follows it. */
 .tk-locate .tracker-place-body.is-inline .tracker-place-search { order: 0; }
@@ -12458,10 +12182,6 @@ button.primary,
   grid-template-rows: auto 1fr;
 }
 
-/* The entry screen already fitted; it just needs to stop centring against a
-   height it no longer owns. */
-.tk-entry { min-height: 0; align-content: center; }
-
 /* --------------------------------------------------- Tonight, as one screen */
 
 @media (min-width: 1040px) {
@@ -12622,7 +12342,6 @@ button.primary,
 .tk-fact dt,
 .tk-nightbar,
 .tracker-hero-eyebrow,
-.tk-eyebrow,
 .tracker-more h2 {
   font-family: var(--tk-display);
   letter-spacing: 0.1em;
@@ -14527,8 +14246,7 @@ button.primary,
   }
   /* Views that are legitimately longer than a screen scroll inside the shell
      rather than scrolling the document, so the header stays put. */
-  .tk-view.tk-upcoming,
-  .tk-entry {
+  .tk-view.tk-upcoming {
     min-height: 0;
     overflow: auto;
   }

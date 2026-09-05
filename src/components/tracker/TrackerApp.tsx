@@ -84,7 +84,6 @@ import {
   persistConfirmedPlace,
 } from "../../data/tracker/trackerPersistence";
 import type { TrackerView } from "./TrackerHeader";
-import { TrackerEntry } from "./TrackerEntry";
 import { TrackerPlace, type SelectedPlace } from "./TrackerPlace";
 import { PhenomenonPage } from "./PhenomenonPage";
 import {
