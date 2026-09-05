@@ -23,9 +23,30 @@ const scenarioFile = await readFile(
  * purpose — that is the record of why the assertions are gone. The guards below
  * are about what the scenario *reaches for*, so they read the code only.
  */
-const scenarioSource = scenarioFile
-  .replace(/\/\*[\s\S]*?\*\//g, "")
-  .replace(/(^|[^:])\/\/.*$/gm, "$1");
+/**
+ * Comment lines removed, code lines kept whole.
+ *
+ * Deliberately line-based. A regex that hunts for block-comment openers also
+ * finds the one inside a route glob such as a doubled-star wildcard before
+ * "api.weather.gov", and then eats every line up to the next closer — which
+ * silently deletes the code these guards are supposed to be reading, and makes
+ * them pass by finding nothing at all.
+ */
+function stripComments(text) {
+  return text
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return !(
+        trimmed.startsWith("//") ||
+        trimmed.startsWith("*") ||
+        trimmed.startsWith("/*")
+      );
+    })
+    .join("\n");
+}
+
+const scenarioSource = stripComments(scenarioFile);
 
 /** Tracker as the map-first product actually reports itself. */
 function mapFirstState(overrides = {}) {
@@ -239,6 +260,17 @@ describe("Tracker review no longer certifies the destination-page architecture",
     ["Calendar tab", /name: "Calendar"/],
   ])("does not reach for %s", (_name, pattern) => {
     expect(scenarioSource).not.toMatch(pattern);
+  });
+
+  /**
+   * The guard above can only mean something if it is reading the scenario. An
+   * over-eager comment stripper once removed most of the file, which would have
+   * made every "does not reach for" assertion pass by finding nothing.
+   */
+  it("is reading the real scenario, not an emptied copy", () => {
+    expect(scenarioSource).toMatch(/readTrackerMapState/);
+    expect(scenarioSource).toMatch(/captureSurface\("tracker-map-entry"/);
+    expect(scenarioSource.length).toBeGreaterThan(4_000);
   });
 
   it("no longer claims the four-region universal page in its notes", () => {

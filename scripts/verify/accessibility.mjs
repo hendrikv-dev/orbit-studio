@@ -1,5 +1,6 @@
 import process from "node:process";
 import { chromium } from "playwright";
+import { TRACKER_FIXTURE_AT } from "./tracker-fixtures.mjs";
 import { preview } from "vite";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -61,14 +62,14 @@ import AxeBuilder from "@axe-core/playwright";
  * astronomy: everything below is still computed from the real ephemeris for
  * that instant.
  */
-const RUN_AT = (() => {
-  const today = new Date();
-  // 22:30 at UTC−7 (Pacific daylight time, which is what the fixture's
-  // timezone resolves to for these dates).
-  return new Date(
-    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 5, 30, 0),
-  );
-})();
+/**
+ * The instant this gate is written against, shared with the Tracker review so
+ * the two cannot drift. Every fixture below is stamped from it rather than from
+ * the wall clock: a pinned page clock and wall-clock fixture data disagree by
+ * however far the run happens to be from the pinned hour, and that gap is what
+ * silently changed which sky this gate was scanning.
+ */
+const RUN_AT = TRACKER_FIXTURE_AT;
 
 const PLACE_FIXTURE = {
   features: [
@@ -102,7 +103,7 @@ const PLACE_FIXTURE = {
 
 /** Hourly cover for the next two days, which outlasts any observing night. */
 function forecastFixture() {
-  const start = new Date();
+  const start = new Date(RUN_AT);
   start.setUTCMinutes(0, 0, 0);
   const values = (value) =>
     Array.from({ length: 48 }, (_, hour) => ({
@@ -111,7 +112,7 @@ function forecastFixture() {
     }));
   return {
     properties: {
-      updateTime: new Date().toISOString(),
+      updateTime: RUN_AT.toISOString(),
       skyCover: { values: values(18) },
       temperature: { values: values(14) },
       probabilityOfPrecipitation: { values: values(5) },
@@ -183,7 +184,7 @@ async function stubProviders(context) {
       scene: "CONUS",
       product: "ABI-L2-ACMC (Clear Sky Mask)",
       resolution: "2.0km at nadir",
-      observedUtc: new Date().toISOString(),
+      observedUtc: RUN_AT.toISOString(),
       probabilityScale: 1.5261e-5,
     };
     if (url.searchParams.get("series") === "1") {
@@ -193,7 +194,7 @@ async function stubProviders(context) {
         body: JSON.stringify({
           ...head,
           frames: [0, 0, 2, 3].map((acm, index) => ({
-            observedUtc: new Date(Date.now() - (3 - index) * 600_000).toISOString(),
+            observedUtc: new Date(RUN_AT.getTime() - (3 - index) * 600_000).toISOString(),
             covered: true,
             acm,
             cloudProbabilityRaw: 51154,
@@ -255,9 +256,9 @@ async function stubProviders(context) {
       contentType: "application/json",
       body: JSON.stringify({
         properties: {
-          meta: { updated_at: new Date().toISOString() },
+          meta: { updated_at: RUN_AT.toISOString() },
           timeseries: Array.from({ length: 48 }, (_, hour) => ({
-            time: new Date(Date.now() + hour * 3_600_000).toISOString(),
+            time: new Date(RUN_AT.getTime() + hour * 3_600_000).toISOString(),
             data: {
               instant: { details: { air_temperature: 14, cloud_area_fraction: 18 } },
               next_1_hours: { details: { precipitation_amount: 0 } },

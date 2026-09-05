@@ -56,8 +56,30 @@ export const SUPPLEMENTAL_INDEX = `<html><body>
   <a href="sup-gp.php?FILE=starlink-g15-23&FORMAT=tle">Starlink G15-23 Post-Deployment</a>
 </body></html>`;
 
-/** The night the pinned element sets describe, at 22:00 in Portland. */
-export const SATELLITE_CLOCK = new Date("2026-09-03T05:00:00Z");
+/**
+ * The one instant every deterministic Tracker check is written against.
+ *
+ * Tracker's answers are a function of the time, so a check that reads the wall
+ * clock is testing the hour it ran as much as the code. Holding only the *hour*
+ * still is not enough either: the accessibility gate did that, pinning the page
+ * to 05:30 on whatever date it happened to run while generating its own weather
+ * fixtures from the real clock, and the two drifted apart by however far the
+ * time of day was from 05:30. When the gap grew wide enough that the forecast
+ * no longer covered the pinned night, the clear-sky fixture stopped applying,
+ * a cloudy fallback took its place, and every opportunity was withheld.
+ *
+ * One exported instant, shared by every gate and by the review package, is what
+ * keeps that from happening again — and keeps the picture in the package a
+ * picture of the state the gate actually asserted.
+ */
+export const TRACKER_FIXTURE_AT = new Date("2026-09-03T05:00:00Z");
+
+/**
+ * The night the pinned element sets describe, at 22:00 in Portland.
+ *
+ * The same instant under the name the satellite fixtures reach for it by.
+ */
+export const SATELLITE_CLOCK = TRACKER_FIXTURE_AT;
 
 /**
  * Basemap tiles, satellites and the cloud mask, routed for one browser context.

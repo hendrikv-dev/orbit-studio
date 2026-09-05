@@ -1,4 +1,4 @@
-import { PORTLAND, stubTracker } from "../../verify/tracker-fixtures.mjs";
+import { PORTLAND, TRACKER_FIXTURE_AT, stubTracker } from "../../verify/tracker-fixtures.mjs";
 
 /**
  * Tracker's deterministic review, against the map-first product.
@@ -36,8 +36,11 @@ import { PORTLAND, stubTracker } from "../../verify/tracker-fixtures.mjs";
  * different label every day. 05:00Z is 22:00 the previous evening in Portland,
  * which is inside the night rather than after it — the hour at which there is
  * something to rank at all.
+ *
+ * Shared with the accessibility gate rather than declared twice, so the two
+ * cannot drift onto different nights.
  */
-const REVIEW_AT = new Date("2026-09-03T05:00:00Z");
+const REVIEW_AT = TRACKER_FIXTURE_AT;
 
 /** The Portland-local night `REVIEW_AT` falls in, which is the previous date. */
 const REVIEW_NIGHT = "2026-09-02";
