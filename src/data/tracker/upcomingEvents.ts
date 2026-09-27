@@ -377,6 +377,16 @@ export interface UpcomingEventInputs {
   now: Date;
   /** Where the eclipse search starts. Usually the plan anchor. */
   from: Date;
+  /**
+   * Last instant the caller is browsing, inclusive.
+   *
+   * Upcoming used to have one implicit horizon: the plans stopped after a
+   * month, while the independent eclipse search kept going for 1,500 days.
+   * That was survivable in a page with no range control and becomes false the
+   * moment a control says "7 days". The boundary therefore belongs to the
+   * shared event builder, not to whichever list happens to render it.
+   */
+  until?: Date;
   notableLimit?: number;
   /** Events already finished are dropped unless this is set. */
   includeFinished?: boolean;
@@ -390,14 +400,27 @@ export interface UpcomingEventInputs {
  * category it belongs to, or whether it has already happened.
  */
 export function buildUpcomingEvents(input: UpcomingEventInputs): UpcomingEvent[] {
+  const horizonDays = input.until
+    ? Math.max(0, (input.until.getTime() - input.from.getTime()) / 86_400_000)
+    : undefined;
   const merged = mergeUpcoming(
     notableUpcomingEvents(input.plans, input.notableLimit ?? 12),
-    solarEclipsesFor(input.latitudeDeg, input.longitudeDeg, input.from, input.timeZone),
+    solarEclipsesFor(
+      input.latitudeDeg,
+      input.longitudeDeg,
+      input.from,
+      input.timeZone,
+      8,
+      horizonDays,
+    ),
     auroraRiskFor(input.auroraConditions, input.now, input.timeZone),
   );
-  return input.includeFinished
+  const unfinished = input.includeFinished
     ? merged
     : merged.filter((event) => !hasFinished(event, input.now));
+  return input.until
+    ? unfinished.filter((event) => Date.parse(event.atUtc) <= input.until!.getTime())
+    : unfinished;
 }
 
 /** The events falling on one local calendar date, in time order. */

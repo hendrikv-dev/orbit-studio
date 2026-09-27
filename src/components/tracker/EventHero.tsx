@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
 import type { HeroImagery } from "../../data/tracker/imagery";
 import { TrackerScene, TrackerCredit } from "./TrackerScene";
@@ -72,6 +72,35 @@ interface Props {
    * labelled "View visibility map" came to open a sky chart.
    */
   tertiary?: { label: string; onSelect: () => void } | null;
+  /** Live local-sky guidance, only for targets with real locator geometry. */
+  finder?: { label: string; onSelect: () => void } | null;
+}
+
+function Description({ children }: { children: string }) {
+  const id = useId();
+  const paragraph = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [clipped, setClipped] = useState(false);
+  useLayoutEffect(() => {
+    const node = paragraph.current;
+    if (!node || expanded) return;
+    const measure = () => setClipped(node.scrollHeight > node.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [expanded]);
+  return (
+    <div className="tk-description">
+      <p id={id} ref={paragraph} className="tracker-expect" data-expanded={expanded}>{children}</p>
+      {clipped || expanded ? (
+        <button type="button" className="tk-description-toggle" aria-expanded={expanded} aria-controls={id}
+          onClick={() => setExpanded((value) => !value)}>
+          {expanded ? "Show less" : "Read full description"}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export function EventHero({
@@ -82,6 +111,7 @@ export function EventHero({
   onPrimary,
   onSecondary,
   tertiary = null,
+  finder = null,
 }: Props) {
   return (
     <section
@@ -151,7 +181,7 @@ export function EventHero({
         
             The pixels came from the list's thumbnails instead, which carry no
             information the row's name does not. */}
-        {expectation ? <p className="tracker-expect">{expectation}</p> : null}
+        {expectation ? <Description key={expectation}>{expectation}</Description> : null}
 
         <div className="tk-hero-actions">
           <button type="button" className="tk-action is-primary" onClick={onPrimary}>
@@ -163,6 +193,11 @@ export function EventHero({
           {tertiary ? (
             <button type="button" className="tk-action" onClick={tertiary.onSelect}>
               {tertiary.label}
+            </button>
+          ) : null}
+          {finder ? (
+            <button type="button" className="tk-action is-finder" onClick={finder.onSelect}>
+              {finder.label}
             </button>
           ) : null}
         </div>

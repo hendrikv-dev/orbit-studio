@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { ChevronRight, Mountain, X } from "lucide-react";
+import { useEffect, useRef, type RefObject } from "react";
+import { CalendarRange, ChevronRight, Crosshair, Mountain, X } from "lucide-react";
 
 import { CardFigure } from "../media/CardFigures";
 import { dismissOpenSurfaces } from "../../../data/tracker/dismissable";
@@ -71,6 +71,8 @@ interface Props {
   onExpand: (id: string) => void;
   onCollapse: () => void;
   onOpenDetail: (id: string) => void;
+  onFindInSky: (id: string) => void;
+  canFindInSky: (card: RailCard) => boolean;
   /** Everything the expanded card needs, computed by the caller for that card. */
   factsFor: (card: RailCard) => RailFacts;
   /** Shown as the rail's own heading, so the place is still named. */
@@ -83,6 +85,11 @@ interface Props {
    */
   withheldByCloud?: number;
   loading: boolean;
+  /** A route into future discovery, visually part of this same rail. */
+  gateway: {
+    onOpen: () => void;
+    triggerRef?: RefObject<HTMLButtonElement>;
+  };
 }
 
 /** The three facts the ranking already built: when, what, where. */
@@ -123,16 +130,55 @@ const TOLERANCE = 1;
 /** A little air between a card and the controls, so they do not read as touching. */
 const CONTROL_CLEARANCE = 8;
 
+function UpcomingGateway({
+  onOpen,
+  triggerRef,
+}: {
+  onOpen: () => void;
+  triggerRef?: RefObject<HTMLButtonElement>;
+}) {
+  return (
+    <li
+      className="tk-rail-card is-gateway"
+      data-card="upcoming"
+      data-gateway="upcoming"
+      data-reason="gateway"
+      data-expanded="false"
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className="tk-rail-card-head"
+        aria-haspopup="dialog"
+        onClick={onOpen}
+      >
+        <span className="tk-rail-card-image tk-rail-gateway-image" aria-hidden>
+          <CalendarRange size={22} />
+        </span>
+        <span className="tk-rail-card-text">
+          <span className="tk-rail-card-name">Upcoming</span>
+          <span className="tk-rail-card-when">See what&rsquo;s next</span>
+          <span className="tk-rail-card-where">Browse 7 days to a year</span>
+        </span>
+        <ChevronRight size={15} aria-hidden className="tk-rail-card-toggle" />
+      </button>
+    </li>
+  );
+}
+
 export function TrackerObservingRail({
   cards,
   expandedId,
   onExpand,
   onCollapse,
   onOpenDetail,
+  onFindInSky,
+  canFindInSky,
   factsFor,
   place,
   loading,
   withheldByCloud = 0,
+  gateway,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
@@ -297,7 +343,7 @@ export function TrackerObservingRail({
 
   if (loading) {
     return (
-      <div className="tk-rail" aria-busy="true">
+      <div className="tk-rail" ref={rail} aria-busy="true">
         <div className="tk-rail-scroll">
           <ul className="tk-rail-list">
             {[0, 1, 2].map((index) => (
@@ -306,6 +352,7 @@ export function TrackerObservingRail({
                 <span className="tk-map-skeleton is-line" />
               </li>
             ))}
+            <UpcomingGateway {...gateway} />
           </ul>
         </div>
       </div>
@@ -322,10 +369,12 @@ export function TrackerObservingRail({
    * all, and the product has silently answered a question it should have
    * spoken. Absence is a finding here, not a lack of one.
    */
-  if (cards.length === 0) {
-    if (!withheldByCloud) return null;
-    return (
-      <div className="tk-rail" ref={rail}>
+  return (
+    <div className="tk-rail" ref={rail}>
+      <p className="tk-visually-hidden" role="status" aria-live="polite">
+        {`${cards.length} things to look for from ${place}. Upcoming planning is available.`}
+      </p>
+      {cards.length === 0 && withheldByCloud ? (
         <p className="tk-rail-withheld" role="status">
           {withheldByCloud === 1
             ? "The one thing up tonight is behind cloud for its whole window."
@@ -333,15 +382,7 @@ export function TrackerObservingRail({
           Nothing here is worth the trip, and none of them is going anywhere — they
           come round again.
         </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tk-rail" ref={rail}>
-      <p className="tk-visually-hidden" role="status" aria-live="polite">
-        {`${cards.length} things to look for from ${place}`}
-      </p>
+      ) : null}
       {/*
         The strip takes the pointer so it can be scrolled, and hands back what
         is not its own.
@@ -493,19 +534,33 @@ export function TrackerObservingRail({
                       </ul>
                     ) : null}
 
-                    <button
-                      type="button"
-                      className="tk-rail-details"
-                      onClick={() => onOpenDetail(card.id)}
-                    >
-                      View full details
-                      <ChevronRight size={14} aria-hidden />
-                    </button>
+                    <div className="tk-rail-actions">
+                      {canFindInSky(card) ? (
+                        <button
+                          type="button"
+                          className="tk-rail-find"
+                          onClick={() => onFindInSky(card.id)}
+                        >
+                          <Crosshair size={14} aria-hidden />
+                          Find in sky
+                          <ChevronRight size={14} aria-hidden />
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="tk-rail-details"
+                        onClick={() => onOpenDetail(card.id)}
+                      >
+                        View full details
+                        <ChevronRight size={14} aria-hidden />
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </li>
             );
           })}
+          <UpcomingGateway {...gateway} />
         </ul>
       </div>
     </div>

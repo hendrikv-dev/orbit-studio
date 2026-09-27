@@ -54,6 +54,7 @@ interface Props {
   onReminder: () => void;
   /** An extra hero control, where the event has a second distinct tool. */
   tertiaryAction?: { label: string; onSelect: () => void } | null;
+  finderAction?: { label: string; onSelect: () => void } | null;
   safety: string | null;
   expectation: string | null;
   /** Distinguishes one plan from another for the review harness. */
@@ -74,6 +75,7 @@ export function PhenomenonPage({
   onPrimaryAction,
   onReminder,
   tertiaryAction = null,
+  finderAction = null,
   safety,
   expectation,
   planIdentity,
@@ -102,6 +104,7 @@ export function PhenomenonPage({
           onPrimary={onPrimaryAction}
           onSecondary={onReminder}
           tertiary={tertiaryAction}
+          finder={finderAction}
         />
         <aside className="tk-viz-slot" aria-label="Evidence">
           {visualization}

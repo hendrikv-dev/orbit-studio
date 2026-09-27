@@ -14,6 +14,12 @@ Known active areas from current repo review:
 - Explorer satellite points: src/rendering/ExplorerSatellitePoints.tsx
 - Catalog propagation horizon policy: src/rendering/catalogPropagation.ts
 - Deterministic Explorer review scenario: scripts/review/scenarios/explorer.mjs
+- Tracker map shell and observing-location authority: src/components/tracker/TrackerApp.tsx
+- Tracker night planning and notability rules: src/data/tracker/schedule.ts
+- Tracker cancellable planning worker boundary: src/data/tracker/planningClient.ts
+- Tracker merged future-event authority: src/data/tracker/upcomingEvents.ts
+- Tracker map-overlay Upcoming sheet: src/components/tracker/TrackerUpcomingSheet.tsx
+- Deterministic Tracker review scenario: scripts/review/scenarios/tracker.mjs
 - Main styles: src/styles/app.css
 
 The paths above can drift. Confirm active imports before relying on them, avoid modifying inactive

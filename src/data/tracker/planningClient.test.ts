@@ -103,4 +103,25 @@ describe("Tracker planning client", () => {
     replacement.cancel();
     await expect(replacement.promise).rejects.toMatchObject({ name: "AbortError" });
   });
+
+  it("cancels one observer before accepting a different location's result", async () => {
+    installFakeWorker();
+    const first = subscribeTrackerPlans(REQUEST);
+    const firstRejection = expect(first.promise).rejects.toMatchObject({ name: "AbortError" });
+    const oldWorker = FakeWorker.instances[0];
+
+    first.cancel();
+    const movedRequest = { ...REQUEST, latitudeDeg: 38.996, longitudeDeg: -76.876 };
+    const moved = subscribeTrackerPlans(movedRequest);
+    const movedWorker = FakeWorker.instances[1];
+
+    expect(oldWorker.terminated).toBe(true);
+    expect(movedWorker.request).toEqual(movedRequest);
+    oldWorker.emit({ type: "result", plans: [] });
+    movedWorker.emit({ type: "result", plans: [] });
+
+    await firstRejection;
+    await expect(moved.promise).resolves.toEqual([]);
+    expect(movedWorker.terminated).toBe(true);
+  });
 });

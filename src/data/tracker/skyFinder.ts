@@ -1,0 +1,473 @@
+import { Body, Equator, Horizon, MakeTime, Observer } from "astronomy-engine";
+
+import type { BestWindow } from "./conditions";
+import type { Opportunity } from "./opportunity";
+import { skyPathFor, type SkyPath, type SkyPoint } from "./skyPath";
+
+/**
+ * The Finder's target model is a projection of an existing opportunity.
+ *
+ * It deliberately does not own a catalogue, observer, or clock. A target keeps
+ * the opportunity identity and the production geometry that already powers the
+ * rail and detail chart; the observer and instant are supplied when a pointing
+ * solution is requested. This prevents Finder from becoming a second answer to
+ * which objects exist or where the reader is standing.
+ */
+export type SkyFinderShape = "point" | "cluster" | "region" | "radiant";
+
+export type SkyFinderSource =
+  | { kind: "body"; body: string }
+  | { kind: "body-region"; bodies: readonly string[] }
+  | { kind: "equatorial"; rightAscensionHours: number; declinationDeg: number }
+  | { kind: "sampled"; path: SkyPath };
+
+export interface SkyFinderTarget {
+  id: string;
+  title: string;
+  shape: SkyFinderShape;
+  /** Angular radius of the target region, not an alignment allowance. */
+  angularRadiusDeg: number;
+  /** Sensor alignment tolerance chosen for the target's physical extent. */
+  alignmentToleranceDeg: number;
+  source: SkyFinderSource;
+  recommendedAtUtc: string;
+  equipment: Opportunity["guidance"]["equipment"];
+  appearance: string;
+  observableTonight: boolean;
+  visualVerification: "not-attempted";
+}
+
+export interface HorizontalPosition {
+  altitudeDeg: number;
+  azimuthDeg: number;
+  atUtc: string;
+}
+
+export interface PhonePointing {
+  altitudeDeg: number;
+  azimuthDeg: number;
+}
+
+export interface FinderCalibration {
+  azimuthOffsetDeg: number;
+  altitudeOffsetDeg: number;
+  referenceId: string;
+  createdAtUtc: string;
+}
+
+export type PointingQuality = "good" | "fair" | "poor" | "unavailable";
+
+export interface FinderCapabilities {
+  secureContext: boolean;
+  camera: boolean;
+  geolocation: boolean;
+  orientation: boolean;
+  absoluteOrientation: boolean;
+  motion: boolean;
+  gyroscope: boolean;
+  magneticHeading: boolean;
+  screenOrientation: boolean;
+  orientationPermissionRequest: boolean;
+  motionPermissionRequest: boolean;
+}
+
+/**
+ * Platform-neutral seam for Phase 3 visual sky locking.
+ *
+ * Phase 1/2 never constructs a successful result. A future implementation must
+ * detect points in an on-device frame, match them to a cited star catalogue,
+ * and return a solved camera attitude with its evidence. Keeping this contract
+ * separate prevents sensor alignment from being relabelled as visual proof.
+ */
+export interface VisualStarDetection {
+  xPx: number;
+  yPx: number;
+  brightness: number;
+}
+
+export interface VisualSkySolveRequest {
+  capturedAtUtc: string;
+  frameWidthPx: number;
+  frameHeightPx: number;
+  approximatePointing: PhonePointing;
+  observer: { latitudeDeg: number; longitudeDeg: number };
+  detections: VisualStarDetection[];
+}
+
+export interface VisualSkySolveResult {
+  status: "locked" | "low-confidence" | "no-match";
+  pointing: PhonePointing | null;
+  matchedStars: number;
+  confidence: number;
+  residualDeg: number | null;
+}
+
+export interface VisualSkySolver {
+  solve(request: VisualSkySolveRequest): Promise<VisualSkySolveResult>;
+}
+
+interface CapabilityEnvironment {
+  secureContext?: boolean;
+  navigator?: {
+    geolocation?: unknown;
+    mediaDevices?: { getUserMedia?: unknown };
+  };
+  window?: Record<string, unknown>;
+  screen?: { orientation?: unknown };
+}
+
+function constructorRequestsPermission(value: unknown): boolean {
+  return (
+    typeof value === "function" &&
+    typeof (value as { requestPermission?: unknown }).requestPermission === "function"
+  );
+}
+
+/** Runtime feature detection only; permission is a separate user decision. */
+export function detectSkyFinderCapabilities(
+  environment: CapabilityEnvironment = {
+    secureContext: typeof window !== "undefined" ? window.isSecureContext : false,
+    navigator: typeof navigator !== "undefined" ? navigator : undefined,
+    window: typeof window !== "undefined" ? (window as unknown as Record<string, unknown>) : undefined,
+    screen: typeof screen !== "undefined" ? screen : undefined,
+  },
+): FinderCapabilities {
+  const view = environment.window ?? {};
+  const orientation = view.DeviceOrientationEvent;
+  const motion = view.DeviceMotionEvent;
+  return {
+    secureContext: environment.secureContext === true,
+    camera:
+      environment.secureContext === true &&
+      typeof environment.navigator?.mediaDevices?.getUserMedia === "function",
+    geolocation: environment.secureContext === true && Boolean(environment.navigator?.geolocation),
+    orientation: typeof orientation === "function" || "ondeviceorientation" in view,
+    absoluteOrientation:
+      "ondeviceorientationabsolute" in view || typeof view.AbsoluteOrientationSensor === "function",
+    motion: typeof motion === "function" || "ondevicemotion" in view,
+    gyroscope: typeof view.Gyroscope === "function",
+    // Safari exposes magnetic heading on DeviceOrientationEvent instances. It
+    // cannot be known with certainty before the first event, so this says the
+    // browser family can supply it rather than promising a reading.
+    magneticHeading:
+      typeof orientation === "function" &&
+      ("ondeviceorientationabsolute" in view || constructorRequestsPermission(orientation)),
+    screenOrientation: Boolean(environment.screen?.orientation),
+    orientationPermissionRequest: constructorRequestsPermission(orientation),
+    motionPermissionRequest: constructorRequestsPermission(motion),
+  };
+}
+
+export function normalizeDegrees(value: number): number {
+  return ((value % 360) + 360) % 360;
+}
+
+/** Signed shortest turn from `from` to `to`, in [-180, 180). */
+export function signedAngleDifference(from: number, to: number): number {
+  return ((to - from + 540) % 360) - 180;
+}
+
+function radians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+function degrees(radiansValue: number): number {
+  return (radiansValue * 180) / Math.PI;
+}
+
+/** Great-circle separation on the local celestial sphere. */
+export function angularSeparation(a: PhonePointing, b: HorizontalPosition): number {
+  const altitudeA = radians(a.altitudeDeg);
+  const altitudeB = radians(b.altitudeDeg);
+  const deltaAzimuth = radians(signedAngleDifference(a.azimuthDeg, b.azimuthDeg));
+  const cosine =
+    Math.sin(altitudeA) * Math.sin(altitudeB) +
+    Math.cos(altitudeA) * Math.cos(altitudeB) * Math.cos(deltaAzimuth);
+  if (cosine > 1 - 1e-12) return 0;
+  if (cosine < -1 + 1e-12) return 180;
+  return degrees(Math.acos(Math.max(-1, Math.min(1, cosine))));
+}
+
+export function alignmentFor(
+  pointing: PhonePointing | null,
+  target: HorizontalPosition | null,
+  toleranceDeg: number,
+  quality: PointingQuality,
+): { separationDeg: number | null; aligned: boolean } {
+  if (!pointing || !target) return { separationDeg: null, aligned: false };
+  const separationDeg = angularSeparation(pointing, target);
+  // Poor or relative-only orientation can guide, but cannot honestly assert a
+  // lock. Calibration or an absolute heading upgrades the evidence first.
+  const aligned =
+    target.altitudeDeg > 0 &&
+    quality !== "poor" &&
+    quality !== "unavailable" &&
+    separationDeg <= toleranceDeg;
+  return { separationDeg, aligned };
+}
+
+/**
+ * Convert W3C alpha/beta/gamma into the rear-camera optical axis.
+ *
+ * This follows the same YXZ quaternion order used by DeviceOrientationControls.
+ * The returned azimuth is clockwise from true/device north and altitude is
+ * positive above the horizon. `screenOrientationDeg` compensates portrait and
+ * landscape coordinates before the optical axis is read.
+ */
+export function pointingFromDeviceOrientation(
+  alphaDeg: number,
+  betaDeg: number,
+  gammaDeg: number,
+  screenOrientationDeg = 0,
+): PhonePointing {
+  const alpha = radians(alphaDeg);
+  const beta = radians(betaDeg);
+  const gamma = radians(-gammaDeg);
+
+  // Quaternion for Euler(beta, alpha, -gamma, "YXZ").
+  const c1 = Math.cos(beta / 2);
+  const c2 = Math.cos(alpha / 2);
+  const c3 = Math.cos(gamma / 2);
+  const s1 = Math.sin(beta / 2);
+  const s2 = Math.sin(alpha / 2);
+  const s3 = Math.sin(gamma / 2);
+  let qx = s1 * c2 * c3 + c1 * s2 * s3;
+  let qy = c1 * s2 * c3 - s1 * c2 * s3;
+  let qz = c1 * c2 * s3 - s1 * s2 * c3;
+  let qw = c1 * c2 * c3 + s1 * s2 * s3;
+
+  const multiply = (x: number, y: number, z: number, w: number) => {
+    const nextX = qw * x + qx * w + qy * z - qz * y;
+    const nextY = qw * y - qx * z + qy * w + qz * x;
+    const nextZ = qw * z + qx * y - qy * x + qz * w;
+    const nextW = qw * w - qx * x - qy * y - qz * z;
+    qx = nextX;
+    qy = nextY;
+    qz = nextZ;
+    qw = nextW;
+  };
+
+  // Camera looks through the back of a portrait phone, not along device -Z.
+  multiply(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+  const halfScreen = radians(-screenOrientationDeg) / 2;
+  multiply(0, 0, Math.sin(halfScreen), Math.cos(halfScreen));
+
+  // Rotate the local camera forward vector (0, 0, -1).
+  const x = -2 * (qx * qz + qw * qy);
+  const y = 2 * (qw * qx - qy * qz);
+  const z = -1 + 2 * (qx * qx + qy * qy);
+
+  // DeviceOrientationControls world axes: north=-Z, east=-X, up=Y.
+  return {
+    azimuthDeg: normalizeDegrees(degrees(Math.atan2(-x, -z))),
+    altitudeDeg: degrees(Math.asin(Math.max(-1, Math.min(1, y)))),
+  };
+}
+
+export function calibrationFromAlignment(
+  reported: PhonePointing,
+  expected: HorizontalPosition,
+  referenceId: string,
+  createdAtUtc: string,
+): FinderCalibration {
+  return {
+    azimuthOffsetDeg: signedAngleDifference(reported.azimuthDeg, expected.azimuthDeg),
+    altitudeOffsetDeg: expected.altitudeDeg - reported.altitudeDeg,
+    referenceId,
+    createdAtUtc,
+  };
+}
+
+export function applyCalibration(
+  pointing: PhonePointing,
+  calibration: FinderCalibration | null,
+): PhonePointing {
+  if (!calibration) return pointing;
+  return {
+    azimuthDeg: normalizeDegrees(pointing.azimuthDeg + calibration.azimuthOffsetDeg),
+    altitudeDeg: Math.max(-90, Math.min(90, pointing.altitudeDeg + calibration.altitudeOffsetDeg)),
+  };
+}
+
+function interpolatePath(path: SkyPath, at: Date): HorizontalPosition | null {
+  const points = path.points;
+  if (points.length === 0) return null;
+  const stamp = at.getTime();
+  const first = Date.parse(points[0].atUtc);
+  const last = Date.parse(points[points.length - 1].atUtc);
+  // A satellite pass or shower track is valid only for the interval it was
+  // propagated. Clamping would display an old solution under a new time.
+  if (stamp < first || stamp > last) return null;
+  const afterIndex = points.findIndex((point) => Date.parse(point.atUtc) >= stamp);
+  if (afterIndex <= 0) {
+    const point = points[0];
+    return { altitudeDeg: point.altitudeDeg, azimuthDeg: point.azimuthDeg, atUtc: at.toISOString() };
+  }
+  const before = points[afterIndex - 1];
+  const after = points[afterIndex];
+  const beforeStamp = Date.parse(before.atUtc);
+  const afterStamp = Date.parse(after.atUtc);
+  const fraction = afterStamp === beforeStamp ? 0 : (stamp - beforeStamp) / (afterStamp - beforeStamp);
+  return {
+    altitudeDeg: before.altitudeDeg + (after.altitudeDeg - before.altitudeDeg) * fraction,
+    azimuthDeg: normalizeDegrees(
+      before.azimuthDeg + signedAngleDifference(before.azimuthDeg, after.azimuthDeg) * fraction,
+    ),
+    atUtc: at.toISOString(),
+  };
+}
+
+function bodyPosition(
+  body: string,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  at: Date,
+): HorizontalPosition | null {
+  try {
+    const astronomyObserver = new Observer(observer.latitudeDeg, observer.longitudeDeg, 0);
+    const time = MakeTime(at);
+    const equator = Equator(body as Body, time, astronomyObserver, true, true);
+    const horizon = Horizon(time, astronomyObserver, equator.ra, equator.dec, "normal");
+    return { altitudeDeg: horizon.altitude, azimuthDeg: horizon.azimuth, atUtc: at.toISOString() };
+  } catch {
+    return null;
+  }
+}
+
+function centroid(positions: HorizontalPosition[], at: Date): HorizontalPosition | null {
+  if (positions.length === 0) return null;
+  let east = 0;
+  let north = 0;
+  let up = 0;
+  for (const position of positions) {
+    const altitude = radians(position.altitudeDeg);
+    const azimuth = radians(position.azimuthDeg);
+    east += Math.cos(altitude) * Math.sin(azimuth);
+    north += Math.cos(altitude) * Math.cos(azimuth);
+    up += Math.sin(altitude);
+  }
+  const horizontal = Math.hypot(east, north);
+  return {
+    altitudeDeg: degrees(Math.atan2(up, horizontal)),
+    azimuthDeg: normalizeDegrees(degrees(Math.atan2(east, north))),
+    atUtc: at.toISOString(),
+  };
+}
+
+export function positionForSkyFinderTarget(
+  target: SkyFinderTarget,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  at: Date,
+): HorizontalPosition | null {
+  switch (target.source.kind) {
+    case "body":
+      return bodyPosition(target.source.body, observer, at);
+    case "body-region":
+      return centroid(
+        target.source.bodies
+          .map((body) => bodyPosition(body, observer, at))
+          .filter((position): position is HorizontalPosition => position !== null),
+        at,
+      );
+    case "equatorial": {
+      const astronomyObserver = new Observer(observer.latitudeDeg, observer.longitudeDeg, 0);
+      const time = MakeTime(at);
+      const horizon = Horizon(
+        time,
+        astronomyObserver,
+        target.source.rightAscensionHours,
+        target.source.declinationDeg,
+        "normal",
+      );
+      return { altitudeDeg: horizon.altitude, azimuthDeg: horizon.azimuth, atUtc: at.toISOString() };
+    }
+    case "sampled":
+      return interpolatePath(target.source.path, at);
+  }
+}
+
+function deepSkyFinderSource(opportunity: Opportunity): SkyFinderSource | null {
+  const finder = opportunity.finder;
+  if (finder?.rightAscensionHours === undefined || finder.declinationDeg === undefined) return null;
+  return {
+    kind: "equatorial",
+    rightAscensionHours: finder.rightAscensionHours,
+    declinationDeg: finder.declinationDeg,
+  };
+}
+
+/** Build a Finder target only for opportunities that have meaningful geometry. */
+export function skyFinderTargetFor(
+  opportunity: Opportunity,
+  window: BestWindow | null,
+  observableTonight = true,
+): SkyFinderTarget | null {
+  if (opportunity.kind === "solar-eclipse") return null;
+  const path = skyPathFor(opportunity, window);
+  let source: SkyFinderSource | null = null;
+  let shape: SkyFinderShape = "point";
+  let angularRadiusDeg = 0.2;
+  let alignmentToleranceDeg = 3;
+
+  if (opportunity.kind === "moon" || opportunity.kind === "lunar-eclipse") {
+    source = { kind: "body", body: Body.Moon };
+    angularRadiusDeg = 0.25;
+  } else if (opportunity.science?.kind === "planet") {
+    source = { kind: "body", body: opportunity.science.body };
+  } else if (opportunity.science?.kind === "conjunction") {
+    source = {
+      kind: "body-region",
+      bodies: opportunity.science.bodies.map((body) => body.replace(/^the\s+/i, "")),
+    };
+    shape = "region";
+    angularRadiusDeg = Math.max(1.5, Number(opportunity.science.separationDeg) / 2);
+    alignmentToleranceDeg = Math.max(5, Math.min(9, angularRadiusDeg + 3));
+  } else if (opportunity.kind === "deep-sky") {
+    source = deepSkyFinderSource(opportunity) ?? (path ? { kind: "sampled", path } : null);
+    shape = opportunity.finder?.shape ?? "region";
+    angularRadiusDeg = opportunity.finder?.angularRadiusDeg ?? 1;
+    alignmentToleranceDeg = shape === "cluster" ? 6 : Math.max(5, Math.min(10, angularRadiusDeg + 4));
+  } else if (path?.kind === "radiant") {
+    source = { kind: "sampled", path };
+    shape = "radiant";
+    angularRadiusDeg = 4;
+    alignmentToleranceDeg = 9;
+  } else if (path?.kind === "target") {
+    source = { kind: "sampled", path };
+  }
+
+  if (!source) return null;
+  return {
+    id: opportunity.id,
+    title:
+      opportunity.kind === "moon" || opportunity.kind === "lunar-eclipse"
+        ? "Moon"
+        : (opportunity.shortTitle ?? opportunity.title),
+    shape,
+    angularRadiusDeg,
+    alignmentToleranceDeg,
+    source,
+    recommendedAtUtc: opportunity.guidance.whenUtc,
+    equipment: opportunity.guidance.equipment,
+    appearance: opportunity.guidance.appearance,
+    observableTonight,
+    visualVerification: "not-attempted",
+  };
+}
+
+/** Nearest sample, used only for an explicitly labelled selected-time preview. */
+export function previewPositionForTarget(
+  target: SkyFinderTarget,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+): HorizontalPosition | null {
+  return positionForSkyFinderTarget(target, observer, new Date(target.recommendedAtUtc));
+}
+
+export function nearestSkyPoint(points: readonly SkyPoint[], at: Date): SkyPoint | null {
+  if (points.length === 0) return null;
+  return points.reduce((nearest, point) =>
+    Math.abs(Date.parse(point.atUtc) - at.getTime()) <
+    Math.abs(Date.parse(nearest.atUtc) - at.getTime())
+      ? point
+      : nearest,
+  );
+}

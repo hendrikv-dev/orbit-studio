@@ -176,7 +176,6 @@ const explorerObjectTypeFilters = [
   { id: "payloads", label: "Spacecraft", shortLabel: "Spacecraft" },
   { id: "components", label: "Components", shortLabel: "Components" },
   { id: "debris", label: "Debris", shortLabel: "Debris" },
-  { id: "ground-stations", label: "Ground Stations", shortLabel: "Stations" },
   { id: "rocket-bodies", label: "Launch Vehicles", shortLabel: "Launch" },
 ] as const satisfies ReadonlyArray<{
   id: ExplorerCategoryId | "";
@@ -1890,7 +1889,6 @@ export function ExplorerView({
   const [playbackSheetOpen, setPlaybackSheetOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [contactAnalysisEnabled, setContactAnalysisEnabled] = useState(false);
   const [starFieldVisible, setStarFieldVisible] = useState(true);
   const [sceneVisibility, setSceneVisibility] = useState(createExplorerVisibilityState);
   const catalogPanelRef = useRef<HTMLElement | null>(null);
@@ -2039,32 +2037,10 @@ export function ExplorerView({
       ),
     [scenario.selectedObjectId, sceneFiltered, sceneVisibility, snapshotView],
   );
-  const contactGroundStationIds = useMemo(
-    () =>
-      contactAnalysisEnabled
-        ? sceneFiltered
-            .filter(
-              (entry) =>
-                entry.selectionKind === "ground-station" &&
-                entry.groundStation &&
-                sceneVisibility.objects[entry.id] !== false,
-            )
-            .map((entry) => entry.id)
-        : [],
-    [contactAnalysisEnabled, sceneFiltered, sceneVisibility.objects],
-  );
-  const contactGroundStationIdSet = useMemo(
-    () => new Set(contactGroundStationIds),
-    [contactGroundStationIds],
-  );
-  const explorerVisibleGroundStationIds = contactAnalysisEnabled
-    ? contactGroundStationIds
-    : resolvedVisibility.groundStationIds;
+  const explorerVisibleGroundStationIds = resolvedVisibility.groundStationIds;
   const isCatalogEntrySceneVisible = useCallback(
-    (entry: ExplorerCatalogEntry) =>
-      isExplorerEntryVisible(entry, sceneVisibility) ||
-      (contactAnalysisEnabled && contactGroundStationIdSet.has(entry.id)),
-    [contactAnalysisEnabled, contactGroundStationIdSet, sceneVisibility],
+    (entry: ExplorerCatalogEntry) => isExplorerEntryVisible(entry, sceneVisibility),
+    [sceneVisibility],
   );
   const selectedSceneEntry = scenario.selectedObjectId
     ? snapshotView.byId.get(scenario.selectedObjectId)
@@ -3144,18 +3120,24 @@ export function ExplorerView({
             <span>Reference Layers</span>
             <label>
               <input
-                checked={contactAnalysisEnabled}
+                checked={sceneVisibility.layers["ground-stations"]}
                 type="checkbox"
-                onChange={(event) => setContactAnalysisEnabled(event.target.checked)}
+                onChange={(event) => {
+                  const visible = event.target.checked;
+                  setSceneVisibility((current) => ({
+                    ...current,
+                    layers: { ...current.layers, "ground-stations": visible },
+                  }));
+                  if (visible) setViewMode("globe");
+                }}
               />
-              <span>Ground station contact</span>
+              <span>Ground stations</span>
             </label>
-            {contactAnalysisEnabled && (
-              <p>
-                Ground stations represent Earth-based antenna sites used to evaluate line-of-sight
-                contact and coverage with selected satellites.
-              </p>
-            )}
+            <p role="status">
+              {sceneVisibility.layers["ground-stations"]
+                ? `${explorerVisibleGroundStationIds.length} ground stations shown on the globe. Select a station or satellite to explore contact and coverage.`
+                : "Show Earth-based antenna sites on the globe for contact and coverage reference."}
+            </p>
             <label>
               <input
                 checked={starFieldVisible}

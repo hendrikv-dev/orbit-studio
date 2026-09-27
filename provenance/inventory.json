@@ -2326,9 +2326,9 @@
         "version": "6.6.0, from the npm registry and pinned in package-lock.json",
         "retrievedAt": "2026-08-28"
       },
-      "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "8dbb0286aedacfd1e7c4a261ede3432c00ead6f662abd0068ccfba6eb962e2d4"
-      },
+ "localSha256": {
+  "src/components/tracker/map/TrackerMapCanvas.tsx": "350acdfe08ad3762e47c49a07ca6022e6a4d18026cfe80834d2cee1d6cd496a0"
+ },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
         "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",

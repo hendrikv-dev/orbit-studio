@@ -259,6 +259,7 @@ export function TrackerMapCanvas({
   label,
 }: Props) {
   const host = useRef<HTMLDivElement | null>(null);
+  const attributionHost = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);
   const marker = useRef<Marker | null>(null);
   /** Which map instance the marker above is attached to. */
@@ -371,6 +372,10 @@ export function TrackerMapCanvas({
       new AttributionControl({ compact: true }),
       "bottom-right",
     );
+    // Keep MapLibre's live source attribution and native disclosure, but mount
+    // its control outside the canvas stacking context, alongside map furniture.
+    const attribution = instance.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
+    if (attribution && attributionHost.current) attributionHost.current.append(attribution);
 
     /**
      * `style.load`, not `load`.
@@ -810,6 +815,7 @@ export function TrackerMapCanvas({
   }, [eventOverlay, epoch]);
 
   return (
+    <>
     <div className="tk-map-canvas" data-map-settled={settled ? "true" : "false"}>
       <div
         ref={host}
@@ -824,6 +830,8 @@ export function TrackerMapCanvas({
         </p>
       ) : null}
     </div>
+    <div className="tk-map-attribution" ref={attributionHost} />
+    </>
   );
 }
 

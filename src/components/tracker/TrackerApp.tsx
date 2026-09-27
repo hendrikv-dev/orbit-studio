@@ -9,6 +9,7 @@ import {
   formatClockTime,
   type PlaceClock,
 } from "../../lib/localTime";
+import { placeAtPin, trackerObserverKey } from "../../data/tracker/observerContext";
 import { planNight, type NightPlan } from "../../data/tracker/schedule";
 import {
   fetchIssEphemeris,
@@ -139,6 +140,8 @@ import {
   loadLightPollution,
 } from "../../data/tracker/lightPollution";
 import { TrackerObservingRail, type RailFacts } from "./map/TrackerObservingRail";
+import { TrackerUpcomingSheet } from "./TrackerUpcomingSheet";
+import type { UpcomingEvent } from "../../data/tracker/upcomingEvents";
 import { OrbitAppMenu } from "../layout/OrbitAppMenu";
 import { TrackerCallout } from "./onboarding/TrackerCallout";
 import { useOnboarding, type Tour } from "./onboarding/useOnboarding";
@@ -173,6 +176,11 @@ import {
   lunarLocalVisibility,
 } from "../../data/tracker/lunarEclipse";
 import type { HeroMedia } from "./EventHero";
+import { SkyFinder } from "./SkyFinder";
+import {
+  skyFinderTargetFor,
+  type SkyFinderTarget,
+} from "../../data/tracker/skyFinder";
 
 /**
  * Orbit Studio Tracker.
@@ -225,10 +233,7 @@ function useConditions(place: SelectedPlace | null) {
     queryKey: [
       "conditions",
       adapters.map((adapter) => adapter.source.id).join(",") || "none",
-      // Rounded, so two observers in the same forecast cell share one entry and
-      // a precise location is never used as a cache key.
-      place ? place.latitude.toFixed(2) : null,
-      place ? place.longitude.toFixed(2) : null,
+      trackerObserverKey(place),
     ],
     enabled: Boolean(place),
     queryFn: async ({ signal }) => {
@@ -250,8 +255,7 @@ function useAerosol(place: SelectedPlace | null) {
   return useQuery({
     queryKey: [
       "aerosol",
-      place ? place.latitude.toFixed(2) : null,
-      place ? place.longitude.toFixed(2) : null,
+      trackerObserverKey(place),
     ],
     enabled: Boolean(place),
     queryFn: ({ signal }) => {
@@ -520,28 +524,11 @@ function TrackerScreen() {
    * the reader was last.
    */
   const [placeName, setPlaceName] = useState<SelectedPlace | null>(() => loadConfirmedPlace());
-  const place = useMemo<SelectedPlace | null>(() => {
-    if (!location.pin) return null;
-    // A named place is only the same place while the pin has not moved off it.
-    const named =
-      placeName &&
-      Math.abs(placeName.latitude - location.pin.latitudeDeg) < 0.01 &&
-      Math.abs(placeName.longitude - location.pin.longitudeDeg) < 0.01
-        ? placeName
-        : null;
-    return (
-      named ?? {
-        // No comma: `shortPlaceName` takes the part before the first one, which
-        // is the right rule for "Portland, Oregon, United States" and would cut
-        // a coordinate pair in half.
-        name: `${location.pin.latitudeDeg.toFixed(2)}° ${location.pin.latitudeDeg >= 0 ? "N" : "S"} ${Math.abs(location.pin.longitudeDeg).toFixed(2)}° ${location.pin.longitudeDeg >= 0 ? "E" : "W"}`,
-        context: "Picked on the map",
-        latitude: location.pin.latitudeDeg,
-        longitude: location.pin.longitudeDeg,
-        fromDevice: false,
-      }
-    );
-  }, [location.pin, placeName]);
+  const place = useMemo<SelectedPlace | null>(
+    () => placeAtPin(location.pin, placeName),
+    [location.pin, placeName],
+  );
+  const observerKey = trackerObserverKey(place);
 
   /**
    * Whether the reader named this place themselves.
@@ -665,6 +652,9 @@ function TrackerScreen() {
    * through.
    */
   const [layersOpen, setLayersOpen] = useState(false);
+  /** Future discovery is a sheet over this map, never a second destination. */
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
+  const upcomingTrigger = useRef<HTMLButtonElement>(null);
   /** The place control's trigger, so a local search can send the reader to it. */
   const placeTrigger = useRef<HTMLButtonElement>(null);
   /** Bumped when the reader explicitly asks to be shown the event's geography. */
@@ -765,7 +755,7 @@ function TrackerScreen() {
       "tracker",
       "light-pollution",
       "at",
-      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+      observerKey,
     ],
     enabled: Boolean(place) && Boolean(lightPollution.data),
     staleTime: Infinity,
@@ -860,7 +850,7 @@ function TrackerScreen() {
       "tracker",
       "cloud",
       "observed",
-      place ? `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}` : null,
+      observerKey,
     ],
     enabled: activeLayers.has("cloud") && Boolean(place),
     // A CONUS scan every five minutes: asking more often is asking twice.
@@ -942,7 +932,14 @@ function TrackerScreen() {
    * selected event, which are — and putting it there would fill the history
    * with an entry per drag of a slider.
    */
-  const [cloudFrameUtc, setCloudFrameUtc] = useState<string | null>(null);
+  // A scrubbed hour belongs to this observer and night. Withdrawing it during
+  // render avoids even one frame (or request) using another location's hour.
+  const cloudContext = `${observerKey}|${selectedDate}`;
+  const [cloudSelection, setCloudSelection] = useState<{ context: string; utc: string } | null>(null);
+  const cloudFrameUtc = cloudSelection?.context === cloudContext ? cloudSelection.utc : null;
+  const setCloudFrameUtc = (utc: string | null) =>
+    setCloudSelection(utc ? { context: cloudContext, utc } : null);
+  useEffect(() => setCloudSelection(null), [cloudContext]);
 
   /**
    * The hour the forecast is about: the middle of the night being planned.
@@ -1032,7 +1029,7 @@ function TrackerScreen() {
       "tracker",
       "cloud",
       "series",
-      place ? `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}` : null,
+      observerKey,
     ],
     enabled: Boolean(place),
     staleTime: 5 * 60_000,
@@ -1091,8 +1088,9 @@ function TrackerScreen() {
       "tracker",
       "cloud",
       "forecast-series",
-      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+      observerKey,
       cloudWindow?.startUtc ?? null,
+      cloudWindow?.endUtc ?? null,
     ],
     enabled: Boolean(place) && Boolean(cloudWindow),
     staleTime: 30 * 60_000,
@@ -1632,6 +1630,7 @@ function TrackerScreen() {
     return rankTonight(events);
   }, [
     auroraAssessment,
+    auroraLocalVisibility,
     clock,
     darkWindow,
     environment.status,
@@ -2049,8 +2048,8 @@ function TrackerScreen() {
       passGeometry?.kind === "target" &&
       passGeometry.riseUtc &&
       passGeometry.setUtc
-        ? `${formatClockTime(passGeometry.riseUtc, clock)} to ${formatClockTime(passGeometry.setUtc, clock)}`
-        : `${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
+        ? `Visible pass: ${formatClockTime(passGeometry.riseUtc, clock)} to ${formatClockTime(passGeometry.setUtc, clock)}`
+        : `Viewing window: ${formatClockTime(night.period.startUtc, clock)} to ${formatClockTime(night.period.endUtc, clock)}`;
     // "Saturn tonight" is wrong on a night that is not tonight.
     const nightWord = describeDate(selectedDate, today).heading;
     /**
@@ -2783,12 +2782,75 @@ function TrackerScreen() {
 
   const railCards = rail.cards;
 
+  const closeUpcoming = useCallback(() => {
+    setUpcomingOpen(false);
+    window.requestAnimationFrame(() => upcomingTrigger.current?.focus());
+  }, []);
+
+  /**
+   * A future item takes the existing map to its night.
+   *
+   * The sheet is discovery, not a parallel detail system. Its row therefore
+   * closes the sheet and changes the map's authoritative date; where the event
+   * has a rail card on that night, that same card opens. Solar eclipses also
+   * select their geographic overlay because the catalogue id is already part
+   * of the canonical upcoming event.
+   */
+  const showUpcomingNight = useCallback(
+    (event: UpcomingEvent) => {
+      setUpcomingOpen(false);
+      const date = event.dateKey === today ? null : event.dateKey;
+      const card =
+        event.kind === "notable"
+          ? event.notable.entry.opportunity.id
+          : event.kind === "solar-eclipse"
+            ? "solar-eclipse"
+            : null;
+      navigate({
+        date,
+        detail: null,
+        drill: null,
+        event: event.kind === "solar-eclipse" ? event.id : null,
+        card,
+      });
+    },
+    [navigate, today],
+  );
+
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(
     () => (railCards.some((card) => card.id === location.card) ? location.card : null),
     [location.card, railCards],
   );
   const expandedCard = railCards.find((card) => card.id === expandedCardId) ?? null;
+
+  /**
+   * Finder targets are projections of tonight's existing opportunities.
+   *
+   * Nothing is admitted here that the recommendation pipeline did not already
+   * produce. The projection only asks whether that opportunity carries enough
+   * real geometry to locate; it never ranks or invents another object.
+   */
+  const skyFinderTargets = useMemo(() => {
+    const targets = new Map<string, SkyFinderTarget>();
+    for (const event of tonightEvents) {
+      if (!event.entry) continue;
+      const target = skyFinderTargetFor(
+        event.entry.opportunity,
+        event.window,
+        event.eligibility.eligible,
+      );
+      if (target) targets.set(target.id, target);
+    }
+    return targets;
+  }, [tonightEvents]);
+  const activeSkyFinderTarget = location.finder
+    ? (skyFinderTargets.get(location.finder) ?? null)
+    : null;
+  const closeSkyFinder = useCallback(
+    () => returnTo({ ...location, finder: null }),
+    [location, returnTo],
+  );
 
   /**
    * An open card is a transient surface, so the map dismisses it like any other.
@@ -2853,7 +2915,7 @@ function TrackerScreen() {
     queryKey: [
       "tracker",
       "terrain",
-      place ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}` : null,
+      observerKey,
       expandedCard?.id ?? null,
       selectedDate,
     ],
@@ -3120,11 +3182,49 @@ function TrackerScreen() {
   /** Narrowed for the detail branch, which only renders when both exist. */
   const detailPlace = place;
 
+  if (location.finder) {
+    return (
+      <main
+        className="tracker-shell tk-map-shell"
+        data-map-state="finder"
+        data-observer={observerKey ?? undefined}
+        data-plan-identity={night?.identity.key}
+      >
+        {activeSkyFinderTarget && place ? (
+          <SkyFinder
+            target={activeSkyFinderTarget}
+            references={[...skyFinderTargets.values()]}
+            observer={{
+              latitudeDeg: place.latitude,
+              longitudeDeg: place.longitude,
+              label: shortPlaceName(place),
+            }}
+            clock={clock}
+            liveDate={selectedDate === today}
+            onClose={closeSkyFinder}
+          />
+        ) : (
+          <section className="tk-finder-unavailable" aria-labelledby="finder-unavailable-title">
+            <p>Sky Finder</p>
+            <h1 id="finder-unavailable-title">Target position unavailable</h1>
+            <p>
+              This object is not in the current recommendations for this place and date, so Tracker withdrew the old pointing solution instead of reusing stale coordinates.
+            </p>
+            <button type="button" onClick={closeSkyFinder}>Back to Tracker</button>
+          </section>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main
       ref={shell}
       className="tracker-shell tk-map-shell"
       data-map-state={detailOpen ? "detail" : "map"}
+      data-observer={observerKey ?? undefined}
+      data-plan-identity={night?.identity.key}
+      data-upcoming-open={upcomingOpen ? "true" : "false"}
       /* Read only by the narrow-screen rules, which collapse an expanded card
          while the layer sheet is open so the two do not fill the phone between
          them. The card stays selected; only its presentation is suppressed. */
@@ -3396,9 +3496,30 @@ function TrackerScreen() {
           }}
           onCollapse={() => navigate({ card: null })}
           onOpenDetail={(id) => navigate({ detail: id, drill: null })}
+          onFindInSky={(id) => navigate({ finder: id })}
+          canFindInSky={(card) => skyFinderTargets.has(card.id)}
           place={placeWasChosen ? shortPlaceName(place) : (pinContext.data?.name ?? shortPlaceName(place))}
           loading={!night}
           factsFor={railFactsFor}
+          gateway={{
+            triggerRef: upcomingTrigger,
+            onOpen: () => {
+              setLayersOpen(false);
+              setUpcomingOpen(true);
+            },
+          }}
+        />
+      ) : null}
+
+      {place && !detailOpen && upcomingOpen ? (
+        <TrackerUpcomingSheet
+          place={place}
+          clock={clock}
+          planAnchor={planAnchor}
+          now={now}
+          auroraConditions={aurora.data ?? null}
+          onClose={closeUpcoming}
+          onShowNight={showUpcomingNight}
         />
       ) : null}
 
@@ -3480,6 +3601,11 @@ function TrackerScreen() {
               skyPath &&
               skyPath.kind !== "rate"
                 ? { label: "Where to look", onSelect: () => navigate({ drill: "sky" }) }
+                : null
+            }
+            finderAction={
+              skyFinderTargets.has(heroEvent.id)
+                ? { label: "Find in sky →", onSelect: () => navigate({ finder: heroEvent.id }) }
                 : null
             }
             onReminder={() => remind(heroEvent.presentation)}

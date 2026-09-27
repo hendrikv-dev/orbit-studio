@@ -1122,6 +1122,7 @@ export function SimulationScene({
       const selected = station.id === selectedGroundStationId;
       const hovered = hoveredLabelTarget?.kind === "station" && hoveredLabelTarget.id === station.id;
       const show =
+        Boolean(explorerGroundStationIdSet) ||
         selected ||
         hovered ||
         workspace.labelMode === "all" ||
@@ -1524,6 +1525,7 @@ export function SimulationScene({
           }
           focusFrame={activeFocusFrame}
           selectedOrbitDistanceScale={playgroundPresentation ? 1.5 : 1}
+          preserveCameraOnOrbitEdit={playgroundPresentation}
           defaultFrame={initialCameraFrame}
           simulationTime={scenario.simulationTimeUtc}
           viewportMode={viewportMode}

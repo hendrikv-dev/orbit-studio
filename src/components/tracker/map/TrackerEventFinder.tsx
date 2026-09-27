@@ -207,6 +207,7 @@ export function TrackerEventFinder({
                       <span
                         className="tk-eventfinder-local"
                         data-visible={result.local.visible ? "true" : "false"}
+                        data-strength={result.local.strength?.toLowerCase()}
                       >
                         {result.local.label}
                       </span>

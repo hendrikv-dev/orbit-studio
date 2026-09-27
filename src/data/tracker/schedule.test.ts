@@ -159,6 +159,37 @@ describe("notability", () => {
     }
   });
 
+  it("admits only a modeled shower maximum, never the sporadic meteor background", () => {
+    const quietWeek = planNights(
+      34.135,
+      -116.313,
+      new Date("2026-09-26T12:00:00Z"),
+      7,
+      "America/Los_Angeles",
+    );
+    const events = notableEvents(quietWeek, 20);
+
+    expect(events.some((event) => event.entry.opportunity.title === "Meteors")).toBe(false);
+    for (const event of events.filter((event) => event.kind === "shower-peak")) {
+      expect(event.entry.opportunity.persistence).toBe("time-critical");
+      expect(event.entry.opportunity.title).toMatch(/at their peak/i);
+    }
+  });
+
+  it("keeps distinct major shower peaks across a long planning range", () => {
+    const longRange = planNights(
+      34.135,
+      -116.313,
+      new Date("2026-01-01T12:00:00Z"),
+      180,
+      "America/Los_Angeles",
+    );
+    const showers = notableEvents(longRange, 40).filter((event) => event.kind === "shower-peak");
+
+    expect(showers.length).toBeGreaterThan(1);
+    expect(new Set(showers.map((event) => event.entry.opportunity.title)).size).toBe(showers.length);
+  });
+
   it("stays a short list, not a feed", () => {
     expect(notableEvents(plans).length).toBeLessThanOrEqual(6);
     expect(notableEvents(plans).length).toBeGreaterThan(0);

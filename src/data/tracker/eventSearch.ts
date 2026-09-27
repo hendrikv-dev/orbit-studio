@@ -51,6 +51,8 @@ export interface LocalRelation {
   label: string;
   /** Whether this counts as observable from the reader's coordinates. */
   visible: boolean;
+  /** Secondary strength text, distinct from the viable/unavailable decision. */
+  strength?: string;
 }
 
 export interface EventSearchResult {
@@ -167,7 +169,8 @@ function showerRelation(event: CatalogueEvent, place: SearchPlace): LocalRelatio
   // out and be disappointed by the sky rather than by the geometry.
   if (cell.radiantTerm === 0) return { label: "Radiant never rises here", visible: false };
   if (cell.darkHours === 0) return { label: "No darkness here that night", visible: false };
-  return { label: `${describePotential(cell.potential)} here`, visible: cell.potential > 0.02 };
+  const strength = describePotential(cell.potential);
+  return { label: `${strength} here`, visible: cell.potential > 0.02, strength };
 }
 
 /**

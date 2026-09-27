@@ -664,7 +664,11 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
      * product — a card selected near the end stays where it is, fully visible,
      * and the rail does not jump.
      */
-    const last = page.locator(".tk-rail-card-head").last();
+    // Upcoming is a gateway into its sheet, not an expandable observing card.
+    // Keep this state focused on the containment contract it claims to prove by
+    // selecting the last real opportunity card rather than whichever card is
+    // physically last in the rail.
+    const last = page.locator(".tk-rail-card:not(.is-gateway) .tk-rail-card-head").last();
     const before = await page.evaluate(() =>
       Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
     );

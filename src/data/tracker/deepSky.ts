@@ -199,6 +199,15 @@ export function deepSkyOpportunities(
           ? "Its magnitude is the whole object's light added together, spread over a large area — so it is harder to see than the number suggests."
           : "Magnitude and position are catalogued values, not measurements made tonight.",
       ],
+      finder: {
+        shape: object.type.toLowerCase().includes("cluster") ? "cluster" : "region",
+        rightAscensionHours: object.rightAscensionDeg / 15,
+        declinationDeg: object.declinationDeg,
+        // Half the catalogue major axis is the target radius. Keep a modest
+        // region for objects whose source has no footprint rather than
+        // pretending their centre is a naked-eye point.
+        angularRadiusDeg: Math.max(0.35, (object.majorAxisArcmin ?? 42) / 120),
+      },
       profile,
       /**
        * A faint extended object is the definition of needing a transparent sky.

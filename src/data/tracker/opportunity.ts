@@ -329,6 +329,18 @@ export interface Opportunity {
    * A picture that contradicts its own caption is worse than no picture.
    */
   sceneHints?: { illuminatedFraction?: number; waning?: boolean };
+  /**
+   * Fixed-sky metadata used by Sky Finder where a sampled night path is not
+   * enough. Optional because moving bodies and spacecraft have other
+   * authoritative sources; this is chiefly for catalogued deep-sky objects and
+   * future constellation outlines.
+   */
+  finder?: {
+    shape: "point" | "cluster" | "region";
+    rightAscensionHours: number;
+    declinationDeg: number;
+    angularRadiusDeg: number;
+  };
   alsoWith?: {
     equipment: Equipment;
     /** "With a telescope" — the lead-in, not a title. */

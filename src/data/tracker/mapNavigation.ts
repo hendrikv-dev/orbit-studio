@@ -96,6 +96,13 @@ export interface TrackerMapLocation {
    */
   card: string | null;
   /**
+   * The existing opportunity being guided to in Sky Finder.
+   *
+   * It coexists with `card` or `detail` so closing Finder restores the exact
+   * source surface instead of reconstructing it from the target id.
+   */
+  finder: string | null;
+  /**
    * Which projection the map is drawn in.
    *
    * Tracker is 2D first and stays that way: the globe is another
@@ -163,6 +170,7 @@ export function defaultMapLocation(): TrackerMapLocation {
     layers: [],
     event: null,
     card: null,
+    finder: null,
   };
 }
 
@@ -221,6 +229,9 @@ export function parseMapLocation(search: string): TrackerMapLocation {
 
   const card = params.get("card");
   if (card) location.card = card;
+
+  const finder = params.get("find");
+  if (finder) location.finder = finder;
 
   // 2D unless the URL says otherwise, so a link without it opens where Tracker
   // opens.
@@ -294,6 +305,7 @@ export function mapLocationToSearch(location: TrackerMapLocation): string {
   if (location.layers.length > 0) params.set("layers", [...location.layers].sort().join(","));
   if (location.event) params.set("show", location.event);
   if (location.card) params.set("card", location.card);
+  if (location.finder) params.set("find", location.finder);
   if (location.projection === "globe") params.set("globe", "1");
   if (location.equipment !== "eyes") params.set("with", location.equipment);
 
@@ -335,6 +347,7 @@ export function isMapNavigationStep(
     from.date !== to.date ||
     from.event !== to.event ||
     from.card !== to.card ||
+    from.finder !== to.finder ||
     from.category !== to.category ||
     !sameLayers(from.layers, to.layers)
   );
@@ -350,6 +363,7 @@ export function sameMapLocation(a: TrackerMapLocation, b: TrackerMapLocation): b
     a.date === b.date &&
     a.event === b.event &&
     a.card === b.card &&
+    a.finder === b.finder &&
     sameLayers(a.layers, b.layers) &&
     a.category === b.category &&
     a.detail === b.detail &&

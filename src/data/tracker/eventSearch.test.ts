@@ -87,6 +87,27 @@ describe("what an event does at the reader's own coordinates", () => {
     const south = localRelation(perseids, { latitude: -37.81, longitude: 144.96 });
     expect(south).toEqual({ label: "Radiant never rises here", visible: false });
   });
+
+  /**
+   * Strength is a secondary field, kept apart from the viability decision.
+   *
+   * Every viable row read as "Strong here" while the strengths all wore the
+   * same green, so the panel now carries the strength text separately — the
+   * presentation can grade it down without touching the words or re-deciding
+   * whether the event is worth going out for. Unavailable rows stay a plain
+   * verdict with no strength to grade.
+   */
+  it("exposes a shower's strength as text distinct from viability", () => {
+    const perseids = eventFor("meteor-shower-PER-2027-08-12");
+    const north = localRelation(perseids, TROUTDALE)!;
+    expect(north.visible).toBe(true);
+    expect(north.strength).toBeDefined();
+    expect(north.label).toBe(`${north.strength} here`);
+
+    const south = localRelation(perseids, { latitude: -37.81, longitude: 144.96 })!;
+    expect(south.visible).toBe(false);
+    expect(south.strength).toBeUndefined();
+  });
 });
 
 describe("searching with a place in mind", () => {

@@ -5,10 +5,13 @@ import { describe, expect, it } from "vitest";
 import {
   NO_DATA_BODIES,
   trackerBackToMapValidation,
+  trackerLocationRoundTripValidation,
+  trackerRailLegValidation,
   trackerRailValidation,
   trackerReviewFixtures,
   trackerReviewScenario,
   trackerShellValidation,
+  trackerUpcomingValidation,
   trackerUnselectedValidation,
 } from "./tracker.mjs";
 
@@ -83,7 +86,14 @@ function mapFirstState(overrides = {}) {
       { id: "planet-mars", reason: "notable-circumstance", expanded: false, name: "Mars" },
       { id: "deep-sky-m45", reason: "routine", expanded: false, name: "Pleiades" },
       { id: "moon", reason: "routine", expanded: false, name: "Waning Gibbous" },
+      { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
     ],
+    upcomingOpen: false,
+    upcomingPlanningState: null,
+    upcomingObserver: null,
+    upcomingPlanObserver: null,
+    upcomingRange: null,
+    upcomingEvents: [],
     ...overrides,
   };
 }
@@ -173,6 +183,13 @@ describe("Tracker observing rail validation", () => {
       .toContain("opportunity-missing:moon");
   });
 
+  it("requires the Upcoming gateway without fixing the number of sky cards", () => {
+    const state = mapFirstState();
+    state.railCards = state.railCards.filter((card) => card.id !== "upcoming");
+    expect(trackerRailValidation(state, trackerReviewFixtures.nakedEyeCards).failures)
+      .toContain("upcoming-gateway-missing");
+  });
+
   it("detects two cards expanded at once", () => {
     const state = mapFirstState({ expandedCard: "planet-saturn" });
     state.railCards[0].expanded = true;
@@ -186,6 +203,35 @@ describe("Tracker observing rail validation", () => {
     state.railCards[0].expanded = true;
     expect(trackerRailValidation(state, []).failures)
       .toContain("expanded-card-disagrees-with-url:planet-saturn!=moon");
+  });
+});
+
+describe("Tracker Upcoming validation", () => {
+  const ready = (overrides = {}) =>
+    mapFirstState({
+      observer: "45.5152,-122.6784",
+      upcomingOpen: true,
+      upcomingPlanningState: "ready",
+      upcomingObserver: "45.5152,-122.6784",
+      upcomingPlanObserver: "45.5152,-122.6784",
+      upcomingRange: "30-days",
+      upcomingEvents: [{ id: "notable:moon", title: "Full Moon" }],
+      ...overrides,
+    });
+
+  it("accepts a ready list planned for the shell's current observer", () => {
+    expect(trackerUpcomingValidation(ready())).toMatchObject({ pass: true, failures: [] });
+  });
+
+  it("rejects a stale plan and a fabricated sporadic-meteor peak", () => {
+    expect(
+      trackerUpcomingValidation(
+        ready({
+          upcomingPlanObserver: "38.9,-77.03",
+          upcomingEvents: [{ id: "notable:meteors", title: "Meteors" }],
+        }),
+      ).failures,
+    ).toEqual(expect.arrayContaining(["upcoming-plan-observer:38.9,-77.03!=45.5152,-122.6784", "sporadic-meteors-promoted"]));
   });
 });
 
@@ -207,6 +253,119 @@ describe("Tracker back-to-map validation", () => {
     expect(
       trackerBackToMapValidation(before(), before({ mapState: "detail", detailEvent: "planet-saturn" })).failures,
     ).toEqual(expect.arrayContaining(["did-not-return-to-map:detail", "detail-still-open:planet-saturn"]));
+  });
+});
+
+describe("Tracker rail leg validation", () => {
+  const leg = () => ({ offered: ["planet-mars"], withheld: ["deep-sky-m31"] });
+  const greenbelt = () =>
+    mapFirstState({
+      pin: "38.996,-76.876",
+      observer: "38.996,-76.876",
+      planKey: "plan|38.996000|-76.876000",
+      railCards: [
+        { id: "planet-saturn", reason: "strong", expanded: false, name: "Saturn" },
+        { id: "planet-mars", reason: "notable-circumstance", expanded: false, name: "Mars" },
+      ],
+    });
+
+  it("accepts a rail that offers what the place offers and withholds what it withholds", () => {
+    expect(trackerRailLegValidation(greenbelt(), leg())).toMatchObject({ pass: true, failures: [] });
+  });
+
+  it("detects a leg missing its expected opportunity", () => {
+    const withoutMars = greenbelt();
+    withoutMars.railCards = withoutMars.railCards.filter((card) => card.id !== "planet-mars");
+    expect(trackerRailLegValidation(withoutMars, leg()).failures)
+      .toContain("opportunity-missing:planet-mars");
+  });
+
+  it("detects a leg still offering what the place withholds", () => {
+    const withM31 = greenbelt();
+    withM31.railCards = withM31.railCards.concat({
+      id: "deep-sky-m31", reason: "routine", expanded: false, name: "Andromeda",
+    });
+    expect(trackerRailLegValidation(withM31, leg()).failures)
+      .toContain("opportunity-still-offered:deep-sky-m31");
+  });
+
+  it("detects a leg whose rail never arrived", () => {
+    expect(
+      trackerRailLegValidation(mapFirstState({ railPresent: false, railCards: [] }), leg()).failures,
+    ).toContain("rail-missing");
+  });
+});
+
+describe("Tracker location round-trip validation", () => {
+  /**
+   * The reported fault this guards: objects admitted at the second place were
+   * still being offered after the reader returned to the first.
+   */
+  const before = (overrides = {}) =>
+    mapFirstState({
+      pin: "38.996,-76.876",
+      observer: "38.996,-76.876",
+      planKey: "plan|38.996000|-76.876000",
+      railCards: [
+        { id: "planet-saturn", reason: "strong", expanded: false, name: "Saturn" },
+        { id: "planet-mars", reason: "notable-circumstance", expanded: false, name: "Mars" },
+      ],
+      ...overrides,
+    });
+  const moved = () =>
+    before({
+      pin: "38.900,-77.030",
+      observer: "38.9,-77.03",
+      planKey: "plan|38.900000|-77.030000",
+      railCards: [
+        { id: "planet-saturn", reason: "strong", expanded: false, name: "Saturn" },
+        { id: "deep-sky-m31", reason: "routine", expanded: false, name: "Andromeda" },
+      ],
+    });
+
+  it("accepts a round trip that restores the first place in every derived value", () => {
+    expect(trackerLocationRoundTripValidation(before(), moved(), before())).toMatchObject({
+      pass: true,
+      failures: [],
+    });
+  });
+
+  it("detects the moved place's extra object surviving the return", () => {
+    const stale = before({ railCards: before().railCards.concat(moved().railCards[1]) });
+    expect(trackerLocationRoundTripValidation(before(), moved(), stale).failures)
+      .toContain("moved-place-opportunity-remained:deep-sky-m31");
+  });
+
+  it("detects a return that kept another place's observer or plan", () => {
+    expect(trackerLocationRoundTripValidation(before(), moved(), moved()).failures)
+      .toEqual(expect.arrayContaining([
+        "pin-not-restored:38.900,-77.030!=38.996,-76.876",
+        "observer-not-restored:38.9,-77.03!=38.996,-76.876",
+        `plan-not-restored:${moved().planKey}!=${before().planKey}`,
+      ]));
+  });
+
+  it("detects a move that never re-answered anything", () => {
+    expect(trackerLocationRoundTripValidation(before(), before(), before()).failures)
+      .toEqual(expect.arrayContaining(["observer-did-not-move", "plan-did-not-move"]));
+  });
+
+  it("detects a return that dropped an object the first place offered", () => {
+    const diminished = before({ railCards: [before().railCards[0]] });
+    expect(trackerLocationRoundTripValidation(before(), moved(), diminished).failures)
+      .toContain("opportunity-not-restored:planet-mars");
+  });
+
+  it("pins the fixture legs to rails the fixtures can actually produce", () => {
+    const legs = trackerReviewFixtures.locationLegRail;
+    for (const offered of legs.greenbelt.offered) {
+      expect(legs.washington.offered).not.toContain(offered);
+    }
+    for (const leg of Object.values(legs)) {
+      for (const id of leg.offered) {
+        expect(leg.withheld).not.toContain(id);
+      }
+    }
   });
 });
 

@@ -50,6 +50,29 @@ const NEXT_NIGHT = "2026-09-03";
 const REVIEW_PIN = "45.515,-122.678";
 
 /**
+ * A second observing site, for the location-invalidation leg.
+ *
+ * The rail is an answer to "where am I", so two places an hour apart must be
+ * able to give two different answers. Washington is bright enough that Mars
+ * fails the naked-eye rule there but passes at Greenbelt, which is the
+ * rail-visible difference this leg moves the reader across. Under the review
+ * fixtures the two places cannot share a rail, so a stale one is a failure and
+ * not a coincidence.
+ */
+const GREENBELT = {
+  name: "Greenbelt",
+  context: "Maryland, United States",
+  latitude: 38.996,
+  longitude: -76.876,
+};
+const WASHINGTON = {
+  name: "Washington",
+  context: "District of Columbia, United States",
+  latitude: 38.9,
+  longitude: -77.03,
+};
+
+/**
  * The opportunities the pinned place and night produce.
  *
  * Named rather than counted. A total is the assertion that broke the scenario
@@ -94,6 +117,20 @@ export const trackerReviewFixtures = {
   eventId: EXPECTED_EVENT_ID,
   eventDate: EXPECTED_EVENT_DATE,
   detailCard: DETAIL_CARD,
+  greenbelt: GREENBELT,
+  washington: WASHINGTON,
+  /**
+   * What each leg of the location round trip must name. Named rather than
+   * counted, like the rail above, and observed rather than presumed: under the
+   * review fixtures Washington's sky is bright enough to withhold Mars and
+   * still admit the Andromeda Galaxy to the naked eye, and Greenbelt's is not.
+   * A future recalibration of the naked-eye rule may legitimately move these —
+   * in which case this table and the rule change together, in one review.
+   */
+  locationLegRail: {
+    greenbelt: { offered: ["planet-mars"], withheld: ["deep-sky-m31"] },
+    washington: { offered: ["deep-sky-m31"], withheld: ["planet-mars"] },
+  },
 };
 
 /**
@@ -145,6 +182,17 @@ export async function readTrackerMapState(page) {
       placeLabel: document.querySelector(".tracker-place-name")?.textContent?.trim() ?? null,
       dateLabel: document.querySelector(".tk-date-label")?.textContent?.trim() ?? null,
       openSurface,
+
+      /**
+       * The observer the answers are about, declared by the shell.
+       *
+       * The rail is computed from the observing location, so a rail drawn for
+       * one place while the shell declares another is exactly the stale-state
+       * defect this attribute exists to catch.
+       */
+      observer: document.querySelector(".tracker-shell")?.getAttribute("data-observer") ?? null,
+      /** The night plan's own identity key, for the same reason. */
+      planKey: document.querySelector(".tracker-shell")?.getAttribute("data-plan-identity") ?? null,
       placeSearchPresent: Boolean(document.querySelector(".tracker-place-combobox input")),
       eventSearchPresent: Boolean(document.querySelector('.tk-eventfinder-open input[type="search"]')),
       railPresent: Boolean(document.querySelector(".tk-rail")),
@@ -153,6 +201,19 @@ export async function readTrackerMapState(page) {
         reason: card.getAttribute("data-reason"),
         expanded: card.getAttribute("data-expanded") === "true",
         name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? null,
+      })),
+      upcomingOpen: shell?.getAttribute("data-upcoming-open") === "true",
+      upcomingPlanningState:
+        document.querySelector(".tk-upcoming-sheet")?.getAttribute("data-planning-state") ?? null,
+      upcomingObserver:
+        document.querySelector(".tk-upcoming-sheet")?.getAttribute("data-upcoming-observer") ?? null,
+      upcomingPlanObserver:
+        document.querySelector(".tk-upcoming-sheet")?.getAttribute("data-upcoming-plan-observer") ?? null,
+      upcomingRange:
+        document.querySelector(".tk-upcoming-sheet")?.getAttribute("data-upcoming-range") ?? null,
+      upcomingEvents: [...document.querySelectorAll("[data-upcoming-event]")].map((row) => ({
+        id: row.getAttribute("data-upcoming-event"),
+        title: row.querySelector(".tk-upcoming-sheet-copy > strong")?.textContent?.trim() ?? null,
       })),
     };
   });
@@ -196,6 +257,7 @@ export function trackerRailValidation(state, expectedCards) {
   const failures = trackerShellValidation(state).failures.slice();
   if (!state.railPresent) failures.push("rail-missing");
   const offered = state.railCards.map((card) => card.id);
+  if (!offered.includes("upcoming")) failures.push("upcoming-gateway-missing");
   for (const expected of expectedCards) {
     if (!offered.includes(expected)) failures.push(`opportunity-missing:${expected}`);
   }
@@ -205,6 +267,29 @@ export function trackerRailValidation(state, expectedCards) {
     failures.push(`expanded-card-disagrees-with-url:${expanded[0]}!=${state.expandedCard}`);
   }
   return { ...state, offered, expanded, pass: failures.length === 0, failures };
+}
+
+/** Upcoming stays on the map and may only show results for its declared observer. */
+export function trackerUpcomingValidation(state, expectedRange = "30-days") {
+  const failures = trackerShellValidation(state).failures.slice();
+  if (!state.upcomingOpen) failures.push("upcoming-sheet-not-open");
+  if (state.upcomingPlanningState !== "ready") {
+    failures.push(`upcoming-not-ready:${state.upcomingPlanningState}`);
+  }
+  if (state.upcomingRange !== expectedRange) {
+    failures.push(`upcoming-range:${state.upcomingRange}!=${expectedRange}`);
+  }
+  if (state.upcomingObserver !== state.observer) {
+    failures.push(`upcoming-observer:${state.upcomingObserver}!=${state.observer}`);
+  }
+  if (state.upcomingPlanObserver !== state.observer) {
+    failures.push(`upcoming-plan-observer:${state.upcomingPlanObserver}!=${state.observer}`);
+  }
+  if (!state.upcomingEvents?.length) failures.push("upcoming-events-empty");
+  if (state.upcomingEvents?.some((event) => event.title === "Meteors")) {
+    failures.push("sporadic-meteors-promoted");
+  }
+  return { ...state, pass: failures.length === 0, failures };
 }
 
 /**
@@ -233,6 +318,60 @@ export function trackerBackToMapValidation(before, after) {
   };
 }
 
+/**
+ * One leg of the location round trip, judged by the cards it names.
+ *
+ * The same rule as the rail validation above — named opportunities, never
+ * counts — applied to what a place offers and withholds. A leg waits for this
+ * shape before anything is asserted about it, so a slow measurement can never
+ * make the review read one place's rail as another's.
+ */
+export function trackerRailLegValidation(state, leg) {
+  const failures = trackerShellValidation(state).failures.slice();
+  if (!state.railPresent) failures.push("rail-missing");
+  const offered = state.railCards.map((card) => card.id);
+  for (const expected of leg.offered) {
+    if (!offered.includes(expected)) failures.push(`opportunity-missing:${expected}`);
+  }
+  for (const withheld of leg.withheld) {
+    if (offered.includes(withheld)) failures.push(`opportunity-still-offered:${withheld}`);
+  }
+  return { ...state, offered, pass: failures.length === 0, failures };
+}
+
+/**
+ * A location round trip must end where it began, in every derived value.
+ *
+ * The reported fault this guards: objects admitted at the second place were
+ * still being offered after the reader returned to the first. The check is
+ * three-sided — the state before the move, the state at the second place, and
+ * the state after returning — because "the rail changed" alone cannot catch a
+ * rail that changed and then failed to change back.
+ */
+export function trackerLocationRoundTripValidation(before, moved, after) {
+  const failures = [];
+  if (after.pin !== before.pin) failures.push(`pin-not-restored:${after.pin}!=${before.pin}`);
+  if (after.observer !== before.observer) {
+    failures.push(`observer-not-restored:${after.observer}!=${before.observer}`);
+  }
+  if (after.planKey !== before.planKey) {
+    failures.push(`plan-not-restored:${after.planKey}!=${before.planKey}`);
+  }
+  if (moved.observer === before.observer) failures.push("observer-did-not-move");
+  if (moved.planKey === before.planKey) failures.push("plan-did-not-move");
+  const ids = (state) => state.railCards.map((card) => card.id);
+  for (const expected of ids(before)) {
+    if (!ids(after).includes(expected)) failures.push(`opportunity-not-restored:${expected}`);
+  }
+  for (const extra of ids(moved)) {
+    const movedOnly = !ids(before).includes(extra);
+    if (movedOnly && ids(after).includes(extra)) {
+      failures.push(`moved-place-opportunity-remained:${extra}`);
+    }
+  }
+  return { pass: failures.length === 0, failures };
+}
+
 function assertPass(result, message) {
   if (!result.pass) throw new Error(`${message}: ${result.failures.join(", ")}`);
   return result;
@@ -248,6 +387,17 @@ function assertPass(result, message) {
 async function stubGeocoder(context) {
   await context.route("https://photon.komoot.io/api/**", (route) => {
     const query = new URL(route.request().url()).searchParams.get("q") ?? "";
+    const feature = (place, state) => ({
+      properties: {
+        osm_type: "R",
+        osm_id: 1,
+        name: place.name,
+        state,
+        country: "United States",
+        osm_value: "town",
+      },
+      geometry: { coordinates: [place.longitude, place.latitude] },
+    });
     const features = /portland/i.test(query)
       ? [{
           properties: {
@@ -261,7 +411,11 @@ async function stubGeocoder(context) {
           },
           geometry: { coordinates: [PORTLAND.longitude, PORTLAND.latitude] },
         }]
-      : [];
+      : /greenbelt/i.test(query)
+        ? [feature(GREENBELT, "Maryland")]
+        : /washington/i.test(query)
+          ? [feature(WASHINGTON, "District of Columbia")]
+          : [];
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -359,20 +513,26 @@ export const trackerReviewScenario = {
       "Map-first Tracker: the map is the canvas, and location, night, equipment and layers are chosen over it",
       "Place selection through the map's own picker, with the search revealed by the trigger rather than always present",
       "An observing rail of ranked opportunities for the selected place and night, one expanded at a time",
+      "An Upcoming gateway in that rail, opening a map-overlay sheet with 7-day, 30-day, 3-month and one-year ranges",
+      "Upcoming is observer-scoped: changing the place while the sheet is open withdraws the prior plan and recomputes the list in place",
       "Full event detail entered from the rail, with Back restoring the map, the place, the night and the open card",
       "Notable-event search that moves the map and the night to the event while keeping the observing location",
       "Equipment-aware ranking, with telescope-only targets appearing only under a telescope",
+      "Observer-scoped invalidation: moving between two places re-answers everything that depends on the place, and returning restores the first place's answers through both the picker and the map",
     ],
     knownLimitations: [
       "The basemap is stubbed to an empty style so a run cannot depend on a tile provider; the map chrome, pin and overlays are real, the streets are not drawn.",
       "Weather, air quality and the aurora nowcast are deliberately refused, so this package shows Tracker degrading honestly rather than a forecast.",
       "Cloud and light-pollution layer behaviour is certified by their own gates; this scenario only proves the layer surface opens and closes without losing state.",
+      "The location round-trip leg drives the map path by writing the pin into the query string the shell itself reads, rather than by hand-mocking the map's event system; the rail, observer and plan answers it asserts are recomputed from that location by the production path.",
     ],
     expectedReviewFocus: [
       "Verify the map is still the primary canvas at every step short of full detail.",
       "Verify the place search does not exist until the location trigger is opened.",
       "Verify Back from full detail restores the place, the night and the expanded card.",
       "Verify a telescope adds targets the naked eye is not offered.",
+      "Verify moving between two places re-answers the rail for the new place and that returning restores the first place's answers.",
+      "Verify Upcoming opens over the map, changes planning range, and declares the same observer for the sheet, completed plan and map shell.",
     ],
   },
 
@@ -400,6 +560,87 @@ export const trackerReviewScenario = {
   async run({ captureSurface, page }) {
     const read = () => readTrackerMapState(page);
     const settle = (ms = 1_200) => page.waitForTimeout(ms);
+
+    /**
+     * A place chosen through the picker, wherever the picker was left.
+     *
+     * The trigger opens the panel; typed rather than filled, because the
+     * picker is a React Aria combobox and opens its list from key events.
+     */
+    const selectPlaceBySearch = async (name) => {
+      await page.locator(".tracker-place-current").first().click();
+      await settle(600);
+      const search = page.getByRole("combobox", { name: "Search for a place to observe from" });
+      await search.click();
+      await search.fill("");
+      await search.pressSequentially(name, { delay: 40 });
+      await page.locator('[role="option"]').first().waitFor({ timeout: 20_000 });
+      await page.locator('[role="option"]').first().click();
+    };
+
+    /**
+     * A map pick, arrived at through the same state write.
+     *
+     * The map's click handler performs `navigate({ pin })`, which pushes the
+     * location into the query string and re-renders from it; writing the pin
+     * into the query string and letting the shell read it back resolves to the
+     * same location state without hand-mocking the map's event system. The
+     * rail, the observer and the plan are the things being asserted, and each
+     * of those is recomputed from the location alone.
+     */
+    const pickOnMap = async (place) => {
+      await page.evaluate(({ latitude, longitude }) => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("pin", `${latitude.toFixed(3)},${longitude.toFixed(3)}`);
+        window.history.pushState(null, "", url.toString());
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }, { latitude: place.latitude, longitude: place.longitude });
+    };
+
+    /**
+     * The rail for one leg of the round trip, waited for rather than assumed.
+     *
+     * The light measurement arrives over a fetch, and the rail changes only
+     * once it lands, so the leg waits until the expected cards are offered and
+     * the expected withheld card is gone before anything is asserted.
+     */
+    const waitForRailLeg = async (leg) => {
+      await page.waitForFunction(
+        ({ offered, withheld }) => {
+          const ids = [...document.querySelectorAll(".tk-rail-card")].map((card) =>
+            card.getAttribute("data-card"),
+          );
+          return (
+            offered.every((id) => ids.includes(id)) &&
+            withheld.every((id) => !ids.includes(id))
+          );
+        },
+        { offered: leg.offered, withheld: leg.withheld },
+        { timeout: 30_000 },
+      );
+      await settle(1_500);
+      return read();
+    };
+
+    const waitForUpcoming = async (range) => {
+      await page.waitForFunction(
+        (expectedRange) => {
+          const sheet = document.querySelector(".tk-upcoming-sheet");
+          const shell = document.querySelector(".tracker-shell");
+          return (
+            sheet?.getAttribute("data-planning-state") === "ready" &&
+            sheet.getAttribute("data-upcoming-range") === expectedRange &&
+            sheet.getAttribute("data-upcoming-observer") === shell?.getAttribute("data-observer") &&
+            sheet.getAttribute("data-upcoming-plan-observer") === shell?.getAttribute("data-observer") &&
+            sheet.querySelectorAll("[data-upcoming-event]").length > 0
+          );
+        },
+        range,
+        { timeout: 60_000 },
+      );
+      await settle(800);
+      return read();
+    };
 
     // 1. Tracker opens as a map, with nothing chosen.
     await page.locator(".maplibregl-map canvas").waitFor({ timeout: 30_000 });
@@ -439,6 +680,51 @@ export const trackerReviewScenario = {
       throw new Error(`The map does not show the selected place: ${located.placeLabel}`);
     }
     await captureSurface("tracker-location-selected", located);
+
+    // 2b. Future discovery is a gateway in this same rail and a sheet over the
+    //     same map. Its completed worker plan must name the shell's exact
+    //     observer. A place change while it is open must replace that identity
+    //     in place rather than leaving Portland's future attached to Greenbelt.
+    const tourClose = page.getByRole("button", { name: "Close the tour" });
+    if (await tourClose.isVisible()) await tourClose.click();
+    await page.locator('[data-gateway="upcoming"] .tk-rail-card-head').click();
+    const upcoming = assertPass(
+      trackerUpcomingValidation(await waitForUpcoming("30-days")),
+      "Upcoming did not open with a current observer-scoped plan",
+    );
+    await captureSurface("tracker-upcoming", upcoming);
+
+    await page.getByRole("button", { name: "Show the next 7 days" }).click();
+    assertPass(
+      trackerUpcomingValidation(await waitForUpcoming("7-days"), "7-days"),
+      "Upcoming did not replace its plan for the 7-day range",
+    );
+
+    await selectPlaceBySearch(GREENBELT.name);
+    const upcomingMoved = assertPass(
+      trackerUpcomingValidation(await waitForUpcoming("7-days"), "7-days"),
+      "Upcoming did not replace Portland's plan after the observing place changed",
+    );
+    if (upcomingMoved.upcomingObserver === upcoming.upcomingObserver) {
+      throw new Error("Upcoming's observer identity did not change with the place.");
+    }
+    await captureSurface("tracker-upcoming-location-reactive", upcomingMoved);
+
+    await selectPlaceBySearch(PORTLAND.name);
+    const upcomingReturned = assertPass(
+      trackerUpcomingValidation(await waitForUpcoming("7-days"), "7-days"),
+      "Upcoming did not restore Portland's plan after the place returned",
+    );
+    if (upcomingReturned.upcomingObserver !== upcoming.upcomingObserver) {
+      throw new Error("Upcoming did not restore the original observer identity.");
+    }
+    await page.getByRole("button", { name: "Close Upcoming" }).click();
+    await page.locator(".tk-upcoming-sheet").waitFor({ state: "detached", timeout: 10_000 });
+    await page.waitForFunction(
+      () => document.activeElement?.closest('[data-gateway="upcoming"]') != null,
+      undefined,
+      { timeout: 5_000 },
+    );
 
     // 3. The night is deterministic, moves, and does not disturb the place.
     if (!/Sep 2, 2026/.test(located.dateLabel ?? "")) {
@@ -557,6 +843,86 @@ export const trackerReviewScenario = {
     await settle(2_000);
     const flat = await read();
     if (flat.projection !== "flat") throw new Error("The 2D control did not restore the flat map.");
+
+    // 8b. Moving between two places updates every observer-dependent answer,
+    //     and returning to the first place restores all of them — through both
+    //     of the paths that set a location. The rail needs a place whose sky
+    //     differs to see the difference, so the light-pollution measurement is
+    //     turned on and the rail read with the naked-eye rule.
+    const openLightPollutionMeasurement = async () => {
+      await page.getByRole("button", { name: /^Layers/ }).click();
+      await settle(600);
+      await page.getByRole("switch", { name: "Light pollution" }).click();
+      await page.getByRole("button", { name: "Close the layer list" }).click();
+      await settle(800);
+    };
+    await openLightPollutionMeasurement();
+
+    const greenbeltLeg = trackerReviewFixtures.locationLegRail.greenbelt;
+    const washingtonLeg = trackerReviewFixtures.locationLegRail.washington;
+
+    await selectPlaceBySearch(GREENBELT.name);
+    await settle(2_500);
+    const greenbelt = assertPass(
+      trackerRailLegValidation(await waitForRailLeg(greenbeltLeg), greenbeltLeg),
+      "The Greenbelt leg did not produce the expected observing rail",
+    );
+    await captureSurface("tracker-location-greenbelt", greenbelt);
+
+    // The map path: a pick at Washington's coordinates is the same state write
+    // the map's click handler performs — `navigate({ pin })` — arrived at
+    // through the location state the shell itself declares.
+    await pickOnMap(WASHINGTON);
+    const washington = assertPass(
+      trackerRailLegValidation(await waitForRailLeg(washingtonLeg), washingtonLeg),
+      "Moving to Washington did not update the rail for the new place",
+    );
+    await captureSurface("tracker-location-washington", washington);
+
+    // The search path, back: the answer must be the answer Greenbelt gave
+    // before, not the answer Washington left behind.
+    await selectPlaceBySearch(GREENBELT.name);
+    const searchReturn = assertPass(
+      trackerRailLegValidation(await waitForRailLeg(greenbeltLeg), greenbeltLeg),
+      "Returning to Greenbelt did not produce its rail",
+    );
+    const greenbeltReturn = assertPass(
+      trackerLocationRoundTripValidation(greenbelt, washington, searchReturn),
+      "Returning to Greenbelt through the place search did not restore its answers",
+    );
+    await captureSurface("tracker-location-returned", searchReturn);
+
+    // The map path, both ways: the same round trip, driven by picks alone.
+    await pickOnMap(WASHINGTON);
+    await waitForRailLeg(washingtonLeg);
+    await pickOnMap(GREENBELT);
+    const pickedReturn = assertPass(
+      trackerRailLegValidation(await waitForRailLeg(greenbeltLeg), greenbeltLeg),
+      "The map round trip did not produce Greenbelt's rail",
+    );
+    const mapRoundTrip = assertPass(
+      trackerLocationRoundTripValidation(greenbelt, washington, pickedReturn),
+      "Returning to Greenbelt through the map did not restore its answers",
+    );
+    await captureSurface("tracker-location-map-roundtrip", pickedReturn);
+
+    // Leave the leg as it was found: the measurement off and the reader in
+    // Portland, so the next step starts from the state it has always assumed.
+    await page.getByRole("button", { name: /^Layers/ }).click();
+    await settle(600);
+    await page.getByRole("switch", { name: "Light pollution" }).click();
+    await page.getByRole("button", { name: "Close the layer list" }).click();
+    await settle(800);
+    await selectPlaceBySearch(PORTLAND.name);
+    await settle(2_500);
+    const portlandRestored = await read();
+    if (portlandRestored.pin !== REVIEW_PIN) {
+      throw new Error(`The location leg did not restore the review place: pin=${portlandRestored.pin}`);
+    }
+    assertPass(
+      trackerRailValidation(portlandRestored, EXPECTED_NAKED_EYE_CARDS),
+      "The location leg left Portland's observing rail changed",
+    );
 
     // 9. Finding a notable event moves the map and the night to it, and keeps
     //    the observing location, which is a different question from where the

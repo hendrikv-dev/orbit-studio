@@ -14813,10 +14813,6 @@ button.primary,
   outline-offset: -3px;
 }
 
-/* MapLibre paints its own canvas and puts its own furniture on top. The
-   attribution is required by the data licence and stays; everything else is
-   pulled down to the shell's weight so it does not compete with the map. */
-.tk-map-canvas .maplibregl-map { font: inherit; }
 /* Attribution is required and stays. What it does not need to be is one of the
    brightest objects on a dark map: MapLibre paints it near-black on near-white,
    which on this cartography is the single lightest object on screen and reads
@@ -14831,12 +14827,39 @@ button.primary,
    version of this block had no visible effect at all. The extra class puts
    these rules one step above `.maplibregl-ctrl-attrib.maplibregl-compact`
    rather than level with it. */
-.tk-map-canvas .maplibregl-ctrl-bottom-right { margin: 0 4px 4px 0; }
-.tk-map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show {
+/* A sibling of the canvas: a control must escape its stacking context. */
+.tk-map-attribution {
+  position: absolute;
+  /* Keep the required credit in the map, not over the observing surface. The
+     compact control expands on hover/focus; when it shared the rail's bottom
+     edge that expansion could intercept a tap intended for the first card. */
+  right: calc(var(--tk-control-gutter, 62px) + 10px);
+  bottom: calc(var(--tk-rail-height, 106px) + 8px);
+  z-index: var(--tk-z-control);
+  font: inherit;
+}
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact {
+  box-sizing: border-box;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  max-width: min(460px, calc(100vw - 16px));
+  padding: 8px 44px 8px 12px;
+}
+.tk-map-attribution .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+}
+.tk-map-attribution .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
   margin: 0;
-  padding: 1px 7px;
+
   border-radius: 5px;
   /* Quiet, and still readable: the contrast has to come from somewhere, and
      taking it from an opaque dark plate rather than from bright text keeps the
@@ -14844,50 +14867,50 @@ button.primary,
      background. It also survives sitting over the light-pollution field, which
      is the one place the map underneath goes pale. */
   background-color: rgba(6, 8, 13, 0.86);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   line-height: 1.6;
-  color: rgba(150, 166, 194, 0.72);
+  color: #b6c3da;
   transition: color 140ms ease, background-color 140ms ease;
 }
 /* Room for the ⓘ, which only exists once the control has collapsed. */
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 26px; }
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact:hover,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show:hover,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact:focus-within,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show:focus-within {
+
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact:hover,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show:hover,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact:focus-within,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show:focus-within {
   background-color: rgba(6, 8, 13, 0.95);
   color: rgba(206, 219, 240, 0.96);
 }
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact a,
-.tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show a {
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact a,
+.tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show a {
   color: inherit;
   text-decoration: none;
 }
-.tk-map-canvas .maplibregl-ctrl-attrib a:hover { text-decoration: underline; }
-.tk-map-canvas .maplibregl-ctrl-attrib a:focus-visible {
+.tk-map-attribution .maplibregl-ctrl-attrib a:hover { text-decoration: underline; }
+.tk-map-attribution .maplibregl-ctrl-attrib a:focus-visible {
   outline: 2px solid var(--tk-focus);
   outline-offset: 1px;
   border-radius: 2px;
 }
 /* The ⓘ ships as a dark glyph on a white pill, for a light map. Inverted and
    held at the same weight as the text it opens. */
-.tk-map-canvas .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+.tk-map-attribution .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
   background-color: transparent;
   filter: invert(1) opacity(0.42);
 }
-.tk-map-canvas .maplibregl-ctrl-attrib:hover .maplibregl-ctrl-attrib-button,
-.tk-map-canvas .maplibregl-ctrl-attrib:focus-within .maplibregl-ctrl-attrib-button {
+.tk-map-attribution .maplibregl-ctrl-attrib:hover .maplibregl-ctrl-attrib-button,
+.tk-map-attribution .maplibregl-ctrl-attrib:focus-within .maplibregl-ctrl-attrib-button {
   filter: invert(1) opacity(0.78);
 }
-.tk-map-canvas .maplibregl-ctrl-attrib-button:focus-visible {
+.tk-map-attribution .maplibregl-ctrl-attrib-button:focus-visible {
   box-shadow: none;
   outline: 2px solid var(--tk-focus);
   outline-offset: -2px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tk-map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib,
-  .tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact,
-  .tk-map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show { transition: none; }
+  .tk-map-attribution .maplibregl-ctrl.maplibregl-ctrl-attrib,
+  .tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact,
+  .tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show { transition: none; }
 }
 
 .tk-map-basemap-failed {
@@ -16328,6 +16351,21 @@ button.primary,
   background: #05070d;
 }
 .tk-rail-card-image.is-blank { background: rgba(126, 152, 190, 0.1); }
+.tk-rail-card.is-gateway {
+  border-color: rgba(124, 140, 248, 0.32);
+  background:
+    linear-gradient(135deg, rgba(73, 83, 176, 0.25), rgba(14, 20, 35, 0.92) 56%),
+    var(--tk-glass-solid);
+}
+.tk-rail-card.is-gateway:hover { border-color: rgba(140, 154, 255, 0.62); }
+.tk-rail-gateway-image {
+  display: grid;
+  place-items: center;
+  color: #c8d0ff;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(181, 197, 255, 0.38), transparent 34%),
+    linear-gradient(145deg, #293b85, #171c3d 70%);
+}
 .tk-rail-card-text { display: block; min-width: 0; }
 .tk-rail-card-name {
   display: block;
@@ -16510,7 +16548,12 @@ button.primary,
   .tk-rail-card[data-expanded="true"] {
     width: min(320px, calc(100vw - 40px - var(--tk-control-gutter)));
   }
-  .tk-rail-card-body { max-height: 46dvh; overflow-y: auto; }
+  .tk-rail-card-body {
+    max-height: 34dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
   /*
     The phone needs the same clearance and no more, for the same reason. The
     wide rule above already says it; this override exists only because the old
@@ -16565,6 +16608,224 @@ button.primary,
 @media (min-width: 721px) {
   .tk-map-controls-view { bottom: 136px; }
   .tk-map-notice { bottom: 250px; }
+}
+
+/* --- Upcoming discovery sheet ------------------------------------------ */
+
+/* The sheet replaces the rail while it is open; the map and top controls stay
+   live, so the observing location can be changed without closing discovery. */
+.tk-map-shell[data-upcoming-open="true"] .tk-rail {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tk-upcoming-sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: var(--tk-z-control);
+  display: flex;
+  flex-direction: column;
+  width: min(680px, calc(100% - 28px));
+  max-height: min(76dvh, 720px);
+  overflow: hidden;
+  border: 1px solid rgba(142, 160, 201, 0.27);
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  background:
+    radial-gradient(circle at 65% 0%, rgba(64, 76, 158, 0.15), transparent 34%),
+    rgba(8, 13, 24, 0.96);
+  color: var(--tk-ink, #f0f3fa);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(24px) saturate(1.12);
+  transform: translateX(-50%);
+  animation: tk-upcoming-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes tk-upcoming-sheet-in {
+  from { opacity: 0; transform: translate(-50%, 18px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.tk-upcoming-sheet-handle {
+  flex: none;
+  width: 38px;
+  height: 4px;
+  margin: 9px auto 2px;
+  border-radius: 999px;
+  background: rgba(174, 187, 216, 0.38);
+}
+.tk-upcoming-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px 12px;
+}
+.tk-upcoming-sheet-head h2 {
+  margin: 3px 0 2px;
+  font: 600 clamp(1.35rem, 2.5vw, 1.7rem)/1.1 var(--tk-display);
+}
+.tk-upcoming-sheet-head p {
+  margin: 0;
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.82rem;
+}
+.tk-upcoming-sheet-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #aebaff;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-upcoming-ranges {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 14px 10px;
+  padding: 4px;
+  border: 1px solid rgba(134, 151, 190, 0.14);
+  border-radius: 12px;
+  background: rgba(18, 27, 46, 0.72);
+}
+.tk-upcoming-ranges button {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tk-ink-dim, #b6c3da);
+  font: 500 0.82rem var(--tk-body);
+  cursor: pointer;
+}
+.tk-upcoming-ranges button:hover { color: var(--tk-ink); background: rgba(126, 152, 190, 0.09); }
+.tk-upcoming-ranges button[aria-pressed="true"] {
+  color: #f4f6ff;
+  background: linear-gradient(135deg, rgba(81, 99, 210, 0.92), rgba(54, 67, 156, 0.92));
+  box-shadow: 0 4px 14px rgba(32, 43, 120, 0.35);
+}
+.tk-upcoming-ranges button:focus-visible,
+.tk-upcoming-sheet-list button:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-upcoming-sheet-body {
+  min-height: 160px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 14px max(16px, env(safe-area-inset-bottom));
+}
+.tk-upcoming-sheet-body .tk-planning-status {
+  margin: 12px 0;
+  min-height: 140px;
+  border-radius: 14px;
+}
+.tk-upcoming-sheet-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-upcoming-sheet-list li + li { border-top: 1px solid rgba(134, 151, 190, 0.13); }
+.tk-upcoming-sheet-list button {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 78px;
+  padding: 11px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-upcoming-sheet-list button:hover { background: rgba(126, 152, 190, 0.07); }
+.tk-upcoming-sheet-list button > svg { color: var(--tk-ink-faint, #8fa0bb); }
+.tk-upcoming-sheet-date {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 54px;
+  border: 1px solid rgba(135, 153, 196, 0.18);
+  border-radius: 11px;
+  background: rgba(27, 37, 61, 0.68);
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tk-upcoming-sheet-date strong {
+  color: var(--tk-ink, #f0f3fa);
+  font: 650 1.1rem/1 var(--tk-display);
+  letter-spacing: 0;
+}
+.tk-upcoming-sheet-copy { display: grid; min-width: 0; gap: 2px; }
+.tk-upcoming-sheet-copy > strong {
+  overflow: hidden;
+  color: var(--tk-ink, #f0f3fa);
+  font-size: 0.94rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-upcoming-sheet-timing {
+  color: var(--tk-ink-dim, #b6c3da);
+  font-size: 0.77rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-upcoming-sheet-local {
+  overflow: hidden;
+  color: #9eabe0;
+  font-size: 0.73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-upcoming-sheet-reason {
+  overflow: hidden;
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-upcoming-empty {
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  text-align: center;
+}
+.tk-upcoming-empty strong { color: var(--tk-ink); font-size: 0.95rem; }
+.tk-upcoming-empty span { max-width: 42ch; color: var(--tk-ink-dim); font-size: 0.82rem; line-height: 1.5; }
+
+@media (max-width: 720px) {
+  .tk-upcoming-sheet {
+    left: 0;
+    width: 100%;
+    max-height: 68dvh;
+    border-left: 0;
+    border-right: 0;
+    transform: none;
+  }
+  @keyframes tk-upcoming-sheet-in {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  .tk-map-shell[data-upcoming-open="true"] .tk-map-controls-view { visibility: hidden; }
+  .tk-upcoming-sheet-head { padding-inline: 14px; }
+  .tk-upcoming-ranges { margin-inline: 10px; }
+  .tk-upcoming-ranges button { min-height: 44px; padding-inline: 4px; font-size: 0.78rem; }
+  .tk-upcoming-sheet-body { padding-inline: 10px; }
+  .tk-upcoming-sheet-list button { grid-template-columns: 50px minmax(0, 1fr) auto; gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-upcoming-sheet { animation: none; }
 }
 
 /* --- the event's geography, on the event page -----------------------------
@@ -17563,4 +17824,385 @@ button.primary,
     width: auto;
     max-height: 62dvh;
   }
+}
+
+/* Open surfaces are ordered above persistent scene/timeline furniture. Assign
+   the tier to the panel container, not only to children trapped inside it. */
+:root { --orbit-z-overlay: 60; }
+.explorer-shell .explorer-overlay-panel { z-index: var(--orbit-z-overlay); }
+
+/* Viability keeps one green cue; strength stays a quiet, scannable text scale. */
+.tk-eventfinder-local[data-strength] {
+  padding: 1px 0;
+  background: transparent;
+  color: var(--tk-ink-dim, #b6c3da);
+}
+.tk-eventfinder-local[data-strength][data-visible="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 6px 2px 0;
+  border-radius: 50%;
+  background: #8fe0c6;
+}
+.tk-eventfinder-local[data-strength="strong"] { font-weight: 600; }
+.tk-eventfinder-local[data-strength="good"] { font-weight: 500; }
+.tk-eventfinder-local[data-strength="moderate"],
+.tk-eventfinder-local[data-strength="weak"] { font-weight: 400; }
+.tk-eventfinder-local[data-strength][data-visible="false"] {
+  padding: 1px 7px;
+  background: rgba(126, 152, 190, 0.13);
+  color: var(--tk-ink-faint, #8fa0bb);
+}
+.tk-description-toggle {
+  min-height: 32px;
+  border: 0;
+  padding: 3px 0;
+  background: none;
+  color: var(--tk-ink-dim, #b6c3da);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.tk-description-toggle:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 3px; }
+.tk-page .tk-hero .tracker-expect[data-expanded="true"] {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+/* Sky Finder entry points. */
+.tk-rail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+.tk-rail-actions .tk-rail-details { margin-top: 0; padding-top: 8px; }
+.tk-rail-find {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid rgba(159, 176, 255, 0.38);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: rgba(126, 140, 248, 0.13);
+  color: #dce2ff;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.tk-rail-find:hover { background: rgba(126, 140, 248, 0.21); }
+.tk-rail-find:focus-visible,
+.tk-rail-details:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 3px; }
+.tk-action.is-finder {
+  border-color: rgba(159, 176, 255, 0.46);
+  color: #e2e6ff;
+}
+
+/* ---------------------------------------------------------------- Sky Finder
+   A practical instrument overlay: the camera or an undecorated dark sky is the
+   field, and every mark communicates pointing state. There is deliberately no
+   synthetic star texture—the app has not visually identified any stars. */
+.tk-sky-finder {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-rows: auto auto minmax(220px, 1fr) auto;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #05070c;
+  color: #f0f3fa;
+  isolation: isolate;
+}
+.tk-finder-camera,
+.tk-finder-sky,
+.tk-finder-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tk-finder-camera {
+  z-index: -3;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.tk-sky-finder[data-camera="active"] .tk-finder-camera { opacity: 1; }
+.tk-finder-sky {
+  z-index: -2;
+  background: linear-gradient(180deg, #11192a 0%, #090d16 55%, #05070c 100%);
+}
+.tk-finder-shade {
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(3, 5, 9, 0.78) 0%, transparent 24%, transparent 60%, rgba(3, 5, 9, 0.88) 100%),
+    linear-gradient(90deg, rgba(3, 5, 9, 0.28), transparent 24%, transparent 76%, rgba(3, 5, 9, 0.28));
+  pointer-events: none;
+}
+.tk-finder-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 14px;
+  padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+}
+.tk-finder-header h1 {
+  margin: 1px 0 3px;
+  font: 600 clamp(1.15rem, 3vw, 1.55rem)/1.15 var(--tk-display, sans-serif);
+  letter-spacing: -0.02em;
+}
+.tk-finder-header p { margin: 0; color: #bbc5d8; font-size: 0.76rem; }
+.tk-finder-header .tk-finder-kicker {
+  color: #8fa0bb;
+  font: 600 0.65rem/1.1 var(--tk-body, sans-serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tk-finder-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(212, 222, 239, 0.22);
+  border-radius: 50%;
+  background: rgba(7, 10, 17, 0.62);
+  color: #edf1f8;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+.tk-finder-icon:disabled { opacity: 0.42; cursor: default; }
+.tk-finder-icon:focus-visible,
+.tk-finder-primary:focus-visible,
+.tk-finder-calibration-actions button:focus-visible,
+.tk-finder-calibration select:focus-visible,
+.tk-finder-unavailable button:focus-visible { outline: 2px solid #aab7ff; outline-offset: 3px; }
+.tk-finder-mode-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: min(620px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 9px 12px;
+  border: 1px solid rgba(222, 191, 129, 0.28);
+  border-radius: 10px;
+  background: rgba(36, 29, 17, 0.72);
+  color: #e7dcc6;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  backdrop-filter: blur(8px);
+}
+.tk-finder-mode-note svg { flex: none; margin-top: 2px; }
+.tk-finder-mode-note strong { display: block; color: #fff4db; }
+.tk-finder-stage {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+}
+.tk-finder-horizon {
+  position: absolute;
+  top: 65%;
+  left: 8%;
+  width: 84%;
+  border-top: 1px solid rgba(210, 220, 238, 0.14);
+}
+.tk-finder-centre {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(235, 240, 249, 0.74);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.tk-finder-centre::before,
+.tk-finder-centre::after {
+  content: "";
+  position: absolute;
+  background: rgba(235, 240, 249, 0.82);
+}
+.tk-finder-centre::before { top: 50%; left: 22px; right: 22px; height: 1px; }
+.tk-finder-centre::after { left: 50%; top: 22px; bottom: 22px; width: 1px; }
+.tk-finder-centre span {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(235, 240, 249, 0.88);
+}
+.tk-finder-centre span:first-child { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; border-radius: 50% 0 0; }
+.tk-finder-centre span:last-child { right: -1px; bottom: -1px; border-right: 2px solid; border-bottom: 2px solid; border-radius: 0 0 50%; }
+.tk-finder-target {
+  position: absolute;
+  top: calc(50% + var(--finder-y));
+  left: calc(50% + var(--finder-x));
+  width: var(--finder-radius);
+  height: var(--finder-radius);
+  border: 2px solid #aab7ff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 5px rgba(126, 140, 248, 0.12);
+  transition: top 110ms linear, left 110ms linear;
+}
+.tk-finder-target[data-shape="cluster"],
+.tk-finder-target[data-shape="region"],
+.tk-finder-target[data-shape="radiant"] { border-style: dashed; }
+.tk-finder-target span {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #dce2ff;
+  transform: translate(-50%, -50%);
+}
+.tk-finder-arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -96px 0 0 -16px;
+  color: #dce2ff;
+  font: 300 2rem/1 sans-serif;
+  transform-origin: 16px 96px;
+}
+.tk-finder-guidance {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border: 1px solid rgba(215, 225, 242, 0.16);
+  border-radius: 12px;
+  background: rgba(6, 9, 15, 0.64);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+}
+.tk-finder-guidance strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.tk-finder-guidance span { flex-basis: 100%; color: #aeb9cc; font-size: 0.72rem; }
+.tk-sky-finder[data-aligned="true"] .tk-finder-centre { border-color: #a7e3cf; box-shadow: 0 0 0 6px rgba(107, 204, 171, 0.12); }
+.tk-sky-finder[data-aligned="true"] .tk-finder-guidance { border-color: rgba(126, 224, 191, 0.35); color: #c8f2e3; }
+.tk-finder-controls {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(42dvh, 390px);
+  margin: 0 auto;
+  padding: 12px max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.tk-finder-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 15px;
+  background: #747fe6;
+  color: white;
+  font: 600 0.84rem/1.2 var(--tk-body, sans-serif);
+  cursor: pointer;
+}
+.tk-finder-primary:disabled { opacity: 0.5; cursor: default; }
+.tk-finder-warning {
+  margin: 0 0 9px;
+  color: #e8cfa0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.tk-finder-status {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: 10px 0 0;
+  overflow: hidden;
+  border: 1px solid rgba(215, 225, 242, 0.13);
+  border-radius: 11px;
+  background: rgba(215, 225, 242, 0.13);
+}
+.tk-finder-status div { min-width: 0; padding: 9px 10px; background: rgba(6, 9, 15, 0.78); }
+.tk-finder-status dt { color: #8f9bb0; font-size: 0.63rem; }
+.tk-finder-status dd { margin: 3px 0 0; color: #dce2ed; font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.tk-finder-calibration-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.tk-finder-calibration-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  border: 1px solid rgba(215, 225, 242, 0.18);
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: rgba(12, 17, 27, 0.7);
+  color: #dce2ed;
+  font: 500 0.75rem/1.2 var(--tk-body, sans-serif);
+  cursor: pointer;
+}
+.tk-finder-calibration {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(169, 183, 255, 0.23);
+  border-radius: 11px;
+  background: rgba(9, 13, 22, 0.88);
+  font-size: 0.76rem;
+}
+.tk-finder-calibration-title { margin: 0 0 9px; color: #f0f3fa; font-weight: 600; }
+.tk-finder-calibration label { display: grid; gap: 5px; color: #aeb9cc; }
+.tk-finder-calibration select {
+  min-height: 40px;
+  border: 1px solid rgba(215, 225, 242, 0.22);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #0e1420;
+  color: #f0f3fa;
+  font: inherit;
+}
+.tk-finder-calibration ol { margin: 10px 0 12px; padding-left: 20px; color: #bbc5d8; line-height: 1.55; }
+.tk-finder-context { margin: 9px 0 0; color: #8390a4; font-size: 0.67rem; line-height: 1.4; }
+.tk-finder-unavailable {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  width: min(540px, calc(100% - 32px));
+  min-height: 100dvh;
+  margin: auto;
+  color: #dfe5ef;
+}
+.tk-finder-unavailable > p:first-child { color: #8f9bb0; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; }
+.tk-finder-unavailable h1 { margin: 4px 0 8px; }
+.tk-finder-unavailable p { color: #aeb9cc; line-height: 1.55; }
+.tk-finder-unavailable button { min-height: 44px; border: 0; border-radius: 9px; padding: 0 14px; background: #747fe6; color: white; cursor: pointer; }
+
+@media (max-width: 700px) {
+  .tk-finder-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tk-finder-status div:last-child { grid-column: 1 / -1; }
+  .tk-finder-controls { max-height: 44dvh; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .tk-sky-finder { grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.8fr); grid-template-rows: auto 1fr; }
+  .tk-finder-header { grid-column: 1; }
+  .tk-finder-mode-note { position: absolute; top: 70px; left: 16px; z-index: 2; }
+  .tk-finder-stage { grid-column: 1; grid-row: 2; }
+  .tk-finder-controls { grid-column: 2; grid-row: 1 / -1; max-height: 100dvh; padding-top: max(18px, env(safe-area-inset-top)); }
+  .tk-finder-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-finder-camera,
+  .tk-finder-target { transition: none; }
 }

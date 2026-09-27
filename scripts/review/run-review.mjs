@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { preview } from "vite";
 import { readSourceIdentity } from "../release/source-identity.mjs";
+import { assertOutsideRepository, resolveReviewRoot } from "./review-location.mjs";
 import { acquireReviewLock } from "./review-lock.mjs";
 import { reviewPlaybackSpeedLabel, reviewPlaybackTimeScales } from "./playback-speeds.mjs";
 import { reviewScenarios } from "./scenarios/index.mjs";
@@ -25,7 +26,8 @@ if (activeReviewScenarios.length !== (requestedScenarioIds.length || reviewScena
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
-const outputRoot = path.join(projectRoot, "review");
+const reviewRoot = assertOutsideRepository(resolveReviewRoot({ env: process.env, repoRoot: projectRoot }), projectRoot);
+const outputRoot = path.join(reviewRoot, "runs", `review-${new Date().toISOString().replace(/[:.]/g, "-")}`);
 const screenshotsRoot = path.join(outputRoot, "screenshots");
 const temporaryVideoRoot = path.join(outputRoot, ".video");
 const timelineFramesRoot = path.join(temporaryVideoRoot, "frames");
@@ -620,7 +622,9 @@ async function main() {
   const releaseReviewLock = await acquireReviewLock(reviewLockPath);
 
   try {
-    await rm(outputRoot, { recursive: true, force: true });
+    await mkdir(path.dirname(outputRoot), { recursive: true });
+    assertOutsideRepository(await realpath(path.dirname(outputRoot)), await realpath(projectRoot));
+    await mkdir(outputRoot); // Append-only: a collision fails rather than replacing evidence.
     await mkdir(screenshotsRoot, { recursive: true });
     await mkdir(temporaryVideoRoot, { recursive: true });
 

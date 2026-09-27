@@ -385,6 +385,7 @@ const MILESTONE_PHASES = ["Full Moon", "New Moon", "First Quarter", "Last Quarte
 
 function classify(
   entry: Ranking["ranked"][number],
+  plan: NightPlan,
 ): { kind: NotableKind; reason: string; key: string } | null {
   const { opportunity } = entry;
   const title = opportunity.title;
@@ -406,11 +407,20 @@ function classify(
   }
 
   if (opportunity.kind === "meteors") {
-    // Only the peak. A shower is active for weeks and worth a special effort on
-    // roughly one night of them.
+    // Only the peak. `meteorOpportunity` makes that state authoritative through
+    // persistence: a named shower is time-critical only while its modeled
+    // maximum is within 18 hours. The generic sporadic background and the long
+    // wings of an active shower are routine; treating either as a peak invents
+    // a diary event that does not exist.
+    if (opportunity.persistence !== "time-critical") return null;
+    const showerCode = plan.meteors.headline?.code;
+    if (!showerCode) return null;
     return {
       kind: "shower-peak",
-      key: `shower:${opportunity.id}`,
+      // `opportunity.id` is intentionally the stable rail identity "meteors".
+      // The schedule identity is the physical stream, otherwise a one-year
+      // request collapses every major shower into whichever one scores highest.
+      key: `shower:${showerCode}`,
       reason: "The shower's strongest night; rates fall away either side of it.",
     };
   }
@@ -462,7 +472,7 @@ export function notableEvents(plans: NightPlan[], limit = 6): NotableEvent[] {
 
   for (const plan of plans) {
     for (const entry of plan.ranking.ranked) {
-      const classified = classify(entry);
+      const classified = classify(entry, plan);
       if (!classified) continue;
       const score = entry.strength * (1 + entry.opportunity.qualities.rarity);
       const held = best.get(classified.key);

@@ -148,6 +148,27 @@ describe("the merged list", () => {
     ).toBe(true);
     expect(filterUpcoming(merged, "meteors")).toHaveLength(0);
   });
+
+  it("honours the caller's range across every source", () => {
+    const plans = planNights(PORTLAND.lat, PORTLAND.lon, NOW, 7, "America/Los_Angeles");
+    const until = new Date(NOW.getTime() + 7 * 86_400_000);
+    const events = buildUpcomingEvents({
+      plans,
+      latitudeDeg: PORTLAND.lat,
+      longitudeDeg: PORTLAND.lon,
+      timeZone: "America/Los_Angeles",
+      auroraConditions: auroraConditions([{ time_tag: "2026-08-22T06:00:00", kp: 6 }]),
+      now: NOW,
+      from: NOW,
+      until,
+    });
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((event) => Date.parse(event.atUtc) <= until.getTime())).toBe(true);
+    // Oregon's next visible solar eclipse is in 2029. It must not leak into a
+    // control explicitly labelled "7 days" merely because the eclipse search
+    // has a longer independent horizon.
+    expect(events.some((event) => event.kind === "solar-eclipse")).toBe(false);
+  });
 });
 
 
