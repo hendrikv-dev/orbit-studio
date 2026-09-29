@@ -14785,6 +14785,7 @@ button.primary,
   --tk-glass-blur: blur(16px) saturate(1.1);
   --tk-radius: 14px;
 }
+.tk-map-shell[data-map-state="tonight"] .tk-map-attribution { display: none; }
 
 .tk-map-canvas {
   position: absolute;
@@ -14993,6 +14994,58 @@ button.primary,
   pointer-events: none;
 }
 .tk-map-topbar > * { pointer-events: auto; }
+
+/* Map, Tonight and Sky are three presentations of one observing state. */
+.tk-mode-nav {
+  position: absolute;
+  top: calc(14px + var(--tk-bar-height, 40px) + 10px);
+  left: 50%;
+  /* Top-bar panels are the direct response to a tap and must remain completely
+     pressable when they cross this persistent switch on narrow screens. */
+  z-index: var(--tk-z-control);
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 999px;
+  background: rgba(10, 14, 24, 0.9);
+  backdrop-filter: var(--tk-glass-blur);
+  transform: translateX(-50%);
+}
+.tk-mode-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 88px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tk-ink-dim);
+  font: 500 0.78rem/1 var(--tk-body);
+  cursor: pointer;
+}
+.tk-mode-nav button[aria-current="page"] {
+  background: rgba(108, 128, 245, 0.24);
+  color: var(--tk-ink);
+  box-shadow: inset 0 0 0 1px rgba(141, 157, 255, 0.32);
+}
+.tk-mode-nav button:disabled { opacity: 0.38; cursor: default; }
+.tk-mode-nav button:not(:disabled):hover { color: var(--tk-ink); }
+.tk-mode-nav button:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  .tk-mode-nav {
+    top: calc(10px + var(--tk-bar-height, 104px) + 9px);
+  }
+  .tk-mode-nav button {
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 12px;
+  }
+}
 
 /* The app menu is a site component and carries the site's numbering: 96 for
    itself, 120 for its panel, chosen against a page header where nothing else is
@@ -15633,6 +15686,92 @@ button.primary,
  * left edge, which is the whole of what an aligned page means here.
  */
 .tk-map-detail .tk-back { margin-bottom: 12px; }
+
+/* The decision stays open; supporting charts, provenance and conditions wait
+   behind one ordinary disclosure instead of competing with the object. */
+.tk-main-row.is-concise { grid-template-columns: minmax(0, 1fr); }
+.tk-detail-key-conditions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-detail-key-conditions li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 3px 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--tk-line);
+  border-radius: 12px;
+  background: rgba(15, 21, 34, 0.64);
+  font-size: 0.78rem;
+}
+.tk-detail-key-conditions li > span { color: var(--tk-ink-faint); }
+.tk-detail-key-conditions li > strong { color: var(--tk-ink); font-weight: 500; }
+.tk-detail-key-conditions li > small {
+  grid-column: 1 / -1;
+  color: var(--tk-ink-dim);
+  font-size: 0.7rem;
+}
+.tk-detail-more {
+  margin-top: 14px;
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: rgba(15, 21, 34, 0.72);
+}
+.tk-detail-more > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--tk-ink-soft);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.tk-detail-more > summary::-webkit-details-marker { display: none; }
+.tk-detail-more > summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--tk-ink-faint);
+  font-size: 1.1rem;
+}
+.tk-detail-more[open] > summary::after { content: "−"; }
+.tk-detail-more > summary:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: -2px; }
+.tk-detail-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px 0;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-detail-tools button {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--tk-line);
+  border-radius: 9px;
+  background: rgba(126, 152, 190, 0.08);
+  color: var(--tk-ink-dim);
+  font: 500 0.78rem/1 var(--tk-body);
+  cursor: pointer;
+}
+.tk-detail-tools button:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 2px; }
+.tk-detail-more-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--tk-line);
+}
+.tk-detail-more-grid > * { margin-top: 14px; }
+@media (max-width: 720px) {
+  .tk-detail-key-conditions { grid-template-columns: minmax(0, 1fr); }
+  .tk-detail-more-grid { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* --- narrow screens: the panel becomes a sheet, the map stays the base ---- */
 
@@ -16434,20 +16573,91 @@ button.primary,
   warmer rule, because that line is telling the reader to do something rather
   than warning them off.
 */
-/*
-  What an empty rail says.
-
-  Reached only when opportunities existed and cloud took all of them, so the
-  message is about the sky rather than about the night being quiet.
-*/
-.tk-rail-withheld {
-  margin: 0;
-  padding: 14px 16px;
-  max-width: 46ch;
-  color: var(--tk-ink-soft, #9aa7bd);
-  font-size: 0.82rem;
-  line-height: 1.5;
+/* Empty nights stay in the rail's card language. The first card gives the next
+   actionable window or canonical Upcoming fallback; the second states the
+   current-night miss as context. Neither grows into a panel over the map. */
+.tk-rail-recovery-summary {
+  width: 244px;
+  border-color: rgba(143, 160, 187, 0.28);
+  background: rgba(9, 14, 25, 0.94);
 }
+.tk-rail-recovery-copy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+}
+.tk-rail-recovery-icon {
+  display: grid;
+  place-items: center;
+  color: var(--tk-ink-dim, #c3cee2);
+  background: rgba(126, 152, 190, 0.1);
+}
+.tk-rail-recovery-summary .tk-rail-card-name { font-size: 0.91rem; }
+.tk-rail-recovery-summary .tk-rail-card-when { white-space: normal; line-height: 1.25; }
+.tk-rail-recovery-chance {
+  width: 286px;
+  border-color: rgba(124, 140, 248, 0.42);
+  background:
+    linear-gradient(135deg, rgba(60, 74, 153, 0.18), rgba(9, 14, 25, 0.96) 62%),
+    var(--tk-glass-solid);
+}
+.tk-rail-recovery-chance .tk-rail-card-head { align-items: start; }
+.tk-rail-recovery-chance .tk-rail-card-name,
+.tk-rail-recovery-chance .tk-rail-card-when {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.25;
+}
+.tk-rail-card-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #aeb9ff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.tk-rail-recovery-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 12px;
+  padding: 7px 0 9px;
+  border-top: 1px solid var(--tk-glass-line);
+  color: var(--tk-ink-faint, #8fa0bb);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+.tk-rail-recovery-meta > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-rail-recovery-meta button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 1px solid rgba(124, 140, 248, 0.32);
+  border-radius: 999px;
+  background: rgba(124, 140, 248, 0.1);
+  color: #c8d0ff;
+  font: inherit;
+  cursor: pointer;
+}
+.tk-rail-recovery-meta button:hover { border-color: rgba(140, 154, 255, 0.62); }
+.tk-rail-recovery-meta button:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 2px;
+}
+.tk-rail-recovery-loading { width: 286px; }
 
 .tk-rail-cloud {
   margin: 0 0 10px;
@@ -16528,6 +16738,250 @@ button.primary,
 }
 .tk-rail-details:hover { text-decoration: underline; }
 
+/* ---------------------------------------------------------------- Map answer
+   One restrained answer on the geographic workspace. Comparison belongs to
+   Tonight, so this is intentionally not a one-card horizontal rail. */
+.tk-map-recommendation {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  z-index: var(--tk-z-rail);
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "image copy quality"
+    "image actions actions";
+  align-items: center;
+  gap: 8px 12px;
+  width: min(500px, calc(100vw - 96px));
+  padding: 11px 12px;
+  border: 1px solid rgba(133, 149, 242, 0.32);
+  border-radius: 15px;
+  background: rgba(9, 14, 24, 0.94);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.48);
+  backdrop-filter: var(--tk-glass-blur);
+}
+.tk-map-recommendation-image {
+  grid-area: image;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: #05070d;
+}
+.tk-map-recommendation-image > * { width: 100%; height: 100%; }
+.tk-map-recommendation-copy { grid-area: copy; min-width: 0; display: block; }
+.tk-map-recommendation-kicker {
+  display: block;
+  color: #aeb9ff;
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tk-map-recommendation-copy strong {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--tk-ink);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-map-recommendation-copy > span:last-child {
+  display: block;
+  margin-top: 2px;
+  color: var(--tk-ink-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.tk-map-recommendation-quality {
+  grid-area: quality;
+  align-self: start;
+  color: #bfc8ff;
+  font-size: 0.7rem;
+}
+.tk-map-recommendation-actions { grid-area: actions; display: flex; justify-content: flex-end; gap: 7px; }
+.tk-map-recommendation-actions button,
+.tk-map-recommendation.is-empty > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--tk-glass-line);
+  border-radius: 9px;
+  background: rgba(126, 152, 190, 0.08);
+  color: var(--tk-ink-dim);
+  font: 500 0.74rem/1 var(--tk-body);
+  cursor: pointer;
+}
+.tk-map-recommendation-actions .is-finder { border-color: rgba(159, 176, 255, 0.38); color: #dce2ff; }
+.tk-map-recommendation button:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 2px; }
+.tk-map-recommendation.is-empty { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "image copy actions"; }
+.tk-map-recommendation-icon { grid-area: image; display: grid; place-items: center; color: #aeb9ff; }
+.tk-map-recommendation.is-empty > button { grid-area: actions; width: 38px; padding: 0; }
+.tk-map-recommendation.is-loading { display: block; }
+
+/* ---------------------------------------------------------------- Tonight
+   A purpose-built nightly briefing over the still-mounted map. Production
+   cards provide the facts; this surface owns hierarchy and comparison. */
+.tk-tonight-surface {
+  position: absolute;
+  inset: calc(14px + var(--tk-bar-height, 40px) + 60px) 0 0;
+  z-index: var(--tk-z-reading);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px max(22px, calc((100vw - 980px) / 2)) 48px;
+  background:
+    radial-gradient(circle at 78% 0%, rgba(51, 70, 132, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(7, 10, 18, 0.97), rgba(5, 8, 14, 0.995));
+}
+.tk-tonight-briefing { width: min(900px, 100%); margin: 0 auto; }
+.tk-tonight-heading {
+  margin: 0 0 20px;
+}
+.tk-tonight-heading p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  color: var(--tk-ink-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tk-tonight-heading h1 {
+  margin: 0;
+  font: 500 clamp(1.65rem, 4vw, 2.55rem)/1.08 var(--tk-display);
+  letter-spacing: -0.025em;
+}
+.tk-tonight-heading > span {
+  display: block;
+  max-width: 70ch;
+  margin-top: 9px;
+  color: var(--tk-ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.tk-tonight-loading,
+.tk-tonight-lead,
+.tk-tonight-next,
+.tk-tonight-planning,
+.tk-recovery-answer,
+.tk-recovery-context {
+  border: 1px solid var(--tk-line);
+  border-radius: 14px;
+  background: rgba(12, 17, 28, 0.9);
+}
+.tk-tonight-loading { padding: 22px; }
+.tk-tonight-lead {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+  min-height: 270px;
+  overflow: hidden;
+  border-color: rgba(140, 154, 255, 0.4);
+  background: linear-gradient(120deg, rgba(61, 75, 151, 0.17), rgba(12, 17, 28, 0.96) 58%);
+}
+.tk-tonight-lead-visual { min-height: 240px; overflow: hidden; background: #05070d; }
+.tk-tonight-lead-visual > * { width: 100%; height: 100%; }
+.tk-tonight-lead-copy { display: flex; flex-direction: column; padding: 22px 24px; }
+.tk-tonight-lead-labels { display: flex; justify-content: space-between; gap: 12px; color: #aeb9ff; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.tk-tonight-quality { color: #c8d0ff; font-size: 0.7rem; white-space: nowrap; }
+.tk-tonight-lead h2 { margin: 10px 0 5px; font: 600 clamp(1.45rem, 3vw, 2rem)/1.08 var(--tk-display); }
+.tk-tonight-lead-copy > p { margin: 0; color: var(--tk-ink-dim); font-size: 0.84rem; line-height: 1.45; }
+.tk-tonight-lead dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0 12px; }
+.tk-tonight-lead dl div { min-width: 0; padding-top: 8px; border-top: 1px solid var(--tk-line); }
+.tk-tonight-lead dt { color: var(--tk-ink-faint); font-size: 0.64rem; }
+.tk-tonight-lead dd { margin: 3px 0 0; color: var(--tk-ink); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.tk-tonight-cloud { padding-left: 9px; border-left: 2px solid var(--tk-ink-faint); }
+.tk-tonight-cloud[data-go-anyway="true"] { border-left-color: #8e9aff; }
+.tk-tonight-equipment { margin-top: 8px !important; color: var(--tk-ink-faint) !important; font-size: 0.72rem !important; }
+.tk-tonight-lead-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; }
+.tk-tonight-lead-actions button,
+.tk-tonight-planning,
+.tk-recovery-answer button,
+.tk-recovery-meta button {
+  min-height: 40px;
+  border: 1px solid var(--tk-line);
+  border-radius: 10px;
+  padding: 0 13px;
+  background: rgba(126, 152, 190, 0.08);
+  color: var(--tk-ink);
+  font: 500 0.78rem/1 var(--tk-body);
+  cursor: pointer;
+}
+.tk-tonight-lead-actions .is-finder { border-color: rgba(159, 176, 255, 0.4); color: #e2e6ff; display: inline-flex; align-items: center; gap: 6px; }
+.tk-tonight-next { margin-top: 12px; padding: 16px 18px 5px; }
+.tk-tonight-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.tk-tonight-section-heading h2 { margin: 0; font-size: 0.93rem; }
+.tk-tonight-section-heading span { color: var(--tk-ink-faint); font-size: 0.68rem; }
+.tk-tonight-next ol { margin: 10px 0 0; padding: 0; list-style: none; }
+.tk-tonight-row { display: grid; grid-template-columns: 24px 40px minmax(0, 1fr) auto 40px; align-items: center; gap: 9px; min-height: 62px; border-top: 1px solid var(--tk-line); }
+.tk-tonight-rank { color: var(--tk-ink-faint); font-size: 0.7rem; text-align: center; }
+.tk-tonight-row-image { width: 36px; height: 36px; overflow: hidden; border-radius: 8px; background: #05070d; }
+.tk-tonight-row-image > * { width: 100%; height: 100%; }
+.tk-tonight-row-main { display: grid; gap: 2px; min-width: 0; min-height: 52px; align-content: center; border: 0; padding: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.tk-tonight-row-main strong { overflow: hidden; color: var(--tk-ink); font-size: 0.84rem; text-overflow: ellipsis; white-space: nowrap; }
+.tk-tonight-row-main span { color: var(--tk-ink-faint); font-size: 0.67rem; }
+.tk-tonight-row-finder { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid rgba(159, 176, 255, 0.28); border-radius: 9px; background: transparent; color: #dce2ff; cursor: pointer; }
+.tk-tonight-row-chevron { color: var(--tk-ink-faint); }
+.tk-tonight-planning { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 62px; margin-top: 12px; padding: 9px 14px; text-align: left; }
+.tk-tonight-planning-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(108, 128, 245, 0.14); color: #bfc8ff; }
+.tk-tonight-planning strong { display: block; }
+.tk-tonight-planning small { display: block; margin-top: 3px; color: var(--tk-ink-faint); font-size: 0.68rem; }
+.tk-tonight-recovery { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(220px, 0.7fr); gap: 10px; }
+.tk-recovery-answer { overflow: hidden; border-color: rgba(140, 154, 255, 0.4); }
+.tk-recovery-answer-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 112px; border: 0 !important; border-radius: 0 !important; padding: 15px 17px !important; background: transparent !important; text-align: left; }
+.tk-recovery-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(108, 128, 245, 0.12); color: #bfc8ff; }
+.tk-recovery-answer-copy { min-width: 0; }
+.tk-recovery-kicker { display: block; color: #aeb9ff; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.tk-recovery-answer-copy strong { display: block; margin-top: 4px; font-size: 1.08rem; }
+.tk-recovery-answer-copy > span:not(.tk-recovery-kicker) { display: block; margin-top: 3px; color: var(--tk-ink-dim); font-size: 0.78rem; }
+.tk-recovery-answer-copy small { display: block; margin-top: 3px; color: var(--tk-ink-faint); }
+.tk-recovery-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 16px; border-top: 1px solid var(--tk-line); color: var(--tk-ink-faint); font-size: 0.68rem; }
+.tk-recovery-meta button { min-height: 32px; display: inline-flex; align-items: center; gap: 5px; padding-inline: 9px; }
+.tk-recovery-context { display: flex; align-items: center; padding: 15px; }
+.tk-recovery-context-copy { display: flex; align-items: center; gap: 11px; }
+.tk-recovery-context-copy > span:last-child { display: grid; gap: 3px; }
+.tk-recovery-context strong { font-size: 0.84rem; }
+.tk-recovery-context small { color: var(--tk-ink-faint); font-size: 0.68rem; line-height: 1.4; }
+.tk-tonight-surface button:focus-visible { outline: 2px solid var(--tk-focus); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  .tk-map-recommendation { right: var(--tk-control-gutter, 62px); bottom: 12px; left: 10px; width: auto; grid-template-columns: 42px minmax(0, 1fr); grid-template-areas: "image copy" "actions actions"; padding: 9px 10px; }
+  .tk-map-recommendation-image { width: 42px; height: 42px; }
+  .tk-map-recommendation-quality { display: none; }
+  .tk-map-recommendation-actions { justify-content: stretch; }
+  .tk-map-recommendation-actions button { flex: 1; min-height: 40px; }
+  .tk-map-recommendation.is-empty { grid-template-columns: auto minmax(0, 1fr) 40px; grid-template-areas: "image copy actions"; }
+  .tk-map-recommendation.is-empty .tk-map-recommendation-actions { display: contents; }
+  .tk-map-recommendation-copy > span:last-child { font-size: 0.7rem; }
+  .tk-tonight-surface {
+    inset: calc(10px + var(--tk-bar-height, 104px) + 61px) 0 0;
+    padding: 20px 12px 40px;
+  }
+  .tk-tonight-heading { margin-bottom: 16px; }
+  .tk-tonight-heading h1 { font-size: 1.65rem; }
+  .tk-tonight-heading > span { font-size: 0.84rem; }
+  .tk-tonight-lead { grid-template-columns: minmax(0, 1fr); }
+  .tk-tonight-lead-visual { min-height: 150px; max-height: 190px; }
+  .tk-tonight-lead-copy { padding: 17px; }
+  .tk-tonight-lead dl { gap: 7px; }
+  .tk-tonight-lead-actions button { flex: 1; }
+  .tk-tonight-section-heading span { display: none; }
+  .tk-tonight-next { padding-inline: 12px; }
+  .tk-tonight-row { grid-template-columns: 18px 34px minmax(0, 1fr) 36px; gap: 7px; }
+  .tk-tonight-row-image { width: 32px; height: 32px; }
+  .tk-tonight-row > .tk-tonight-quality { display: none; }
+  .tk-tonight-row-chevron { justify-self: center; }
+  .tk-tonight-recovery { grid-template-columns: minmax(0, 1fr); }
+  .tk-recovery-answer { order: 0; }
+  .tk-recovery-context { order: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tk-rail-card { transition: none; }
   .tk-rail-card-body { animation: none; }
@@ -16539,6 +16993,11 @@ button.primary,
      there is nothing for it to fight with. */
   .tk-rail { padding: 0 10px 12px; }
   .tk-rail-card { width: 200px; }
+  .tk-rail-recovery-summary { width: 218px; }
+  .tk-rail-recovery-chance,
+  .tk-rail-recovery-loading {
+    width: min(258px, calc(100vw - var(--tk-control-gutter) - 26px));
+  }
   /* Wide enough to read, and never wide enough to reach the control stack.
 
      `100vw - 40px` was the old cap, which at 375 CSS pixels produced a 320-wide
@@ -17000,7 +17459,7 @@ button.primary,
 .tk-projection {
   position: absolute;
   left: 14px;
-  top: 68px;
+  top: calc(14px + var(--tk-bar-height, 40px) + 58px);
   /*
     Below the top bar, which is at 5.
 
@@ -17066,7 +17525,7 @@ button.primary,
     the thing it was meant to sit below.
   */
   .tk-projection {
-    top: calc(10px + var(--tk-bar-height, 104px) + 12px);
+    top: calc(10px + var(--tk-bar-height, 104px) + 62px);
     left: 10px;
   }
 }
@@ -17434,7 +17893,7 @@ button.primary,
 .tk-callout-back { background: none; color: var(--tk-ink-dim, #b6c3da); }
 .tk-callout-back:hover { background: rgba(126, 152, 190, 0.12); }
 .tk-callout-next { background: #5a63f0; color: #fff; font-weight: 500; }
-.tk-callout-next:hover { background: #6a72f5; }
+.tk-callout-next:hover { background: #565fdf; }
 
 @media (prefers-reduced-motion: reduce) {
   .tk-callout,
@@ -17922,6 +18381,20 @@ button.primary,
   color: #f0f3fa;
   isolation: isolate;
 }
+.tk-map-shell[data-map-state="finder"] .tk-mode-nav {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  z-index: 220;
+  background: rgba(5, 8, 14, 0.78);
+}
+.tk-map-shell[data-map-state="finder"] .tk-finder-header {
+  padding-top: max(68px, calc(env(safe-area-inset-top) + 58px));
+}
+@media (max-width: 420px) {
+  .tk-map-shell[data-map-state="finder"] .tk-mode-nav button {
+    padding-inline: 10px;
+  }
+}
 .tk-finder-camera,
 .tk-finder-sky,
 .tk-finder-shade {
@@ -18006,6 +18479,32 @@ button.primary,
   position: relative;
   min-height: 220px;
   overflow: hidden;
+}
+.tk-finder-expected-field {
+  position: absolute;
+  inset: 0;
+  opacity: 0.78;
+}
+.tk-finder-expected-field svg { width: 100%; height: 100%; overflow: visible; }
+.tk-finder-expected-field circle { fill: rgba(230, 236, 249, 0.66); vector-effect: non-scaling-stroke; }
+.tk-finder-expected-field circle[data-target-constellation="true"] {
+  fill: rgba(204, 213, 255, 0.96);
+  stroke: rgba(139, 156, 255, 0.28);
+  stroke-width: 0.35;
+}
+.tk-finder-expected-field > span {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(5, 8, 14, 0.58);
+  color: #9eabc0;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 .tk-finder-horizon {
   position: absolute;

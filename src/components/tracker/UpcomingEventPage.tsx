@@ -238,6 +238,7 @@ export function UpcomingEventPage({
       conditions={conditions}
       conditionsCaption="Eclipse and Moon geometry computed on this device. Weather is only claimed inside the forecast horizon."
       evidenceStatus={evidenceStatus}
+      onShowMap={() => onOpenDrill("field")}
       onPrimaryAction={() =>
         // The action's own `kind` decides, rather than whatever geometry
         // happened to be available. A control that says "View visibility map"

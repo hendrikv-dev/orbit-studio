@@ -4,8 +4,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   NO_DATA_BODIES,
+  CLOUDY_COVER_FORECAST,
+  CLOUDY_WEATHER_FORECAST,
   trackerBackToMapValidation,
+  trackerCloudUncertaintyValidation,
   trackerLocationRoundTripValidation,
+  trackerRecoveryValidation,
   trackerRailLegValidation,
   trackerRailValidation,
   trackerReviewFixtures,
@@ -60,6 +64,7 @@ function mapFirstState(overrides = {}) {
     layersOpen: false,
     mapPresent: true,
     controls: {
+      modes: true,
       place: true,
       date: true,
       projection: true,
@@ -80,6 +85,7 @@ function mapFirstState(overrides = {}) {
     openSurface: null,
     placeSearchPresent: false,
     eventSearchPresent: false,
+    recommendationSurfacePresent: true,
     railPresent: true,
     railCards: [
       { id: "planet-saturn", reason: "strong", expanded: false, name: "Saturn" },
@@ -88,12 +94,24 @@ function mapFirstState(overrides = {}) {
       { id: "moon", reason: "routine", expanded: false, name: "Waning Gibbous" },
       { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
     ],
+    recoveryReason: null,
+    recoveryKind: null,
+    recoveryDate: null,
+    recoveryTarget: null,
+    recoveryObserver: null,
+    recoveryPlanningKey: null,
+    recoveryText: null,
+    reminderPresent: false,
+    cloudWarning: null,
+    expandedConditions: [],
     upcomingOpen: false,
     upcomingPlanningState: null,
     upcomingObserver: null,
     upcomingPlanObserver: null,
     upcomingRange: null,
     upcomingEvents: [],
+    observer: "45.5152,-122.6784",
+    planKey: "plan|45.515200|-122.678400|2026-09-02",
     ...overrides,
   };
 }
@@ -119,7 +137,7 @@ describe("Tracker map-first shell validation", () => {
 
   it("detects Tracker that is no longer map-first", () => {
     expect(trackerShellValidation(mapFirstState({ mapState: "detail" })).failures)
-      .toContain("not-map-first:detail");
+      .toContain("not-primary-mode:detail");
   });
 
   it("detects a missing map canvas and a missing control", () => {
@@ -166,7 +184,7 @@ describe("Tracker unselected entry validation", () => {
   });
 });
 
-describe("Tracker observing rail validation", () => {
+describe("Tracker Tonight briefing validation", () => {
   it("names the opportunities it expects rather than counting them", () => {
     const withAFifth = mapFirstState();
     withAFifth.railCards = [
@@ -190,19 +208,178 @@ describe("Tracker observing rail validation", () => {
       .toContain("upcoming-gateway-missing");
   });
 
-  it("detects two cards expanded at once", () => {
-    const state = mapFirstState({ expandedCard: "planet-saturn" });
-    state.railCards[0].expanded = true;
-    state.railCards[1].expanded = true;
-    expect(trackerRailValidation(state, []).failures)
-      .toContain("multiple-cards-expanded:planet-saturn+planet-mars");
+  it("detects a missing recommendation surface", () => {
+    expect(
+      trackerRailValidation(mapFirstState({ recommendationSurfacePresent: false }), []).failures,
+    ).toContain("recommendation-surface-missing");
+  });
+});
+
+describe("Tracker cloudy-night recovery validation", () => {
+  const recovery = (overrides = {}) =>
+    mapFirstState({
+      railCards: [
+        { id: "next-best-chance", reason: null, expanded: false, name: "Saturn" },
+        { id: "recovery-summary", reason: null, expanded: false, name: "Clouded out tonight" },
+        { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
+      ],
+      recoveryReason: "cloud",
+      recoveryKind: "chance",
+      recoveryDate: trackerReviewFixtures.nextNight,
+      recoveryTarget: "planet-saturn",
+      recoveryObserver: "45.5152,-122.6784",
+      recoveryPlanningKey: "planning|45.515200|-122.678400|30",
+      recoveryText: "Next best chance Saturn Tomorrow · 10:40 PM · Clouded out tonight 4 worthwhile targets are blocked by cloud.",
+      reminderPresent: true,
+      railCardIdentities: ["next-best-chance", "recovery-summary", "upcoming"],
+      ...overrides,
+    });
+
+  it("accepts an honest miss followed by a forecast-backed next chance", () => {
+    expect(
+      trackerRecoveryValidation(recovery(), trackerReviewFixtures.nextNight),
+    ).toMatchObject({ pass: true, failures: [] });
   });
 
-  it("detects a rail whose open card disagrees with Tracker's own state", () => {
-    const state = mapFirstState({ expandedCard: "moon" });
-    state.railCards[0].expanded = true;
-    expect(trackerRailValidation(state, []).failures)
-      .toContain("expanded-card-disagrees-with-url:planet-saturn!=moon");
+  it("rejects a mobile recovery rail that makes the negative context primary", () => {
+    const negativeFirst = recovery();
+    negativeFirst.railCards = [
+      negativeFirst.railCards[1],
+      negativeFirst.railCards[0],
+      negativeFirst.railCards[2],
+    ];
+    negativeFirst.railCardIdentities = negativeFirst.railCards.map((card) => card.id);
+    expect(
+      trackerRecoveryValidation(negativeFirst, trackerReviewFixtures.nextNight).failures,
+    ).toContain("recovery-future-not-first:recovery-summary!=next-best-chance");
+  });
+
+  it("rejects a clouded target that leaks back into recommendations", () => {
+    const stale = recovery();
+    stale.railCards.splice(2, 0, {
+      id: "planet-mars", reason: "routine", expanded: false, name: "Mars",
+    });
+    expect(
+      trackerRecoveryValidation(stale, trackerReviewFixtures.nextNight).failures,
+    ).toContain("clouded-targets-still-offered:planet-mars");
+  });
+
+  it("rejects a stale date, missing reminder, or missing Upcoming gateway", () => {
+    const broken = recovery({
+      recoveryDate: trackerReviewFixtures.night,
+      reminderPresent: false,
+    });
+    broken.railCards = broken.railCards.filter((card) => card.id !== "upcoming");
+    expect(
+      trackerRecoveryValidation(broken, trackerReviewFixtures.nextNight).failures,
+    ).toEqual(expect.arrayContaining([
+      `recovery-date:${trackerReviewFixtures.night}!=${trackerReviewFixtures.nextNight}`,
+      "recovery-reminder-missing",
+      "upcoming-gateway-missing",
+    ]));
+  });
+
+  it("accepts the authoritative Upcoming fallback without requiring a reminder", () => {
+    const upcoming = recovery({
+      railCards: [
+        { id: "recovery-upcoming", reason: null, expanded: false, name: "Orionids peak" },
+        { id: "recovery-summary", reason: null, expanded: false, name: "Clouded out tonight" },
+        { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
+      ],
+      railCardIdentities: ["recovery-upcoming", "recovery-summary", "upcoming"],
+      recoveryKind: "upcoming",
+      recoveryDate: "2026-09-21",
+      recoveryTarget: "2026-09-21:meteor-shower-ORI",
+      recoveryText: "Clouded out tonight 4 worthwhile targets are blocked by cloud. Nothing worthwhile in the next 7 nights · Next notable event Orionids peak",
+      reminderPresent: false,
+    });
+    expect(
+      trackerRecoveryValidation(upcoming, { kind: "upcoming" }),
+    ).toMatchObject({ pass: true, failures: [] });
+  });
+
+  it("accepts a location transition only after the previous chance is withdrawn", () => {
+    const loading = recovery({
+      railCards: [
+        { id: "recovery-loading", reason: null, expanded: false, name: null },
+        { id: "recovery-summary", reason: null, expanded: false, name: "Clouded out tonight" },
+        { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
+      ],
+      railCardIdentities: ["recovery-loading", "recovery-summary", "upcoming"],
+      recoveryKind: "loading",
+      recoveryDate: null,
+      recoveryTarget: null,
+      recoveryText: "Clouded out tonight 4 worthwhile targets are blocked by cloud. Finding the next forecast window…",
+      reminderPresent: false,
+    });
+    expect(
+      trackerRecoveryValidation(loading, { kind: "loading" }),
+    ).toMatchObject({ pass: true, failures: [] });
+  });
+
+  it("uses an overcast selected night and a clear following night", () => {
+    const samples = CLOUDY_WEATHER_FORECAST.properties.timeseries;
+    expect(samples[5].data.instant.details.cloud_area_fraction).toBe(96);
+    expect(samples[29].data.instant.details.cloud_area_fraction).toBe(4);
+    expect(CLOUDY_COVER_FORECAST.hourly.cloud_cover).toEqual(
+      expect.arrayContaining([96]),
+    );
+  });
+});
+
+describe("Tracker cloudy-forecast uncertainty validation", () => {
+  const cloudy = (overrides = {}) =>
+    mapFirstState({
+      expandedCard: "planet-saturn",
+      railCards: mapFirstState().railCards.map((card) => ({
+        ...card,
+        expanded: card.id === "planet-saturn",
+      })),
+      cloudWarning:
+        "Cloud is forecast across the area, but this is not direction-specific. Clear gaps may still make this target worth checking.",
+      expandedConditions: ["Cloud outlookMay interfere", "Moonlight65%"],
+      ...overrides,
+    });
+
+  it("accepts a cloudy forecast that cautions without erasing bright targets", () => {
+    expect(
+      trackerCloudUncertaintyValidation(cloudy(), ["planet-saturn", "moon"]),
+    ).toMatchObject({ pass: true, failures: [] });
+  });
+
+  it("rejects a false empty state caused by coarse cloud", () => {
+    const empty = cloudy({
+      recoveryReason: "cloud",
+      railCards: [
+        { id: "recovery-summary", reason: null, expanded: false, name: "Clouded out tonight" },
+        { id: "upcoming", reason: "gateway", expanded: false, name: "Upcoming" },
+      ],
+    });
+    expect(
+      trackerCloudUncertaintyValidation(empty, ["planet-saturn", "moon"]).failures,
+    ).toEqual(expect.arrayContaining([
+      "false-empty-recovery:cloud",
+      "opportunity-missing:planet-saturn",
+      "opportunity-missing:moon",
+    ]));
+  });
+
+  it("rejects warning copy that pretends the forecast is directional", () => {
+    expect(
+      trackerCloudUncertaintyValidation(
+        cloudy({ cloudWarning: "The target is blocked." }),
+        ["planet-saturn", "moon"],
+      ).failures,
+    ).toEqual(expect.arrayContaining([
+      "cloud-warning-overclaims:The target is blocked.",
+      "cloud-warning-omits-gaps:The target is blocked.",
+    ]));
+  });
+
+  it("requires the concise warning on the lead recommendation", () => {
+    expect(
+      trackerCloudUncertaintyValidation(cloudy({ cloudWarning: null }), ["planet-saturn", "moon"]).failures,
+    ).toContain("cloud-uncertainty-warning-missing");
   });
 });
 
@@ -406,12 +583,6 @@ describe("Tracker review determinism", () => {
  */
 describe("Tracker review no longer certifies the destination-page architecture", () => {
   it.each([
-    ["tk-tonight", /tk-tonight/],
-    ["tk-hero", /tk-hero/],
-    ["tk-conditions", /tk-conditions/],
-    ["tk-relevant-list", /tk-relevant-list/],
-    ["tk-page-heading", /tk-page-heading/],
-    ["tk-viz-slot", /tk-viz-slot/],
     ["metricCount", /metricCount/],
     ["conditionCardCount", /conditionCardCount/],
     ["planIdentity", /planIdentity/],
@@ -438,6 +609,36 @@ describe("Tracker review no longer certifies the destination-page architecture",
     expect(notes).not.toMatch(/four condition cards/i);
     expect(notes).not.toMatch(/universal event page/i);
     expect(notes).toMatch(/map-first/i);
+  });
+});
+
+describe("Tracker three-mode production review coverage", () => {
+  it.each([
+    "tracker-map-2d",
+    "tracker-map-3d-terrain",
+    "tracker-tonight-normal",
+    "tracker-object-detail-collapsed",
+    "tracker-object-detail-expanded",
+    "tracker-sky-preview-desktop",
+    "tracker-phone-live-sky-auto",
+    "tracker-tablet-portrait-live-finder",
+    "tracker-tablet-landscape-live-finder",
+  ])("captures %s", (name) => {
+    expect(scenarioSource).toContain(`captureSurface("${name}"`);
+  });
+
+  it("proves the Finder launch without a redundant start control", () => {
+    expect(scenarioSource).not.toMatch(/getByRole\("button", \{ name: "Start live guidance"/);
+    expect(scenarioSource).toMatch(/finderGuidanceControlPresent/);
+    expect(scenarioSource).toMatch(/finderPermissionAttempts\.includes\("orientation"\)/);
+  });
+
+  it("proves real terrain rather than certifying a renamed globe", () => {
+    expect(scenarioSource).toMatch(/getTerrain/);
+    expect(scenarioSource).toMatch(/tracker-terrain-3d-dem/);
+    expect(scenarioSource).toMatch(/pitch < 55/);
+    expect(scenarioSource).not.toMatch(/tracker-projection-globe/);
+    expect(scenarioSource).not.toMatch(/name: \/Globe/);
   });
 });
 

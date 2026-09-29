@@ -2,6 +2,8 @@
 
 interface Window {
   __ORBIT_STUDIO_REVIEW__?: import("./review/reviewBridge").OrbitStudioReviewBridge;
+  __ORBIT_TRACKER_RECOVERY_FIXTURE__?: "target-obscured";
+  __ORBIT_TRACKER_RECOVERY_REVIEW__?: import("./review/trackerRecoveryReview").TrackerRecoveryReviewBridge;
   __ORBIT_STUDIO_FRAME_PROFILES__?: Array<{
     mode: "explorer" | "playground";
     sample: number;

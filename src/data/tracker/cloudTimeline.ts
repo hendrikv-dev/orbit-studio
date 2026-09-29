@@ -173,14 +173,16 @@ export function nextChange(
  * forecast breaks up, and a two-kilometre pixel says nothing about the gap over
  * the next valley. That argues for caution, not for never acting.
  *
- * A repeatable target whose own interval is closed throughout is withheld. It
- * is up again tomorrow, and a rail of five things none of which can be seen
- * tonight is a catalogue with apologies attached rather than a recommendation.
+ * A point forecast or satellite pixel is not a reading of a target's azimuth
+ * and altitude. It may lower quality and warn, but it never removes an
+ * astronomically valid target by itself. A bright object can remain visible
+ * through thin cloud or a local gap even while the area-wide percentage is
+ * high.
  *
- * A time-critical event is never withheld, however bad the sky. Missing it
- * because a model said eighty percent costs years, and the reader is the one
- * entitled to weigh that. For those, the obstruction is made unmistakable
- * instead.
+ * A repeatable target may be withheld only when fresh, high-confidence local
+ * evidence explicitly covers that target direction. A time-critical event is
+ * never withheld, however bad that evidence; the obstruction is made
+ * unmistakable instead.
  *
  * Which is which is a property of the opportunity — `ObstructionPersistence`,
  * decided where the opportunity is built — and not a threshold on its score.
@@ -188,15 +190,10 @@ export function nextChange(
  * ## Why rarity changes the answer
  *
  * The cost of being wrong is not symmetric, and it is not the same for every
- * event. Missing a clear night for Jupiter costs nothing: Jupiter is up
- * tomorrow. Missing a total eclipse because a product said the sky would be
- * closed costs a decade. So the wording is scaled by the significance tier the
- * opportunity already earned — something rare under a closed sky is told to go
- * anyway, with the risk stated plainly, and a routine target under the same sky
- * is simply told the sky is closed.
- *
- * The tier comes from measured astronomy, not from an editorial list, so this
- * borrows a judgement Tracker has already defended rather than inventing one.
+ * event. Missing a clear gap for Saturn costs an evening; missing a total
+ * eclipse costs years. Persistence still controls what high-confidence,
+ * direction-specific obstruction may suppress, but coarse weather never gets
+ * that authority.
  */
 
 
@@ -204,14 +201,63 @@ export interface CloudAdvice {
   /**
    * True when the opportunity should not be offered at all.
    *
-   * Only ever true for a repeatable target whose own observing interval is
-   * effectively unusable. Never true for something rare.
+   * Only ever true for a repeatable target with fresh, high-confidence evidence
+   * that its own direction is substantially blocked. Never true for something
+   * rare, and never true from an area-wide cloud percentage alone.
    */
   suppress: boolean;
+  /** Whether the evidence can actually support an obscuration claim. */
+  obscuration: "none" | "possible" | "likely" | "unknown";
   /** The warning to show beside it, or null when the sky is not in the way. */
   warning: string | null;
   /** True when the reader should be told to go anyway. */
   goAnyway: boolean;
+}
+
+/**
+ * Current local evidence, independent of whichever implementation produced it.
+ *
+ * Sky Finder may eventually emit this from on-device camera analysis, but the
+ * recommendation model knows nothing about cameras, frames or plate solving.
+ * It only accepts a time-bounded statement about the sky region. Detecting
+ * cloud or clear gaps is not the same as identifying the astronomical target,
+ * which is why this contract cannot carry a visually-verified target state.
+ */
+export interface LocalSkyConditionEvidence {
+  source: "camera" | "observer";
+  observedUtc: string;
+  scope: "sky-region" | "target-direction";
+  targetId: string | null;
+  finding: "clear-gaps" | "heavy-cloud";
+  confidence: "low" | "medium" | "high";
+  visualVerification: false;
+}
+
+export interface CloudAdviceContext {
+  targetId: string;
+  localEvidence?: LocalSkyConditionEvidence | null;
+}
+
+const LIVE_EVIDENCE_MAX_AGE_MINUTES = 10;
+
+function applicableLocalEvidence(
+  timeline: CloudTimeline,
+  context: CloudAdviceContext | undefined,
+): LocalSkyConditionEvidence | null {
+  const evidence = context?.localEvidence;
+  if (!evidence || evidence.confidence === "low") return null;
+  const ageMinutes =
+    (Date.parse(timeline.nowUtc) - Date.parse(evidence.observedUtc)) / 60_000;
+  if (!Number.isFinite(ageMinutes) || ageMinutes < -1 || ageMinutes > LIVE_EVIDENCE_MAX_AGE_MINUTES) {
+    return null;
+  }
+  if (
+    evidence.scope === "target-direction" &&
+    evidence.targetId !== context?.targetId
+  ) {
+    return null;
+  }
+  return evidence;
 }
 
 /**
@@ -235,6 +281,8 @@ export interface IntervalCloud {
   samples: number;
   /** The worst level reached inside it. */
   worst: Suitability | null;
+  /** Evidence paths that actually fall inside this interval. */
+  bases: CloudBasis[];
 }
 
 export function cloudOver(
@@ -245,13 +293,13 @@ export function cloudOver(
   const from = Date.parse(fromUtc);
   const to = Date.parse(toUtc);
   if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) {
-    return { verdict: "unknown", samples: 0, worst: null };
+    return { verdict: "unknown", samples: 0, worst: null, bases: [] };
   }
   const inside = timeline.samples.filter((sample) => {
     const at = Date.parse(sample.atUtc);
     return at >= from && at <= to;
   });
-  if (!inside.length) return { verdict: "unknown", samples: 0, worst: null };
+  if (!inside.length) return { verdict: "unknown", samples: 0, worst: null, bases: [] };
 
   const warnings = warningsIn(inside);
   const worst = inside.reduce<Suitability>(
@@ -259,7 +307,12 @@ export function cloudOver(
       SUITABILITY_ORDER[sample.suitability] > SUITABILITY_ORDER[bad] ? sample.suitability : bad,
     "good",
   );
-  return { verdict: verdictOf(inside, warnings), samples: inside.length, worst };
+  return {
+    verdict: verdictOf(inside, warnings),
+    samples: inside.length,
+    worst,
+    bases: [...new Set(inside.map((sample) => sample.basis))],
+  };
 }
 
 /**
@@ -282,18 +335,52 @@ export function cloudAdvice(
   persistence: ObstructionPersistence,
   timeZone: string | null,
   interval?: { startUtc: string; endUtc: string } | null,
+  context?: CloudAdviceContext,
 ): CloudAdvice {
   // Judged over the opportunity's own interval where it has one, and over the
   // night only when it does not.
   const local = interval
     ? cloudOver(timeline, interval.startUtc, interval.endUtc)
-    : { verdict: timeline.verdict, samples: timeline.samples.length, worst: null };
+    : {
+        verdict: timeline.verdict,
+        samples: timeline.samples.length,
+        worst: null,
+        bases: timeline.bases,
+      };
 
-  if (local.verdict === "unknown" || local.verdict === "open") {
-    return { suppress: false, warning: null, goAnyway: false };
+  const localEvidence = applicableLocalEvidence(timeline, context);
+  if (localEvidence?.finding === "clear-gaps") {
+    return {
+      suppress: false,
+      obscuration: "possible",
+      warning: "Sky clearer than forecast — clear gaps are visible now. This does not visually verify the target.",
+      goAnyway: false,
+    };
   }
 
-  const rare = persistence === "time-critical";
+  const directionBlocked =
+    localEvidence?.finding === "heavy-cloud" &&
+    localEvidence.scope === "target-direction" &&
+    localEvidence.confidence === "high";
+  if (directionBlocked) {
+    const rare = persistence === "time-critical";
+    return {
+      suppress: !rare,
+      obscuration: "likely",
+      warning: rare
+        ? "The target direction appears substantially blocked right now. Worth checking again because this event is time-critical."
+        : "The target direction appears substantially blocked right now.",
+      goAnyway: rare,
+    };
+  }
+
+  if (local.verdict === "unknown") {
+    return { suppress: false, obscuration: "unknown", warning: null, goAnyway: false };
+  }
+  if (local.verdict === "open") {
+    return { suppress: false, obscuration: "none", warning: null, goAnyway: false };
+  }
+
   const change = nextChange(timeline);
   const opening =
     change?.kind === "clearing"
@@ -302,26 +389,28 @@ export function cloudAdvice(
 
   if (local.verdict === "closed") {
     /**
-     * A repeatable target under a sky that is closed for its whole interval is
-     * not worth offering.
+     * These samples describe cloud over an area or one vertical model column,
+     * not the selected object's line of sight. Even 95% forecast cover cannot
+     * prove that Saturn's direction is blocked: a gap in the remaining sky is
+     * enough for a bright target, and the Moon is routinely visible through
+     * thin or broken cloud. This evidence can lower quality and raise a warning;
+     * it cannot delete the astronomical answer.
      *
-     * The previous rule was "cloud warns but never removes", and it filled the
-     * rail with things a reader could not see, on the reasoning that the sky
-     * might surprise them. That reasoning is sound for an eclipse and wrong for
-     * Saturn: Saturn is up again tomorrow, and a list of five things none of
-     * which is visible tonight is not a recommendation, it is a catalogue with
-     * apologies attached.
-     *
-     * Rare events keep their place. Missing a routine planet costs a night;
-     * missing a total eclipse because a model said eighty percent costs years,
-     * and cloud breaks up locally in ways a satellite pixel cannot see.
+     * Hard suppression is reserved for `directionBlocked` above, where fresh,
+     * high-confidence local evidence explicitly covers the selected direction.
      */
+    const observed = local.bases.includes("observed");
+    const urgency =
+      persistence === "time-critical"
+        ? " Worth going anyway because this event is time-critical."
+        : "";
     return {
-      suppress: !rare,
-      warning: rare
-        ? `Cloud is forecast through this whole window.${opening} Worth going anyway if you can — this is not a common sight, and cloud breaks up locally in ways a satellite pixel cannot see.`
-        : `Cloud is forecast through this whole window.${opening}`,
-      goAnyway: rare,
+      suppress: false,
+      obscuration: "possible",
+      warning: observed
+        ? `Satellite observations show substantial cloud over the area, but not whether this target's direction is blocked. Clear gaps may still make it worth checking.${opening}${urgency}`
+        : `Cloud is forecast across the area, but this is not direction-specific. Clear gaps may still make this target worth checking.${opening}${urgency}`,
+      goAnyway: persistence === "time-critical",
     };
   }
 
@@ -329,6 +418,7 @@ export function cloudAdvice(
   // is out. Kept for every tier, with the change named where one is expected.
   return {
     suppress: false,
+    obscuration: "possible",
     warning: `Cloud comes and goes during this window.${opening}`,
     goAnyway: false,
   };

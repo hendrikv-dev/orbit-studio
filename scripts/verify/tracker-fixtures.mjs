@@ -177,12 +177,11 @@ export async function stubTracker(
 /**
  * Cloud, answered with nothing at all.
  *
- * Tracker reads cloud whether or not the layer is drawing it, because the rail
- * withholds a repeatable target whose whole window is closed and that judgement
- * cannot depend on a display switch. The consequence for a gate is that the
- * observing rail is now a function of the sky, so a run that does not pin one is
- * asking the live forecast what tonight looks like — and a check about card
- * geometry starts failing on evenings when Portland happens to be overcast.
+ * Tracker reads cloud whether or not the layer is drawing it, because warnings
+ * and quality must not depend on a display switch. The consequence for a gate
+ * is that the observing rail is now a function of weather evidence, so a run
+ * that does not pin one is asking the live forecast what tonight looks like —
+ * and a check about card content starts varying with Portland's weather.
  *
  * Nothing rather than a clear sky. An empty body leaves `cloudTimeline` null,
  * which is exactly the state these gates were already written against, so

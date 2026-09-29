@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { CalendarRange, ChevronRight, Crosshair, Mountain, X } from "lucide-react";
 
 import { CardFigure } from "../media/CardFigures";
@@ -44,10 +44,11 @@ export interface RailFacts {
   /**
    * What the sky over the observing window does to this, where it does anything.
    *
-   * A warning rather than a filter. Cloud is the one condition that can be
+   * A warning rather than a second eligibility authority. Coarse cloud can be
    * wrong in the reader's favour — a forecast breaks up, a two-kilometre pixel
-   * knows nothing about the gap over the next valley — so it never removes an
-   * opportunity, and for something rare it says so out loud.
+   * knows nothing about the gap over the next valley — so only fresh,
+   * high-confidence evidence for this target direction may remove a routine
+   * opportunity. Something time-critical stays discoverable and says so.
    */
   cloud: { warning: string; goAnyway: boolean } | null;
   /**
@@ -66,12 +67,14 @@ export interface RailFacts {
 }
 
 interface Props {
+  layout?: "rail" | "briefing";
   cards: RailCard[];
   expandedId: string | null;
   onExpand: (id: string) => void;
   onCollapse: () => void;
   onOpenDetail: (id: string) => void;
   onFindInSky: (id: string) => void;
+  finderLabel?: string;
   canFindInSky: (card: RailCard) => boolean;
   /** Everything the expanded card needs, computed by the caller for that card. */
   factsFor: (card: RailCard) => RailFacts;
@@ -84,12 +87,15 @@ interface Props {
    * answer and gets no message.
    */
   withheldByCloud?: number;
+  /** Recovery cards supplied by the observer/date authority when this rail is empty. */
+  recovery?: ReactNode;
   loading: boolean;
   /** A route into future discovery, visually part of this same rail. */
   gateway: {
     onOpen: () => void;
     triggerRef?: RefObject<HTMLButtonElement>;
   };
+  showGateway?: boolean;
 }
 
 /** The three facts the ranking already built: when, what, where. */
@@ -167,18 +173,22 @@ function UpcomingGateway({
 }
 
 export function TrackerObservingRail({
+  layout = "rail",
   cards,
   expandedId,
   onExpand,
   onCollapse,
   onOpenDetail,
   onFindInSky,
+  finderLabel = "Find in sky",
   canFindInSky,
   factsFor,
   place,
   loading,
   withheldByCloud = 0,
+  recovery = null,
   gateway,
+  showGateway = true,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
@@ -343,7 +353,7 @@ export function TrackerObservingRail({
 
   if (loading) {
     return (
-      <div className="tk-rail" ref={rail} aria-busy="true">
+      <div className={`tk-rail is-${layout}`} ref={rail} aria-busy="true">
         <div className="tk-rail-scroll">
           <ul className="tk-rail-list">
             {[0, 1, 2].map((index) => (
@@ -352,7 +362,7 @@ export function TrackerObservingRail({
                 <span className="tk-map-skeleton is-line" />
               </li>
             ))}
-            <UpcomingGateway {...gateway} />
+            {showGateway ? <UpcomingGateway {...gateway} /> : null}
           </ul>
         </div>
       </div>
@@ -370,19 +380,14 @@ export function TrackerObservingRail({
    * spoken. Absence is a finding here, not a lack of one.
    */
   return (
-    <div className="tk-rail" ref={rail}>
+    <div className={`tk-rail is-${layout}`} ref={rail}>
       <p className="tk-visually-hidden" role="status" aria-live="polite">
-        {`${cards.length} things to look for from ${place}. Upcoming planning is available.`}
+        {cards.length > 0
+          ? `${cards.length} things to look for from ${place}. Upcoming planning is available.`
+          : withheldByCloud > 0
+            ? `${withheldByCloud} worthwhile ${withheldByCloud === 1 ? "target is" : "targets are"} blocked by cloud from ${place}. Looking for the next best chance.`
+            : `Nothing is well placed enough to recommend from ${place}. Looking for the next best chance.`}
       </p>
-      {cards.length === 0 && withheldByCloud ? (
-        <p className="tk-rail-withheld" role="status">
-          {withheldByCloud === 1
-            ? "The one thing up tonight is behind cloud for its whole window."
-            : `All ${withheldByCloud} things up tonight are behind cloud for their whole windows.`}{" "}
-          Nothing here is worth the trip, and none of them is going anywhere — they
-          come round again.
-        </p>
-      ) : null}
       {/*
         The strip takes the pointer so it can be scrolled, and hands back what
         is not its own.
@@ -407,6 +412,7 @@ export function TrackerObservingRail({
         }}
       >
         <ul className="tk-rail-list">
+          {cards.length === 0 ? recovery : null}
           {cards.map((card) => {
             const expanded = card.id === expandedId;
             const { when, where } = summaryOf(card);
@@ -542,7 +548,7 @@ export function TrackerObservingRail({
                           onClick={() => onFindInSky(card.id)}
                         >
                           <Crosshair size={14} aria-hidden />
-                          Find in sky
+                          {finderLabel}
                           <ChevronRight size={14} aria-hidden />
                         </button>
                       ) : null}
@@ -560,7 +566,7 @@ export function TrackerObservingRail({
               </li>
             );
           })}
-          <UpcomingGateway {...gateway} />
+          {showGateway ? <UpcomingGateway {...gateway} /> : null}
         </ul>
       </div>
     </div>

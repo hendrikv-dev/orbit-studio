@@ -55,6 +55,11 @@ import {
 } from "../../data/tracker/conditions";
 import { adaptersFor, conditionsForLocation } from "../../data/tracker/weatherProviders";
 import {
+  installTrackerRecoveryReviewBridge,
+  trackerRecoveryReviewEnabled,
+  trackerRecoveryReviewEvidence,
+} from "../../review/trackerRecoveryReview";
+import {
   fetchAerosol,
   OPEN_METEO_AIR_QUALITY_SOURCE,
   readAirQuality,
@@ -139,9 +144,11 @@ import {
   describeLightPollution,
   loadLightPollution,
 } from "../../data/tracker/lightPollution";
-import { TrackerObservingRail, type RailFacts } from "./map/TrackerObservingRail";
+import { type RailFacts } from "./map/TrackerObservingRail";
+import { TrackerRecoveryBriefing } from "./map/TrackerRailRecovery";
 import { TrackerUpcomingSheet } from "./TrackerUpcomingSheet";
 import type { UpcomingEvent } from "../../data/tracker/upcomingEvents";
+import type { NextBestChance } from "../../data/tracker/nextBestChance";
 import { OrbitAppMenu } from "../layout/OrbitAppMenu";
 import { TrackerCallout } from "./onboarding/TrackerCallout";
 import { useOnboarding, type Tour } from "./onboarding/useOnboarding";
@@ -176,8 +183,16 @@ import {
   lunarLocalVisibility,
 } from "../../data/tracker/lunarEclipse";
 import type { HeroMedia } from "./EventHero";
-import { SkyFinder } from "./SkyFinder";
 import {
+  SkyFinder,
+  beginSkyFinderLaunch,
+  type SkyFinderLaunchAttempt,
+} from "./SkyFinder";
+import { TrackerModeNav } from "./TrackerModeNav";
+import { TrackerMapRecommendation } from "./TrackerMapRecommendation";
+import { TrackerTonightBriefing } from "./TrackerTonightBriefing";
+import {
+  detectSkyFinderCapabilities,
   skyFinderTargetFor,
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
@@ -654,11 +669,15 @@ function TrackerScreen() {
   const [layersOpen, setLayersOpen] = useState(false);
   /** Future discovery is a sheet over this map, never a second destination. */
   const [upcomingOpen, setUpcomingOpen] = useState(false);
+  /** Protected calls begun by the original Find in sky gesture. */
+  const [finderLaunch, setFinderLaunch] = useState<SkyFinderLaunchAttempt | null>(null);
   const upcomingTrigger = useRef<HTMLButtonElement>(null);
   /** The place control's trigger, so a local search can send the reader to it. */
   const placeTrigger = useRef<HTMLButtonElement>(null);
   /** Bumped when the reader explicitly asks to be shown the event's geography. */
   const [frameRequest, setFrameRequest] = useState(0);
+  /** Restores the designed camera even when the selected place did not move. */
+  const [mapCameraResetKey, setMapCameraResetKey] = useState(0);
   const [now, setNow] = useState(() => new Date());
   /**
    * The instant "today" rolls over on, kept separate from the chosen date.
@@ -697,6 +716,17 @@ function TrackerScreen() {
   const weather = useConditions(place);
   const aerosol = useAerosol(place);
   const aurora = useAurora(Boolean(place));
+  const recoveryReviewActive = trackerRecoveryReviewEnabled();
+  const skyFinderCapabilities = useMemo(() => detectSkyFinderCapabilities(), []);
+
+  useEffect(
+    () =>
+      installTrackerRecoveryReviewBridge({
+        refreshConditions: () =>
+          queryClient.invalidateQueries({ queryKey: ["conditions"] }),
+      }),
+    [],
+  );
 
   /** Today in the observer's own zone, which is what "no date chosen" means. */
   const today = useMemo(() => todayIn(clock.timeZone, todayAnchor), [clock.timeZone, todayAnchor]);
@@ -1012,12 +1042,12 @@ function TrackerScreen() {
    *
    * ## Why this is not gated on the cloud layer
    *
-   * It feeds `cloudTimeline`, and the rail suppresses a repeatable target whose
-   * whole window is closed. Gating it on the switch made the recommendation a
-   * function of a display preference: under a shut sky the rail offered four
-   * things with the layer off and none with it on, so turning a layer on to
-   * look at the weather silently deleted the answer — and turning it off
-   * brought back four opportunities that were still behind cloud.
+   * It feeds `cloudTimeline`, which qualifies every recommendation with the
+   * same area-wide evidence whether or not the layer is visible. Gating it on
+   * the switch once made weather advice a function of a display preference:
+   * turning the layer on could delete routine targets, while turning it off
+   * restored them. Coarse cloud no longer has that eligibility authority, but
+   * its warning and quality effects still must not depend on a map switch.
    *
    * A layer decides what is drawn over the map. It does not decide what Tracker
    * knows, and it must never decide what Tracker recommends. The layer's own
@@ -1916,10 +1946,11 @@ function TrackerScreen() {
     if (heroEvent.id === "aurora") {
       const layers = new Set(location.layers);
       layers.add("aurora");
-      navigate({ detail: null, drill: null, layers: [...layers] });
+      navigate({ mode: "map", detail: null, drill: null, layers: [...layers] });
       return;
     }
     navigate({
+      mode: "map",
       detail: null,
       drill: null,
       event: catalogueEventForCard(heroEvent.id),
@@ -2733,17 +2764,14 @@ function TrackerScreen() {
      * shown three planets has been given the opposite of what they asked for.
      */
     /**
-     * Cloud can take a repeatable target off the rail.
+     * Weather may reorder and caution; only target-direction evidence may hide.
      *
-     * Judged over each candidate's own observing interval, so a planet that
-     * sets before the cloud arrives keeps its place while one that is up
-     * entirely inside it does not. Rare and time-critical events are never
-     * removed — `cloudAdvice` will not suppress them — so an eclipse under a
-     * closed sky still appears, with the obstruction stated.
-     *
-     * Applied before `buildRail` rather than after, so the rail fills its
-     * remaining places with things a reader can actually see rather than
-     * leaving gaps where the suppressed cards were.
+     * The current forecast and satellite feeds describe an area or a vertical
+     * point column, not the candidate's azimuth and altitude. `cloudAdvice`
+     * therefore keeps those targets and states the uncertainty. Its filter is
+     * retained for the source-neutral local-evidence contract: a future Sky
+     * Finder camera assessment may establish that one target direction is
+     * substantially blocked without coupling this planner to camera code.
      */
     const visible = cloudTimeline
       ? candidates.filter((candidate) => {
@@ -2757,6 +2785,13 @@ function TrackerScreen() {
             candidate.window
               ? { startUtc: candidate.window.startUtc, endUtc: candidate.window.endUtc }
               : null,
+            {
+              targetId: candidate.id,
+              localEvidence: trackerRecoveryReviewEvidence(
+                candidate.id,
+                cloudTimeline.nowUtc,
+              ),
+            },
           );
           return !advice.suppress;
         })
@@ -2781,6 +2816,11 @@ function TrackerScreen() {
   }, [bestTonight, tonightEvents, location.equipment, cloudTimeline, clock.timeZone]);
 
   const railCards = rail.cards;
+
+  const openUpcoming = useCallback(() => {
+    setLayersOpen(false);
+    setUpcomingOpen(true);
+  }, []);
 
   const closeUpcoming = useCallback(() => {
     setUpcomingOpen(false);
@@ -2817,12 +2857,31 @@ function TrackerScreen() {
     [navigate, today],
   );
 
+  /**
+   * A forecast-backed recovery chance is still one of Tracker's ordinary
+   * opportunities. Selecting it changes the authoritative night and opens that
+   * same rail card; it does not introduce a recovery-only detail route.
+   */
+  const showRecoveryChance = useCallback(
+    (chance: NextBestChance) => {
+      navigate({
+        date: chance.dateKey === today ? null : chance.dateKey,
+        detail: null,
+        drill: null,
+        event: null,
+        card: chance.opportunityId,
+      });
+    },
+    [navigate, today],
+  );
+
   /** The card the reader has open, narrowed to one that still exists. */
   const expandedCardId = useMemo(
     () => (railCards.some((card) => card.id === location.card) ? location.card : null),
     [location.card, railCards],
   );
   const expandedCard = railCards.find((card) => card.id === expandedCardId) ?? null;
+  const mapRecommendation = expandedCard ?? railCards[0] ?? null;
 
   /**
    * Finder targets are projections of tonight's existing opportunities.
@@ -2847,8 +2906,28 @@ function TrackerScreen() {
   const activeSkyFinderTarget = location.finder
     ? (skyFinderTargets.get(location.finder) ?? null)
     : null;
+  const preferredSkyTargetId =
+    (location.card && skyFinderTargets.has(location.card) ? location.card : null) ??
+    (location.detail && skyFinderTargets.has(location.detail) ? location.detail : null) ??
+    railCards.find((card) => skyFinderTargets.has(card.id))?.id ??
+    null;
+  const railPlaceLabel = place
+    ? (placeWasChosen ? shortPlaceName(place) : (pinContext.data?.name ?? shortPlaceName(place)))
+    : "this location";
+  const openSkyFinder = useCallback(
+    (id: string) => {
+      setFinderLaunch(
+        beginSkyFinderLaunch(id, skyFinderCapabilities, selectedDate === today),
+      );
+      navigate({ card: id, finder: id });
+    },
+    [navigate, selectedDate, skyFinderCapabilities, today],
+  );
   const closeSkyFinder = useCallback(
-    () => returnTo({ ...location, finder: null }),
+    () => {
+      setFinderLaunch(null);
+      returnTo({ ...location, finder: null });
+    },
     [location, returnTo],
   );
 
@@ -2984,6 +3063,45 @@ function TrackerScreen() {
         .filter((metric) => metric && metric.value)
         .map((metric) => ({ label: metric.label, value: metric.value }));
       const terrainResult = expanded ? terrain.data : undefined;
+      const advice = cloudTimeline
+        ? cloudAdvice(
+            cloudTimeline,
+            card.opportunity.persistence,
+            clock.timeZone ?? null,
+            // The card's own observing interval, so cloud at nine o'clock and
+            // cloud at two in the morning reach different conclusions.
+            card.window ? { startUtc: card.window.startUtc, endUtc: card.window.endUtc } : null,
+            { targetId: card.id },
+          )
+        : null;
+      const panelConditions = PANEL_CONDITION_IDS.flatMap(
+        (id) => conditions.find((entry) => entry.id === id) ?? [],
+      )
+        .slice(0, 2)
+        .map((condition) => {
+          /**
+           * The general weather provider and the cloud-specific feed fail
+           * independently. If the first is unavailable but the second has
+           * usable area evidence, do not render the contradiction
+           * `Cloud cover · Forecast unavailable` beside a forecast warning.
+           * The fallback stays qualitative because this feed does not prove a
+           * target-direction percentage.
+           */
+          if (condition.id !== "cloud" || condition.tone !== "unknown" || !advice?.warning) {
+            return condition;
+          }
+          return {
+            ...condition,
+            label: "Cloud outlook",
+            value: advice.obscuration === "likely" ? "Likely obscured" : "May interfere",
+            interpretation: null,
+            tone: advice.obscuration === "likely" ? "poor" as const : "fair" as const,
+            provenance: {
+              kind: "forecast" as const,
+              detail: "Area cloud evidence; not a target-direction measurement.",
+            },
+          };
+        });
       return {
         facts,
         terrain:
@@ -2993,9 +3111,7 @@ function TrackerScreen() {
               )
             : null,
         terrainPending: expanded && terrain.isFetching,
-        conditions: PANEL_CONDITION_IDS.flatMap(
-          (id) => conditions.find((entry) => entry.id === id) ?? [],
-        ).slice(0, 2),
+        conditions: panelConditions,
         /**
          * Why this is notable, in the significance model's own words.
          *
@@ -3013,20 +3129,9 @@ function TrackerScreen() {
          * The tier comes from measured astronomy rather than an editorial list,
          * which is why this can borrow it instead of inventing a judgement.
          */
-        cloud: (() => {
-          if (!cloudTimeline) return null;
-          const advice = cloudAdvice(
-            cloudTimeline,
-            card.opportunity.persistence,
-            clock.timeZone ?? null,
-            // The card's own observing interval, so cloud at nine o'clock and
-            // cloud at two in the morning reach different conclusions.
-            card.window ? { startUtc: card.window.startUtc, endUtc: card.window.endUtc } : null,
-          );
-          return advice.warning
-            ? { warning: advice.warning, goAnyway: advice.goAnyway }
-            : null;
-        })(),
+        cloud: advice?.warning
+          ? { warning: advice.warning, goAnyway: advice.goAnyway }
+          : null,
         /**
          * Attached to the card the overlay is actually about.
          *
@@ -3062,10 +3167,9 @@ function TrackerScreen() {
    * going anywhere. Keeping a parallel destination alive beside it meant two
    * answers to "when", one of which nothing in the interface pointed at.
    *
-   * `TrackerUpcoming` and the future-event data behind it are left in the tree
-   * rather than deleted — the ranking and the horizon logic are worth keeping
-   * and may well be wanted again — but nothing routes to them, and the URL no
-   * longer carries a mode.
+   * `TrackerUpcoming` remains a planning surface inside Tonight, not another
+   * primary destination. The URL's presentation mode changes how the same plan
+   * is read; it never changes which plan is authoritative.
    */
   /**
    * The tour, offered once and never in the way.
@@ -3111,6 +3215,23 @@ function TrackerScreen() {
     // the map they "came from" is the one this location describes without it.
     returnTo(remembered ?? { ...location, detail: null, drill: null });
   }, [location, returnTo]);
+
+  /**
+   * Enter detail without letting the target added by that transition masquerade
+   * as part of the surface the reader came from. The render-time fallback above
+   * still covers direct detail URLs, while ordinary Map/Tonight entry points can
+   * now restore their exact observer, date, mode and prior selection in one Back.
+   */
+  const openDetail = useCallback(
+    (id: string) => {
+      mapBeforeDetail.current = { ...location, detail: null, drill: null };
+      // Prevent the next detail render from replacing the captured source with
+      // the transition's newly added target card.
+      wasDetailOpen.current = true;
+      navigate({ card: id, detail: id, drill: null });
+    },
+    [location, navigate],
+  );
   /**
    * The bar's height, published so the things below it can keep clear of it.
    *
@@ -3181,6 +3302,26 @@ function TrackerScreen() {
 
   /** Narrowed for the detail branch, which only renders when both exist. */
   const detailPlace = place;
+  const recoveryBriefing =
+    place && night && railCards.length === 0 ? (
+      <TrackerRecoveryBriefing
+        place={place}
+        clock={clock}
+        planAnchor={planAnchor}
+        anchorPlanIdentityKey={night.identity.key}
+        selectedDate={selectedDate}
+        today={today}
+        now={now}
+        evidence={environment}
+        equipment={location.equipment}
+        artificialLightRadiance={lightHere.data ?? null}
+        auroraConditions={aurora.data ?? null}
+        withheldByCloud={rail.withheldByCloud}
+        currentRecommendationCount={railCards.length}
+        onShowChance={showRecoveryChance}
+        onOpenUpcoming={openUpcoming}
+      />
+    ) : null;
 
   if (location.finder) {
     return (
@@ -3190,6 +3331,22 @@ function TrackerScreen() {
         data-observer={observerKey ?? undefined}
         data-plan-identity={night?.identity.key}
       >
+        <TrackerModeNav
+          current="sky"
+          skyAvailable={Boolean(activeSkyFinderTarget)}
+          skyLabel={
+            skyFinderCapabilities.handheldEligible ? "Sky live guidance" : "Sky preview"
+          }
+          onMap={() => {
+            setFinderLaunch(null);
+            returnTo({ ...location, mode: "map", finder: null });
+          }}
+          onTonight={() => {
+            setFinderLaunch(null);
+            returnTo({ ...location, mode: "tonight", finder: null });
+          }}
+          onSky={() => undefined}
+        />
         {activeSkyFinderTarget && place ? (
           <SkyFinder
             target={activeSkyFinderTarget}
@@ -3201,6 +3358,7 @@ function TrackerScreen() {
             }}
             clock={clock}
             liveDate={selectedDate === today}
+            launch={finderLaunch}
             onClose={closeSkyFinder}
           />
         ) : (
@@ -3221,10 +3379,12 @@ function TrackerScreen() {
     <main
       ref={shell}
       className="tracker-shell tk-map-shell"
-      data-map-state={detailOpen ? "detail" : "map"}
+      data-map-state={detailOpen ? "detail" : location.mode}
       data-observer={observerKey ?? undefined}
       data-plan-identity={night?.identity.key}
       data-upcoming-open={upcomingOpen ? "true" : "false"}
+      data-recovery-review={recoveryReviewActive ? "true" : undefined}
+      data-cloud-timeline={recoveryReviewActive ? (cloudTimeline ? "ready" : "missing") : undefined}
       /* Read only by the narrow-screen rules, which collapse an expanded card
          while the layer sheet is open so the two do not fill the phone between
          them. The card stays selected; only its presentation is suppressed. */
@@ -3276,6 +3436,8 @@ function TrackerScreen() {
         pinLabel={namedPlace ? shortPlaceName(namedPlace) : null}
         bearingDeg={observingBearing}
         projection={location.projection}
+        cameraResetKey={mapCameraResetKey}
+        active={location.mode === "map" && !detailOpen}
         // Framed once per event, so panning afterwards is the reader's.
         cameraTarget={cameraTarget}
         cameraKey={selectedEvent ? `${selectedEvent.id}#${frameRequest}` : null}
@@ -3350,20 +3512,29 @@ function TrackerScreen() {
         </div>
       </div>
 
-      <TrackerMapControls
+      {!detailOpen ? (
+        <TrackerModeNav
+          current={location.mode}
+          skyAvailable={preferredSkyTargetId !== null}
+          skyLabel={
+            skyFinderCapabilities.handheldEligible ? "Sky live guidance" : "Sky preview"
+          }
+          onMap={() => navigate({ mode: "map" })}
+          onTonight={() => navigate({ mode: "tonight" })}
+          onSky={() => {
+            if (preferredSkyTargetId) openSkyFinder(preferredSkyTargetId);
+          }}
+        />
+      ) : null}
+
+      {location.mode === "map" && !detailOpen ? <TrackerMapControls
         layersControl={
           <TrackerMapLayers
             readings={layerReadings}
-            // Only when no rail card exists to carry it, so the reading appears
-            // exactly once wherever the reader is looking.
-            eventReading={
-              eventReading &&
-              !railCards.some(
-                (card) => selectedEvent && CARD_FOR_EVENT[selectedEvent.kind] === card.id,
-              )
-                ? eventReading
-                : null
-            }
+            // R2 no longer renders the expandable rail on Map. The Layers
+            // surface is therefore the one visible owner of selected-event
+            // geography, even when the same event is also a ranked opportunity.
+            eventReading={eventReading}
             active={activeLayers}
             onToggle={(layer) => {
               // A toggle in a set, so several layers can describe one place.
@@ -3424,10 +3595,11 @@ function TrackerScreen() {
           })
         }
         onRecentre={
-          // Only when the map has actually wandered off the selection. A button
-          // that is usually a no-op teaches the reader the controls are decor.
-          location.pin && awayFromPin
-            ? () => settle({ centre: location.pin as { latitudeDeg: number; longitudeDeg: number } })
+          location.pin && (awayFromPin || location.projection === "terrain")
+            ? () => {
+                setMapCameraResetKey((value) => value + 1);
+                settle({ centre: location.pin as { latitudeDeg: number; longitudeDeg: number } });
+              }
             : null
         }
         onLocate={(latitudeDeg, longitudeDeg) =>
@@ -3440,14 +3612,14 @@ function TrackerScreen() {
             fromDevice: true,
           })
         }
-      />
+      /> : null}
 
-      {/* Mercator or globe. Under the elements that say what is being looked
+      {/* Top-down map or oblique terrain. Under the elements that say what is being looked
           at, not beside the ones that move the camera — and `settle` rather
           than `navigate`, because it changes how the map is drawn rather than
           what it is showing, and a reader pressing Back expects to undo where
           they went rather than which surface they were looking at. */}
-      {!detailOpen ? (
+      {location.mode === "map" && !detailOpen ? (
         <TrackerProjectionToggle
           projection={location.projection}
           onSelect={(projection) => settle({ projection })}
@@ -3456,13 +3628,13 @@ function TrackerScreen() {
 
       {/* The key to the one layer whose colour is a measured number. Only while
           that layer is on, and never over a detail page. */}
-      {activeLayers.has("light-pollution") && !detailOpen && !lightPollution.isError ? (
+      {location.mode === "map" && activeLayers.has("light-pollution") && !detailOpen && !lightPollution.isError ? (
         <TrackerMapLightLegend radiance={lightHere.data ?? null} />
       ) : null}
 
       {/* Tonight's cloud as a strip of time, with the key to the field over the
           map. Only while the layer is on, and never over a detail page. */}
-      {activeLayers.has("cloud") && cloudTimeline && !detailOpen ? (
+      {location.mode === "map" && activeLayers.has("cloud") && cloudTimeline && !detailOpen ? (
         <TrackerCloudTimeline
           timeline={cloudTimeline}
           format={(atUtc) => formatClockTime(atUtc, clock)}
@@ -3479,35 +3651,36 @@ function TrackerScreen() {
         />
       ) : null}
 
-      {place && !detailOpen ? (
-        <TrackerObservingRail
-          cards={railCards}
-          withheldByCloud={rail.withheldByCloud}
-          expandedId={expandedCardId}
-          /**
-           * Expanding is a decision, so it pushes: Back undoes it, and "Back to
-           * the map" from a detail page comes back to the card that was open.
-           */
-          onExpand={(id) => {
-            // Expanding makes that object the map's active context, so an event
-            // card brings its own geography with it.
-            const event = catalogueEventForCard(id);
-            navigate(event ? { card: id, event } : { card: id });
-          }}
-          onCollapse={() => navigate({ card: null })}
-          onOpenDetail={(id) => navigate({ detail: id, drill: null })}
-          onFindInSky={(id) => navigate({ finder: id })}
-          canFindInSky={(card) => skyFinderTargets.has(card.id)}
-          place={placeWasChosen ? shortPlaceName(place) : (pinContext.data?.name ?? shortPlaceName(place))}
+      {place && !detailOpen && location.mode === "map" ? (
+          <TrackerMapRecommendation
+          card={mapRecommendation}
           loading={!night}
-          factsFor={railFactsFor}
-          gateway={{
-            triggerRef: upcomingTrigger,
-            onOpen: () => {
-              setLayersOpen(false);
-              setUpcomingOpen(true);
-            },
+          finderLabel={skyFinderCapabilities.handheldEligible ? "Find in sky" : "Preview in sky"}
+          canFindInSky={Boolean(mapRecommendation && skyFinderTargets.has(mapRecommendation.id))}
+          onOpenDetail={() => {
+            if (mapRecommendation) openDetail(mapRecommendation.id);
           }}
+          onFindInSky={() => {
+            if (mapRecommendation) openSkyFinder(mapRecommendation.id);
+          }}
+          onOpenTonight={() => navigate({ mode: "tonight" })}
+        />
+      ) : null}
+
+      {place && !detailOpen && location.mode === "tonight" ? (
+        <TrackerTonightBriefing
+          cards={railCards}
+          place={railPlaceLabel}
+          dateLabel={describeDate(selectedDate, today).heading}
+          onOpenDetail={openDetail}
+          onFindInSky={openSkyFinder}
+          finderLabel={skyFinderCapabilities.handheldEligible ? "Find in sky" : "Preview in sky"}
+          canFindInSky={(card) => skyFinderTargets.has(card.id)}
+          factsFor={railFactsFor}
+          equipment={location.equipment}
+          recovery={recoveryBriefing}
+          loading={!night}
+          upcoming={{ triggerRef: upcomingTrigger, onOpen: openUpcoming }}
         />
       ) : null}
 
@@ -3523,7 +3696,7 @@ function TrackerScreen() {
         />
       ) : null}
 
-      {onboarding.step && !detailOpen ? (
+      {onboarding.step && !detailOpen && location.mode === "map" ? (
         <TrackerCallout
           step={onboarding.step}
           index={onboarding.index}
@@ -3556,7 +3729,10 @@ function TrackerScreen() {
           {heroEvent && night ? (
         <>
           <PhenomenonPage
-            back={{ label: "Back to the map", onSelect: backToMap }}
+            back={{
+              label: location.mode === "tonight" ? "Back to Tonight" : "Back to the map",
+              onSelect: backToMap,
+            }}
             categoryId={heroEvent.presentation.categoryId}
             nightWord={describeDate(selectedDate, today).heading}
             presentation={heroPresentation ?? heroEvent.presentation}
@@ -3570,6 +3746,7 @@ function TrackerScreen() {
                 : [],
             )}
             evidenceStatus={environment.status}
+            onShowMap={openFullMap}
             /**
              * The hero's own control, routed by what it says it is.
              *
@@ -3605,7 +3782,12 @@ function TrackerScreen() {
             }
             finderAction={
               skyFinderTargets.has(heroEvent.id)
-                ? { label: "Find in sky →", onSelect: () => navigate({ finder: heroEvent.id }) }
+                ? {
+                    label: skyFinderCapabilities.handheldEligible
+                      ? "Find in sky →"
+                      : "Preview in sky →",
+                    onSelect: () => openSkyFinder(heroEvent.id),
+                  }
                 : null
             }
             onReminder={() => remind(heroEvent.presentation)}

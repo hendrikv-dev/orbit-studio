@@ -56,8 +56,12 @@ export interface FinderCalibration {
 }
 
 export type PointingQuality = "good" | "fair" | "poor" | "unavailable";
+export type SkyFinderDeviceClass = "handheld" | "desktop" | "unknown";
+export type SkyFinderExperience = "live" | "direction-only" | "preview";
 
 export interface FinderCapabilities {
+  deviceClass: SkyFinderDeviceClass;
+  handheldEligible: boolean;
   secureContext: boolean;
   camera: boolean;
   geolocation: boolean;
@@ -111,9 +115,14 @@ interface CapabilityEnvironment {
   navigator?: {
     geolocation?: unknown;
     mediaDevices?: { getUserMedia?: unknown };
+    userAgent?: string;
+    platform?: string;
+    maxTouchPoints?: number;
+    userAgentData?: { mobile?: boolean; platform?: string };
   };
   window?: Record<string, unknown>;
   screen?: { orientation?: unknown };
+  matchMedia?: (query: string) => { matches: boolean };
 }
 
 function constructorRequestsPermission(value: unknown): boolean {
@@ -123,6 +132,37 @@ function constructorRequestsPermission(value: unknown): boolean {
   );
 }
 
+/**
+ * Classify physical pointing devices without treating viewport width as device
+ * identity. Explicit phone/tablet hints win, including iPadOS's desktop-style
+ * Mac user agent. A touch-first coarse-pointer device is also eligible, while
+ * fine-pointer desktop hardware remains desktop even if it has a touchscreen
+ * or webcam. Unknown devices degrade to preview instead of risking prompts.
+ */
+export function classifySkyFinderDevice(
+  environment: Pick<CapabilityEnvironment, "navigator" | "matchMedia">,
+): SkyFinderDeviceClass {
+  const navigatorLike = environment.navigator ?? {};
+  const userAgent = navigatorLike.userAgent ?? "";
+  const platform = navigatorLike.userAgentData?.platform ?? navigatorLike.platform ?? "";
+  const touchPoints = navigatorLike.maxTouchPoints ?? 0;
+  const mobileHint = navigatorLike.userAgentData?.mobile === true;
+  const explicitHandheld = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle/i.test(userAgent);
+  const ipadDesktopIdentity = /Mac/i.test(platform) && touchPoints > 1;
+  const coarsePointer = environment.matchMedia?.("(pointer: coarse)").matches === true;
+  const fineHoverPointer =
+    environment.matchMedia?.("(hover: hover) and (pointer: fine)").matches === true;
+  const touchFirstTablet = touchPoints > 1 && coarsePointer && !fineHoverPointer;
+
+  if (mobileHint || explicitHandheld || ipadDesktopIdentity || touchFirstTablet) {
+    return "handheld";
+  }
+
+  const explicitDesktop = /Windows NT|Macintosh|X11|CrOS|Linux x86_64/i.test(userAgent);
+  if (explicitDesktop || fineHoverPointer) return "desktop";
+  return "unknown";
+}
+
 /** Runtime feature detection only; permission is a separate user decision. */
 export function detectSkyFinderCapabilities(
   environment: CapabilityEnvironment = {
@@ -130,12 +170,19 @@ export function detectSkyFinderCapabilities(
     navigator: typeof navigator !== "undefined" ? navigator : undefined,
     window: typeof window !== "undefined" ? (window as unknown as Record<string, unknown>) : undefined,
     screen: typeof screen !== "undefined" ? screen : undefined,
+    matchMedia:
+      typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia.bind(window)
+        : undefined,
   },
 ): FinderCapabilities {
   const view = environment.window ?? {};
   const orientation = view.DeviceOrientationEvent;
   const motion = view.DeviceMotionEvent;
+  const deviceClass = classifySkyFinderDevice(environment);
   return {
+    deviceClass,
+    handheldEligible: deviceClass === "handheld",
     secureContext: environment.secureContext === true,
     camera:
       environment.secureContext === true &&
@@ -156,6 +203,30 @@ export function detectSkyFinderCapabilities(
     orientationPermissionRequest: constructorRequestsPermission(orientation),
     motionPermissionRequest: constructorRequestsPermission(motion),
   };
+}
+
+export function skyFinderExperience(
+  capabilities: FinderCapabilities,
+  orientationAccess: "unknown" | "granted" | "denied" | "unavailable" = "unknown",
+): SkyFinderExperience {
+  if (!capabilities.handheldEligible) return "preview";
+  return capabilities.orientation && orientationAccess !== "denied" && orientationAccess !== "unavailable"
+    ? "live"
+    : "direction-only";
+}
+
+export type SkyFinderPermissionKind = "camera" | "orientation" | "motion";
+
+/** The single policy gate used before any protected Finder API is requested. */
+export function canRequestSkyFinderPermission(
+  capabilities: FinderCapabilities,
+  kind: SkyFinderPermissionKind,
+  context: { liveDate: boolean; userInitiated: boolean },
+): boolean {
+  if (!capabilities.handheldEligible || !context.liveDate || !context.userInitiated) return false;
+  if (kind === "camera") return capabilities.camera;
+  if (kind === "motion") return capabilities.motion;
+  return capabilities.orientation;
 }
 
 export function normalizeDegrees(value: number): number {

@@ -1,5 +1,28 @@
 # Tracker — Product Requirements
 
+## Current interaction contract (2026-09 UI pass)
+
+Tracker presents one authoritative observer/date/equipment plan through three
+primary modes:
+
+- **Map** is the default geographic workspace. Its recommendation is a compact
+  leading card, while 2D remains north-up and 3D uses the same MapLibre scene
+  over the production DEM at natural scale with an oblique, rotatable camera.
+- **Tonight** is the full decision surface. It reads the existing ranked
+  opportunity output, recovery planner and Upcoming pipeline; it does not own
+  parallel rankings or observer state. Upcoming is planning inside Tonight,
+  not a fourth mode.
+- **Sky** is selected-target guidance on eligible handhelds and a selected-time
+  preview on desktop. The original Find in sky action begins required handheld
+  permissions; there is no intermediate Start/Guide/Lock action.
+
+Object detail opens with the target, recommendation, best time, direction,
+key conditions, expectation and actions. Charts, full condition evidence and
+provenance remain available under one collapsed **More details** disclosure.
+Switching modes preserves observer, date, equipment, layers, selection and
+return state because the modes are projections of the same URL-backed location
+and plan rather than separate destinations.
+
 > **Superseded on product direction by `TRACKER_V1_PRD.md`.** Where the two disagree
 > about *what Tracker should do*, the V1 handoff wins: it is the owner's statement of
 > product direction, and it reorders V1 (satellites and aurora are Confirmed V1 there,
@@ -289,9 +312,10 @@ The one component with no reference implementation, and the actual work of phase
   Discoverability lives on the opportunity as `ObstructionPersistence`
   (`src/data/tracker/opportunity.ts`), is required of every producer so a new phenomenon
   cannot inherit an answer by omission, and is decided from the physics of the event
-  rather than from its score or its category. It may remove a routine opportunity whose
-  own observing window is unusable, may never remove a time-critical one, and may never
-  change a ranking.
+  rather than from its score or its category. Fresh, high-confidence local evidence may
+  remove a routine opportunity when its own direction is substantially blocked; coarse
+  area or point cloud percentages may not. It may never remove a time-critical event or
+  change intrinsic ranking.
 
   Assignment is per event, not per phenomenon family. A meteor shower is time-critical at
   maximum and routine on the nights either side; a conjunction involving the Moon is

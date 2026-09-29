@@ -80,7 +80,8 @@ export type OpportunityKind =
  * ## Why this is not the significance tier
  *
  * Cloud suppression used to ask the significance model: `favourable` and
- * `notable` survived a closed sky, everything else was withheld. Those are
+ * `notable` survived a coarse closed-sky forecast, everything else was
+ * withheld. Those are
  * answers to a different question. Significance says *how good an observing
  * opportunity this is*; this says *whether missing it costs the reader
  * anything they can get back*. They correlate and they are not the same, and
@@ -94,9 +95,9 @@ export type OpportunityKind =
  *
  * ## The two values
  *
- * `routine` — it comes round again. Withholding it on a night nobody could see
- * it costs the reader nothing, and offering five things none of which are
- * visible is a catalogue with apologies attached.
+ * `routine` — it comes round again. It may be withheld when fresh,
+ * high-confidence local evidence says its own direction is substantially
+ * blocked. A coarse area percentage cannot establish that.
  *
  * `time-critical` — this window is the window. It stays on the rail with the
  * obstruction stated plainly, because a satellite pixel knows nothing about the

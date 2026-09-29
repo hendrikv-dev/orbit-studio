@@ -50,6 +50,7 @@ interface Props {
   conditionsCaption?: string | null;
   /** The forecast state behind the row, for the review harness and for tests. */
   evidenceStatus: string;
+  onShowMap: () => void;
   onPrimaryAction: () => void;
   onReminder: () => void;
   /** An extra hero control, where the event has a second distinct tool. */
@@ -72,6 +73,7 @@ export function PhenomenonPage({
   conditions,
   conditionsCaption,
   evidenceStatus,
+  onShowMap,
   onPrimaryAction,
   onReminder,
   tertiaryAction = null,
@@ -95,29 +97,55 @@ export function PhenomenonPage({
         <p>{subtitleFor(categoryId, nightWord)}</p>
       </div>
 
-      <div className="tk-main-row">
+      <div className="tk-main-row is-concise">
         <EventHero
           presentation={presentation}
           media={media}
           safety={safety}
           expectation={expectation}
-          onPrimary={onPrimaryAction}
+          onShowMap={onShowMap}
           onSecondary={onReminder}
-          tertiary={tertiaryAction}
           finder={finderAction}
         />
-        <aside className="tk-viz-slot" aria-label="Evidence">
-          {visualization}
-        </aside>
       </div>
 
-      <ConditionsRow
-        cards={conditions}
-        caption={conditionsCaption}
-        evidenceStatus={evidenceStatus}
-        // The moment the recommendation is for, which is what the row is about.
-        atUtc={presentation.atUtc}
-      />
+      {conditions.length > 0 ? (
+        <ul className="tk-detail-key-conditions" aria-label="Key observing conditions">
+          {conditions.slice(0, 2).map((condition) => (
+            <li key={condition.id} data-tone={condition.tone}>
+              <span>{condition.label}</span>
+              <strong>{condition.value}</strong>
+              {condition.interpretation ? <small>{condition.interpretation}</small> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <details className="tk-detail-more">
+        <summary>More details</summary>
+        <div className="tk-detail-tools" aria-label="Advanced sky tools">
+          <button type="button" onClick={onPrimaryAction}>
+            {presentation.primaryAction.label}
+          </button>
+          {tertiaryAction ? (
+            <button type="button" onClick={tertiaryAction.onSelect}>
+              {tertiaryAction.label}
+            </button>
+          ) : null}
+        </div>
+        <div className="tk-detail-more-grid">
+          <aside className="tk-viz-slot" aria-label="Sky and event evidence">
+            {visualization}
+          </aside>
+          <ConditionsRow
+            cards={conditions}
+            caption={conditionsCaption}
+            evidenceStatus={evidenceStatus}
+            // The moment the recommendation is for, which is what the row is about.
+            atUtc={presentation.atUtc}
+          />
+        </div>
+      </details>
 
     </div>
   );

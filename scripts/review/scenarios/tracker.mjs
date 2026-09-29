@@ -15,16 +15,16 @@ import { PORTLAND, TRACKER_FIXTURE_AT, stubTracker } from "../../verify/tracker-
  *
  * What it certifies instead is the model the redesign was approved as:
  *
- *   map → select location → observing rail → expand → full detail → Back to map
+ *   map → select location → Tonight briefing → full detail → Back
  *
  * ## State is read from the URL, not from the DOM
  *
  * Tracker serialises its own state into the query string — `pin`, `date`,
- * `show`, `event`, `card`, `globe`, `with`, `layers`. That is the product's own
+ * `show`, `event`, `card`, `mode`, `terrain`, `with`, `layers`. That is the product's own
  * contract with the reader's address bar, so it is the thing worth asserting:
  * it survives restyling, and it says what Tracker *means* rather than which
  * element happened to carry a class this week. The DOM is consulted only for
- * what genuinely is not in the URL — whether a surface is open, what the rail
+ * what genuinely is not in the URL — whether a surface is open, what the briefing
  * is offering, and what the place and date controls read.
  */
 
@@ -157,9 +157,12 @@ export async function readTrackerMapState(page) {
       mapState: shell?.getAttribute("data-map-state") ?? null,
       layersOpen: shell?.getAttribute("data-layers-open") === "true",
       mapPresent: Boolean(document.querySelector(".maplibregl-map canvas")),
+      mapPresentation:
+        document.querySelector(".tk-map-canvas")?.getAttribute("data-map-presentation") ?? null,
 
       // The map-first controls, by the names a reader reaches them by.
       controls: {
+        modes: Boolean(document.querySelector('nav[aria-label="Tracker modes"]')),
         place: Boolean(document.querySelector(".tracker-place-current")),
         date: Boolean(document.querySelector(".tk-date-field")),
         projection: Boolean(document.querySelector('[role="radiogroup"][aria-label="Map projection"]')),
@@ -174,7 +177,8 @@ export async function readTrackerMapState(page) {
       detailEvent: params.get("event"),
       activeEvent: params.get("show"),
       expandedCard: params.get("card"),
-      projection: params.get("globe") === "1" ? "globe" : "flat",
+      primaryMode: params.get("mode") === "tonight" ? "tonight" : "map",
+      projection: params.get("terrain") === "1" || params.get("globe") === "1" ? "terrain" : "flat",
       equipment: params.get("with") ?? "eyes",
       layers: (params.get("layers") ?? "").split(",").filter(Boolean),
 
@@ -193,15 +197,95 @@ export async function readTrackerMapState(page) {
       observer: document.querySelector(".tracker-shell")?.getAttribute("data-observer") ?? null,
       /** The night plan's own identity key, for the same reason. */
       planKey: document.querySelector(".tracker-shell")?.getAttribute("data-plan-identity") ?? null,
+      recoveryReviewActive:
+        document.querySelector(".tracker-shell")?.getAttribute("data-recovery-review") === "true",
+      cloudTimelineState:
+        document.querySelector(".tracker-shell")?.getAttribute("data-cloud-timeline") ?? null,
       placeSearchPresent: Boolean(document.querySelector(".tracker-place-combobox input")),
       eventSearchPresent: Boolean(document.querySelector('.tk-eventfinder-open input[type="search"]')),
-      railPresent: Boolean(document.querySelector(".tk-rail")),
-      railCards: [...document.querySelectorAll(".tk-rail-card")].map((card) => ({
+      recommendationSurfacePresent: Boolean(
+        document.querySelector(".tk-map-recommendation, .tk-tonight-surface"),
+      ),
+      // Retain these field names in the artifact schema for continuity with
+      // the prior cloud-recovery evidence. They now observe the R2 Map/Tonight
+      // presentations, not legacy `.tk-rail` markup.
+      railPresent: Boolean(document.querySelector(".tk-map-recommendation, .tk-tonight-surface")),
+      railCards: [...document.querySelectorAll(
+        ".tk-map-recommendation[data-card], .tk-tonight-surface [data-card]",
+      )].map((card) => ({
         id: card.getAttribute("data-card"),
         reason: card.getAttribute("data-reason"),
-        expanded: card.getAttribute("data-expanded") === "true",
-        name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? null,
+        expanded: false,
+        name:
+          card.querySelector("h2, strong")?.textContent?.trim() ??
+          card.textContent?.replace(/\s+/g, " ").trim() ??
+          null,
       })),
+      railCardIdentities: [...document.querySelectorAll(
+        ".tk-map-recommendation[data-card], .tk-tonight-surface [data-card]",
+      )].map((card) => card.getAttribute("data-card")),
+      recoveryReason:
+        document.querySelector(".tk-recovery-context")?.getAttribute("data-recovery-reason") ?? null,
+      recoveryKind:
+        document.querySelector("[data-recovery-kind]")?.getAttribute("data-recovery-kind") ?? null,
+      recoveryDate:
+        document.querySelector("[data-recovery-date]")?.getAttribute("data-recovery-date") ?? null,
+      recoveryTarget:
+        document.querySelector("[data-recovery-target]")?.getAttribute("data-recovery-target") ?? null,
+      recoveryObserver:
+        document.querySelector("[data-recovery-observer]")?.getAttribute("data-recovery-observer") ?? null,
+      recoveryPlanningKey:
+        document.querySelector("[data-recovery-planning-key]")
+          ?.getAttribute("data-recovery-planning-key") ?? null,
+      recoveryText: [...document.querySelectorAll(
+        '[data-card="recovery-summary"], [data-recovery-kind]',
+      )]
+        .map((node) =>
+          (node instanceof HTMLElement ? node.innerText : node.textContent)
+            ?.replace(/\s+/g, " ")
+            .trim() ?? "",
+        )
+        .filter(Boolean)
+        .join(" · ") || null,
+      reminderPresent: Boolean(
+        document.querySelector(".tk-recovery-meta button"),
+      ),
+      cloudWarning:
+        document.querySelector(".tk-tonight-cloud")
+          ?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      expandedConditions: [],
+      liveFinderEntryPresent: Boolean(
+        document.querySelector(
+          ".tk-map-recommendation .is-finder, .tk-tonight-lead .is-finder, .tk-tonight-row-finder, .tk-action.is-finder",
+        ),
+      ),
+      finderEntryText:
+        (() => {
+          const entry = document.querySelector(
+            ".tk-map-recommendation .is-finder, .tk-tonight-lead .is-finder, .tk-tonight-row-finder, .tk-action.is-finder",
+          );
+          return entry?.textContent?.replace(/\s+/g, " ").trim() || entry?.getAttribute("aria-label") || null;
+        })(),
+      detailMoreOpen: Boolean(document.querySelector(".tk-detail-more[open]")),
+      skyMapActionPresent: [...document.querySelectorAll("button")].some((button) =>
+        /show on map|view sky map|where to look/i.test(button.textContent ?? ""),
+      ),
+      finderDeviceClass:
+        document.querySelector(".tk-sky-finder")?.getAttribute("data-device-class") ?? null,
+      finderExperience:
+        document.querySelector(".tk-sky-finder")?.getAttribute("data-device-experience") ?? null,
+      finderCameraControlPresent: Boolean(
+        document.querySelector('.tk-sky-finder button[aria-label="Turn camera on"]'),
+      ),
+      finderGuidanceControlPresent: Boolean(
+        [...document.querySelectorAll(".tk-sky-finder button")].some((button) =>
+          /start live guidance/i.test(button.textContent ?? ""),
+        ),
+      ),
+      finderPermissionAttempts:
+        Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__)
+          ? [...window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__]
+          : [],
       upcomingOpen: shell?.getAttribute("data-upcoming-open") === "true",
       upcomingPlanningState:
         document.querySelector(".tk-upcoming-sheet")?.getAttribute("data-planning-state") ?? null,
@@ -229,9 +313,13 @@ export async function readTrackerMapState(page) {
 export function trackerShellValidation(state) {
   const failures = [];
   if (!state.shellPresent) failures.push("shell-missing");
-  if (state.mapState !== "map") failures.push(`not-map-first:${state.mapState}`);
+  if (!["map", "tonight"].includes(state.mapState)) failures.push(`not-primary-mode:${state.mapState}`);
   if (!state.mapPresent) failures.push("map-canvas-missing");
-  for (const [name, present] of Object.entries(state.controls ?? {})) {
+  const required = state.mapState === "tonight"
+    ? ["place", "date", "equipment"]
+    : Object.keys(state.controls ?? {});
+  for (const name of required) {
+    const present = state.controls?.[name];
     if (!present) failures.push(`control-missing:${name}`);
   }
   return { ...state, pass: failures.length === 0, failures };
@@ -252,21 +340,110 @@ export function trackerUnselectedValidation(state) {
   return { ...state, pass: failures.length === 0, failures };
 }
 
-/** The rail, checked by which opportunities it names rather than how many. */
+/** The Tonight briefing, checked by which production opportunities it names. */
 export function trackerRailValidation(state, expectedCards) {
   const failures = trackerShellValidation(state).failures.slice();
-  if (!state.railPresent) failures.push("rail-missing");
+  if (!state.recommendationSurfacePresent) failures.push("recommendation-surface-missing");
   const offered = state.railCards.map((card) => card.id);
   if (!offered.includes("upcoming")) failures.push("upcoming-gateway-missing");
   for (const expected of expectedCards) {
     if (!offered.includes(expected)) failures.push(`opportunity-missing:${expected}`);
   }
-  const expanded = state.railCards.filter((card) => card.expanded).map((card) => card.id);
-  if (expanded.length > 1) failures.push(`multiple-cards-expanded:${expanded.join("+")}`);
-  if (state.expandedCard && expanded[0] !== state.expandedCard) {
-    failures.push(`expanded-card-disagrees-with-url:${expanded[0]}!=${state.expandedCard}`);
+  return { ...state, offered, pass: failures.length === 0, failures };
+}
+
+/**
+ * A genuinely blocked night remains an honest no, then points to the nearest
+ * genuinely good window without replacing the rail or its Upcoming gateway.
+ * Coarse area cloud is not sufficient to enter this state.
+ */
+export function trackerRecoveryValidation(state, expected) {
+  const expectation = typeof expected === "string"
+    ? { kind: "chance", date: expected }
+    : expected;
+  const failures = trackerShellValidation(state).failures.slice();
+  if (!state.railPresent) failures.push("rail-missing");
+  if (state.recoveryReason !== (expectation.reason ?? "cloud")) {
+    failures.push(
+      `recovery-reason:${state.recoveryReason}!=${expectation.reason ?? "cloud"}`,
+    );
   }
-  return { ...state, offered, expanded, pass: failures.length === 0, failures };
+  if (state.recoveryKind !== expectation.kind) {
+    failures.push(`recovery-kind:${state.recoveryKind}!=${expectation.kind}`);
+  }
+  if (expectation.date !== undefined && state.recoveryDate !== expectation.date) {
+    failures.push(`recovery-date:${state.recoveryDate}!=${expectation.date}`);
+  }
+  if (["chance", "upcoming"].includes(expectation.kind)) {
+    if (!state.recoveryDate) failures.push("recovery-date-missing");
+    if (!state.recoveryTarget) failures.push("recovery-target-missing");
+  }
+  if (expectation.kind === "chance" && !state.reminderPresent) {
+    failures.push("recovery-reminder-missing");
+  }
+  if (state.recoveryObserver !== state.observer) {
+    failures.push(`recovery-observer:${state.recoveryObserver}!=${state.observer}`);
+  }
+  if (expectation.observer !== undefined && state.observer !== expectation.observer) {
+    failures.push(`observer:${state.observer}!=${expectation.observer}`);
+  }
+  if (!state.planKey) failures.push("current-plan-key-missing");
+  if (!state.recoveryPlanningKey) failures.push("recovery-planning-key-missing");
+
+  const offered = state.railCards.map((card) => card.id);
+  if (!offered.includes("recovery-summary")) failures.push("recovery-summary-missing");
+  const expectedCard = {
+    chance: "next-best-chance",
+    upcoming: "recovery-upcoming",
+    loading: "recovery-loading",
+    none: "recovery-none",
+    error: "recovery-none",
+  }[expectation.kind];
+  if (expectedCard && !offered.includes(expectedCard)) {
+    failures.push(`recovery-card-missing:${expectedCard}`);
+  }
+  if (expectedCard && offered[0] !== expectedCard) {
+    failures.push(`recovery-future-not-first:${offered[0]}!=${expectedCard}`);
+  }
+  if (offered[1] !== "recovery-summary") {
+    failures.push(`recovery-context-not-secondary:${offered[1]}`);
+  }
+  if (!offered.includes("upcoming")) failures.push("upcoming-gateway-missing");
+
+  const ordinary = offered.filter(
+    (id) => ![
+      "recovery-summary",
+      "recovery-loading",
+      "next-best-chance",
+      "recovery-upcoming",
+      "recovery-none",
+      "upcoming",
+    ].includes(id),
+  );
+  if (ordinary.length > 0) failures.push(`clouded-targets-still-offered:${ordinary.join("+")}`);
+  if (!/\bClouded out tonight\b/.test(state.recoveryText ?? "")) {
+    failures.push(`recovery-copy:${state.recoveryText}`);
+  }
+  if (JSON.stringify(state.railCardIdentities) !== JSON.stringify(offered)) {
+    failures.push("rail-card-identities-disagree");
+  }
+  return { ...state, offered, pass: failures.length === 0, failures };
+}
+
+/** A coarse cloudy forecast may caution and re-rank, but not erase the sky. */
+export function trackerCloudUncertaintyValidation(state, expectedCards) {
+  const failures = trackerRailValidation(state, expectedCards).failures.slice();
+  if (state.recoveryReason !== null) {
+    failures.push(`false-empty-recovery:${state.recoveryReason}`);
+  }
+  if (!state.cloudWarning) failures.push("cloud-uncertainty-warning-missing");
+  if (!/not direction-specific/i.test(state.cloudWarning ?? "")) {
+    failures.push(`cloud-warning-overclaims:${state.cloudWarning}`);
+  }
+  if (!/clear gaps/i.test(state.cloudWarning ?? "")) {
+    failures.push(`cloud-warning-omits-gaps:${state.cloudWarning}`);
+  }
+  return { ...state, pass: failures.length === 0, failures };
 }
 
 /** Upcoming stays on the map and may only show results for its declared observer. */
@@ -384,7 +561,7 @@ function assertPass(result, message) {
  * interaction in this scenario — the reader opens the picker and types — so the
  * response behind it has to be the same response every run.
  */
-async function stubGeocoder(context) {
+export async function stubGeocoder(context) {
   await context.route("https://photon.komoot.io/api/**", (route) => {
     const query = new URL(route.request().url()).searchParams.get("q") ?? "";
     const feature = (place, state) => ({
@@ -481,7 +658,7 @@ export const NO_DATA_BODIES = [
   ["**/tiles.mapterhorn.com/**", { tilejson: "2.2.0", tiles: [], minzoom: 0, maxzoom: 15 }],
 ];
 
-async function stubEnvironment(context) {
+export async function stubEnvironment(context) {
   for (const [pattern, body] of NO_DATA_BODIES) {
     await context.route(pattern, (route) =>
       route.fulfill({
@@ -491,6 +668,79 @@ async function stubEnvironment(context) {
       }),
     );
   }
+}
+
+/**
+ * A provider-shaped forecast for the recovery-state leg.
+ *
+ * The selected night is overcast through sunrise. The following night is
+ * clear, so the production planner — not this fixture — must decide which
+ * eligible target is the first one worth returning for.
+ */
+export const CLOUDY_WEATHER_FORECAST = {
+  properties: {
+    meta: { updated_at: "2026-09-03T04:30:00.000Z" },
+    timeseries: Array.from({ length: 60 }, (_, index) => {
+      const at = new Date(Date.parse("2026-09-03T00:00:00.000Z") + index * 3_600_000);
+      const cloud = at < new Date("2026-09-03T16:00:00.000Z") ? 96 : 4;
+      return {
+        time: at.toISOString(),
+        data: {
+          instant: {
+            details: {
+              air_temperature: 12,
+              cloud_area_fraction: cloud,
+              cloud_area_fraction_low: cloud,
+              cloud_area_fraction_medium: 0,
+              cloud_area_fraction_high: 0,
+              relative_humidity: cloud > 90 ? 88 : 52,
+            },
+          },
+          next_1_hours: { details: { precipitation_amount: 0 } },
+        },
+      };
+    }),
+  },
+};
+
+export const CLOUDY_COVER_FORECAST = {
+  hourly: {
+    time: Array.from({ length: 14 }, (_, index) =>
+      new Date(Date.parse("2026-09-03T00:00:00.000Z") + index * 3_600_000)
+        .toISOString()
+        .slice(0, 16),
+    ),
+    cloud_cover: Array.from({ length: 14 }, () => 96),
+  },
+};
+
+async function stubCloudyForecast(page) {
+  // Page routes override the scenario's context-wide unavailable provider.
+  // NWS remains empty, so Tracker reaches its ordinary global fallback.
+  await page.route(
+    "https://api.met.no/weatherapi/locationforecast/2.0/compact**",
+    (route) => {
+      const request = new URL(route.request().url());
+      const portland = request.searchParams.get("lat") === PORTLAND.latitude.toFixed(4);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(portland ? CLOUDY_WEATHER_FORECAST : {}),
+      });
+    },
+  );
+  await page.route(
+    "https://api.open-meteo.com/v1/forecast**",
+    (route) => {
+      const request = new URL(route.request().url());
+      const portland = request.searchParams.get("latitude") === PORTLAND.latitude.toFixed(3);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(portland ? CLOUDY_COVER_FORECAST : {}),
+      });
+    },
+  );
 }
 
 export const trackerReviewScenario = {
@@ -510,29 +760,42 @@ export const trackerReviewScenario = {
   readySelector: ".tracker-shell",
   notes: {
     featuresImplemented: [
-      "Map-first Tracker: the map is the canvas, and location, night, equipment and layers are chosen over it",
+      "Three state-preserving primary modes: Map for spatial context, Tonight for decisions, and Sky for the selected target",
+      "Map-first Tracker keeps the default top-down canvas, with location, night, equipment and layers chosen over it and one compact recommendation kept secondary",
+      "The 3D map presentation reuses the production DEM as real oblique terrain, with pitch and rotation, instead of switching to a globe",
+      "Tonight is a dedicated vertical briefing built from the production recommendation, recovery and Upcoming pipelines",
+      "Sky starts live handheld guidance directly from the original Find in sky tap; desktop keeps a sensor-free preview",
+      "Object detail is concise by default, with the visualization and full evidence available under More details",
       "Place selection through the map's own picker, with the search revealed by the trigger rather than always present",
-      "An observing rail of ranked opportunities for the selected place and night, one expanded at a time",
-      "An Upcoming gateway in that rail, opening a map-overlay sheet with 7-day, 30-day, 3-month and one-year ranges",
+      "Production-ranked observing opportunities presented as one compact Map answer and a dedicated Tonight briefing",
+      "An empty-night recovery briefing that names the nearest forecast-backed good window or reuses Upcoming as its fallback",
+      "Cloud uncertainty that re-ranks and cautions without letting a non-directional percentage erase bright targets",
+      "An Upcoming gateway inside Tonight, opening a map-overlay sheet with 7-day, 30-day, 3-month and one-year ranges",
       "Upcoming is observer-scoped: changing the place while the sheet is open withdraws the prior plan and recomputes the list in place",
-      "Full event detail entered from the rail, with Back restoring the map, the place, the night and the open card",
+      "Full event detail entered from Map or Tonight, with Back restoring the exact prior mode, place, night and selected target",
       "Notable-event search that moves the map and the night to the event while keeping the observing location",
       "Equipment-aware ranking, with telescope-only targets appearing only under a telescope",
       "Observer-scoped invalidation: moving between two places re-answers everything that depends on the place, and returning restores the first place's answers through both the picker and the map",
     ],
     knownLimitations: [
-      "The basemap is stubbed to an empty style so a run cannot depend on a tile provider; the map chrome, pin and overlays are real, the streets are not drawn.",
-      "Weather, air quality and the aurora nowcast are deliberately refused, so this package shows Tracker degrading honestly rather than a forecast.",
+      "Map evidence uses the production OpenFreeMap basemap and Mapterhorn DEM so geography and relief remain visible; those captures therefore depend on the declared third-party tile services.",
+      "Automated handheld states exercise the real permission and fallback orchestration with deterministic browser stubs; they do not claim physical gyroscope accuracy or camera-based visual verification.",
+      "Weather, air quality and the aurora nowcast are deliberately refused in the general tour; the final cloud leg supplies deterministic provider-shaped forecasts to prove uncertainty handling.",
       "Cloud and light-pollution layer behaviour is certified by their own gates; this scenario only proves the layer surface opens and closes without losing state.",
-      "The location round-trip leg drives the map path by writing the pin into the query string the shell itself reads, rather than by hand-mocking the map's event system; the rail, observer and plan answers it asserts are recomputed from that location by the production path.",
+      "The location round-trip leg drives the map path by writing the pin into the query string the shell itself reads, rather than by hand-mocking the map's event system; the recommendation, observer and plan answers it asserts are recomputed from that location by the production path.",
     ],
     expectedReviewFocus: [
-      "Verify the map is still the primary canvas at every step short of full detail.",
+      "Verify Map, Tonight and Sky preserve one observer/date/target context while giving each task a distinct hierarchy.",
+      "Verify Map is top-down by default and the 3D toggle produces pitched, rotatable DEM terrain without losing target state.",
+      "Verify Map keeps the recommendation compact while Tonight exposes the full production briefing and Upcoming gateway.",
+      "Verify one phone tap starts live Finder orchestration, tablets remain usable in both orientations, and desktop exposes only preview behavior.",
+      "Verify object detail is concise until More details is expanded.",
       "Verify the place search does not exist until the location trigger is opened.",
-      "Verify Back from full detail restores the place, the night and the expanded card.",
+      "Verify Back from full detail restores the exact prior mode, place, night and selected target.",
       "Verify a telescope adds targets the naked eye is not offered.",
-      "Verify moving between two places re-answers the rail for the new place and that returning restores the first place's answers.",
+      "Verify moving between two places re-answers the briefing for the new place and that returning restores the first place's answers.",
       "Verify Upcoming opens over the map, changes planning range, and declares the same observer for the sheet, completed plan and map shell.",
+      "Verify a coarse cloudy forecast keeps the Moon and Saturn available, marks the forecast as non-directional, and says clear gaps remain possible.",
     ],
   },
 
@@ -544,9 +807,43 @@ export const trackerReviewScenario = {
    * of the things being certified.
    */
   async prepare({ context, page }) {
+    await context.addInitScript(() => {
+      const attempts = [];
+      Object.defineProperty(window, "__ORBIT_FINDER_PERMISSION_ATTEMPTS__", {
+        configurable: true,
+        value: attempts,
+      });
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        value: {
+          getUserMedia: async () => {
+            attempts.push("camera");
+            throw new DOMException("Review camera denied", "NotAllowedError");
+          },
+        },
+      });
+      class ReviewOrientationEvent extends Event {}
+      ReviewOrientationEvent.requestPermission = async () => {
+        attempts.push("orientation");
+        return "granted";
+      };
+      class ReviewMotionEvent extends Event {}
+      ReviewMotionEvent.requestPermission = async () => {
+        attempts.push("motion");
+        return "granted";
+      };
+      Object.defineProperty(window, "DeviceOrientationEvent", {
+        configurable: true,
+        value: ReviewOrientationEvent,
+      });
+      Object.defineProperty(window, "DeviceMotionEvent", {
+        configurable: true,
+        value: ReviewMotionEvent,
+      });
+    });
     await page.clock.setFixedTime(REVIEW_AT);
     await stubTracker(context, {
-      basemap: "empty",
+      basemap: "live",
       satellites: "unavailable",
       // The review is the one caller that needs a clean browser console, so the
       // refused feed answers with an empty body rather than a 503. The
@@ -607,7 +904,7 @@ export const trackerReviewScenario = {
     const waitForRailLeg = async (leg) => {
       await page.waitForFunction(
         ({ offered, withheld }) => {
-          const ids = [...document.querySelectorAll(".tk-rail-card")].map((card) =>
+          const ids = [...document.querySelectorAll(".tk-tonight-surface [data-card]")].map((card) =>
             card.getAttribute("data-card"),
           );
           return (
@@ -666,28 +963,73 @@ export const trackerReviewScenario = {
     await placeSearch.pressSequentially(PORTLAND.name, { delay: 40 });
     await page.locator('[role="option"]').first().waitFor({ timeout: 20_000 });
     await page.locator('[role="option"]').first().click();
-    await page.locator(".tk-rail").waitFor({ timeout: 30_000 });
+    await page.locator(".tk-map-recommendation").waitFor({ timeout: 30_000 });
     await settle(2_500);
 
-    const located = assertPass(
-      trackerRailValidation(await read(), EXPECTED_NAKED_EYE_CARDS),
-      "Selecting a location did not produce the expected observing rail",
-    );
+    const located = await read();
     if (located.pin !== REVIEW_PIN) {
       throw new Error(`The selected location is not in Tracker's own state: pin=${located.pin}`);
     }
     if (located.placeLabel !== PORTLAND.name) {
       throw new Error(`The map does not show the selected place: ${located.placeLabel}`);
     }
-    await captureSurface("tracker-location-selected", located);
+    if (
+      located.mapState !== "map" ||
+      located.mapPresentation !== "mercator" ||
+      located.railCards[0]?.id !== DETAIL_CARD ||
+      located.railCards.some((card) => card.id === "upcoming")
+    ) {
+      throw new Error(`Map did not keep the recommendation secondary: ${JSON.stringify(located)}`);
+    }
+    await captureSurface("tracker-map-2d", located);
 
-    // 2b. Future discovery is a gateway in this same rail and a sheet over the
-    //     same map. Its completed worker plan must name the shell's exact
+    // The same authoritative state over the real DEM, not a globe or a second
+    // scene. Selection, observer and plan identity must remain unchanged.
+    await page.getByRole("radio", { name: /Oblique terrain/ }).click();
+    await settle(1_200);
+    const terrain = await read();
+    const terrainRuntime = await page.evaluate(() => ({
+      source: window.__trackerMap?.getTerrain?.()?.source ?? null,
+      pitch: Math.round(window.__trackerMap?.getPitch?.() ?? 0),
+      rotation: window.__trackerMap?.dragRotate?.isEnabled?.() ?? false,
+    }));
+    if (
+      terrain.projection !== "terrain" ||
+      terrain.mapPresentation !== "terrain" ||
+      terrainRuntime.source !== "tracker-terrain-3d-dem" ||
+      terrainRuntime.pitch < 55 ||
+      !terrainRuntime.rotation ||
+      terrain.observer !== located.observer ||
+      terrain.planKey !== located.planKey ||
+      terrain.pin !== located.pin
+    ) {
+      throw new Error(`3D terrain did not preserve the map state: ${JSON.stringify({ terrain, terrainRuntime })}`);
+    }
+    await captureSurface("tracker-map-3d-terrain", terrain);
+    await page.getByRole("radio", { name: /Top-down map/ }).click();
+    await settle(700);
+
+    // Tonight is the complete ranked decision surface. It consumes the same
+    // cards and puts Upcoming inside the briefing rather than beside Map.
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.locator(".tk-tonight-planning").waitFor({ timeout: 10_000 });
+    await settle(900);
+    const tonight = assertPass(
+      trackerRailValidation(await read(), EXPECTED_NAKED_EYE_CARDS),
+      "Tonight did not expose the production ranked briefing",
+    );
+    if (tonight.mapState !== "tonight" || tonight.primaryMode !== "tonight") {
+      throw new Error(`Tonight mode was not recorded: ${JSON.stringify(tonight)}`);
+    }
+    await captureSurface("tracker-tonight-normal", tonight);
+
+    // 2b. Future discovery is a gateway inside Tonight and a sheet over the
+    //     same shared state. Its completed worker plan must name the shell's exact
     //     observer. A place change while it is open must replace that identity
     //     in place rather than leaving Portland's future attached to Greenbelt.
     const tourClose = page.getByRole("button", { name: "Close the tour" });
     if (await tourClose.isVisible()) await tourClose.click();
-    await page.locator('[data-gateway="upcoming"] .tk-rail-card-head').click();
+    await page.locator(".tk-tonight-planning").click();
     const upcoming = assertPass(
       trackerUpcomingValidation(await waitForUpcoming("30-days")),
       "Upcoming did not open with a current observer-scoped plan",
@@ -735,7 +1077,7 @@ export const trackerReviewScenario = {
     const advanced = await read();
     if (advanced.date !== NEXT_NIGHT) throw new Error(`Next night did not advance: ${advanced.date}`);
     if (advanced.pin !== REVIEW_PIN) throw new Error("Changing the night lost the selected location.");
-    if (advanced.mapState !== "map") throw new Error("Changing the night left the map.");
+    if (advanced.mapState !== "tonight") throw new Error("Changing the night left Tonight.");
     await captureSurface("tracker-night-advanced", advanced);
     await page.getByRole("button", { name: "Previous night" }).click();
     await settle(2_500);
@@ -744,22 +1086,27 @@ export const trackerReviewScenario = {
       throw new Error(`Previous night did not return to the pinned night: ${returned.date}`);
     }
 
-    // 4. A card expands through the product's own control, and only one does.
-    await page.locator(`.tk-rail-card[data-card="${DETAIL_CARD}"] .tk-rail-card-head`).click();
-    await settle(1_200);
-    const expanded = assertPass(
+    // 4. The leading Tonight recommendation exposes detail and Sky directly;
+    // there is no legacy in-place card expansion in the new briefing.
+    const leading = assertPass(
       trackerRailValidation(await read(), EXPECTED_NAKED_EYE_CARDS),
-      "Expanding an opportunity broke the rail",
+      "The leading opportunity broke the Tonight briefing",
     );
-    if (expanded.expandedCard !== DETAIL_CARD) {
-      throw new Error(`Expanding a card did not record it: card=${expanded.expandedCard}`);
+    if (leading.railCards[0]?.id !== DETAIL_CARD) {
+      throw new Error(`Tonight did not lead with the expected target: ${leading.railCards[0]?.id}`);
     }
-    if (expanded.mapState !== "map") throw new Error("Expanding a card replaced the map.");
-    await captureSurface("tracker-rail-expanded", expanded);
+    if (leading.mapState !== "tonight") throw new Error("Reading the leading target replaced Tonight.");
+    if (!leading.liveFinderEntryPresent || !/Preview in sky/i.test(leading.finderEntryText ?? "")) {
+      throw new Error("Desktop briefing did not expose the intentional Sky preview entry.");
+    }
+    if (leading.finderPermissionAttempts.length > 0) {
+      throw new Error(`Desktop browsing requested Finder permissions: ${leading.finderPermissionAttempts}`);
+    }
+    await captureSurface("tracker-tonight-leading-target", leading);
 
     // 5. Full detail, and the way back.
     const beforeDetail = await read();
-    await page.getByRole("button", { name: /View full details/i }).click();
+    await page.getByRole("button", { name: /View details/i }).click();
     await page.waitForFunction(
       () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "detail",
       undefined,
@@ -770,20 +1117,70 @@ export const trackerReviewScenario = {
     if (detail.detailEvent !== DETAIL_CARD) {
       throw new Error(`Full detail did not open the expanded opportunity: event=${detail.detailEvent}`);
     }
-    await captureSurface("tracker-event-detail", detail);
+    if (
+      !detail.skyMapActionPresent ||
+      !detail.liveFinderEntryPresent ||
+      !/Preview in sky/i.test(detail.finderEntryText ?? "") ||
+      detail.detailMoreOpen
+    ) {
+      throw new Error("Desktop detail did not open in its concise preview-capable state.");
+    }
+    if (detail.finderPermissionAttempts.length > 0) {
+      throw new Error(`Desktop detail requested Finder permissions: ${detail.finderPermissionAttempts}`);
+    }
+    await captureSurface("tracker-object-detail-collapsed", detail);
 
-    await page.getByRole("button", { name: /Back to the map/i }).click();
+    await page.getByText("More details", { exact: true }).click();
+    await settle(500);
+    const detailExpanded = await read();
+    if (!detailExpanded.detailMoreOpen) {
+      throw new Error("The detail disclosure did not expose advanced evidence.");
+    }
+    await captureSurface("tracker-object-detail-expanded", detailExpanded);
+
+    await page.getByRole("button", { name: /Back to Tonight/i }).click();
     await page.waitForFunction(
-      () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "map",
+      () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "tonight",
       undefined,
       { timeout: 30_000 },
     );
     await settle(2_500);
-    const restored = assertPass(
-      trackerBackToMapValidation(beforeDetail, await read()),
-      "Back from full detail did not restore the map the reader left",
+    const restored = await read();
+    if (
+      restored.mapState !== "tonight" ||
+      restored.pin !== beforeDetail.pin ||
+      restored.date !== beforeDetail.date ||
+      restored.expandedCard !== beforeDetail.expandedCard ||
+      restored.equipment !== beforeDetail.equipment
+    ) {
+      throw new Error(`Back from detail did not restore Tonight: ${JSON.stringify(restored)}`);
+    }
+    await captureSurface("tracker-detail-back-to-tonight", restored);
+
+    // The same target action becomes an intentional preview on desktop. It
+    // must expose neither protected controls nor permission calls.
+    await page.getByRole("button", { name: /Preview in sky/i }).first().click();
+    await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
+    await settle(700);
+    const desktopPreview = await read();
+    if (
+      desktopPreview.mapState !== "finder" ||
+      desktopPreview.finderDeviceClass !== "desktop" ||
+      desktopPreview.finderExperience !== "preview" ||
+      desktopPreview.finderCameraControlPresent ||
+      desktopPreview.finderGuidanceControlPresent ||
+      desktopPreview.finderPermissionAttempts.length > 0
+    ) {
+      throw new Error(`Desktop Finder policy failed: ${JSON.stringify(desktopPreview)}`);
+    }
+    await captureSurface("tracker-sky-preview-desktop", desktopPreview);
+    await page.getByRole("button", { name: "Close Sky Finder" }).click();
+    await page.waitForFunction(
+      () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "tonight",
+      undefined,
+      { timeout: 20_000 },
     );
-    await captureSurface("tracker-back-to-map", restored);
+    await settle(700);
 
     // 6. A telescope is offered what the eyes are not.
     await page.getByRole("button", { name: /Observing with: .*Change/ }).click();
@@ -811,7 +1208,10 @@ export const trackerReviewScenario = {
       throw new Error(`Returning to the naked eye did not take: with=${eyesAgain.equipment}`);
     }
 
-    // 7. Layers open and close over the map without costing the reader anything.
+    // 7. Layers remain Map tools. Switching presentation does not change the
+    // observer/date/card state they act on.
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+    await settle(500);
     const beforeLayers = await read();
     await page.getByRole("button", { name: /^Layers/ }).click();
     await settle(800);
@@ -830,21 +1230,7 @@ export const trackerReviewScenario = {
       }
     }
 
-    // 8. Projection is a state, not a label.
-    await page.getByRole("radio", { name: /Globe \(3D\)/i }).click();
-    await settle(2_500);
-    const globe = await read();
-    if (globe.projection !== "globe") throw new Error("The 3D control did not change the projection.");
-    if (globe.pin !== REVIEW_PIN || globe.expandedCard !== beforeLayers.expandedCard) {
-      throw new Error("Switching to the globe lost the reader's place or open card.");
-    }
-    await captureSurface("tracker-projection-globe", globe);
-    await page.getByRole("radio", { name: /Flat map \(2D\)/i }).click();
-    await settle(2_000);
-    const flat = await read();
-    if (flat.projection !== "flat") throw new Error("The 2D control did not restore the flat map.");
-
-    // 8b. Moving between two places updates every observer-dependent answer,
+    // 8. Moving between two places updates every observer-dependent answer,
     //     and returning to the first place restores all of them — through both
     //     of the paths that set a location. The rail needs a place whose sky
     //     differs to see the difference, so the light-pollution measurement is
@@ -857,6 +1243,8 @@ export const trackerReviewScenario = {
       await settle(800);
     };
     await openLightPollutionMeasurement();
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await settle(700);
 
     const greenbeltLeg = trackerReviewFixtures.locationLegRail.greenbelt;
     const washingtonLeg = trackerReviewFixtures.locationLegRail.washington;
@@ -908,6 +1296,8 @@ export const trackerReviewScenario = {
 
     // Leave the leg as it was found: the measurement off and the reader in
     // Portland, so the next step starts from the state it has always assumed.
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+    await settle(500);
     await page.getByRole("button", { name: /^Layers/ }).click();
     await settle(600);
     await page.getByRole("switch", { name: "Light pollution" }).click();
@@ -915,6 +1305,8 @@ export const trackerReviewScenario = {
     await settle(800);
     await selectPlaceBySearch(PORTLAND.name);
     await settle(2_500);
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await settle(700);
     const portlandRestored = await read();
     if (portlandRestored.pin !== REVIEW_PIN) {
       throw new Error(`The location leg did not restore the review place: pin=${portlandRestored.pin}`);
@@ -927,6 +1319,8 @@ export const trackerReviewScenario = {
     // 9. Finding a notable event moves the map and the night to it, and keeps
     //    the observing location, which is a different question from where the
     //    map is looking.
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+    await settle(500);
     const eventSearchBefore = await read();
     if (eventSearchBefore.eventSearchPresent) {
       throw new Error("The event search existed before the finder was opened.");
@@ -953,7 +1347,145 @@ export const trackerReviewScenario = {
     }
     if (found.pin !== REVIEW_PIN) throw new Error("Choosing an event moved the observing location.");
     if (found.mapState !== "map") throw new Error("Choosing an event left the map.");
-    if (!found.railPresent) throw new Error("Choosing an event removed the observing rail.");
+    if (!found.recommendationSurfacePresent) throw new Error("Choosing an event removed the Map recommendation.");
     await captureSurface("tracker-event-selected", found);
+
+    // 10. A coarse cloudy forecast may lower quality and caution, but it cannot
+    //     erase a bright target without target-direction evidence. This is the
+    //     real-world Moon/Saturn failure mode: both remain in the rail and the
+    //     expanded warning names the uncertainty and the possibility of gaps.
+    await stubCloudyForecast(page);
+    await page.goto(
+      `${trackerReviewScenario.reviewUrl}&mode=tonight&at=${encodeURIComponent(REVIEW_PIN)}&z=8&pin=${encodeURIComponent(REVIEW_PIN)}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await page.locator(".maplibregl-map canvas").waitFor({ timeout: 30_000 });
+    await page.waitForFunction(
+      () => {
+        const ids = [...document.querySelectorAll(".tk-tonight-surface [data-card]")].map((card) =>
+          card.getAttribute("data-card"),
+        );
+        return ids.includes("planet-saturn") && ids.includes("moon");
+      },
+      undefined,
+      { timeout: 60_000 },
+    );
+    await page.locator('.tk-tonight-lead[data-card="planet-saturn"] .tk-tonight-cloud').waitFor({
+      timeout: 30_000,
+    });
+    await settle(1_500);
+    const cloudy = assertPass(
+      trackerCloudUncertaintyValidation(await read(), ["planet-saturn", "moon"]),
+      "A non-directional cloudy forecast erased or overclaimed the visible sky",
+    );
+    await captureSurface("tracker-cloud-uncertainty", cloudy);
+
+    // 11. The original Find in sky tap starts the phone flow. There is no
+    // redundant Guide/Lock/Start control, and protected calls do not occur
+    // before that explicit tap.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+      });
+      Object.defineProperty(navigator, "platform", { configurable: true, value: "iPhone" });
+      Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 5 });
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      `${trackerReviewScenario.reviewUrl}&at=${encodeURIComponent(REVIEW_PIN)}` +
+        `&z=8&pin=${encodeURIComponent(REVIEW_PIN)}&card=${DETAIL_CARD}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await page.locator(`.tk-map-recommendation[data-card="${DETAIL_CARD}"]`).waitFor({ timeout: 30_000 });
+    const phoneEntry = await read();
+    if (!phoneEntry.liveFinderEntryPresent || phoneEntry.finderPermissionAttempts.length > 0) {
+      throw new Error(`Phone Finder entry requested permission too early: ${JSON.stringify(phoneEntry)}`);
+    }
+    await page.locator(".tk-map-recommendation .is-finder").click();
+    await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
+    await page.waitForFunction(
+      () =>
+        Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__) &&
+        window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__.includes("orientation"),
+      undefined,
+      { timeout: 10_000 },
+    );
+    await settle(500);
+    const phoneFinder = await read();
+    if (
+      phoneFinder.finderDeviceClass !== "handheld" ||
+      phoneFinder.finderExperience !== "live" ||
+      phoneFinder.finderGuidanceControlPresent ||
+      !phoneFinder.finderPermissionAttempts.includes("camera")
+    ) {
+      throw new Error(`Phone automatic Finder launch failed: ${JSON.stringify(phoneFinder)}`);
+    }
+    await captureSurface("tracker-phone-live-sky-auto", phoneFinder);
+
+    // 12. A tablet remains a physical pointing device in both orientations,
+    // even at a desktop-like landscape width. The review exposes permission
+    // paths but never fabricates an orientation event or a successful lock.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit Version/18 Mobile/15E148 Safari",
+      });
+      Object.defineProperty(navigator, "platform", {
+        configurable: true,
+        value: "MacIntel",
+      });
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 5,
+      });
+      Object.defineProperty(navigator, "userAgentData", {
+        configurable: true,
+        value: { mobile: false, platform: "macOS" },
+      });
+    });
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await page.goto(
+      `${trackerReviewScenario.reviewUrl}&at=${encodeURIComponent(REVIEW_PIN)}` +
+        `&z=8&pin=${encodeURIComponent(REVIEW_PIN)}&card=${DETAIL_CARD}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await page.locator(`.tk-map-recommendation[data-card="${DETAIL_CARD}"]`).waitFor({
+      timeout: 30_000,
+    });
+    await page.locator(".tk-map-recommendation .is-finder").waitFor({ timeout: 10_000 });
+    await settle(900);
+    const tabletEntry = await read();
+    if (!tabletEntry.liveFinderEntryPresent || tabletEntry.finderPermissionAttempts.length > 0) {
+      throw new Error(`Tablet Finder entry policy failed: ${JSON.stringify(tabletEntry)}`);
+    }
+    await captureSurface("tracker-tablet-portrait-finder-entry", tabletEntry);
+
+    await page.locator(".tk-map-recommendation .is-finder").click();
+    await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
+    await settle(500);
+    const tabletPortrait = await read();
+    if (
+      tabletPortrait.finderDeviceClass !== "handheld" ||
+      tabletPortrait.finderExperience !== "live" ||
+      !tabletPortrait.finderCameraControlPresent ||
+      tabletPortrait.finderGuidanceControlPresent ||
+      !tabletPortrait.finderPermissionAttempts.includes("orientation")
+    ) {
+      throw new Error(`Tablet portrait Finder capability failed: ${JSON.stringify(tabletPortrait)}`);
+    }
+    await captureSurface("tracker-tablet-portrait-live-finder", tabletPortrait);
+
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await settle(700);
+    const tabletLandscape = await read();
+    if (
+      tabletLandscape.finderDeviceClass !== "handheld" ||
+      tabletLandscape.finderExperience !== "live" ||
+      !tabletLandscape.finderPermissionAttempts.includes("orientation")
+    ) {
+      throw new Error(`Tablet landscape Finder policy failed: ${JSON.stringify(tabletLandscape)}`);
+    }
+    await captureSurface("tracker-tablet-landscape-live-finder", tabletLandscape);
   },
 };

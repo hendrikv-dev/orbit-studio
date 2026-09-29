@@ -1,8 +1,8 @@
 import { useRef, type KeyboardEvent } from "react";
-import { Globe, Map as MapIcon } from "lucide-react";
+import { Map as MapIcon, Mountain } from "lucide-react";
 
 /**
- * Mercator or globe, as one control with two states.
+ * Top-down map or oblique terrain, as one control with two states.
  *
  * ## Why it is not in the control stack on the right
  *
@@ -26,13 +26,13 @@ import { Globe, Map as MapIcon } from "lucide-react";
  */
 
 interface Props {
-  projection: "mercator" | "globe";
-  onSelect: (projection: "mercator" | "globe") => void;
+  projection: "mercator" | "terrain";
+  onSelect: (projection: "mercator" | "terrain") => void;
 }
 
 const MODES = [
-  { id: "mercator" as const, label: "2D", icon: MapIcon, description: "Flat map" },
-  { id: "globe" as const, label: "3D", icon: Globe, description: "Globe" },
+  { id: "mercator" as const, label: "2D", icon: MapIcon, description: "Top-down map" },
+  { id: "terrain" as const, label: "3D", icon: Mountain, description: "Oblique terrain" },
 ];
 
 export function TrackerProjectionToggle({ projection, onSelect }: Props) {

@@ -13,6 +13,20 @@ Sky Finder is a projection of Tracker’s existing observing opportunities. It d
 
 Historical or future selected dates enter an explicitly labelled preview. Live camera and phone alignment are disabled there, so a physical phone is never guided using stale/future coordinates.
 
+The Finder can add restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source, identifies its IAU constellation when that is scientifically meaningful, and projects nearby HYG v4.1 bright stars into an approximate target-centred field. That catalog is loaded lazily on Finder entry and recalculated on the slow astronomy cadence, never in the sensor loop. The layer is labelled **Expected star field**, appears in desktop preview or after sensor alignment, and does not set visual-verification state. Moving sampled targets such as satellites deliberately omit a made-up constellation label.
+
+## Device-class eligibility and permission boundary
+
+Live point-and-look guidance is a handheld feature. `classifySkyFinderDevice` combines mobile or tablet client hints and user-agent evidence with touch, coarse-pointer, hover, platform, and maximum-touch-point signals. Viewport width is deliberately excluded: a landscape tablet remains eligible, while a narrow desktop window and a desktop webcam do not become a live Finder.
+
+The device-class decision is applied before individual capability checks:
+
+- an eligible phone or tablet with orientation support can enter live guidance;
+- an eligible phone or tablet with partial support receives the existing sensor or direction-only fallback;
+- a desktop, laptop, or unknown class receives a selected-time sky preview with altitude, azimuth, direction, observability, and detail navigation, but no camera or guidance-permission controls.
+
+Camera, orientation, and motion access is requested only from an eligible handheld and only from the reader’s original **Find in sky** action. `beginSkyFinderLaunch` starts protected calls synchronously inside that user-activation task, then the mounted Finder consumes the resulting permission/stream promises. There is no second Start/Guide/Lock control. Ordinary map, Tonight, Upcoming, detail, and desktop-preview use does not call protected APIs. Camera frames remain local and Phase 1/2 does not claim visual verification.
+
 ## Capability degradation
 
 | Available capability | Behavior |
@@ -22,6 +36,8 @@ Historical or future selected dates enter an explicitly labelled preview. Live c
 | Relative orientation only | Directional guidance; alignment is withheld until manual calibration |
 | No orientation | Existing altitude/azimuth direction guidance |
 | Camera denied or failed | Sensor guidance continues; denial is stated |
+| Desktop/laptop, including a webcam-equipped desktop | Sky preview only; protected camera and sensor APIs are not requested |
+| Tablet without usable orientation | Direction-only handheld fallback |
 | Historical/future date | Selected-time preview; no live camera/alignment claim |
 
 Browser access to camera, geolocation, and several sensor APIs requires HTTPS or localhost. iOS browsers may require a user gesture and `requestPermission()` for orientation/motion. Android browsers more commonly emit orientation directly. Magnetic accuracy is not consistently reported, so missing accuracy is described as usable or low confidence rather than invented as a number.

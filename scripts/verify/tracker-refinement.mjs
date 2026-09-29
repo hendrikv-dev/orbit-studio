@@ -41,41 +41,27 @@ async function stub(context, { basemap = true, satellites = "unavailable" } = {}
   await stubTracker(context, { basemap: basemap ? "empty" : "live", satellites });
 }
 
-/**
- * Where the expanded card sits inside the part of the rail that can be seen.
- *
- * The usable viewport is not the strip: the map's zoom and locate buttons float
- * over its right-hand end, and a card reaching under them is not visible however
- * much of it is inside the scroller. Measured the same way the component
- * measures it, so the gate is checking the rule rather than a restatement of it.
- */
-async function railFraming(page) {
+const seed = (context, place = PORTLAND) => seedPlace(context, place);
+
+/** Geometry of Map's single recommendation inside the usable map width. */
+async function recommendationFraming(page) {
   return page.evaluate(() => {
-    const strip = document.querySelector(".tk-rail-scroll");
-    const card = document.querySelector('.tk-rail-card[data-expanded="true"]');
-    if (!strip || !card) return null;
-    const box = strip.getBoundingClientRect();
-    const controls = document.querySelector(".tk-map-controls-view");
-    const over = controls?.getBoundingClientRect();
-    const overlaps =
-      over &&
-      over.left < box.right &&
-      over.right > box.left &&
-      over.top < box.bottom &&
-      over.bottom > box.top;
-    const right = overlaps ? Math.min(box.right, over.left) : box.right;
+    const card = document.querySelector(".tk-map-recommendation");
+    if (!card) return null;
     const rect = card.getBoundingClientRect();
+    const controls = document.querySelector(".tk-map-controls-view")?.getBoundingClientRect();
+    const usableRight = controls && controls.top < rect.bottom && controls.bottom > rect.top
+      ? Math.min(window.innerWidth, controls.left)
+      : window.innerWidth;
     return {
-      name: card.querySelector(".tk-rail-card-name")?.textContent?.trim() ?? "",
-      clippedLeft: Math.round(Math.max(0, box.left - rect.left)),
-      clippedRight: Math.round(Math.max(0, rect.right - right)),
-      scrollLeft: Math.round(strip.scrollLeft),
-      maxScroll: Math.round(strip.scrollWidth - strip.clientWidth),
+      name: card.querySelector("strong")?.textContent?.trim() ?? "",
+      clippedLeft: Math.round(Math.max(0, -rect.left)),
+      clippedRight: Math.round(Math.max(0, rect.right - usableRight)),
+      scrollLeft: 0,
+      maxScroll: 0,
     };
   });
 }
-
-const seed = (context, place = PORTLAND) => seedPlace(context, place);
 
 /**
  * Luma statistics for a strip of what is actually on screen.
@@ -192,23 +178,8 @@ async function openLayerPanel(page) {
 }
 
 async function openEventReading(page) {
-  await page.waitForSelector(".tk-rail-card", { timeout: 45_000 });
-  // The reading belongs to the selected event's own card, so opening whichever
-  // card happens to be first would usually open the wrong one. Selecting an
-  // event puts its card id in the URL; that is the card to open.
-  const wanted = await page.evaluate(() => new URLSearchParams(location.search).get("card"));
-  const target = wanted
-    ? page.locator(`.tk-rail-card[data-card="${wanted}"]`)
-    : page.locator(".tk-rail-card").first();
-  if ((await target.count()) > 0) {
-    if ((await target.getAttribute("data-expanded")) !== "true") {
-      await target.locator(".tk-rail-card-head").click();
-    }
-    await page.waitForTimeout(700);
-    if ((await page.locator(".tk-map-event-reading").count()) > 0) return true;
-  }
-  // No card for it here: the event is drawn but not observable from this place,
-  // and the reading falls back to the layers menu beside the event's name.
+  // R2 keeps Map compact, so the selected event's geographic reading lives in
+  // the Layers surface rather than behind an expandable recommendation card.
   await openLayerPanel(page);
   await page.waitForTimeout(400);
   // Left open: the caller reads the reading out of it.
@@ -453,7 +424,7 @@ async function main() {
     const chosen = (await page.locator('[role="option"]').first().innerText()).split("\n")[0].trim();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
-    await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     // Long enough for a reverse lookup to have come back and overwritten it.
     await page.waitForTimeout(6000);
     // The top bar names the place and then qualifies it — "Wood Village" over
@@ -524,12 +495,12 @@ async function main() {
       "and the control says so",
     );
     check(
-      (await page.locator(".tk-map-shell .tracker-nav").count()) === 0,
-      "there are no Tonight/Upcoming tabs on the map",
+      (await page.locator('.tk-mode-nav button[aria-current="page"]', { hasText: "Map" }).count()) === 1,
+      "Map remains the selected primary mode after the date round trip",
     );
     check(
       (await page.evaluate(() => new URLSearchParams(location.search).get("mode"))) === null,
-      "the URL no longer carries a view mode",
+      "the default Map mode stays canonical without a URL flag",
     );
     await context.close();
   }
@@ -544,16 +515,9 @@ async function main() {
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=9&date=2026-09-12&layers=twilight`, { waitUntil: "domcontentloaded" });
     await settled(page, 2000);
 
-    await page.waitForSelector(".tk-rail-card", { timeout: 60_000 });
-    if ((await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0) {
-      await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
-      await page.waitForTimeout(600);
-    }
-    // Captured with the card already open, because which card is open is part
-    // of the map state Back has to restore. Reading it before the expansion
-    // would be asking Back to return to a screen that was never left.
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 60_000 });
     const before = await page.evaluate(() => location.search);
-    const action = page.locator(".tk-rail-details").first();
+    const action = page.getByRole("button", { name: "Details", exact: true });
     await action.waitFor({ timeout: 60_000 });
     check(
       (await action.locator("svg.lucide-external-link").count()) === 0,
@@ -598,17 +562,21 @@ async function main() {
         heading: left(".tk-page-heading h1"),
         subtitle: left(".tk-page-heading p"),
         hero: left(".tracker-hero"),
-        conditions: left(".tk-conditions-row, .tk-conditions"),
+        conditions: left(".tk-detail-key-conditions"),
       };
     });
     const distinct = [...new Set(Object.values(edges).filter((value) => value !== null))];
     check(
       distinct.length === 1,
-      `back, heading, subtitle, hero and conditions share one left edge (${JSON.stringify(edges)})`,
+      `back, heading, subtitle, hero and key conditions share one left edge (${JSON.stringify(edges)})`,
+    );
+    check(
+      (await page.locator(".tk-detail-more[open]").count()) === 0,
+      "advanced visualization and evidence are collapsed by default",
     );
 
     await page.goBack();
-    await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     await page.waitForTimeout(2000);
     check((await page.evaluate(() => location.search)) === before, "Back restores the exact map state");
 
@@ -622,49 +590,21 @@ async function main() {
      * with an older date, which is a different promise entirely.
      */
     const mapState = await page.evaluate(() => location.search);
-    if ((await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0) {
-      await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
-    }
-    await page.locator(".tk-rail-details").first().click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 45_000 });
     await page.waitForTimeout(2000);
 
-    let pushed = 0;
-    for (const label of ["Next night", "Next night"]) {
-      const control = page.locator(`.tk-map-detail [aria-label="${label}"]`);
-      if ((await control.count()) > 0) {
-        await control.first().click();
-        await page.waitForTimeout(2000);
-        pushed += 1;
-      }
-    }
-    /**
-     * The list this used to click is gone, so the drill-in is the push.
-     *
-     * It opens as a dialog over the page, and the point of the check below is
-     * that one press of "Back to the map" crosses *every* entry laid down
-     * since — so the dialog is dismissed first, which is itself another entry,
-     * and the reader is left on the detail page with three behind them.
-     */
-    const drill = page.locator(".tk-map-detail .tk-hero-actions button").nth(0);
-    if ((await drill.count()) > 0) {
-      await drill.click();
-      await page.waitForSelector(".tk-overlay", { timeout: 15_000 });
-      await page.waitForTimeout(1500);
-      pushed += 1;
-      await page.keyboard.press("Escape");
-      await page.waitForSelector(".tk-overlay", { state: "detached", timeout: 15_000 });
-      await page.waitForTimeout(1200);
-      pushed += 1;
-    }
-    check(pushed > 0, `intervening history entries were laid down (${pushed})`);
     check(
-      (await page.evaluate(() => location.search)) !== mapState,
-      "and they moved the URL away from the map state",
+      (await page.getByRole("button", { name: "Show on Map", exact: true }).count()) === 1,
+      "detail exposes Show on Map as its stable first action",
+    );
+    check(
+      (await page.locator(".tk-detail-more[open]").count()) === 0,
+      "and keeps advanced sky tools collapsed by default",
     );
 
     await page.locator(".tk-map-detail .tk-back").click();
-    await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     await page.waitForTimeout(2500);
     check(
       (await page.evaluate(() => location.search)) === mapState,
@@ -750,60 +690,21 @@ async function main() {
     check(targets, "no touch target was shrunk below 32px to make room");
 
     check(
-      await page.locator(".tk-rail-card").first().isVisible(),
-      "the rail still shows the top observing answer",
+      await page.locator(".tk-map-recommendation").isVisible(),
+      "Map shows one restrained observing answer",
     );
     check(await page.locator(".tk-map-target").isVisible(), "the selected-location target stays visible");
 
     const clearOf = async () =>
       page.evaluate(() => {
         const controls = document.querySelector(".tk-map-controls-view").getBoundingClientRect();
-        const rail = document.querySelector(".tk-rail").getBoundingClientRect();
-        return controls.bottom <= rail.top + 2;
+        const recommendation = document.querySelector(".tk-map-recommendation").getBoundingClientRect();
+        return recommendation.right <= controls.left + 1;
       });
-    check(await clearOf(), "the controls clear the resting rail");
-
-    /**
-     * Expanding a card must not move the controls, or cover them.
-     *
-     * This used to assert that the controls sat entirely above the rail, and
-     * the way that was kept true was by sliding the whole stack up as the rail
-     * grew — two hundred and forty pixels on a phone, on the one interaction
-     * where a reader most wants Layers and zoom to stay where they were. The
-     * controls hold their position now and the card is capped so it stops short
-     * of them, so what has to be checked is the thing that actually matters:
-     * they have not moved, they are still on screen, and nothing is over them.
-     */
-    const stackAt = () =>
-      page.evaluate(() => {
-        const controls = document.querySelector(".tk-map-controls-view").getBoundingClientRect();
-        const card = document
-          .querySelector('.tk-rail-card[data-expanded="true"]')
-          ?.getBoundingClientRect();
-        return {
-          top: Math.round(controls.top),
-          left: Math.round(controls.left),
-          bottom: Math.round(controls.bottom),
-          onScreen: controls.top >= 0 && controls.bottom <= window.innerHeight,
-          cardRight: card ? Math.round(card.right) : null,
-        };
-      });
-    const before = await stackAt();
-    await page.click(".tk-rail-card .tk-rail-card-head");
-    await page.waitForTimeout(1400);
-    const after = await stackAt();
-    check(
-      after.top === before.top,
-      `expanding a card does not move the controls (${before.top} → ${after.top})`,
-    );
-    check(after.onScreen, "and leaves them on screen");
-    check(
-      after.cardRight !== null && after.cardRight <= after.left,
-      `and the card stops short of them (${after.cardRight} vs ${after.left})`,
-    );
+    check(await clearOf(), "the Map answer stops short of the camera controls");
     check(
       await page.locator(".tk-layers-trigger").isVisible(),
-      "the layer control stays reachable with a card open",
+      "the layer control stays reachable beside the Map answer",
     );
     await context.close();
   }
@@ -905,8 +806,9 @@ async function main() {
     // --- Perseids --------------------------------------------------------
     const perseids = await find("Perseids");
     check(/perseid/i.test(perseids), `searching finds the Perseids ("${perseids}")`);
+    await openEventReading(page);
     const label = await page.evaluate(
-      () => document.querySelector(".tk-map-event-reading .tk-map-layer-label")?.textContent ?? "",
+      () => document.querySelector(".tk-layers-group.is-event .tk-layers-event > span")?.textContent ?? "",
     );
     check(
       /observing potential/i.test(label) && !/visibility/i.test(label),
@@ -956,8 +858,7 @@ async function main() {
       (await page.locator(".tk-layers-panel").count()) === 0,
       "and it is closed until asked for",
     );
-    await page.locator(".tk-layers-trigger").click();
-    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    await openLayerPanel(page);
     const listed = await page.locator(".tk-layers-item-name").allInnerTexts();
     for (const expected of [
       "Light pollution",
@@ -1032,8 +933,7 @@ async function main() {
       (await page.locator(".tk-map-event-reading").count()) === 1,
       "an event overlay and an environment layer coexist",
     );
-    await page.locator(".tk-layers-trigger").click();
-    await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
+    await openLayerPanel(page);
     await page.locator('.tk-layers-item:has-text("Light pollution")').click();
     await page.waitForTimeout(3000);
     check(
@@ -1063,9 +963,7 @@ async function main() {
     await page.goto(`${TRACKER}&date=2027-08-02&at=25.7,32.6&z=6`, { waitUntil: "domcontentloaded" });
     await settled(page, 1500);
     await page.waitForTimeout(8000);
-    // The rail is ordered best-first, so what used to be the panel's lead is
-    // now simply the first card.
-    const lead = await page.locator(".tk-rail-card .tk-rail-card-name").first().innerText();
+    const lead = await page.locator(".tk-map-recommendation-copy strong").innerText();
     check(
       /solar eclipse/i.test(lead),
       `a daytime eclipse leads the ranking on its own date ("${lead}")`,
@@ -1085,20 +983,26 @@ async function main() {
 
     const railFor = async (rule) => {
       await page.goto(
-        `${TRACKER}&at=44.29,-121.55&z=8&date=2027-01-15${rule ? `&with=${rule}` : ""}`,
+        `${TRACKER}&mode=tonight&at=44.29,-121.55&z=8&date=2027-01-15${rule ? `&with=${rule}` : ""}`,
         { waitUntil: "domcontentloaded" },
       );
       await settled(page, 2500);
-      await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+      await page.waitForSelector(".tk-tonight-surface", { timeout: 30_000 }).catch(() => {});
       await page.waitForTimeout(3000);
-      return page.evaluate(() =>
-        [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
-      );
+      return page.evaluate(() => ({
+        ids: [...document.querySelectorAll('.tk-tonight-lead, .tk-tonight-row')].map(
+          (card) => card.dataset.card ?? "",
+        ),
+        text: document.querySelector(".tk-tonight-surface")?.textContent ?? "",
+      }));
     };
 
-    const eyes = await railFor(null);
-    const telescope = await railFor("telescope");
-    const binoculars = await railFor("binoculars");
+    const eyesState = await railFor(null);
+    const telescopeState = await railFor("telescope");
+    const binocularState = await railFor("binoculars");
+    const eyes = eyesState.ids;
+    const telescope = telescopeState.ids;
+    const binoculars = binocularState.ids;
 
     check(eyes.length > 0, `the default rail answers with the unaided eye (${eyes.join(", ")})`);
     /**
@@ -1129,8 +1033,9 @@ async function main() {
       `binoculars add their own (${binoculars.join(", ")})`,
     );
     check(
-      JSON.stringify(binoculars) !== JSON.stringify(telescope),
-      "and the two aided rules do not produce the same answer",
+      /binoculars add detail/i.test(binocularState.text) &&
+        /telescope adds detail/i.test(telescopeState.text),
+      "and each aided rule enriches the same briefing with its own practical context",
     );
 
     // The rule is a state the URL carries, so a shared link reproduces it.
@@ -1174,14 +1079,20 @@ async function main() {
       waitUntil: "domcontentloaded",
     });
     await settled(page, 2500);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
     await dismissTour(page);
-    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
-    await page.waitForTimeout(1000);
-    await page.locator(".tk-rail-details").first().click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page.waitForSelector(".tk-map-detail", { timeout: 30_000 });
     await page.waitForTimeout(5000);
+
+    check(
+      (await page.locator(".tk-detail-more[open]").count()) === 0,
+      "the embedded visualization starts behind More details",
+    );
+    await page.locator(".tk-detail-more > summary").click();
+    await page.waitForSelector(".tk-detail-more[open] .tk-eventmap", { timeout: 30_000 });
+    await page.waitForTimeout(1200);
 
     /**
      * One cartography, not two.
@@ -1232,7 +1143,7 @@ async function main() {
       { waitUntil: "domcontentloaded" },
     );
     await settled(page, 2500);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
     await dismissTour(page);
 
@@ -1245,8 +1156,11 @@ async function main() {
         const topbar = document.querySelector(".tk-map-topbar");
         return {
           projection: (map.getProjection?.() ?? style.projection ?? { type: "mercator" }).type,
+          terrain: map.getTerrain?.()?.source ?? null,
+          pitch: Math.round(map.getPitch()),
+          bearing: Math.round(map.getBearing()),
+          rotationEnabled: map.dragRotate.isEnabled(),
           worldCopies: map.getRenderWorldCopies(),
-          atmosphere: style.sky?.["atmosphere-blend"] ?? null,
           overlays: style.layers
             .filter((layer) => /^tracker-/.test(layer.id))
             .map((layer) => layer.id),
@@ -1255,13 +1169,13 @@ async function main() {
             lng: Number(map.getCenter().lng.toFixed(3)),
             zoom: Number(map.getZoom().toFixed(2)),
           },
-          card: document.querySelector('.tk-rail-card[data-expanded="true"]')?.dataset.card ?? null,
+          card: new URLSearchParams(location.search).get("card"),
           url: {
             pin: params.get("pin"),
             date: params.get("date"),
             show: params.get("show"),
             layers: params.get("layers"),
-            globe: params.get("globe"),
+            terrain: params.get("terrain"),
           },
           toggle: toggle
             ? {
@@ -1280,12 +1194,10 @@ async function main() {
         };
       });
 
-    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
-    await page.waitForTimeout(1400);
     const flat = await state();
 
     check(flat.projection === "mercator", "Tracker opens flat, and stays 2D-first");
-    check(flat.url.globe === null, "and a link without the flag opens flat");
+    check(flat.url.terrain === null, "and a link without the flag opens flat");
     /**
      * The control belongs with what the reader is looking at, not with what
      * moves the camera.
@@ -1307,37 +1219,40 @@ async function main() {
     await page.locator('.tk-projection-option[aria-checked="true"]').focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(4000);
-    const globe = await state();
-    check(globe.projection === "globe", "the arrow keys switch projection");
-    check(globe.selected?.includes("Globe") === true, "and the selection follows");
-    check(globe.url.globe === "1", "and the globe is a state the URL describes");
-
-    /**
-     * No atmosphere, in either mode.
-     *
-     * MapLibre's globe blends one in at 0.8 by default: a blue halo and a lit
-     * limb. It is a picture of daylight on a product about what the sky does
-     * after dark, and it puts a bright ring around exactly the edge where a
-     * low-altitude eclipse or an aurora oval is read.
-     */
-    check(globe.atmosphere === 0, `the globe renders no atmosphere (blend ${globe.atmosphere})`);
+    const terrain = await state();
+    check(terrain.projection === "mercator", "3D keeps the local Mercator ground plane");
+    check(terrain.terrain === "tracker-terrain-3d-dem", "the arrow keys enable the dedicated production DEM source");
+    check(terrain.pitch >= 55 && terrain.pitch <= 70, `3D uses an oblique camera (${terrain.pitch}°)`);
+    check(terrain.bearing !== 0 && terrain.rotationEnabled, "3D enables a rotated, user-adjustable camera");
+    check(terrain.selected?.includes("Oblique terrain") === true, "and the selection follows");
+    check(terrain.url.terrain === "1", "and terrain is a state the URL describes");
+    check(terrain.worldCopies === true && flat.worldCopies === true, "2D and terrain retain normal map wrapping");
     check(
-      globe.worldCopies === false && flat.worldCopies === true,
-      "repeated worlds are a flat-map answer and stop at the globe",
-    );
-    check(
-      globe.overlays.length === flat.overlays.length && globe.overlays.length > 0,
-      `the same overlays are drawn in 3D (${globe.overlays.join(", ")})`,
+      terrain.overlays.length === flat.overlays.length && terrain.overlays.length > 0,
+      `the same overlays are drawn in 3D (${terrain.overlays.join(", ")})`,
     );
 
+    await page.evaluate(() => {
+      window.__trackerMap?.jumpTo({ pitch: 18, bearing: 37 });
+    });
+    await page.getByRole("button", { name: "Recentre on the selected place" }).click();
+    await page.waitForTimeout(1200);
+    const resetTerrain = await state();
+    check(
+      resetTerrain.pitch >= 55 && resetTerrain.pitch <= 70 && resetTerrain.bearing !== 37,
+      `terrain recenter restores the designed oblique camera (${resetTerrain.pitch}° / ${resetTerrain.bearing}°)`,
+    );
+
+    await page.locator('.tk-projection-option[aria-checked="true"]').focus();
     await page.keyboard.press("ArrowLeft");
     await page.waitForTimeout(3500);
     const back = await state();
     check(back.projection === "mercator", "and back again");
+    check(back.terrain === null && back.pitch === 0 && back.bearing === 0, "2D removes terrain and restores north-up");
 
     const kept = (key) =>
-      JSON.stringify(flat[key]) === JSON.stringify(globe[key]) &&
-      JSON.stringify(globe[key]) === JSON.stringify(back[key]);
+      JSON.stringify(flat[key]) === JSON.stringify(terrain[key]) &&
+      JSON.stringify(terrain[key]) === JSON.stringify(back[key]);
     for (const [key, what] of [
       ["card", "the expanded card"],
       ["centre", "the camera"],
@@ -1347,21 +1262,21 @@ async function main() {
     }
     for (const field of ["pin", "date", "show", "layers"]) {
       check(
-        flat.url[field] === globe.url[field] && globe.url[field] === back.url[field],
+        flat.url[field] === terrain.url[field] && terrain.url[field] === back.url[field],
         `2D → 3D → 2D keeps ${field} (${flat.url[field]})`,
       );
     }
-    check(back.url.globe === null, "and the flag is dropped when it goes back to flat");
+    check(back.url.terrain === null, "and the flag is dropped when it goes back to flat");
 
     await context.close();
   }
 
-  /* --- the rail on a real phone ------------------------------------------- */
+  /* --- Map stays compact; Tonight carries the full briefing ---------------- */
   //
   // Measured at three narrow sizes rather than at a generous responsive width,
   // because every one of these defects only appears when the rail and the map
   // controls are actually competing for the same few hundred pixels.
-  console.log("\nMobile rail");
+  console.log("\nMap and Tonight recommendation composition");
   for (const [label, viewport] of [
     ["375x667", { width: 375, height: 667 }],
     ["360x740", { width: 360, height: 740 }],
@@ -1371,14 +1286,15 @@ async function main() {
     await stub(context);
     await seed(context);
     const page = await context.newPage();
-    // A night with three cards, including one whose time range is long enough
-    // to have wrapped before.
+    // Map should keep only the leading answer; Tonight should reveal the full
+    // production briefing for that same observing state.
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=8&date=2027-08-12`, {
       waitUntil: "domcontentloaded",
     });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
+    await dismissTour(page);
 
     const snap = () =>
       page.evaluate(() => {
@@ -1388,16 +1304,16 @@ async function main() {
           const rect = element.getBoundingClientRect();
           return { x: Math.round(rect.x), y: Math.round(rect.y), right: Math.round(rect.right) };
         };
-        const strip = document.querySelector(".tk-rail-scroll");
+        const strip = document.querySelector(".tk-map-recommendation");
         return {
           controls: box(".tk-map-controls-view"),
           layers: box(".tk-layers"),
-          cards: [...document.querySelectorAll(".tk-rail-card")].map((card) => ({
+          cards: [...document.querySelectorAll(".tk-map-recommendation")].map((card) => ({
             id: card.dataset.card ?? "",
             x: Math.round(card.getBoundingClientRect().x),
             right: Math.round(card.getBoundingClientRect().right),
             height: Math.round(card.getBoundingClientRect().height),
-            expanded: card.dataset.expanded === "true",
+            expanded: true,
           })),
           scrollLeft: Math.round(strip?.scrollLeft ?? -1),
           scrollable: strip ? strip.scrollWidth > strip.clientWidth : false,
@@ -1416,13 +1332,16 @@ async function main() {
      * being bigger than the rest for no reason — and which card it is depends
      * on what is in the sky.
      */
-    const heights = [...new Set(resting.cards.filter((c) => !c.expanded).map((c) => c.height))];
+    const heights = [...new Set(resting.cards.map((c) => c.height))];
     check(
       heights.length === 1,
-      `${label}: every compact card is the same height (${heights.join(", ")})`,
+      `${label}: the single Map answer has stable geometry (${heights.join(", ")})`,
     );
     check(!resting.sideways, `${label}: the page itself does not scroll sideways`);
-    check(resting.scrollable, `${label}: the rail has more cards than fit, and can scroll`);
+    check(
+      resting.cards.length === 1 && !resting.scrollable,
+      `${label}: Map keeps one compact recommendation and no discovery scroller`,
+    );
 
     /**
      * A swipe that starts between two cards still scrolls the strip.
@@ -1433,7 +1352,7 @@ async function main() {
      * begin exactly on a card did nothing at all.
      */
     const first = resting.cards[0];
-    const strip = await page.locator(".tk-rail-scroll").boundingBox();
+    const strip = await page.locator(".tk-map-recommendation").boundingBox();
     const session = await page.context().newCDPSession(page);
     const y = strip.y + strip.height / 2;
     const from = first.right + 5;
@@ -1450,15 +1369,15 @@ async function main() {
     await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.waitForTimeout(900);
     const scrolled = await page.evaluate(() =>
-      Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
+      Math.round(document.querySelector(".tk-map-recommendation").scrollLeft),
     );
     check(
-      scrolled > 40,
-      `${label}: a swipe starting between cards scrolls the rail (${scrolled}px)`,
+      Math.abs(scrolled) <= 2,
+      `${label}: the compact Map recommendation does not create a horizontal rail (${scrolled}px)`,
     );
     check(
-      (await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0,
-      `${label}: and scrolling does not open a card`,
+      (await page.locator(".tk-rail").count()) === 0,
+      `${label}: and Map does not retain the legacy observing rail`,
     );
 
     /**
@@ -1468,110 +1387,46 @@ async function main() {
      * content runs out, so without room past the end the final card came to
      * rest halfway under the control stack.
      */
-    const cards = page.locator(".tk-rail-card");
-    const count = await cards.count();
-    for (const index of [count - 1, 0]) {
-      await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(1600);
-      const open = await snap();
-      const card = open.cards.find((entry) => entry.expanded);
-      /**
-       * Whole, rather than first.
-       *
-       * Bringing every chosen card to the front was the old rule and it moved
-       * the rail on selections where nothing needed moving. What the reader is
-       * owed is the card they just chose, entire; where it sits after that is
-       * wherever it already was.
-       */
-      const framing = await railFraming(page);
-      check(
-        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
-        `${label}: selecting card ${index + 1} leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
-      );
-      check(
-        card !== undefined && open.controls !== null && card.right <= open.controls.x,
-        `${label}: and the expanded card stops short of the controls (${card?.right} vs ${open.controls?.x})`,
-      );
-      check(
-        open.controls?.y === resting.controls?.y && open.layers?.y === resting.layers?.y,
-        `${label}: and the controls have not moved (${resting.controls?.y} → ${open.controls?.y})`,
-      );
-      check(
-        open.cards.filter((entry) => entry.expanded).length === 1,
-        `${label}: exactly one card is open`,
-      );
-      await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(800);
-    }
+    const framing = await recommendationFraming(page);
+    const card = resting.cards[0];
+    check(
+      framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+      `${label}: the Map answer remains whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
+    );
+    check(
+      card !== undefined && resting.controls !== null && card.right <= resting.controls.x,
+      `${label}: and the answer stops short of the controls (${card?.right} vs ${resting.controls?.x})`,
+    );
+    check(resting.cards.length === 1, `${label}: exactly one Map answer is visible`);
 
-    /**
-     * The corrected rule, at this width.
-     *
-     * Selecting a card must not move the rail unless part of that card would
-     * otherwise be hidden, and when it does move it must move by the least
-     * distance that makes the card whole. Every case below is one way that can
-     * go wrong, and the sequence deliberately never closes a card first — a
-     * card shrinking beside the one being chosen is the geometry the decision
-     * has to be made against.
-     */
-    for (const index of [1, count - 1, 2, 0]) {
-      const before = await page.evaluate(() =>
-        Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
-      );
-      const wasWhole = await page.evaluate((position) => {
-        const strip = document.querySelector(".tk-rail-scroll");
-        const card = document.querySelectorAll(".tk-rail-card")[position];
-        if (!strip || !card) return false;
-        const box = strip.getBoundingClientRect();
-        const controls = document.querySelector(".tk-map-controls-view");
-        const over = controls?.getBoundingClientRect();
-        const overlaps =
-          over && over.left < box.right && over.right > box.left &&
-          over.top < box.bottom && over.bottom > box.top;
-        const right = overlaps ? Math.min(box.right, over.left) : box.right;
-        const rect = card.getBoundingClientRect();
-        // Room for the width it is about to grow to, so "it already fitted" is
-        // a statement about the card the reader ends up looking at.
-        const expanded = rect.left + Math.max(rect.width, 344);
-        return rect.left >= box.left - 1 && expanded <= right + 1;
-      }, index);
-
-      await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(1500);
-      const framing = await railFraming(page);
-      const after = framing?.scrollLeft ?? -1;
-
-      check(
-        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
-        `${label}: choosing ${framing?.name} leaves it whole (${framing?.clippedLeft}px off the left, ${framing?.clippedRight}px off the right)`,
-      );
-      /**
-       * And the rail did not move for a card that already fitted.
-       *
-       * This is the assertion the correction exists for. The old rule scrolled
-       * on every selection; a reader looking straight at a card they can see
-       * should not have it slide away from them.
-       */
-      if (wasWhole) {
-        check(
-          Math.abs(after - before) <= 2,
-          `${label}: and a card that already fitted did not move the rail (${before} → ${after})`,
-        );
-      }
-      check(
-        framing !== null && framing.scrollLeft >= 0 && framing.scrollLeft <= framing.maxScroll,
-        `${label}: and the scroll position stays inside its own bounds (${framing?.scrollLeft} of ${framing?.maxScroll})`,
-      );
-    }
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.waitForSelector(".tk-tonight-surface", { timeout: 20_000 });
+    await page.waitForTimeout(800);
+    const briefing = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".tk-tonight-surface [data-card]")];
+      const ordinary = cards.filter((card) => card.getAttribute("data-gateway") !== "upcoming");
+      return {
+        mode: new URLSearchParams(location.search).get("mode"),
+        ordinary: ordinary.length,
+        upcoming: cards.filter((card) => card.getAttribute("data-gateway") === "upcoming").length,
+        vertical: ordinary.every((card, index) => {
+          if (index === 0) return true;
+          const previous = ordinary[index - 1].getBoundingClientRect();
+          const current = card.getBoundingClientRect();
+          return current.top >= previous.bottom - 1;
+        }),
+      };
+    });
+    check(
+      briefing.mode === "tonight" && briefing.ordinary >= 3 && briefing.upcoming === 1,
+      `${label}: Tonight exposes the full production briefing and one Upcoming gateway (${JSON.stringify(briefing)})`,
+    );
+    check(briefing.vertical, `${label}: Tonight presents its decisions vertically without horizontal discovery`);
 
     await context.close();
   }
 
-  /* --- and the same rule on a desktop rail --------------------------------- */
-  //
-  // A wider strip fits several cards at once, so most selections should move
-  // nothing at all — which is the case the old always-scroll rule got wrong
-  // most often, because there was always somewhere else to put the card.
+  /* --- and the same compact Map answer on desktop -------------------------- */
   for (const [label, viewport] of [
     ["1024x800", { width: 1024, height: 800 }],
     ["1440x900", { width: 1440, height: 900 }],
@@ -1584,47 +1439,22 @@ async function main() {
       waitUntil: "domcontentloaded",
     });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
     await dismissTour(page);
 
-    const cards = page.locator(".tk-rail-card");
-    const count = await cards.count();
-    let unmoved = 0;
-    /**
-     * Never the same card twice in a row: the head is a toggle, so a repeat
-     * closes the card rather than choosing it, and there is then nothing to
-     * measure. A short rail makes that easy to write by accident.
-     */
-    const sequence = [0, 1, count - 1, 2, count - 2].filter(
-      (index, at, all) => index >= 0 && index < count && index !== all[at - 1],
-    );
-    for (const index of sequence) {
-      const before = await page.evaluate(() =>
-        Math.round(document.querySelector(".tk-rail-scroll").scrollLeft),
-      );
-      await cards.nth(index).locator(".tk-rail-card-head").click();
-      await page.waitForTimeout(1500);
-      const framing = await railFraming(page);
-      if (framing && Math.abs(framing.scrollLeft - before) <= 2) unmoved += 1;
-      check(
-        framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
-        `${label}: ${framing?.name} is whole after being chosen (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
-      );
-      check(
-        framing !== null && framing.scrollLeft >= 0 && framing.scrollLeft <= framing.maxScroll,
-        `${label}: and the scroll stays inside its bounds (${framing?.scrollLeft} of ${framing?.maxScroll})`,
-      );
-    }
-    /**
-     * Most of those should have moved nothing.
-     *
-     * A rail this wide shows several cards at once. If every selection still
-     * scrolls, the rule has not changed however contained the cards end up.
-     */
+    const framing = await recommendationFraming(page);
     check(
-      unmoved >= 2,
-      `${label}: and selecting a card that already fitted left the rail alone (${unmoved} of ${sequence.length})`,
+      framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
+      `${label}: ${framing?.name} is whole in Map (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
+    );
+    check(
+      framing !== null && framing.scrollLeft === 0 && framing.maxScroll === 0,
+      `${label}: and Map has no discovery scroll (${framing?.scrollLeft} of ${framing?.maxScroll})`,
+    );
+    check(
+      (await page.locator(".tk-map-recommendation").count()) === 1,
+      `${label}: Map still presents one answer rather than a wide-screen rail`,
     );
     await context.close();
   }
@@ -1644,26 +1474,14 @@ async function main() {
       waitUntil: "domcontentloaded",
     });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2500);
-    const cards = page.locator(".tk-rail-card");
-    const count = await cards.count();
-    await cards.nth(count - 1).locator(".tk-rail-card-head").click();
-    // Deliberately short: with motion off the rail should already be there
-    // rather than still gliding.
+    // Deliberately short: there is no carousel or deferred motion to settle.
     await page.waitForTimeout(500);
-    /**
-     * With motion off, the same containment and no glide to watch.
-     *
-     * The rule is about geometry, not animation: the card the reader chose is
-     * whole by the time they look at it, and the rail arrives rather than
-     * travels. Half a second is deliberately short — enough for the layout to
-     * settle, not enough for a smooth scroll to have finished.
-     */
-    const framing = await railFraming(page);
+    const framing = await recommendationFraming(page);
     check(
       framing !== null && framing.clippedLeft === 0 && framing.clippedRight === 0,
-      `reduced motion: the selected card is already whole (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
+      `reduced motion: the Map answer is already whole (${framing?.clippedLeft}/${framing?.clippedRight}px clipped)`,
     );
     await context.close();
   }
@@ -2069,70 +1887,50 @@ async function main() {
       `a night that stays closed is called closed, in plain words (${(reading.match(/Cloudy for most of tonight/i) ?? ["nothing"])[0]})`,
     );
     await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.waitForSelector(".tk-tonight-surface", { timeout: 20_000 });
 
     const cards = await page.evaluate(() =>
-      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      [...document.querySelectorAll(".tk-tonight-lead, .tk-tonight-row")].map((card) => card.dataset.card ?? ""),
     );
     /**
-     * Cloud takes routine targets off the rail and leaves the rest.
+     * An area forecast is not a reading of any target direction.
      *
-     * This used to assert that cloud never removed anything, which was the rule
-     * at the time and was wrong: it filled the rail with things a reader could
-     * not see. What must still hold is that the rail is not *emptied* — a night
-     * with a rare event in it still offers that event, however bad the sky,
-     * because missing it costs years and a satellite pixel knows nothing about
-     * the gap over the next valley.
+     * Even a persistent 95% model value may leave a usable gap, especially for
+     * the Moon and bright planets. The astronomical candidates therefore stay
+     * in the rail; their quality and warning carry the weather uncertainty.
      */
-    /**
-     * A night of only routine targets, all clouded out, is legitimately empty —
-     * and must say so rather than rendering as no rail at all.
-     *
-     * This used to assert `cards.length > 0`, which was right while cloud could
-     * not remove anything. Now that it can, the meaningful claim is that the
-     * reader is told what happened: a blank map is the same picture a reader
-     * with an empty sky gets, and those are different answers.
-     */
-    const withheld = await page.evaluate(
-      () => document.querySelector(".tk-rail-withheld")?.textContent?.trim() ?? "",
-    );
     check(
-      cards.length > 0 || withheld.length > 0,
-      `a clouded-out night says what happened (${cards.length} cards${cards.length ? `: ${cards.join(", ")}` : `; "${withheld.slice(0, 70)}"`})`,
+      cards.length > 0,
+      `a coarse cloudy forecast keeps the astronomical answer (${cards.length} cards: ${cards.join(", ")})`,
     );
 
     /**
-     * And it does not offer everything.
-     *
-     * The counterpart to the check above: a repeatable target whose own window
-     * is cloudy throughout is withheld, so the rail under a closed sky is
-     * shorter than the same night's rail with the layer off. Without this, "the
-     * rail is not empty" would pass just as happily on a product that had
-     * quietly stopped suppressing anything.
+     * The same night's candidates without cloud evidence are the control. The
+     * two sets must match because neither the model column nor a satellite pixel
+     * says which azimuth/altitude is blocked. A future direction-specific local
+     * source is covered separately by the pure cloud-advice tests.
      */
     const openSky = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await stub(openSky);
     await seed(openSky);
     const clearPage = await cloudPage(openSky);
-    await clearPage.goto(`${TRACKER}&at=45.5,-122.7&z=7`, { waitUntil: "domcontentloaded" });
+    await clearPage.goto(`${TRACKER}&mode=tonight&at=45.5,-122.7&z=7`, { waitUntil: "domcontentloaded" });
     await openCloud(clearPage);
     const withoutCloud = await clearPage.evaluate(() =>
-      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      [...document.querySelectorAll(".tk-tonight-lead, .tk-tonight-row")].map((card) => card.dataset.card ?? ""),
     );
     await openSky.close();
     check(
-      cards.length < withoutCloud.length,
-      `and withholds the ones a reader could not see (${cards.length} under cloud vs ${withoutCloud.length} without: dropped ${withoutCloud.filter((id) => !cards.includes(id)).join(", ") || "nothing"})`,
+      cards.length === withoutCloud.length &&
+        cards.every((id) => withoutCloud.includes(id)) &&
+        withoutCloud.every((id) => cards.includes(id)),
+      `and no target is hard-filtered by non-directional cloud (${cards.length} under cloud vs ${withoutCloud.length} without)`,
     );
 
     /**
-     * The warning on a surviving card is checked on the next night, not this
-     * one.
-     *
-     * This block used to open the first card and read its cloud caution. On a
-     * night whose opportunities are all routine there is now no first card to
-     * open — which is the behaviour under test two checks above — so the
-     * assertion moved to the rare-event night below, where a card survives by
-     * design and the caution is the point.
+     * Warning semantics are checked on the rare-event night below, where both
+     * ordinary and time-critical targets are present under the same sky.
      */
     await context.close();
   }
@@ -2156,54 +1954,28 @@ async function main() {
     );
     await openCloud(page);
 
-    /**
-     * Driven with real clicks on the card's own button.
-     *
-     * `.tk-rail-card` is the list item; the control inside it is
-     * `.tk-rail-card-head`. Calling `.click()` on the item in page script
-     * dispatched an event nothing was listening for, so no card ever opened and
-     * the check passed judgement on an interface it had not operated.
-     */
-    const heads = page.locator(".tk-rail-card-head");
-    const total = await heads.count();
-    const notes = [];
-    for (let index = 0; index < total; index += 1) {
-      await heads.nth(index).click();
-      await page.waitForTimeout(800);
-      const note = await page.evaluate(() => {
-        const node = document.querySelector(".tk-rail-cloud");
-        if (!node) return null;
-        const card = node.closest(".tk-rail-card");
-        return {
-          card: card?.dataset.card ?? "",
-          goAnyway: node.dataset.goAnyway === "true",
-          text: node.textContent ?? "",
-        };
-      });
-      if (note) notes.push(note);
-    }
-    check(total > 0, `there are cards to check (${total})`);
-    const encouraged = notes.filter((note) => note.goAnyway);
-    const plain = notes.filter((note) => !note.goAnyway);
-    check(
-      notes.length === total,
-      `every card under a closed sky carries the warning (${notes.length} of ${total})`,
-    );
-    if (encouraged.length) {
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.waitForSelector(".tk-tonight-lead .tk-tonight-cloud", { timeout: 20_000 });
+    const note = await page.evaluate(() => {
+      const node = document.querySelector(".tk-tonight-lead .tk-tonight-cloud");
+      const card = node?.closest(".tk-tonight-lead");
+      return node ? {
+        card: card?.dataset.card ?? "",
+        goAnyway: node.dataset.goAnyway === "true",
+        text: node.textContent ?? "",
+      } : null;
+    });
+    check(note !== null, "the leading Tonight recommendation carries the cloud warning");
+    if (note?.goAnyway) {
       check(
-        /worth going anyway/i.test(encouraged[0].text),
-        `and something rare is told to go anyway (${encouraged[0].card})`,
+        /worth going anyway/i.test(note.text),
+        `and a rare lead is told to go anyway (${note.card})`,
       );
     } else {
-      console.log("  · no notable-tier card on this night, so the rare-event wording is untested");
-    }
-    if (plain.length) {
       check(
-        !/worth going anyway/i.test(plain[0].text),
-        `while a routine target is not (${plain[0].card})`,
+        !/worth going anyway/i.test(note?.text ?? ""),
+        `and a routine lead does not overstate urgency (${note?.card ?? "unknown"})`,
       );
-    } else {
-      console.log("  · every card on this night was rare, so the routine wording is untested");
     }
     await context.close();
   }
@@ -2302,27 +2074,25 @@ async function main() {
   /**
    * Turning Clouds on and off must not change what is worth going out for.
    *
-   * The rail does suppress a repeatable target whose whole window is closed —
-   * that is the product working, and the count of what cloud cost is stated
-   * beside it. What it must not do is depend on whether the reader happens to
-   * be looking at the cloud field.
+   * Coarse point/area cloud qualifies the recommendation but does not decide
+   * whether an astronomically valid target exists. What it must not do is
+   * depend on whether the reader happens to be looking at the cloud field.
    *
    * It did. Every cloud query was gated on the layer switch, so `cloudTimeline`
-   * only existed while the overlay was on, and under a shut sky the rail
-   * offered four things with the layer off and none with it on. Turning a layer
-   * on to check the weather deleted the answer; turning it off brought back
-   * four opportunities that were still behind cloud. A display preference was
-   * silently choosing between two different recommendations, and neither the
-   * reader nor this gate could see it happening.
+   * only existed while the overlay was on. Turning a layer on to check the
+   * weather could therefore delete the answer; turning it off restored it. A
+   * display preference was silently choosing between two different
+   * recommendations, and neither the reader nor this gate could see it.
    *
    * So the fix ungated the two queries the timeline is built from and left the
    * layer's own surfaces switched. These checks pin both halves: the rail is
-   * the same either way, and cloud still decides what is on it.
+   * the same either way, and cloud still changes its quality/cautions without
+   * becoming a hidden eligibility gate.
    */
   console.log("\nClouds layer invariance");
   {
     const railOf = (page) =>
-      page.locator(".tk-rail-card").evaluateAll((cards) =>
+      page.locator(".tk-tonight-lead, .tk-tonight-row").evaluateAll((cards) =>
         cards.map((card) => card.getAttribute("data-card") ?? "").join(","),
       );
 
@@ -2334,7 +2104,7 @@ async function main() {
       await cloudForecast(context, sky === "clear" ? 5 : 95);
       await cloudMask(context, { acm: sky === "clear" ? 0 : 3, ...cloudNow });
       const page = await cloudPage(context);
-      await page.goto(`${TRACKER}&at=45.5,-122.7&z=7${layers ? "&layers=cloud" : ""}`, {
+      await page.goto(`${TRACKER}&mode=tonight&at=45.5,-122.7&z=7${layers ? "&layers=cloud" : ""}`, {
         waitUntil: "domcontentloaded",
       });
       await openCloud(page);
@@ -2355,8 +2125,8 @@ async function main() {
      */
     check(clearOff.length > 0, `a clear night offers something (${clearOff || "nothing"})`);
     check(
-      closedOff !== clearOff,
-      "and a closed night does not offer the same things as a clear one",
+      closedOff.split(",").sort().join(",") === clearOff.split(",").sort().join(","),
+      "and a non-directional closed forecast does not change astronomical eligibility",
     );
 
     check(
@@ -2380,10 +2150,16 @@ async function main() {
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=7`, { waitUntil: "domcontentloaded" });
     await openCloud(page);
 
-    const railOf = () =>
-      page.locator(".tk-rail-card").evaluateAll((cards) =>
-        cards.map((card) => card.getAttribute("data-card") ?? "").join(","),
+    const railOf = async () => {
+      await page.getByRole("button", { name: "Tonight", exact: true }).click();
+      await page.waitForSelector(".tk-tonight-surface", { timeout: 20_000 });
+      const cards = await page.locator(".tk-tonight-lead, .tk-tonight-row").evaluateAll((nodes) =>
+        nodes.map((card) => card.getAttribute("data-card") ?? "").join(","),
       );
+      await page.getByRole("button", { name: "Map", exact: true }).click();
+      await page.waitForSelector(".tk-map-recommendation", { timeout: 20_000 });
+      return cards;
+    };
     /**
      * Returns the layer's own reading while the panel is still open.
      *
@@ -2434,14 +2210,14 @@ async function main() {
     await seed(context);
     const page = await context.newPage();
     await page.clock.setFixedTime(SATELLITE_CLOCK);
-    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${TRACKER}&mode=tonight&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-tonight-surface", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(3500);
     await dismissTour(page);
 
     const rail = await page.evaluate(() =>
-      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      [...document.querySelectorAll(".tk-tonight-lead, .tk-tonight-row")].map((card) => card.dataset.card ?? ""),
     );
     check(rail.includes("satellite-iss"), `the station is offered on a night it passes (${rail.join(", ")})`);
 
@@ -2461,12 +2237,8 @@ async function main() {
     );
 
     if (rail.includes("satellite-iss")) {
-      await page
-        .locator('.tk-rail-card[data-card="satellite-iss"] .tk-rail-card-head')
-        .click();
-      await page.waitForTimeout(1200);
       const card = await page
-        .locator('.tk-rail-card[data-card="satellite-iss"]')
+        .locator('.tk-tonight-lead[data-card="satellite-iss"], .tk-tonight-row[data-card="satellite-iss"]')
         .innerText();
       check(/\d+°/.test(card), `the card says how high the pass goes (${card.split("\n")[2] ?? ""})`);
 
@@ -2475,6 +2247,12 @@ async function main() {
       });
       await settled(page, 2000);
       await page.waitForTimeout(3500);
+      check(
+        (await page.locator(".tk-detail-more[open]").count()) === 0,
+        "the satellite detail keeps provenance collapsed by default",
+      );
+      await page.locator(".tk-detail-more > summary").click();
+      await page.waitForSelector(".tk-detail-more[open]", { timeout: 10_000 });
       const detail = await page.evaluate(() => ({
         heading: document.querySelector(".tk-page-heading")?.textContent?.trim() ?? "",
         image: document.querySelector(".tracker-media img")?.getAttribute("src") ?? "",
@@ -2539,12 +2317,12 @@ async function main() {
     await seed(context);
     const page = await context.newPage();
     await page.clock.setFixedTime(SATELLITE_CLOCK);
-    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${TRACKER}&mode=tonight&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-tonight-surface", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(3000);
     const rail = await page.evaluate(() =>
-      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      [...document.querySelectorAll(".tk-tonight-lead, .tk-tonight-row")].map((card) => card.dataset.card ?? ""),
     );
     check(rail.includes("satellite-iss"), "the station is still offered with no deployment published");
     check(
@@ -2564,12 +2342,12 @@ async function main() {
     await seed(context);
     const page = await context.newPage();
     await page.clock.setFixedTime(SATELLITE_CLOCK);
-    await page.goto(`${TRACKER}&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${TRACKER}&mode=tonight&at=45.5,-122.7&z=8`, { waitUntil: "domcontentloaded" });
     await settled(page, 2000);
-    await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector(".tk-tonight-surface", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(3000);
     const rail = await page.evaluate(() =>
-      [...document.querySelectorAll(".tk-rail-card")].map((card) => card.dataset.card ?? ""),
+      [...document.querySelectorAll(".tk-tonight-lead, .tk-tonight-row")].map((card) => card.dataset.card ?? ""),
     );
     check(
       !rail.some((id) => id.startsWith("satellite-")),
@@ -2821,16 +2599,20 @@ async function main() {
         };
       });
 
-    check((await wedge())?.on === false, "no direction is drawn until a card is open");
+    check((await wedge())?.on === false, "no direction is drawn until a recommendation is selected");
 
-    // The first card is a planet or the Moon on any ordinary night: something
-    // with a place in the sky to point at.
-    await page.locator(".tk-rail-card-head").first().click();
-    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
+    // Selecting Map's one recommendation through the authoritative URL state
+    // activates the same direction cue that detail/Finder return paths use.
+    const cardId = await page.locator(".tk-map-recommendation").getAttribute("data-card");
+    check(Boolean(cardId), "Map exposes one recommendation that can be selected");
+    await page.goto(`${TRACKER}&at=45.5,-122.7&z=9&card=${encodeURIComponent(cardId)}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await settled(page, 1500);
     await page.waitForTimeout(1200);
 
     const open = await wedge();
-    check(open?.on === true, "opening a card the reader can point at draws one");
+    check(open?.on === true, "selecting a recommendation the reader can point at draws one");
 
     /**
      * The map and the card have to name the same direction.
@@ -2842,10 +2624,17 @@ async function main() {
      * the map disagreeing with the card has been told two directions by one
      * product.
      */
-    const said = await page
-      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-facts li')
-      .last()
-      .innerText();
+    /**
+     * Read the direction from the card's always-visible summary.
+     *
+     * The expanded facts repeat the three presentation metrics today, but
+     * that list is allowed to gain phenomenon-specific facts. The card header
+     * is the product contract this check is about: it is the direction the
+     * reader sees before and after expansion, and the bearing wedge must agree
+     * with it. Reading the last generic fact accidentally made the verifier
+     * depend on list ordering rather than on that visible contract.
+     */
+    const said = await page.locator(".tk-map-recommendation-copy").innerText();
     const cardinal = said.replace(/\s+/g, " ").match(/\b(N|NE|E|SE|S|SW|W|NW)\b/)?.[1] ?? null;
     const expected = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
       Math.round(((open?.bearing ?? 0) % 360) / 45) % 8
@@ -2885,17 +2674,15 @@ async function main() {
     });
     await settled(page, 1500);
     await page.waitForTimeout(4000);
-    await page.locator(".tk-rail-card-head").first().click();
-    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
-    await page.waitForTimeout(1200);
-
-    const name = await page
-      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-card-name')
-      .innerText();
+    const showerId = await page.locator(".tk-map-recommendation").getAttribute("data-card");
+    await page.goto(
+      `${TRACKER}&date=2027-08-12&at=45.5,-122.7&z=8&card=${encodeURIComponent(showerId)}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await settled(page, 1500);
+    const name = await page.locator(".tk-map-recommendation-copy strong").innerText();
     check(/perseid/i.test(name), `the shower leads its own peak night ("${name}")`);
-    const said = await page
-      .locator('.tk-rail-card[data-expanded="true"] .tk-rail-card-where')
-      .innerText();
+    const said = await page.locator(".tk-map-recommendation-copy").innerText();
     check(/whole sky/i.test(said), `and the card says to take in the whole sky ("${said}")`);
     /**
      * No arrow for a radiant, even though the radiant has a bearing.
@@ -2990,56 +2777,42 @@ async function main() {
     );
 
     /**
-     * A phone has room for one sheet at a time.
-     *
-     * An expanded observing card and the layer panel are both most of a phone
-     * screen, and opening the second over the first left a strip of map about a
-     * centimetre tall — while the reader's reason for opening the panel was to
-     * look at a field drawn on that map. The card's expanded *presentation* is
-     * suppressed while the panel is open and comes back when it closes; what
-     * must not happen is losing the selection, which lives in the URL, so the
-     * URL is checked at every step rather than only at the end.
+     * A phone has room for one compact Map answer and one transient control
+     * surface. Opening Layers must not mutate the observing selection, and the
+     * panel must leave a meaningful part of the map visible.
      */
     await page.keyboard.press("Escape");
     await page.waitForSelector(".tk-layers-panel", { state: "detached", timeout: 5000 });
-    await page.locator(".tk-rail-card-head").first().click();
-    await page.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5000 });
-    const urlWithCard = await page.evaluate(() => location.search);
-    check(
-      /[?&]card=/.test(urlWithCard),
-      "expanding a card on a phone puts it in the URL",
-    );
-    const bodyShown = () =>
-      page.evaluate(() => {
-        const body = document.querySelector('.tk-rail-card[data-expanded="true"] .tk-rail-card-body');
-        return Boolean(body) && getComputedStyle(body).display !== "none";
-      });
-    check(await bodyShown(), "and the card is actually unfolded");
+    const answerBefore = await page.locator(".tk-map-recommendation").getAttribute("data-card");
+    const urlBefore = await page.evaluate(() => location.search);
+    check(Boolean(answerBefore), "Map keeps one compact recommendation on a phone");
 
     await page.locator(".tk-layers-trigger").click();
     await page.waitForSelector(".tk-layers-panel", { timeout: 5000 });
-    check(!(await bodyShown()), "opening Layers folds the expanded card away");
     check(
-      (await page.evaluate(() => location.search)) === urlWithCard,
-      "without changing the selection, the date, the place or the layers",
+      (await page.evaluate(() => location.search)) === urlBefore,
+      "opening Layers does not change the recommendation, date, or place",
     );
     check(
-      (await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 1,
-      "and the card is still the selected one",
+      (await page.locator('.tk-rail').count()) === 0,
+      "and does not revive the superseded observing rail",
     );
     const visibleMap = await page.evaluate(() => {
       const panel = document.querySelector(".tk-layers-panel").getBoundingClientRect();
-      const rail = document.querySelector(".tk-rail").getBoundingClientRect();
-      return Math.round(Math.min(panel.top, rail.top) - 0);
+      const answer = document.querySelector(".tk-map-recommendation").getBoundingClientRect();
+      return Math.round(Math.min(panel.top, answer.top));
     });
     check(visibleMap >= 200, `and the map is still meaningfully visible (${visibleMap}px)`);
 
     await page.keyboard.press("Escape");
     await page.waitForSelector(".tk-layers-panel", { state: "detached", timeout: 5000 });
-    check(await bodyShown(), "closing Layers brings the card back unfolded");
     check(
-      (await page.evaluate(() => location.search)) === urlWithCard,
-      "and everything it was showing is still what it was showing",
+      (await page.locator(".tk-map-recommendation").getAttribute("data-card")) === answerBefore,
+      "closing Layers restores the same compact Map answer",
+    );
+    check(
+      (await page.evaluate(() => location.search)) === urlBefore,
+      "and preserves the authoritative URL state",
     );
 
     await context.close();

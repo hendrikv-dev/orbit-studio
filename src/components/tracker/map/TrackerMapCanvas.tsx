@@ -12,6 +12,7 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { BASEMAP } from "../../../data/tracker/basemapSource";
+import { trackerBasemapFallbackImage } from "../../../data/tracker/basemapStyleImage";
 import { dismissOpenSurfaces } from "../../../data/tracker/dismissable";
 import { TERRAIN } from "../../../data/tracker/terrainSource";
 import { MAP_MAX_ZOOM, MAP_MIN_ZOOM } from "../../../data/tracker/mapNavigation";
@@ -144,8 +145,16 @@ interface Props {
    */
   cameraTarget?: CameraTarget | null;
   cameraKey?: string | null;
-  /** Mercator or globe. The same map, drawn on a different surface. */
-  projection?: "mercator" | "globe";
+  /** Top-down Mercator or the same map over real, unexaggerated terrain. */
+  projection?: "mercator" | "terrain";
+  /**
+   * Changes when the reader asks to restore Tracker's designed camera.
+   *
+   * Kept separate from the geographic centre: in terrain mode a reader can
+   * rotate or flatten the camera without moving the selected location. The
+   * recenter action must restore both the place and the intended 3D view.
+   */
+  cameraResetKey?: number;
   /**
    * A panel rather than the workspace.
    *
@@ -158,6 +167,8 @@ interface Props {
    * point of using it instead of a second renderer.
    */
   inert?: boolean;
+  /** Whether the workspace map is currently the reader-facing primary mode. */
+  active?: boolean;
   /** What to call the selected point, beside the target. Null while unknown. */
   pinLabel: string | null;
   /** When to draw the night for, or null to leave the map undarkened. */
@@ -247,7 +258,9 @@ export function TrackerMapCanvas({
   cameraTarget = null,
   cameraKey = null,
   projection = "mercator",
+  cameraResetKey = 0,
   inert = false,
+  active = true,
   daylightAt,
   auroraGrid,
   auroraExpired = false,
@@ -317,8 +330,9 @@ export function TrackerMapCanvas({
       zoom,
       minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
-      // Tracker's questions are all "where on the ground": tilting and turning
-      // the map answers none of them and makes the night harder to read.
+      maxPitch: 70,
+      // 2D owns the default camera. The terrain-mode effect enables these
+      // gestures only while 3D is selected.
       pitchWithRotate: false,
       dragRotate: false,
       touchZoomRotate: !inertRef.current,
@@ -341,6 +355,10 @@ export function TrackerMapCanvas({
       attributionControl: false,
     });
     instance.touchZoomRotate.disableRotation();
+    instance.setMissingStyleImageResolver((id) => {
+      const image = trackerBasemapFallbackImage(id);
+      if (image && !instance.hasImage(id)) instance.addImage(id, image);
+    });
     map.current = instance;
     /**
      * The verification harness's handle on the camera.
@@ -617,46 +635,66 @@ export function TrackerMapCanvas({
   }, [cameraKey, cameraTarget, epoch]);
 
   /**
-   * Mercator or globe, and no weather in between.
+   * 2D or real local terrain, without creating a second renderer.
    *
-   * MapLibre draws a globe natively, so this is one call rather than a second
-   * renderer: the same style, the same sources, the same layers, projected onto
-   * a sphere. Everything Tracker draws over the geography — the twilight
-   * terminator, the light-pollution field, an eclipse's coverage, a shower's
-   * potential — is a raster over real coordinates and follows the projection
-   * without knowing about it.
-   *
-   * ## No atmosphere
-   *
-   * MapLibre's globe blends an atmosphere in by default at 0.8, which is a blue
-   * halo and a lit limb. It is handsome and it is a picture of daylight, on a
-   * product whose entire subject is what the sky does after dark — and it puts
-   * a bright ring around the one edge of the map where a low-altitude eclipse
-   * or an aurora oval is being read. Blend goes to zero and the sky is painted
-   * the same ink as the land, so the planet sits on the page rather than
-   * floating in a rendering of air.
-   *
-   * ## World copies
-   *
-   * Repeated worlds are a Mercator answer to a Mercator problem — an edge that
-   * is not really an edge. A sphere has no seam to paper over, so the copies
-   * are switched off with the projection rather than left to be drawn into
-   * nothing.
+   * The DEM dataset already powers Tracker's restrained hillshade and horizon
+   * checks. In 3D MapLibre drapes the same basemap, labels, weather and event
+   * overlays over a dedicated renderer source for that DEM at exaggeration 1.
+   * A separate source instance avoids making one decoded tile cache serve two
+   * rendering jobs with different sampling needs. Switching back removes
+   * terrain and resets the camera to north-up. The observer, date, selection
+   * and layers never move because those remain outside this effect.
    */
   useEffect(() => {
     const instance = map.current;
     if (!instance || epoch === 0) return;
-    instance.setProjection({ type: projection });
-    instance.setRenderWorldCopies(projection === "mercator");
-    // The same ink either way: Mercator has no sky to paint and the globe's is
-    // set to the ground it sits on, so neither mode renders air.
-    instance.setSky({
-      "sky-color": INK.land,
-      "horizon-color": INK.land,
-      "fog-color": INK.land,
-      "atmosphere-blend": 0,
+    const terrain = projection === "terrain";
+    instance.setProjection({ type: "mercator" });
+    instance.setRenderWorldCopies(true);
+    try {
+      instance.setTerrain(
+        terrain && instance.getSource(TERRAIN_SOURCE)
+          ? { source: TERRAIN_SOURCE, exaggeration: 1 }
+          : null,
+      );
+    } catch {
+      // Relief is an enhancement. A failed DEM leaves the same usable map,
+      // never a false synthetic surface.
+    }
+    if (terrain && !inertRef.current) {
+      instance.dragRotate.enable();
+      instance.touchZoomRotate.enableRotation();
+    } else {
+      instance.dragRotate.disable();
+      instance.touchZoomRotate.disableRotation();
+    }
+    programmatic.current = true;
+    instance.easeTo({
+      pitch: terrain ? 62 : 0,
+      bearing: terrain ? -18 : 0,
+      duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
+      essential: true,
     });
   }, [projection, epoch]);
+
+  /**
+   * Recentring in terrain is also an explicit request to restore Tracker's
+   * designed viewing angle. Keep that camera command separate from terrain
+   * installation: re-applying a DEM source is unnecessary and can race an
+   * in-flight camera transition on some MapLibre builds.
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || epoch === 0 || cameraResetKey === 0) return;
+    instance.stop();
+    programmatic.current = true;
+    instance.easeTo({
+      pitch: projection === "terrain" ? 62 : 0,
+      bearing: projection === "terrain" ? -18 : 0,
+      duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
+      essential: true,
+    });
+  }, [cameraResetKey, epoch, projection]);
 
   /** The pin, as a marker the renderer keeps in place for us. */
   useEffect(() => {
@@ -722,20 +760,28 @@ export function TrackerMapCanvas({
    * anyone should be told. A fixed-size wedge that fades out says only "this
    * way", stays the same size at every zoom, and never lands on a place.
    *
-   * A plain CSS rotation is the bearing because the map's own bearing is always
-   * zero: rotation is disabled, north is up, and screen-up is north.
+   * The wedge is compensated by the camera bearing in 3D, so it continues to
+   * name a real sky direction after the reader rotates the terrain.
    */
   useEffect(() => {
+    const instance = map.current;
     const element = marker.current
       ?.getElement()
       .querySelector<HTMLElement>(".tk-map-target-bearing");
-    if (!element) return;
+    if (!element || !instance) return;
     if (bearingDeg === null || !Number.isFinite(bearingDeg)) {
       element.dataset.on = "false";
       return;
     }
-    element.dataset.on = "true";
-    element.style.setProperty("--tk-bearing", `${bearingDeg}deg`);
+    const update = () => {
+      element.dataset.on = "true";
+      element.style.setProperty("--tk-bearing", `${bearingDeg - instance.getBearing()}deg`);
+    };
+    update();
+    instance.on("rotate", update);
+    return () => {
+      instance.off("rotate", update);
+    };
   }, [bearingDeg, pin?.latitudeDeg, pin?.longitudeDeg, epoch]);
 
   /**
@@ -816,13 +862,18 @@ export function TrackerMapCanvas({
 
   return (
     <>
-    <div className="tk-map-canvas" data-map-settled={settled ? "true" : "false"}>
+    <div
+      className="tk-map-canvas"
+      data-map-settled={settled ? "true" : "false"}
+      data-map-presentation={projection}
+    >
       <div
         ref={host}
         className="tk-map-surface"
         role="application"
         aria-label={label}
-        tabIndex={0}
+        aria-hidden={!active ? "true" : undefined}
+        tabIndex={active && !inert ? 0 : -1}
       />
       {failed ? (
         <p className="tk-map-basemap-failed" role="status">
@@ -957,6 +1008,7 @@ function recolour(instance: MapLibreMap) {
 /* --------------------------------------------------------------- hillshade */
 
 const HILLSHADE_SOURCE = "tracker-terrain-dem";
+const TERRAIN_SOURCE = "tracker-terrain-3d-dem";
 
 /**
  * Relief, from the same DEM the horizon analysis reads.
@@ -972,26 +1024,31 @@ const HILLSHADE_SOURCE = "tracker-terrain-dem";
  *
  * ## Why it stays restrained
  *
- * This is not a terrain viewer. The shading is low-contrast, sits under every
- * label and every overlay, and is drawn without exaggeration or 3D — the map
- * has to stay a dark, calm surface that Tracker's own drawing reads on top of.
- * Legibility of the geography, not drama.
+ * In 2D this stays low-contrast beneath every label and overlay. In the
+ * optional 3D presentation the same DEM dataset becomes real terrain at
+ * natural scale through a separate renderer source; the hillshade remains the
+ * tonal cue rather than an exaggerated mesh.
  */
 function addHillshade(instance: MapLibreMap) {
-  if (instance.getSource(HILLSHADE_SOURCE)) return;
   try {
-    instance.addSource(HILLSHADE_SOURCE, {
-      type: "raster-dem",
-      url: TERRAIN.tileJsonUrl,
-      // Mapterhorn publishes Terrarium; saying so explicitly means a TileJSON
-      // that ever stops carrying the field cannot silently decode as Mapbox's.
-      encoding: "terrarium",
-      tileSize: TERRAIN.tileSize,
-      // Overrides the TileJSON's terse "© Mapterhorn": the elevation is not
-      // Mapterhorn's own survey, and the agencies that flew it should be named
-      // on the map that draws it.
-      attribution: TERRAIN.attribution,
-    });
+    const addDemSource = (id: string) => {
+      if (instance.getSource(id)) return;
+      instance.addSource(id, {
+        type: "raster-dem",
+        url: TERRAIN.tileJsonUrl,
+        // Mapterhorn publishes Terrarium; saying so explicitly means a TileJSON
+        // that ever stops carrying the field cannot silently decode as Mapbox's.
+        encoding: "terrarium",
+        tileSize: TERRAIN.tileSize,
+        // Overrides the TileJSON's terse "© Mapterhorn": the elevation is not
+        // Mapterhorn's own survey, and the agencies that flew it should be named
+        // on the map that draws it.
+        attribution: TERRAIN.attribution,
+      });
+    };
+    addDemSource(HILLSHADE_SOURCE);
+    addDemSource(TERRAIN_SOURCE);
+    if (instance.getLayer("tracker-hillshade")) return;
     // Above the land and water fills, below everything Tracker draws and below
     // every label — relief is ground, not content.
     const firstSymbol = instance.getStyle().layers?.find((layer) => layer.type === "symbol")?.id;

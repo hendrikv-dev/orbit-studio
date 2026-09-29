@@ -6,10 +6,13 @@ import {
   angularSeparation,
   applyCalibration,
   calibrationFromAlignment,
+  canRequestSkyFinderPermission,
+  classifySkyFinderDevice,
   detectSkyFinderCapabilities,
   pointingFromDeviceOrientation,
   positionForSkyFinderTarget,
   signedAngleDifference,
+  skyFinderExperience,
   skyFinderTargetFor,
   type SkyFinderTarget,
 } from "./skyFinder";
@@ -209,7 +212,13 @@ describe("Sky Finder capability detection", () => {
     Object.assign(Orientation, { requestPermission: () => Promise.resolve("granted") });
     const capabilities = detectSkyFinderCapabilities({
       secureContext: true,
-      navigator: { geolocation: {}, mediaDevices: { getUserMedia() {} } },
+      navigator: {
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile",
+        platform: "iPhone",
+        maxTouchPoints: 5,
+        geolocation: {},
+        mediaDevices: { getUserMedia() {} },
+      },
       window: {
         DeviceOrientationEvent: Orientation,
         DeviceMotionEvent: function Motion() {},
@@ -220,6 +229,8 @@ describe("Sky Finder capability detection", () => {
     });
     expect(capabilities).toMatchObject({
       camera: true,
+      deviceClass: "handheld",
+      handheldEligible: true,
       geolocation: true,
       orientation: true,
       absoluteOrientation: true,
@@ -233,13 +244,18 @@ describe("Sky Finder capability detection", () => {
   it("keeps a useful sensor fallback when camera is denied or unavailable", () => {
     const capabilities = detectSkyFinderCapabilities({
       secureContext: true,
-      navigator: { geolocation: {} },
+      navigator: {
+        userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile",
+        maxTouchPoints: 5,
+        geolocation: {},
+      },
       window: { DeviceOrientationEvent: function Orientation() {}, ondeviceorientation: null },
       screen: {},
     });
     expect(capabilities.camera).toBe(false);
     expect(capabilities.orientation).toBe(true);
     expect(capabilities.geolocation).toBe(true);
+    expect(skyFinderExperience(capabilities)).toBe("live");
   });
 
   it("does not advertise protected APIs on an insecure page", () => {
@@ -251,5 +267,133 @@ describe("Sky Finder capability detection", () => {
     });
     expect(capabilities.camera).toBe(false);
     expect(capabilities.geolocation).toBe(false);
+  });
+
+  it("keeps a modern phone eligible for live guidance", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit Mobile",
+        userAgentData: { mobile: true, platform: "Android" },
+        maxTouchPoints: 5,
+      },
+      window: { DeviceOrientationEvent: function Orientation() {} },
+      matchMedia: (query) => ({ matches: query === "(pointer: coarse)" }),
+    });
+    expect(capabilities.handheldEligible).toBe(true);
+    expect(skyFinderExperience(capabilities)).toBe("live");
+  });
+
+  it.each(["portrait", "landscape"])(
+    "keeps an iPad eligible in %s regardless of its desktop-sized viewport",
+    () => {
+      expect(
+        classifySkyFinderDevice({
+          navigator: {
+            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit Safari",
+            platform: "MacIntel",
+            maxTouchPoints: 5,
+          },
+          matchMedia: (query) => ({ matches: query === "(pointer: coarse)" }),
+        }),
+      ).toBe("handheld");
+    },
+  );
+
+  it("does not turn a narrow desktop or a webcam into live Finder eligibility", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit Chrome",
+        platform: "MacIntel",
+        maxTouchPoints: 0,
+        mediaDevices: { getUserMedia() {} },
+      },
+      window: { DeviceOrientationEvent: function Orientation() {} },
+      // Width is intentionally absent: a resized desktop is still a desktop.
+      matchMedia: (query) => ({ matches: query.includes("pointer: fine") }),
+    });
+    expect(capabilities.camera).toBe(true);
+    expect(capabilities.deviceClass).toBe("desktop");
+    expect(capabilities.handheldEligible).toBe(false);
+    expect(skyFinderExperience(capabilities)).toBe("preview");
+    expect(
+      canRequestSkyFinderPermission(capabilities, "camera", {
+        liveDate: true,
+        userInitiated: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("degrades a sensor-less tablet to direction guidance", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (Linux; Android 15; Tablet) AppleWebKit",
+        maxTouchPoints: 10,
+      },
+      window: {},
+      matchMedia: (query) => ({ matches: query === "(pointer: coarse)" }),
+    });
+    expect(capabilities.handheldEligible).toBe(true);
+    expect(skyFinderExperience(capabilities)).toBe("direction-only");
+  });
+
+  it("keeps sensor guidance when a phone camera is unavailable or denied", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile",
+        maxTouchPoints: 5,
+      },
+      window: { DeviceOrientationEvent: function Orientation() {} },
+    });
+    expect(capabilities.camera).toBe(false);
+    expect(skyFinderExperience(capabilities, "granted")).toBe("live");
+  });
+
+  it("falls back to non-live direction guidance after orientation denial", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile",
+        maxTouchPoints: 5,
+      },
+      window: { DeviceOrientationEvent: function Orientation() {} },
+    });
+    expect(skyFinderExperience(capabilities, "denied")).toBe("direction-only");
+  });
+
+  it("allows protected requests only after live Finder is entered on a handheld", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (Linux; Android 16; Tablet) AppleWebKit",
+        maxTouchPoints: 10,
+        mediaDevices: { getUserMedia() {} },
+      },
+      window: {
+        DeviceOrientationEvent: function Orientation() {},
+        DeviceMotionEvent: function Motion() {},
+      },
+    });
+    expect(
+      canRequestSkyFinderPermission(capabilities, "camera", {
+        liveDate: true,
+        userInitiated: false,
+      }),
+    ).toBe(false);
+    expect(
+      canRequestSkyFinderPermission(capabilities, "camera", {
+        liveDate: false,
+        userInitiated: true,
+      }),
+    ).toBe(false);
+    expect(
+      canRequestSkyFinderPermission(capabilities, "camera", {
+        liveDate: true,
+        userInitiated: true,
+      }),
+    ).toBe(true);
   });
 });

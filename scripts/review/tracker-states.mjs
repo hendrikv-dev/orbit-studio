@@ -236,37 +236,26 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     // `aria-checked`, and the projection is read the way the gate reads it.
     await page.locator(".tk-projection-option[aria-label*='3D']").click();
     await page.waitForTimeout(1500);
-    /**
-     * Pulled back until the sphere is a sphere.
-     *
-     * At the zoom the rest of these shots are taken at, the globe projection is
-     * indistinguishable from the flat one — there is no curvature across two
-     * hundred kilometres. A picture captioned "the globe" that a reader cannot
-     * tell from the picture above it is not evidence of anything, however
-     * correctly `getProjection()` reports it.
-     */
-    await page.evaluate(() =>
-      window.__trackerMap.easeTo({ center: [-100, 30], zoom: 1.6, duration: 1800 }),
-    );
     await page.waitForTimeout(3000);
     await settled(page, 2500);
     await capture(
       page,
-      "02-desktop-3d-globe",
-      "The same layers on a sphere, pulled back far enough to see it is one: one style, one set of layers, no second renderer. MapLibre's default atmosphere is off — a blue halo is a flourish on a map about how dark the sky is.",
+      "02-desktop-3d-terrain",
+      "The same Portland observing state over the real DEM at natural scale, pitched obliquely with normal rotation enabled. Labels and overlays remain in the production MapLibre renderer.",
       async () => {
       const state = await page.evaluate(() => {
         const map = window.__trackerMap;
-        const style = map.getStyle();
         return {
-          projection: (map.getProjection?.() ?? style.projection ?? { type: "mercator" }).type,
+          terrain: map.getTerrain?.()?.source ?? null,
+          pitch: Math.round(map.getPitch()),
+          bearing: Math.round(map.getBearing()),
           selected: document
             .querySelector('.tk-projection-option[data-current="true"]')
             ?.getAttribute("aria-label"),
         };
       });
-        return state.projection === "globe"
-          ? `projection ${state.projection}, "${state.selected}"`
+        return state.terrain === "tracker-terrain-3d-dem" && state.pitch >= 55
+          ? `terrain ${state.terrain}, pitch ${state.pitch}°, bearing ${state.bearing}°, "${state.selected}"`
           : "";
       },
     );
@@ -459,9 +448,9 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
 
   /* --- what cloud may and may not remove ----------------------------------- */
   //
-  // The claim this commit makes, shown rather than asserted: whether an
-  // opportunity survives a closed sky is a property of the event, not of how
-  // well it scored. Three frames at one place, two skies.
+  // The claim this commit makes, shown rather than asserted: coarse area cloud
+  // qualifies an opportunity but cannot prove that its own direction is
+  // blocked. Three frames at one place, two skies.
   //
   // The cloud in all three is a controlled fixture. Real weather cannot be
   // arranged to demonstrate a rule on demand, and a package that could only be
@@ -488,9 +477,9 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await capture(
       closed.page,
       "16-closed-sky-rail",
-      "Closed sky (fixtured overcast, 95% forecast): the time-critical meteor peak is still offered; routine targets that would appear under clear sky are not.",
+      "Area-wide cloud (fixtured overcast, 95% forecast): astronomically valid targets remain offered, with uncertainty stated because this evidence is not directional.",
       async () =>
-        underCloud.includes("meteors") && !underCloud.some((id) => id.startsWith("planet-"))
+        underCloud.includes("meteors") && underCloud.some((id) => id.startsWith("planet-"))
           ? `rail under cloud: ${underCloud.join(", ") || "empty"}`
           : "",
     );
@@ -527,8 +516,8 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     }
     await closed.context.close();
 
-    // The same night with a clear sky, fixtured: the peak is there without a
-    // warning, and the routine targets are back.
+    // The same night with a clear sky, fixtured: the astronomical candidates
+    // stay the same and the weather warning disappears.
     const clear = await open(browser, {
       viewport: desktop,
       cloud: { mask: { acm: 0, series: [0, 0, 0, 0] }, percent: 5 },
@@ -545,12 +534,12 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await capture(
       clear.page,
       "18-clear-sky-rail",
-      "The same place and night with a clear sky (fixtured): the peak is offered with no obstruction warning, and the routine targets withheld above are back.",
+      "The same place and night with a clear sky (fixtured): the same astronomical candidates remain, now without the area-cloud warning.",
       async () => {
         const warnings = await clear.page.locator(".tk-rail-cloud").count();
-        const restored = underClear.filter((id) => !underCloud.includes(id));
-        return warnings === 0 && restored.length > 0
-          ? `rail under clear sky: ${underClear.join(", ")}; restored: ${restored.join(", ")}`
+        const sameCandidates = [...underClear].sort().join(",") === [...underCloud].sort().join(",");
+        return warnings === 0 && sameCandidates
+          ? `rail under clear sky: ${underClear.join(", ")}; candidate set unchanged`
           : "";
       },
     );

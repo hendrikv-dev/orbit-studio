@@ -21,17 +21,21 @@ import {
   alignmentFor,
   applyCalibration,
   calibrationFromAlignment,
+  canRequestSkyFinderPermission,
   detectSkyFinderCapabilities,
   normalizeDegrees,
   pointingFromDeviceOrientation,
   positionForSkyFinderTarget,
   previewPositionForTarget,
   signedAngleDifference,
+  skyFinderExperience,
   type FinderCalibration,
+  type FinderCapabilities,
   type PhonePointing,
   type PointingQuality,
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
+import type { ExpectedSkyContext } from "../../data/tracker/skyFinderContext";
 
 type PermissionPhase = "idle" | "requesting" | "granted" | "denied" | "unavailable";
 type CameraPhase = "idle" | "requesting" | "active" | "denied" | "unavailable";
@@ -43,6 +47,8 @@ interface Props {
   clock: PlaceClock;
   /** False for historical/future Tracker dates: physical pointing is disabled. */
   liveDate: boolean;
+  /** Permission work initiated synchronously by the original target action. */
+  launch?: SkyFinderLaunchAttempt | null;
   onClose: () => void;
 }
 
@@ -57,6 +63,85 @@ interface PermissionConstructor {
 
 function permissionConstructor(name: "DeviceOrientationEvent" | "DeviceMotionEvent") {
   return (window[name] as unknown as PermissionConstructor | undefined) ?? null;
+}
+
+type LaunchSensorResult = "granted" | "denied" | "unavailable";
+type LaunchCameraResult =
+  | { phase: "active"; stream: MediaStream }
+  | { phase: "denied" | "unavailable"; message: string };
+
+export interface SkyFinderLaunchAttempt {
+  targetId: string;
+  sensor: Promise<LaunchSensorResult>;
+  camera: Promise<LaunchCameraResult> | null;
+}
+
+/**
+ * Begin protected work during the user's original Find/Preview action.
+ *
+ * iOS requires orientation permission to be requested from the gesture itself;
+ * mounting a screen and asking from a later effect is already too late. Both
+ * constructor calls and getUserMedia therefore happen synchronously here,
+ * before navigation. Desktop and selected-time previews return without
+ * touching any protected API.
+ */
+export function beginSkyFinderLaunch(
+  targetId: string,
+  capabilities: FinderCapabilities,
+  liveDate: boolean,
+): SkyFinderLaunchAttempt | null {
+  if (!capabilities.handheldEligible || !liveDate) return null;
+
+  let orientationRequest: Promise<"granted" | "denied">;
+  try {
+    const orientation = permissionConstructor("DeviceOrientationEvent");
+    orientationRequest = orientation?.requestPermission
+      ? orientation.requestPermission()
+      : capabilities.orientation
+        ? Promise.resolve("granted")
+        : Promise.resolve("denied");
+  } catch {
+    orientationRequest = Promise.resolve("denied");
+  }
+
+  // Start the optional motion request before awaiting orientation so Safari
+  // still sees the same user activation. Denial does not cancel orientation.
+  try {
+    const motion = permissionConstructor("DeviceMotionEvent");
+    if (
+      motion?.requestPermission &&
+      canRequestSkyFinderPermission(capabilities, "motion", { liveDate, userInitiated: true })
+    ) {
+      void motion.requestPermission().catch(() => "denied");
+    }
+  } catch {
+    // Orientation alone remains useful.
+  }
+
+  const sensor = orientationRequest.then<LaunchSensorResult>((answer) =>
+    answer === "granted" ? "granted" : "denied",
+  );
+
+  let camera: Promise<LaunchCameraResult> | null = null;
+  if (
+    canRequestSkyFinderPermission(capabilities, "camera", { liveDate, userInitiated: true })
+  ) {
+    camera = navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+      .then((stream) => ({ phase: "active" as const, stream }))
+      .catch((error: unknown) => {
+        const denied =
+          error instanceof DOMException && ["NotAllowedError", "SecurityError"].includes(error.name);
+        return {
+          phase: denied ? "denied" as const : "unavailable" as const,
+          message: denied
+            ? "Camera access was denied. Finder is continuing with the dark sensor view."
+            : "The rear camera could not start. Finder is continuing with the dark sensor view.",
+        };
+      });
+  }
+
+  return { targetId, sensor, camera };
 }
 
 function screenAngle(): number {
@@ -97,6 +182,17 @@ function shapeLabel(target: SkyFinderTarget): string {
   return "Target position";
 }
 
+function movementGuidance(horizontalDeg: number, verticalDeg: number): string {
+  const horizontal = Math.abs(horizontalDeg) < 3
+    ? null
+    : horizontalDeg < 0 ? "Move left" : "Move right";
+  const vertical = Math.abs(verticalDeg) < 3
+    ? null
+    : verticalDeg < 0 ? "Lower phone" : "Raise phone";
+  if (!horizontal && !vertical) return "Almost aligned";
+  return [horizontal, vertical].filter(Boolean).join(" · ");
+}
+
 function chooseReference(targets: SkyFinderTarget[]): SkyFinderTarget | null {
   const priorities = ["moon", "venus", "jupiter", "sirius", "mars", "saturn"];
   return (
@@ -110,7 +206,7 @@ function chooseReference(targets: SkyFinderTarget[]): SkyFinderTarget | null {
   );
 }
 
-export function SkyFinder({ target, references, observer, clock, liveDate, onClose }: Props) {
+export function SkyFinder({ target, references, observer, clock, liveDate, launch = null, onClose }: Props) {
   const capabilities = useMemo(() => detectSkyFinderCapabilities(), []);
   const [astronomyNow, setAstronomyNow] = useState(() => new Date());
   const [sensorsEnabled, setSensorsEnabled] = useState(false);
@@ -123,10 +219,19 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
   const [referenceId, setReferenceId] = useState<string | null>(null);
   const [cameraPhase, setCameraPhase] = useState<CameraPhase>("idle");
   const [cameraMessage, setCameraMessage] = useState<string | null>(null);
+  const [expectedContext, setExpectedContext] = useState<ExpectedSkyContext | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const smoothed = useRef<PhonePointing | null>(null);
   const lastAbsolute = useRef(0);
+  const deviceExperience = skyFinderExperience(
+    capabilities,
+    sensorPermission === "denied" || sensorPermission === "unavailable"
+      ? sensorPermission
+      : sensorPermission === "granted"
+        ? "granted"
+        : "unknown",
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setAstronomyNow(new Date()), 15_000);
@@ -144,9 +249,30 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
     () => previewPositionForTarget(target, observer),
     [observer, target],
   );
-  const previewMode = !liveDate || livePosition === null;
+  const desktopPreview = !capabilities.handheldEligible;
+  const previewMode = desktopPreview || !liveDate || livePosition === null;
   const targetPosition = previewMode ? previewPosition : livePosition;
-  const solutionAt = previewMode ? new Date(target.recommendedAtUtc) : astronomyNow;
+  const solutionAt = useMemo(
+    () => (previewMode ? new Date(target.recommendedAtUtc) : astronomyNow),
+    [astronomyNow, previewMode, target.recommendedAtUtc],
+  );
+
+  useEffect(() => {
+    if (!targetPosition) {
+      setExpectedContext(null);
+      return undefined;
+    }
+    let cancelled = false;
+    // Keep the 1,839-star licensed catalog out of Tracker's main bundle. The
+    // calculation follows the slower astronomy cadence, never sensor frames.
+    void import("../../data/tracker/skyFinderContext").then(({ expectedSkyContext }) => {
+      if (cancelled) return;
+      setExpectedContext(expectedSkyContext(target, observer, solutionAt, targetPosition));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [observer, solutionAt, target, targetPosition]);
 
   const referenceOptions = useMemo(
     () =>
@@ -182,11 +308,54 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
 
   useEffect(() => stopCamera, [stopCamera]);
 
+  useEffect(() => {
+    if (!launch || launch.targetId !== target.id || previewMode) return undefined;
+    let cancelled = false;
+    setSensorPermission("requesting");
+    void launch.sensor.then((result) => {
+      if (cancelled) return;
+      setSensorPermission(result);
+      setSensorsEnabled(result === "granted");
+    });
+    if (launch.camera) {
+      setCameraPhase("requesting");
+      void launch.camera.then(async (result) => {
+        if (cancelled) {
+          if (result.phase === "active") result.stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        if (result.phase !== "active") {
+          setCameraPhase(result.phase);
+          setCameraMessage(result.message);
+          return;
+        }
+        stream.current?.getTracks().forEach((track) => track.stop());
+        stream.current = result.stream;
+        if (video.current) {
+          video.current.srcObject = result.stream;
+          await video.current.play().catch(() => undefined);
+        }
+        setCameraPhase("active");
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [launch, previewMode, target.id]);
+
   const startCamera = useCallback(async () => {
-    if (!capabilities.camera || previewMode) {
+    if (
+      !canRequestSkyFinderPermission(capabilities, "camera", {
+        liveDate,
+        userInitiated: true,
+      }) ||
+      previewMode
+    ) {
       setCameraPhase("unavailable");
       setCameraMessage(
-        previewMode
+        desktopPreview
+          ? "Live camera pointing is available on eligible phones and tablets. This device uses sky preview."
+          : previewMode
           ? "Camera mode is available only for the live sky, not a selected-time preview."
           : "This browser cannot open a rear camera here. Sensor guidance still works.",
       );
@@ -215,42 +384,24 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
           : "The rear camera could not start. Finder is continuing with the dark sensor view.",
       );
     }
-  }, [capabilities.camera, previewMode]);
-
-  const startGuidance = useCallback(async () => {
-    if (!capabilities.orientation || previewMode) {
-      setSensorPermission("unavailable");
-      return;
-    }
-    setSensorPermission("requesting");
-    try {
-      const orientation = permissionConstructor("DeviceOrientationEvent");
-      if (orientation?.requestPermission) {
-        const answer = await orientation.requestPermission();
-        if (answer !== "granted") {
-          setSensorPermission("denied");
-          return;
-        }
-      }
-      const motion = permissionConstructor("DeviceMotionEvent");
-      if (motion?.requestPermission) {
-        // Motion improves the fused orientation stream on supporting iPhones,
-        // but denial does not invalidate orientation guidance.
-        await motion.requestPermission().catch(() => "denied");
-      }
-      setSensorPermission("granted");
-      setSensorsEnabled(true);
-    } catch {
-      setSensorPermission("denied");
-    }
-  }, [capabilities.orientation, previewMode]);
+  }, [capabilities, desktopPreview, liveDate, previewMode]);
 
   useEffect(() => {
-    if (!previewMode && capabilities.orientation && !capabilities.orientationPermissionRequest) {
+    if (
+      capabilities.handheldEligible &&
+      !previewMode &&
+      capabilities.orientation &&
+      !capabilities.orientationPermissionRequest
+    ) {
       setSensorPermission("granted");
       setSensorsEnabled(true);
     }
-  }, [capabilities.orientation, capabilities.orientationPermissionRequest, previewMode]);
+  }, [
+    capabilities.handheldEligible,
+    capabilities.orientation,
+    capabilities.orientationPermissionRequest,
+    previewMode,
+  ]);
 
   useEffect(() => {
     if (!sensorsEnabled || previewMode) return undefined;
@@ -347,7 +498,9 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
   const finderAvailability =
     targetPosition === null
       ? "Unavailable"
-      : previewMode
+      : desktopPreview
+        ? "Sky preview"
+        : previewMode
         ? "Preview"
         : rawPointing
           ? "Live"
@@ -368,12 +521,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
       data-camera={cameraPhase === "active" ? "active" : "off"}
       data-aligned={alignment.aligned ? "true" : "false"}
       data-mode={previewMode ? "preview" : "live"}
+      data-device-class={capabilities.deviceClass}
+      data-device-experience={deviceExperience}
       data-target-altitude={targetPosition?.altitudeDeg.toFixed(3)}
       data-target-azimuth={targetPosition?.azimuthDeg.toFixed(3)}
       data-angular-separation={alignment.separationDeg?.toFixed(3)}
       data-pointing-quality={effectiveQuality}
       data-visual-verification="not-attempted"
-      aria-label={`Find ${target.title} in the sky`}
+      data-expected-constellation={expectedContext?.constellation?.symbol}
+      aria-label={desktopPreview ? `Preview ${target.title} in the sky` : `Find ${target.title} in the sky`}
     >
       <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
       <div className="tk-finder-sky" aria-hidden />
@@ -384,32 +540,55 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
           <X size={20} aria-hidden />
         </button>
         <div>
-          <p className="tk-finder-kicker">Sky Finder</p>
+          <p className="tk-finder-kicker">{desktopPreview ? "Sky preview" : "Sky Finder"}</p>
           <h1>{target.title}</h1>
           <p>{shapeLabel(target)} · {equipmentLabel(target)}</p>
         </div>
-        <button
-          type="button"
-          className="tk-finder-icon"
-          onClick={cameraPhase === "active" ? stopCamera : startCamera}
-          aria-label={cameraPhase === "active" ? "Turn camera off" : "Turn camera on"}
-          disabled={cameraPhase === "requesting" || previewMode}
-        >
-          {cameraPhase === "active" ? <CameraOff size={20} aria-hidden /> : <Camera size={20} aria-hidden />}
-        </button>
+        {!previewMode && capabilities.camera ? (
+          <button
+            type="button"
+            className="tk-finder-icon"
+            onClick={cameraPhase === "active" ? stopCamera : startCamera}
+            aria-label={cameraPhase === "active" ? "Turn camera off" : "Turn camera on"}
+            disabled={cameraPhase === "requesting"}
+          >
+            {cameraPhase === "active" ? <CameraOff size={20} aria-hidden /> : <Camera size={20} aria-hidden />}
+          </button>
+        ) : <span aria-hidden />}
       </header>
 
       {previewMode ? (
         <div className="tk-finder-mode-note" role="status">
           <AlertTriangle size={16} aria-hidden />
           <span>
-            <strong>Selected-time preview</strong>
-            Live camera and phone alignment are off. This shows the target at {formatClockTime(target.recommendedAtUtc, clock)} for the selected Tracker date.
+            <strong>{desktopPreview ? "Sky preview" : "Selected-time preview"}</strong>
+            {desktopPreview
+              ? `Live point-and-look guidance is for eligible phones and tablets. This preview shows the target at ${formatClockTime(solutionAt.toISOString(), clock)}.`
+              : `Live camera and phone alignment are off. This shows the target at ${formatClockTime(target.recommendedAtUtc, clock)} for the selected Tracker date.`}
           </span>
         </div>
       ) : null}
 
       <div className="tk-finder-stage" style={reticleStyle}>
+        {expectedContext && (previewMode || alignment.aligned) ? (
+          <div className="tk-finder-expected-field" aria-hidden>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              {expectedContext.stars.map((star) => (
+                <circle
+                  key={star.id}
+                  cx={star.xPercent}
+                  cy={star.yPercent}
+                  r={star.radiusPx / 2}
+                  data-target-constellation={star.inTargetConstellation ? "true" : undefined}
+                />
+              ))}
+            </svg>
+            <span>
+              Expected star field
+              {expectedContext.constellation ? ` · ${expectedContext.constellation.name}` : ""}
+            </span>
+          </div>
+        ) : null}
         <div className="tk-finder-horizon" aria-hidden />
         <div className="tk-finder-centre" aria-hidden>
           <span />
@@ -445,14 +624,18 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
             </>
           ) : horizontalError !== null && verticalError !== null ? (
             <>
-              <strong>{Math.abs(Math.round(horizontalError))}° {horizontalError < 0 ? "left" : "right"}</strong>
-              <strong>{Math.abs(Math.round(verticalError))}° {verticalError < 0 ? "down" : "up"}</strong>
-              <span>{roundedSeparation}° from target</span>
+              <strong>{movementGuidance(horizontalError, verticalError)}</strong>
+              <span>
+                {Math.abs(Math.round(horizontalError))}° {horizontalError < 0 ? "left" : "right"}
+                {" · "}
+                {Math.abs(Math.round(verticalError))}° {verticalError < 0 ? "down" : "up"}
+                {" · "}{roundedSeparation}° from target
+              </span>
             </>
           ) : (
             <>
               <Compass size={25} aria-hidden />
-              <strong>{noSensors ? "Use direction guidance" : "Start live guidance"}</strong>
+              <strong>{noSensors ? "Use direction guidance" : "Preparing live guidance"}</strong>
               <span>
                 {targetPosition
                   ? `${Math.round(targetPosition.azimuthDeg)}° azimuth · ${Math.round(targetPosition.altitudeDeg)}° altitude`
@@ -473,18 +656,6 @@ export function SkyFinder({ target, references, observer, clock, liveDate, onClo
         {rawPointing && sensorQuality === "poor" && !calibration ? (
           <p className="tk-finder-warning">Compass unreliable — calibrate for better guidance.</p>
         ) : null}
-        {!previewMode && !sensorsEnabled && capabilities.orientation ? (
-          <button
-            type="button"
-            className="tk-finder-primary"
-            onClick={startGuidance}
-            disabled={sensorPermission === "requesting"}
-          >
-            <Compass size={17} aria-hidden />
-            {sensorPermission === "requesting" ? "Waiting for permission…" : "Start live guidance"}
-          </button>
-        ) : null}
-
         <dl className="tk-finder-status">
           <div>
             <dt>Above horizon</dt>

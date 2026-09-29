@@ -6,16 +6,16 @@ import { rankOpportunities, type ObstructionPersistence, type Opportunity } from
 import type { SignificanceTier } from "./significance";
 
 /**
- * Two questions that are not the same question.
+ * Three questions that are not the same question.
  *
  *   A. How good is this observing opportunity?      → significance / qualities
  *   B. Does missing it cost anything I can get back? → ObstructionPersistence
+ *   C. Does the evidence cover this target direction? → CloudAdviceContext
  *
- * They correlate, so it is tempting to answer B by thresholding A, and that is
- * what the code used to do: `favourable` and `notable` survived a closed sky.
- * The gap between the two is where the defect lived. A 3° Moon–Venus pairing
- * rates `favourable` and recurs most months; a modest occultation could rate
- * `good-example` and disappear.
+ * They correlate, so it is tempting to answer B by thresholding A, or to infer
+ * C from an area-wide percentage. Both are wrong. A 3° Moon–Venus pairing rates
+ * `favourable` and recurs most months; a forecast of 95% cover still does not
+ * say whether the Moon or Saturn is behind cloud in its own direction.
  *
  * These tests exist to hold the two apart, so that no future change can quietly
  * reintroduce the inference.
@@ -57,9 +57,11 @@ describe("quality and discoverability are independent", () => {
    * routine target: Jupiter at opposition is a better view than Jupiter in
    * March and no harder to catch next week.
    */
-  it("withholds a routine target however good the opportunity is", () => {
+  it("keeps a bright routine target under a coarse closed-sky forecast", () => {
     const advice = cloudAdvice(closedNight(), "routine", "UTC", EARLY);
-    expect(advice.suppress).toBe(true);
+    expect(advice.suppress).toBe(false);
+    expect(advice.obscuration).toBe("possible");
+    expect(advice.warning).toMatch(/clear gaps/i);
   });
 
   /**
@@ -125,10 +127,12 @@ describe("preservation follows the opportunity's own window", () => {
     expect(advice.warning).toBeNull();
   });
 
-  it("gives two windows on one night different outcomes", () => {
+  it("gives two windows on one night different cloud cautions without hiding either", () => {
     const timeline = clearingNight();
-    expect(cloudAdvice(timeline, "routine", "UTC", EARLY).suppress).toBe(true);
+    expect(cloudAdvice(timeline, "routine", "UTC", EARLY).suppress).toBe(false);
+    expect(cloudAdvice(timeline, "routine", "UTC", EARLY).warning).toMatch(/clear gaps/i);
     expect(cloudAdvice(timeline, "routine", "UTC", LATE).suppress).toBe(false);
+    expect(cloudAdvice(timeline, "routine", "UTC", LATE).warning).toBeNull();
   });
 });
 

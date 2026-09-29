@@ -252,6 +252,7 @@ describe("what cloud does to a recommendation", () => {
     });
     expect(cloudAdvice(timeline, "time-critical", "UTC")).toEqual({
       suppress: false,
+      obscuration: "none",
       warning: null,
       goAnyway: false,
     });
@@ -270,13 +271,15 @@ describe("what cloud does to a recommendation", () => {
 
   /* --- what the brief calls the governing principle ---------------------- */
 
-  it("withholds a routine target whose own window is unusable", () => {
+  it("keeps a routine target when only an area-wide forecast calls the window unusable", () => {
     const advice = cloudAdvice(closedNight(), "routine", "UTC", {
       startUtc: "2026-09-03T02:00Z",
       endUtc: "2026-09-03T05:00Z",
     });
-    expect(advice.suppress).toBe(true);
-    expect(advice.warning).toBeTruthy();
+    expect(advice.suppress).toBe(false);
+    expect(advice.obscuration).toBe("possible");
+    expect(advice.warning).toMatch(/not direction-specific/i);
+    expect(advice.warning).toMatch(/clear gaps/i);
   });
 
   it("keeps a rare event under the same sky, and says so unmistakably", () => {
@@ -319,7 +322,7 @@ describe("what cloud does to a recommendation", () => {
    * Saturn at nine and a shower at two are not the same question, and on a
    * night that clears at midnight they must not receive the same answer.
    */
-  it("gives two opportunities at different times different outcomes", () => {
+  it("gives two opportunities at different times different warnings without hiding either", () => {
     const timeline = clearingNight();
     const early = cloudAdvice(timeline, "routine", "UTC", {
       startUtc: "2026-09-03T02:00Z",
@@ -329,8 +332,11 @@ describe("what cloud does to a recommendation", () => {
       startUtc: "2026-09-03T07:00Z",
       endUtc: "2026-09-03T11:00Z",
     });
-    expect(early.suppress).toBe(true);
+    expect(early.suppress).toBe(false);
+    expect(early.obscuration).toBe("possible");
+    expect(early.warning).toMatch(/clear gaps/i);
     expect(late.suppress).toBe(false);
+    expect(late.obscuration).toBe("none");
     expect(late.warning).toBeNull();
   });
 
@@ -344,7 +350,7 @@ describe("what cloud does to a recommendation", () => {
     ).toBe(false);
   });
 
-  it("suppresses an opportunity whose peak sits in the worst of the cloud", () => {
+  it("does not suppress an opportunity whose peak sits in coarse forecast cloud", () => {
     const timeline = clearingNight();
     // Entirely inside the closed stretch.
     expect(
@@ -352,12 +358,90 @@ describe("what cloud does to a recommendation", () => {
         startUtc: "2026-09-03T02:00Z",
         endUtc: "2026-09-03T04:00Z",
       }).suppress,
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("judges the night as a whole when an opportunity has no interval of its own", () => {
+  it("keeps an opportunity with no interval under a non-directional closed-night forecast", () => {
     const advice = cloudAdvice(closedNight(), "routine", "UTC", null);
+    expect(advice.suppress).toBe(false);
+    expect(advice.obscuration).toBe("possible");
+  });
+
+  it("uses clear-gap camera evidence to override a pessimistic forecast without verifying the target", () => {
+    const advice = cloudAdvice(
+      closedNight(),
+      "routine",
+      "UTC",
+      { startUtc: "2026-09-03T02:00Z", endUtc: "2026-09-03T05:00Z" },
+      {
+        targetId: "planet-saturn",
+        localEvidence: {
+          source: "camera",
+          observedUtc: "2026-09-03T02:00:00Z",
+          scope: "sky-region",
+          targetId: null,
+          finding: "clear-gaps",
+          confidence: "medium",
+          visualVerification: false,
+        },
+      },
+    );
+    expect(advice.suppress).toBe(false);
+    expect(advice.obscuration).toBe("possible");
+    expect(advice.warning).toMatch(/sky clearer than forecast/i);
+    expect(advice.warning).toMatch(/does not visually verify/i);
+  });
+
+  it("uses fresh high-confidence target-direction obstruction as a real hard gate", () => {
+    const advice = cloudAdvice(
+      closedNight(),
+      "routine",
+      "UTC",
+      { startUtc: "2026-09-03T02:00Z", endUtc: "2026-09-03T05:00Z" },
+      {
+        targetId: "planet-saturn",
+        localEvidence: {
+          source: "camera",
+          observedUtc: "2026-09-03T01:55:00Z",
+          scope: "target-direction",
+          targetId: "planet-saturn",
+          finding: "heavy-cloud",
+          confidence: "high",
+          visualVerification: false,
+        },
+      },
+    );
     expect(advice.suppress).toBe(true);
+    expect(advice.obscuration).toBe("likely");
+    expect(advice.warning).toMatch(/target direction/i);
+  });
+
+  it("does not promote stale, low-confidence, regional, or wrong-target evidence into a hard gate", () => {
+    const cases = [
+      { observedUtc: "2026-09-03T01:30:00Z", scope: "target-direction", targetId: "planet-saturn", confidence: "high" },
+      { observedUtc: "2026-09-03T01:55:00Z", scope: "target-direction", targetId: "planet-saturn", confidence: "low" },
+      { observedUtc: "2026-09-03T01:55:00Z", scope: "sky-region", targetId: null, confidence: "high" },
+      { observedUtc: "2026-09-03T01:55:00Z", scope: "target-direction", targetId: "moon", confidence: "high" },
+    ] as const;
+    for (const localEvidence of cases) {
+      const advice = cloudAdvice(
+        closedNight(),
+        "routine",
+        "UTC",
+        { startUtc: "2026-09-03T02:00Z", endUtc: "2026-09-03T05:00Z" },
+        {
+          targetId: "planet-saturn",
+          localEvidence: {
+            source: "camera",
+            finding: "heavy-cloud",
+            visualVerification: false,
+            ...localEvidence,
+          },
+        },
+      );
+      expect(advice.suppress).toBe(false);
+      expect(advice.obscuration).toBe("possible");
+    }
   });
 
   it("never suppresses on an interval nothing sampled", () => {
@@ -382,6 +466,7 @@ describe("cloud over one interval", () => {
       verdict: "unknown",
       samples: 0,
       worst: null,
+      bases: [],
     });
   });
 

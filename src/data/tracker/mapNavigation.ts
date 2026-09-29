@@ -42,6 +42,15 @@ export interface MapPin {
 }
 
 export interface TrackerMapLocation {
+  /**
+   * The primary presentation of the same observing plan.
+   *
+   * Map remains the default. Tonight is a decision-focused reading of the
+   * identical observer/date/equipment state; it is not a second planner.
+   * Sky is represented by `finder`, because it additionally requires a target
+   * and must preserve the exact surface it was launched from.
+   */
+  mode: "map" | "tonight";
   /** Where the map is centred, in degrees. */
   centre: { latitudeDeg: number; longitudeDeg: number };
   /** How far in, in MapLibre's zoom levels. */
@@ -105,14 +114,12 @@ export interface TrackerMapLocation {
   /**
    * Which projection the map is drawn in.
    *
-   * Tracker is 2D first and stays that way: the globe is another
-   * representation of the same map, for the readers and the phenomena where a
-   * sphere says something a rectangle cannot — an eclipse track running around
-   * a limb, an aurora oval that really is a ring. It is in the URL because it
-   * is part of what a shared link should reproduce, and because switching must
-   * not be a thing the reader loses by pressing Back.
+   * Tracker is 2D first and stays that way. The optional 3D representation is
+   * the same local geography draped over the real DEM at natural scale, not a
+   * globe or an illustrative extrusion. It is in the URL because it is part of
+   * what a shared link should reproduce.
    */
-  projection: "mercator" | "globe";
+  projection: "mercator" | "terrain";
   /**
    * What the reader is observing with.
    *
@@ -158,6 +165,7 @@ export const MAP_MAX_ZOOM = 10;
  */
 export function defaultMapLocation(): TrackerMapLocation {
   return {
+    mode: "map",
     centre: { latitudeDeg: 25, longitudeDeg: -20 },
     zoom: 1,
     pin: null,
@@ -233,9 +241,14 @@ export function parseMapLocation(search: string): TrackerMapLocation {
   const finder = params.get("find");
   if (finder) location.finder = finder;
 
-  // 2D unless the URL says otherwise, so a link without it opens where Tracker
-  // opens.
-  if (params.get("globe") === "1") location.projection = "globe";
+  const mode = params.get("mode");
+  if (mode === "tonight") location.mode = "tonight";
+
+  // `globe=1` is accepted as a compatibility alias for links made by the old
+  // 3D control. The product meaning of 3D is now local terrain, not a sphere.
+  if (params.get("terrain") === "1" || params.get("globe") === "1") {
+    location.projection = "terrain";
+  }
 
   // The eyes unless the reader says otherwise, which is the default the
   // product's own question implies.
@@ -306,7 +319,8 @@ export function mapLocationToSearch(location: TrackerMapLocation): string {
   if (location.event) params.set("show", location.event);
   if (location.card) params.set("card", location.card);
   if (location.finder) params.set("find", location.finder);
-  if (location.projection === "globe") params.set("globe", "1");
+  if (location.mode === "tonight") params.set("mode", "tonight");
+  if (location.projection === "terrain") params.set("terrain", "1");
   if (location.equipment !== "eyes") params.set("with", location.equipment);
 
   return `?${params.toString()}`;
@@ -348,6 +362,7 @@ export function isMapNavigationStep(
     from.event !== to.event ||
     from.card !== to.card ||
     from.finder !== to.finder ||
+    from.mode !== to.mode ||
     from.category !== to.category ||
     !sameLayers(from.layers, to.layers)
   );
@@ -364,6 +379,7 @@ export function sameMapLocation(a: TrackerMapLocation, b: TrackerMapLocation): b
     a.event === b.event &&
     a.card === b.card &&
     a.finder === b.finder &&
+    a.mode === b.mode &&
     sameLayers(a.layers, b.layers) &&
     a.category === b.category &&
     a.detail === b.detail &&

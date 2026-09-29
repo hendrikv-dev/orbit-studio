@@ -61,17 +61,9 @@ interface Props {
   safety: string | null;
   /** How the eye differs from the picture, where the two differ. */
   expectation: string | null;
-  onPrimary: () => void;
+  /** The stable first action for every target detail. */
+  onShowMap: () => void;
   onSecondary: () => void;
-  /**
-   * A third control, where the event has two genuinely different tools.
-   *
-   * An eclipse is the case that forced this. "View visibility map" answers
-   * *where on Earth*, and the altitude-and-bearing chart answers *where in the
-   * sky* — one control cannot be both, and making it try is how a button
-   * labelled "View visibility map" came to open a sky chart.
-   */
-  tertiary?: { label: string; onSelect: () => void } | null;
   /** Live local-sky guidance, only for targets with real locator geometry. */
   finder?: { label: string; onSelect: () => void } | null;
 }
@@ -108,9 +100,8 @@ export function EventHero({
   media,
   safety,
   expectation,
-  onPrimary,
+  onShowMap,
   onSecondary,
-  tertiary = null,
   finder = null,
 }: Props) {
   return (
@@ -184,22 +175,17 @@ export function EventHero({
         {expectation ? <Description key={expectation}>{expectation}</Description> : null}
 
         <div className="tk-hero-actions">
-          <button type="button" className="tk-action is-primary" onClick={onPrimary}>
-            {presentation.primaryAction.label}
+          <button type="button" className="tk-action is-primary" onClick={onShowMap}>
+            Show on Map
           </button>
-          <button type="button" className="tk-action" onClick={onSecondary}>
-            {presentation.secondaryAction.label}
-          </button>
-          {tertiary ? (
-            <button type="button" className="tk-action" onClick={tertiary.onSelect}>
-              {tertiary.label}
-            </button>
-          ) : null}
           {finder ? (
             <button type="button" className="tk-action is-finder" onClick={finder.onSelect}>
               {finder.label}
             </button>
           ) : null}
+          <button type="button" className="tk-action" onClick={onSecondary}>
+            {presentation.secondaryAction.label}
+          </button>
         </div>
       </div>
 
