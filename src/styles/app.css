@@ -18877,12 +18877,21 @@ button.primary,
 .tk-map-shell .tracker-place-current,
 .tk-map-shell .tk-date,
 .tk-mode-nav,
-.tk-projection,
-.tk-map-controls-view {
+.tk-projection {
   border-color: rgba(167, 181, 214, 0.11);
   background: rgba(6, 10, 18, 0.72);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(18px) saturate(118%);
+}
+/* The stack is only a layout wrapper. Giving it a filter creates a containing
+   block for the phone's fixed Layers sheet, shrinking that sheet to the 44px
+   control gutter instead of the viewport. Each control group already carries
+   the intended surface treatment. */
+.tk-map-controls-view {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 .tk-mode-nav { gap: 1px; padding: 2px; }
 .tk-mode-nav button {
@@ -19368,7 +19377,13 @@ button.primary,
   }
   .tk-map-detail .tk-hero-actions { margin-top: 16px; }
   .tk-map-detail .tk-detail-key-conditions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
-  .tk-map-detail .tk-detail-key-conditions li { padding: 13px 8px; }
+  .tk-map-detail .tk-detail-key-conditions li {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 4px;
+    padding: 13px 8px;
+  }
+  .tk-map-detail .tk-detail-key-conditions li > small { grid-column: 1; }
   .tk-map-detail .tk-detail-key-conditions li + li { border-top: 0; border-left: 1px solid rgba(150, 165, 196, 0.12); }
   .tk-finder-header { padding-inline: 12px; gap: 10px; }
   .tk-finder-stage { min-height: 360px; }

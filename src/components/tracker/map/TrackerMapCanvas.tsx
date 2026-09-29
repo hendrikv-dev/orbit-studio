@@ -285,6 +285,22 @@ export function TrackerMapCanvas({
    * that shows up as the map refusing to sit still after a Back.
    */
   const programmatic = useRef(false);
+  /**
+   * The complete camera target of the latest explicit recenter request.
+   *
+   * Recentring updates the URL-owned centre and restores the terrain camera in
+   * one user action. React can deliver those two state changes in adjacent
+   * renders, so the ordinary centre synchroniser may otherwise interrupt the
+   * pitch/bearing animation part way through. Remembering the target lets that
+   * synchroniser finish the same camera command instead of freezing an
+   * intermediate angle.
+   */
+  const recentreTarget = useRef<{
+    key: number;
+    latitudeDeg: number;
+    longitudeDeg: number;
+  } | null>(null);
+  const handledCameraResetKey = useRef(0);
   const [failed, setFailed] = useState(false);
   /**
    * Which map instance is live, and whether it is ready for layers.
@@ -562,9 +578,22 @@ export function TrackerMapCanvas({
     // Far jumps get the flight, small corrections get an ease: a search result
     // across the world should read as travel, a nudge should not.
     const km = distanceKm(at.lat, at.lng, centre.latitudeDeg, centre.longitudeDeg);
-    if (km > 400) instance.flyTo({ center: target, zoom, duration: 900, essential: true });
-    else instance.easeTo({ center: target, zoom, duration: 360, essential: true });
-  }, [centre.latitudeDeg, centre.longitudeDeg, zoom]);
+    const completingRecentre =
+      recentreTarget.current?.key === cameraResetKey &&
+      Math.abs(recentreTarget.current.latitudeDeg - centre.latitudeDeg) <= 1e-4 &&
+      Math.abs(recentreTarget.current.longitudeDeg - centre.longitudeDeg) <= 1e-4;
+    const camera = completingRecentre
+      ? {
+          pitch: projection === "terrain" ? 58 : 0,
+          bearing: projection === "terrain" ? -24 : 0,
+        }
+      : {};
+    if (km > 400) {
+      instance.flyTo({ center: target, zoom, ...camera, duration: 900, essential: true });
+    } else {
+      instance.easeTo({ center: target, zoom, ...camera, duration: 360, essential: true });
+    }
+  }, [cameraResetKey, centre.latitudeDeg, centre.longitudeDeg, projection, zoom]);
 
   /**
    * Frame the selected event, once per event.
@@ -712,15 +741,50 @@ export function TrackerMapCanvas({
   useEffect(() => {
     const instance = map.current;
     if (!instance || epoch === 0 || cameraResetKey === 0) return;
+    if (handledCameraResetKey.current === cameraResetKey) return;
+    handledCameraResetKey.current = cameraResetKey;
+    const target = pin ?? centre;
+    recentreTarget.current = {
+      key: cameraResetKey,
+      latitudeDeg: target.latitudeDeg,
+      longitudeDeg: target.longitudeDeg,
+    };
+    const pitch = projection === "terrain" ? 58 : 0;
+    const bearing = projection === "terrain" ? -24 : 0;
     instance.stop();
+    /**
+     * A URL-centre reconciliation can legitimately interrupt this animation.
+     * MapLibre reports that interruption as `moveend`; finish only the camera
+     * orientation there, while the newer centre command continues. This keeps
+     * the requested motion when uninterrupted and makes the final state
+     * deterministic when the two authoritative updates arrive separately.
+     */
+    instance.once("moveend", () => {
+      if (recentreTarget.current?.key !== cameraResetKey) return;
+      if (
+        Math.abs(instance.getPitch() - pitch) > 0.1 ||
+        Math.abs(instance.getBearing() - bearing) > 0.1
+      ) {
+        instance.jumpTo({ pitch, bearing });
+      }
+    });
     programmatic.current = true;
     instance.easeTo({
-      pitch: projection === "terrain" ? 58 : 0,
-      bearing: projection === "terrain" ? -24 : 0,
+      center: [target.longitudeDeg, target.latitudeDeg],
+      zoom,
+      pitch,
+      bearing,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
     });
-  }, [cameraResetKey, epoch, projection]);
+  }, [
+    cameraResetKey,
+    centre,
+    epoch,
+    pin,
+    projection,
+    zoom,
+  ]);
 
   /** The pin, as a marker the renderer keeps in place for us. */
   useEffect(() => {
