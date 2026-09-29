@@ -194,6 +194,7 @@ import { TrackerTonightBriefing } from "./TrackerTonightBriefing";
 import {
   detectSkyFinderCapabilities,
   skyFinderTargetFor,
+  supportsLiveSkyFinder,
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 
@@ -669,7 +670,7 @@ function TrackerScreen() {
   const [layersOpen, setLayersOpen] = useState(false);
   /** Future discovery is a sheet over this map, never a second destination. */
   const [upcomingOpen, setUpcomingOpen] = useState(false);
-  /** Protected calls begun by the original Find in sky gesture. */
+  /** Protected calls begun by the original Find in Sky gesture. */
   const [finderLaunch, setFinderLaunch] = useState<SkyFinderLaunchAttempt | null>(null);
   const upcomingTrigger = useRef<HTMLButtonElement>(null);
   /** The place control's trigger, so a local search can send the reader to it. */
@@ -734,6 +735,17 @@ function TrackerScreen() {
   /** The date on screen: the reader's choice, or today. */
   const selectedDate = location.date ?? today;
   const isToday = selectedDate === today;
+  const liveSkyAvailable =
+    isToday && supportsLiveSkyFinder(skyFinderCapabilities);
+
+  // A hand-edited or old Finder URL cannot manufacture a desktop preview or a
+  // sensor-free mobile mode. Withdraw only the unsupported destination; the
+  // observer, date, selection and originating Map/Tonight mode remain intact.
+  useEffect(() => {
+    if (!location.finder || liveSkyAvailable) return;
+    setFinderLaunch(null);
+    settle({ finder: null });
+  }, [liveSkyAvailable, location.finder, settle]);
 
   /**
    * The instant handed to the astronomy.
@@ -2916,12 +2928,13 @@ function TrackerScreen() {
     : "this location";
   const openSkyFinder = useCallback(
     (id: string) => {
+      if (!liveSkyAvailable || !skyFinderTargets.has(id)) return;
       setFinderLaunch(
         beginSkyFinderLaunch(id, skyFinderCapabilities, selectedDate === today),
       );
       navigate({ card: id, finder: id });
     },
-    [navigate, selectedDate, skyFinderCapabilities, today],
+    [liveSkyAvailable, navigate, selectedDate, skyFinderCapabilities, skyFinderTargets, today],
   );
   const closeSkyFinder = useCallback(
     () => {
@@ -3323,7 +3336,7 @@ function TrackerScreen() {
       />
     ) : null;
 
-  if (location.finder) {
+  if (location.finder && liveSkyAvailable) {
     return (
       <main
         className="tracker-shell tk-map-shell"
@@ -3334,9 +3347,7 @@ function TrackerScreen() {
         <TrackerModeNav
           current="sky"
           skyAvailable={Boolean(activeSkyFinderTarget)}
-          skyLabel={
-            skyFinderCapabilities.handheldEligible ? "Sky live guidance" : "Sky preview"
-          }
+          skyLabel="Sky live guidance"
           onMap={() => {
             setFinderLaunch(null);
             returnTo({ ...location, mode: "map", finder: null });
@@ -3363,7 +3374,7 @@ function TrackerScreen() {
           />
         ) : (
           <section className="tk-finder-unavailable" aria-labelledby="finder-unavailable-title">
-            <p>Sky Finder</p>
+            <p>Sky</p>
             <h1 id="finder-unavailable-title">Target position unavailable</h1>
             <p>
               This object is not in the current recommendations for this place and date, so Tracker withdrew the old pointing solution instead of reusing stale coordinates.
@@ -3515,10 +3526,8 @@ function TrackerScreen() {
       {!detailOpen ? (
         <TrackerModeNav
           current={location.mode}
-          skyAvailable={preferredSkyTargetId !== null}
-          skyLabel={
-            skyFinderCapabilities.handheldEligible ? "Sky live guidance" : "Sky preview"
-          }
+          skyAvailable={liveSkyAvailable && preferredSkyTargetId !== null}
+          skyLabel="Sky live guidance"
           onMap={() => navigate({ mode: "map" })}
           onTonight={() => navigate({ mode: "tonight" })}
           onSky={() => {
@@ -3622,7 +3631,17 @@ function TrackerScreen() {
       {location.mode === "map" && !detailOpen ? (
         <TrackerProjectionToggle
           projection={location.projection}
-          onSelect={(projection) => settle({ projection })}
+          onSelect={(projection) =>
+            settle({
+              projection,
+              ...(projection === "terrain" && location.pin
+                ? {
+                    centre: location.pin,
+                    zoom: Math.max(location.zoom, 9.25),
+                  }
+                : {}),
+            })
+          }
         />
       ) : null}
 
@@ -3655,8 +3674,10 @@ function TrackerScreen() {
           <TrackerMapRecommendation
           card={mapRecommendation}
           loading={!night}
-          finderLabel={skyFinderCapabilities.handheldEligible ? "Find in sky" : "Preview in sky"}
-          canFindInSky={Boolean(mapRecommendation && skyFinderTargets.has(mapRecommendation.id))}
+          finderLabel="Find in Sky"
+          canFindInSky={Boolean(
+            liveSkyAvailable && mapRecommendation && skyFinderTargets.has(mapRecommendation.id)
+          )}
           onOpenDetail={() => {
             if (mapRecommendation) openDetail(mapRecommendation.id);
           }}
@@ -3674,8 +3695,8 @@ function TrackerScreen() {
           dateLabel={describeDate(selectedDate, today).heading}
           onOpenDetail={openDetail}
           onFindInSky={openSkyFinder}
-          finderLabel={skyFinderCapabilities.handheldEligible ? "Find in sky" : "Preview in sky"}
-          canFindInSky={(card) => skyFinderTargets.has(card.id)}
+          finderLabel="Find in Sky"
+          canFindInSky={(card) => liveSkyAvailable && skyFinderTargets.has(card.id)}
           factsFor={railFactsFor}
           equipment={location.equipment}
           recovery={recoveryBriefing}
@@ -3746,7 +3767,21 @@ function TrackerScreen() {
                 : [],
             )}
             evidenceStatus={environment.status}
-            onShowMap={openFullMap}
+            mapAction={
+              heroEvent.presentation.primaryAction.kind === "coverage-map"
+                ? {
+                    label:
+                      heroEvent.presentation.categoryId === "eclipses"
+                        ? "View eclipse path"
+                        : heroEvent.presentation.categoryId === "satellites"
+                          ? "View ground track"
+                        : "View visibility",
+                    onSelect: openFullMap,
+                  }
+                : heroEvent.presentation.primaryAction.kind === "forecast-map"
+                  ? { label: "View aurora visibility", onSelect: openFullMap }
+                  : null
+            }
             /**
              * The hero's own control, routed by what it says it is.
              *
@@ -3781,11 +3816,9 @@ function TrackerScreen() {
                 : null
             }
             finderAction={
-              skyFinderTargets.has(heroEvent.id)
+              liveSkyAvailable && skyFinderTargets.has(heroEvent.id)
                 ? {
-                    label: skyFinderCapabilities.handheldEligible
-                      ? "Find in sky →"
-                      : "Preview in sky →",
+                    label: "Find in Sky",
                     onSelect: () => openSkyFinder(heroEvent.id),
                   }
                 : null

@@ -612,17 +612,23 @@ describe("Tracker review no longer certifies the destination-page architecture",
   });
 });
 
-describe("Tracker three-mode production review coverage", () => {
+describe("Tracker capability-aware production review coverage", () => {
   it.each([
     "tracker-map-2d",
     "tracker-map-3d-terrain",
     "tracker-tonight-normal",
     "tracker-object-detail-collapsed",
     "tracker-object-detail-expanded",
-    "tracker-sky-preview-desktop",
-    "tracker-phone-live-sky-auto",
-    "tracker-tablet-portrait-live-finder",
+    "tracker-phone-map-2d",
+    "tracker-phone-map-3d",
+    "tracker-phone-tonight",
+    "tracker-phone-object-detail-collapsed",
+    "tracker-phone-sky",
+    "tracker-tablet-map-3d",
+    "tracker-tablet-tonight",
+    "tracker-tablet-sky",
     "tracker-tablet-landscape-live-finder",
+    "tracker-unsupported-tablet-no-sky",
   ])("captures %s", (name) => {
     expect(scenarioSource).toContain(`captureSurface("${name}"`);
   });

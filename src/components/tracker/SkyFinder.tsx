@@ -1,5 +1,4 @@
 import {
-  AlertTriangle,
   Camera,
   CameraOff,
   Compass,
@@ -26,9 +25,9 @@ import {
   normalizeDegrees,
   pointingFromDeviceOrientation,
   positionForSkyFinderTarget,
-  previewPositionForTarget,
   signedAngleDifference,
   skyFinderExperience,
+  supportsLiveSkyFinder,
   type FinderCalibration,
   type FinderCapabilities,
   type PhonePointing,
@@ -77,20 +76,20 @@ export interface SkyFinderLaunchAttempt {
 }
 
 /**
- * Begin protected work during the user's original Find/Preview action.
+ * Begin protected work during the user's original Find in Sky action.
  *
  * iOS requires orientation permission to be requested from the gesture itself;
  * mounting a screen and asking from a later effect is already too late. Both
  * constructor calls and getUserMedia therefore happen synchronously here,
- * before navigation. Desktop and selected-time previews return without
- * touching any protected API.
+ * before navigation. Unsupported devices and selected dates return without
+ * touching any protected API; the caller does not expose Sky in those states.
  */
 export function beginSkyFinderLaunch(
   targetId: string,
   capabilities: FinderCapabilities,
   liveDate: boolean,
 ): SkyFinderLaunchAttempt | null {
-  if (!capabilities.handheldEligible || !liveDate) return null;
+  if (!supportsLiveSkyFinder(capabilities) || !liveDate) return null;
 
   let orientationRequest: Promise<"granted" | "denied">;
   try {
@@ -135,8 +134,8 @@ export function beginSkyFinderLaunch(
         return {
           phase: denied ? "denied" as const : "unavailable" as const,
           message: denied
-            ? "Camera access was denied. Finder is continuing with the dark sensor view."
-            : "The rear camera could not start. Finder is continuing with the dark sensor view.",
+            ? "Camera access was denied. Live pointing continues against the night view."
+            : "The rear camera could not start. Live pointing continues against the night view.",
         };
       });
   }
@@ -183,14 +182,20 @@ function shapeLabel(target: SkyFinderTarget): string {
 }
 
 function movementGuidance(horizontalDeg: number, verticalDeg: number): string {
-  const horizontal = Math.abs(horizontalDeg) < 3
-    ? null
-    : horizontalDeg < 0 ? "Move left" : "Move right";
-  const vertical = Math.abs(verticalDeg) < 3
-    ? null
-    : verticalDeg < 0 ? "Lower phone" : "Raise phone";
-  if (!horizontal && !vertical) return "Almost aligned";
-  return [horizontal, vertical].filter(Boolean).join(" · ");
+  const horizontalMagnitude = Math.abs(horizontalDeg);
+  const verticalMagnitude = Math.abs(verticalDeg);
+  if (horizontalMagnitude < 3 && verticalMagnitude < 3) return "Almost there";
+  if (horizontalMagnitude >= verticalMagnitude) {
+    const qualifier = horizontalMagnitude < 15 ? " slightly" : "";
+    return `Move${qualifier} ${horizontalDeg < 0 ? "left" : "right"}`;
+  }
+  const qualifier = verticalMagnitude < 15 ? " slightly" : "";
+  return verticalDeg < 0 ? `Lower phone${qualifier}` : `Raise phone${qualifier}`;
+}
+
+function cardinalDirection(azimuthDeg: number): string {
+  const labels = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+  return labels[Math.round(normalizeDegrees(azimuthDeg) / 45) % labels.length];
 }
 
 function chooseReference(targets: SkyFinderTarget[]): SkyFinderTarget | null {
@@ -245,17 +250,8 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         : null,
     [astronomyNow, liveDate, observer, target],
   );
-  const previewPosition = useMemo(
-    () => previewPositionForTarget(target, observer),
-    [observer, target],
-  );
-  const desktopPreview = !capabilities.handheldEligible;
-  const previewMode = desktopPreview || !liveDate || livePosition === null;
-  const targetPosition = previewMode ? previewPosition : livePosition;
-  const solutionAt = useMemo(
-    () => (previewMode ? new Date(target.recommendedAtUtc) : astronomyNow),
-    [astronomyNow, previewMode, target.recommendedAtUtc],
-  );
+  const targetPosition = livePosition;
+  const solutionAt = astronomyNow;
 
   useEffect(() => {
     if (!targetPosition) {
@@ -309,7 +305,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   useEffect(() => stopCamera, [stopCamera]);
 
   useEffect(() => {
-    if (!launch || launch.targetId !== target.id || previewMode) return undefined;
+    if (!launch || launch.targetId !== target.id) return undefined;
     let cancelled = false;
     setSensorPermission("requesting");
     void launch.sensor.then((result) => {
@@ -341,23 +337,18 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     return () => {
       cancelled = true;
     };
-  }, [launch, previewMode, target.id]);
+  }, [launch, target.id]);
 
   const startCamera = useCallback(async () => {
     if (
       !canRequestSkyFinderPermission(capabilities, "camera", {
         liveDate,
         userInitiated: true,
-      }) ||
-      previewMode
+      })
     ) {
       setCameraPhase("unavailable");
       setCameraMessage(
-        desktopPreview
-          ? "Live camera pointing is available on eligible phones and tablets. This device uses sky preview."
-          : previewMode
-          ? "Camera mode is available only for the live sky, not a selected-time preview."
-          : "This browser cannot open a rear camera here. Sensor guidance still works.",
+        "This browser cannot open a rear camera here. Direction guidance is still available.",
       );
       return;
     }
@@ -380,16 +371,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       setCameraPhase(denied ? "denied" : "unavailable");
       setCameraMessage(
         denied
-          ? "Camera access was denied. Finder is continuing with the dark sensor view."
-          : "The rear camera could not start. Finder is continuing with the dark sensor view.",
+          ? "Camera access was denied. Live pointing continues against the night view."
+          : "The rear camera could not start. Live pointing continues against the night view.",
       );
     }
-  }, [capabilities, desktopPreview, liveDate, previewMode]);
+  }, [capabilities, liveDate]);
 
   useEffect(() => {
     if (
       capabilities.handheldEligible &&
-      !previewMode &&
       capabilities.orientation &&
       !capabilities.orientationPermissionRequest
     ) {
@@ -400,11 +390,10 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     capabilities.handheldEligible,
     capabilities.orientation,
     capabilities.orientationPermissionRequest,
-    previewMode,
   ]);
 
   useEffect(() => {
-    if (!sensorsEnabled || previewMode) return undefined;
+    if (!sensorsEnabled) return undefined;
 
     const update = (incoming: Event) => {
       const event = incoming as SafariOrientationEvent;
@@ -448,7 +437,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       window.removeEventListener("deviceorientationabsolute", update, true);
       window.removeEventListener("deviceorientation", update, true);
     };
-  }, [previewMode, sensorsEnabled]);
+  }, [sensorsEnabled]);
 
   const pointing = useMemo(
     () => (rawPointing ? applyCalibration(rawPointing, calibration) : null),
@@ -457,10 +446,8 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const effectiveQuality: PointingQuality = calibration && sensorQuality === "poor" ? "fair" : sensorQuality;
   const alignment = useMemo(
     () =>
-      previewMode
-        ? { separationDeg: null, aligned: false }
-        : alignmentFor(pointing, targetPosition, target.alignmentToleranceDeg, effectiveQuality),
-    [effectiveQuality, pointing, previewMode, target.alignmentToleranceDeg, targetPosition],
+      alignmentFor(pointing, targetPosition, target.alignmentToleranceDeg, effectiveQuality),
+    [effectiveQuality, pointing, target.alignmentToleranceDeg, targetPosition],
   );
 
   const horizontalError =
@@ -498,11 +485,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const finderAvailability =
     targetPosition === null
       ? "Unavailable"
-      : desktopPreview
-        ? "Sky preview"
-        : previewMode
-        ? "Preview"
-        : rawPointing
+      : rawPointing
           ? "Live"
           : noSensors
             ? "Direction only"
@@ -520,7 +503,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       className="tk-sky-finder"
       data-camera={cameraPhase === "active" ? "active" : "off"}
       data-aligned={alignment.aligned ? "true" : "false"}
-      data-mode={previewMode ? "preview" : "live"}
+      data-mode={targetPosition ? "live" : "unavailable"}
       data-device-class={capabilities.deviceClass}
       data-device-experience={deviceExperience}
       data-target-altitude={targetPosition?.altitudeDeg.toFixed(3)}
@@ -529,22 +512,22 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       data-pointing-quality={effectiveQuality}
       data-visual-verification="not-attempted"
       data-expected-constellation={expectedContext?.constellation?.symbol}
-      aria-label={desktopPreview ? `Preview ${target.title} in the sky` : `Find ${target.title} in the sky`}
+      aria-label={`Find ${target.title} in the sky`}
     >
       <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
       <div className="tk-finder-sky" aria-hidden />
       <div className="tk-finder-shade" aria-hidden />
 
       <header className="tk-finder-header">
-        <button type="button" className="tk-finder-icon" onClick={onClose} aria-label="Close Sky Finder">
+        <button type="button" className="tk-finder-icon" onClick={onClose} aria-label="Close Sky">
           <X size={20} aria-hidden />
         </button>
         <div>
-          <p className="tk-finder-kicker">{desktopPreview ? "Sky preview" : "Sky Finder"}</p>
+          <p className="tk-finder-kicker">Sky</p>
           <h1>{target.title}</h1>
           <p>{shapeLabel(target)} · {equipmentLabel(target)}</p>
         </div>
-        {!previewMode && capabilities.camera ? (
+        {capabilities.camera ? (
           <button
             type="button"
             className="tk-finder-icon"
@@ -557,20 +540,8 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         ) : <span aria-hidden />}
       </header>
 
-      {previewMode ? (
-        <div className="tk-finder-mode-note" role="status">
-          <AlertTriangle size={16} aria-hidden />
-          <span>
-            <strong>{desktopPreview ? "Sky preview" : "Selected-time preview"}</strong>
-            {desktopPreview
-              ? `Live point-and-look guidance is for eligible phones and tablets. This preview shows the target at ${formatClockTime(solutionAt.toISOString(), clock)}.`
-              : `Live camera and phone alignment are off. This shows the target at ${formatClockTime(target.recommendedAtUtc, clock)} for the selected Tracker date.`}
-          </span>
-        </div>
-      ) : null}
-
       <div className="tk-finder-stage" style={reticleStyle}>
-        {expectedContext && (previewMode || alignment.aligned) ? (
+        {expectedContext && alignment.aligned ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               {expectedContext.stars.map((star) => (
@@ -594,12 +565,12 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <span />
           <span />
         </div>
-        {targetPosition && pointing && !previewMode ? (
+        {targetPosition && pointing ? (
           <div className="tk-finder-target" data-shape={target.shape} aria-hidden>
             <span />
           </div>
         ) : null}
-        {horizontalError !== null && verticalError !== null && !alignment.aligned && !previewMode ? (
+        {horizontalError !== null && verticalError !== null && !alignment.aligned ? (
           <div className="tk-finder-arrow" style={{ transform: `rotate(${arrowAngle}deg)` }} aria-hidden>
             ↑
           </div>
@@ -609,18 +580,8 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           {alignment.aligned ? (
             <>
               <Crosshair size={28} aria-hidden />
-              <strong>Target aligned</strong>
-              <span>Expected position within {target.alignmentToleranceDeg}°</span>
-            </>
-          ) : previewMode ? (
-            <>
-              <Compass size={25} aria-hidden />
-              <strong>{aboveHorizon ? "Above horizon" : "Below horizon"}</strong>
-              <span>
-                {targetPosition
-                  ? `${Math.round(targetPosition.azimuthDeg)}° azimuth · ${Math.round(targetPosition.altitudeDeg)}° altitude`
-                  : "No position is available for this selected time."}
-              </span>
+              <strong>On target</strong>
+              <span>{target.title} is here</span>
             </>
           ) : horizontalError !== null && verticalError !== null ? (
             <>
@@ -635,11 +596,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           ) : (
             <>
               <Compass size={25} aria-hidden />
-              <strong>{noSensors ? "Use direction guidance" : "Preparing live guidance"}</strong>
+              <strong>
+                {noSensors && targetPosition
+                  ? `Face ${cardinalDirection(targetPosition.azimuthDeg)}`
+                  : "Preparing live guidance"}
+              </strong>
               <span>
                 {targetPosition
-                  ? `${Math.round(targetPosition.azimuthDeg)}° azimuth · ${Math.round(targetPosition.altitudeDeg)}° altitude`
-                  : "Waiting for a current target position."}
+                  ? `${Math.round(targetPosition.azimuthDeg)}° direction · raise phone to ${Math.round(targetPosition.altitudeDeg)}°`
+                  : "This target does not have a live position right now."}
               </span>
             </>
           )}
@@ -650,84 +615,83 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         {cameraMessage ? <p className="tk-finder-warning">{cameraMessage}</p> : null}
         {sensorPermission === "denied" ? (
           <p className="tk-finder-warning">
-            Orientation access was denied. Enable Motion &amp; Orientation Access in the browser, or use the altitude/azimuth fallback.
+            Orientation access was denied. Sky will keep showing the target direction and altitude without live alignment.
           </p>
         ) : null}
         {rawPointing && sensorQuality === "poor" && !calibration ? (
           <p className="tk-finder-warning">Compass unreliable — calibrate for better guidance.</p>
         ) : null}
-        <dl className="tk-finder-status">
-          <div>
-            <dt>Above horizon</dt>
-            <dd>{aboveHorizon ? "Yes" : "No"}</dd>
-          </div>
-          <div>
-            <dt>Observable</dt>
-            <dd>{target.observableTonight ? "Tonight" : "Not recommended"}</dd>
-          </div>
-          <div>
-            <dt>Finder available</dt>
-            <dd>{finderAvailability}</dd>
-          </div>
-          <div>
-            <dt>Pointing accuracy</dt>
-            <dd>
-              {qualityLabel(effectiveQuality)}
-              {headingAccuracy !== null ? ` · ±${Math.round(headingAccuracy)}°` : ""}
-            </dd>
-          </div>
-          <div>
-            <dt>Visual verification</dt>
-            <dd>Not performed</dd>
-          </div>
-        </dl>
+        <details className="tk-finder-details">
+          <summary>Pointing details</summary>
+          <dl className="tk-finder-status">
+            <div>
+              <dt>Above horizon</dt>
+              <dd>{aboveHorizon ? "Yes" : "No"}</dd>
+            </div>
+            <div>
+              <dt>Observable</dt>
+              <dd>{target.observableTonight ? "Tonight" : "Not recommended"}</dd>
+            </div>
+            <div>
+              <dt>Guidance</dt>
+              <dd>{finderAvailability}</dd>
+            </div>
+            <div>
+              <dt>Pointing accuracy</dt>
+              <dd>
+                {qualityLabel(effectiveQuality)}
+                {headingAccuracy !== null ? ` · ±${Math.round(headingAccuracy)}°` : ""}
+              </dd>
+            </div>
+          </dl>
 
-        {!previewMode && sensorsEnabled ? (
-          <div className="tk-finder-calibration-actions">
-            <button type="button" onClick={() => setCalibrationOpen((open) => !open)}>
-              <Compass size={15} aria-hidden />
-              {calibration ? "Recalibrate" : "Improve pointing accuracy"}
-            </button>
-            {calibration ? (
-              <button type="button" onClick={() => setCalibration(null)}>
-                <RotateCcw size={15} aria-hidden />
-                Clear calibration
+          {sensorsEnabled ? (
+            <div className="tk-finder-calibration-actions">
+              <button type="button" onClick={() => setCalibrationOpen((open) => !open)}>
+                <Compass size={15} aria-hidden />
+                {calibration ? "Recalibrate" : "Improve pointing accuracy"}
               </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {calibrationOpen ? (
-          <div className="tk-finder-calibration">
-            <p className="tk-finder-calibration-title">Align with a known object</p>
-            {referenceOptions.length > 0 ? (
-              <>
-                <label>
-                  Reference object
-                  <select value={referenceId ?? ""} onChange={(event) => setReferenceId(event.target.value)}>
-                    {referenceOptions.map((entry) => (
-                      <option key={entry.target.id} value={entry.target.id}>{entry.target.title}</option>
-                    ))}
-                  </select>
-                </label>
-                <ol>
-                  <li>Find the reference object with your eyes.</li>
-                  <li>Point the rear camera directly at it and centre it.</li>
-                  <li>Tap Align here.</li>
-                </ol>
-                <button type="button" className="tk-finder-primary" onClick={alignReference} disabled={!rawPointing || !selectedReference}>
-                  Align here
+              {calibration ? (
+                <button type="button" onClick={() => setCalibration(null)}>
+                  <RotateCcw size={15} aria-hidden />
+                  Clear calibration
                 </button>
-              </>
-            ) : (
-              <p>No bright reference from tonight’s current recommendations is high enough to use right now.</p>
-            )}
-          </div>
-        ) : null}
+              ) : null}
+            </div>
+          ) : null}
 
-        <p className="tk-finder-context">
-          Position for {observer.label} at {formatClockTime(solutionAt.toISOString(), clock)}. Correct pointing does not guarantee naked-eye visibility. Camera frames stay on this device and are not analysed or uploaded.
-        </p>
+          {calibrationOpen ? (
+            <div className="tk-finder-calibration">
+              <p className="tk-finder-calibration-title">Align with a known object</p>
+              {referenceOptions.length > 0 ? (
+                <>
+                  <label>
+                    Reference object
+                    <select value={referenceId ?? ""} onChange={(event) => setReferenceId(event.target.value)}>
+                      {referenceOptions.map((entry) => (
+                        <option key={entry.target.id} value={entry.target.id}>{entry.target.title}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <ol>
+                    <li>Find the reference object with your eyes.</li>
+                    <li>Point the rear camera directly at it and centre it.</li>
+                    <li>Tap Align here.</li>
+                  </ol>
+                  <button type="button" className="tk-finder-primary" onClick={alignReference} disabled={!rawPointing || !selectedReference}>
+                    Align here
+                  </button>
+                </>
+              ) : (
+                <p>No bright reference from tonight’s current recommendations is high enough to use right now.</p>
+              )}
+            </div>
+          ) : null}
+
+          <p className="tk-finder-context">
+            Position for {observer.label} at {formatClockTime(solutionAt.toISOString(), clock)}. Correct pointing does not guarantee naked-eye visibility. Camera frames stay on this device and are not analysed or uploaded.
+          </p>
+        </details>
       </div>
     </section>
   );

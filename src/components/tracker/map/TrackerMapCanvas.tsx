@@ -330,7 +330,7 @@ export function TrackerMapCanvas({
       zoom,
       minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
-      maxPitch: 70,
+      maxPitch: 75,
       // 2D owns the default camera. The terrain-mode effect enables these
       // gestures only while 3D is selected.
       pitchWithRotate: false,
@@ -417,7 +417,7 @@ export function TrackerMapCanvas({
      * gated on a third party finishing will, sooner or later, not happen.
      */
     instance.on("style.load", () => {
-      recolour(instance);
+      recolour(instance, false);
       addHillshade(instance);
       setEpoch((n) => n + 1);
       setSettled(true);
@@ -661,6 +661,32 @@ export function TrackerMapCanvas({
       // Relief is an enhancement. A failed DEM leaves the same usable map,
       // never a false synthetic surface.
     }
+    recolour(instance, terrain);
+    try {
+      instance.setSky(
+        terrain
+          ? {
+              "sky-color": "#040711",
+              "horizon-color": "#172238",
+              "fog-color": "#111a29",
+              "fog-ground-blend": 0.72,
+              "horizon-fog-blend": 0.78,
+              "sky-horizon-blend": 0.52,
+              "atmosphere-blend": 0.08,
+            }
+          : {
+              "sky-color": "rgba(4, 7, 17, 0)",
+              "horizon-color": "rgba(4, 7, 17, 0)",
+              "fog-color": "rgba(4, 7, 17, 0)",
+              "fog-ground-blend": 0,
+              "horizon-fog-blend": 0,
+              "sky-horizon-blend": 0,
+              "atmosphere-blend": 0,
+            },
+      );
+    } catch {
+      // Older renderers still get real terrain and the restrained basemap.
+    }
     if (terrain && !inertRef.current) {
       instance.dragRotate.enable();
       instance.touchZoomRotate.enableRotation();
@@ -670,8 +696,8 @@ export function TrackerMapCanvas({
     }
     programmatic.current = true;
     instance.easeTo({
-      pitch: terrain ? 62 : 0,
-      bearing: terrain ? -18 : 0,
+      pitch: terrain ? 68 : 0,
+      bearing: terrain ? -24 : 0,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
     });
@@ -689,8 +715,8 @@ export function TrackerMapCanvas({
     instance.stop();
     programmatic.current = true;
     instance.easeTo({
-      pitch: projection === "terrain" ? 62 : 0,
-      bearing: projection === "terrain" ? -18 : 0,
+      pitch: projection === "terrain" ? 68 : 0,
+      bearing: projection === "terrain" ? -24 : 0,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
     });
@@ -916,7 +942,7 @@ function pulse(element: HTMLElement) {
  * legible. Both OpenMapTiles' names and Protomaps' are matched, so the cutover
  * does not take the palette with it.
  */
-function recolour(instance: MapLibreMap) {
+function recolour(instance: MapLibreMap, terrain = false) {
   const layers = instance.getStyle().layers ?? [];
   for (const layer of layers) {
     const id = layer.id;
@@ -955,7 +981,7 @@ function recolour(instance: MapLibreMap) {
         paint("fill-opacity", 1);
       } else if (isBuilding) {
         paint("fill-color", INK.building);
-        paint("fill-opacity", 0.45);
+        paint("fill-opacity", terrain ? 0.16 : 0.45);
       } else if (isGreen) {
         paint("fill-color", INK.green);
         paint("fill-opacity", 0.5);
@@ -968,10 +994,10 @@ function recolour(instance: MapLibreMap) {
         paint("line-opacity", 0.9);
       } else if (isBoundary) {
         paint("line-color", INK.boundary);
-        paint("line-opacity", 0.5);
+        paint("line-opacity", terrain ? 0.32 : 0.5);
       } else {
         paint("line-color", isMotorway ? INK.roadMajor : INK.road);
-        paint("line-opacity", isMotorway ? 0.9 : 0.62);
+        paint("line-opacity", terrain ? (isMotorway ? 0.34 : 0.18) : (isMotorway ? 0.9 : 0.62));
       }
     } else if (layer.type === "symbol") {
       /**
@@ -987,7 +1013,12 @@ function recolour(instance: MapLibreMap) {
       paint("text-halo-color", INK.labelHalo);
       paint("text-halo-width", 1.5);
       paint("text-halo-blur", 0.4);
-      if (source === "transportation_name") paint("text-color", INK.labelFaint);
+      if (source === "transportation_name") {
+        paint("text-color", INK.labelFaint);
+        paint("text-opacity", terrain ? 0.22 : 1);
+      } else {
+        paint("text-opacity", terrain ? 0.78 : 1);
+      }
     } else if (layer.type === "raster") {
       /**
        * Shaded relief, kept rather than switched off.

@@ -45,7 +45,8 @@ import {
   reviewPaths,
   revisionName,
 } from "./review-location.mjs";
-import { captureStates, writeContactSheet } from "./tracker-states.mjs";
+import { writeContactSheet } from "./tracker-states.mjs";
+import { captureStates } from "./tracker-responsive-states.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
 

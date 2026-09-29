@@ -15,8 +15,8 @@ interface Props {
  * The three ways to use one Tracker plan.
  *
  * These are deliberately not routes to three data systems. Map and Tonight
- * share the URL-backed observing context, while Sky adds only the selected
- * target needed for pointing or preview. Upcoming remains planning inside
+ * share the URL-backed observing context, while capability-gated Sky adds only
+ * the selected target needed for live pointing. Upcoming remains planning inside
  * Tonight rather than becoming a fourth primary destination.
  */
 export function TrackerModeNav({
@@ -31,16 +31,15 @@ export function TrackerModeNav({
     { id: "map" as const, label: "Map", Icon: MapIcon, onSelect: onMap, available: true },
     { id: "tonight" as const, label: "Tonight", Icon: MoonStar, onSelect: onTonight, available: true },
     { id: "sky" as const, label: "Sky", Icon: Compass, onSelect: onSky, available: skyAvailable },
-  ];
+  ].filter((item) => item.available);
   return (
     <nav className="tk-mode-nav" aria-label="Tracker modes">
-      {items.map(({ id, label, Icon, onSelect, available }) => (
+      {items.map(({ id, label, Icon, onSelect }) => (
         <button
           key={id}
           type="button"
           aria-current={current === id ? "page" : undefined}
           aria-label={id === "sky" ? skyLabel : label}
-          disabled={!available}
           onClick={onSelect}
         >
           <Icon size={15} aria-hidden />

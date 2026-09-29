@@ -267,8 +267,16 @@ export async function readTrackerMapState(page) {
           return entry?.textContent?.replace(/\s+/g, " ").trim() || entry?.getAttribute("aria-label") || null;
         })(),
       detailMoreOpen: Boolean(document.querySelector(".tk-detail-more[open]")),
-      skyMapActionPresent: [...document.querySelectorAll("button")].some((button) =>
-        /show on map|view sky map|where to look/i.test(button.textContent ?? ""),
+      skyTabPresent: [...document.querySelectorAll(".tk-mode-nav button")].some(
+        (button) => button.textContent?.trim() === "Sky",
+      ),
+      genericShowOnMapPresent: [...document.querySelectorAll("button")].some((button) =>
+        /show on map/i.test(button.textContent ?? ""),
+      ),
+      phenomenonMapActionPresent: [...document.querySelectorAll("button")].some((button) =>
+        /view eclipse path|view aurora visibility|view ground track|view visibility/i.test(
+          button.textContent ?? "",
+        ),
       ),
       finderDeviceClass:
         document.querySelector(".tk-sky-finder")?.getAttribute("data-device-class") ?? null,
@@ -760,11 +768,11 @@ export const trackerReviewScenario = {
   readySelector: ".tracker-shell",
   notes: {
     featuresImplemented: [
-      "Three state-preserving primary modes: Map for spatial context, Tonight for decisions, and Sky for the selected target",
+      "Two universal state-preserving modes—Map and Tonight—with live Sky added only on capable phones and tablets",
       "Map-first Tracker keeps the default top-down canvas, with location, night, equipment and layers chosen over it and one compact recommendation kept secondary",
       "The 3D map presentation reuses the production DEM as real oblique terrain, with pitch and rotation, instead of switching to a globe",
       "Tonight is a dedicated vertical briefing built from the production recommendation, recovery and Upcoming pipelines",
-      "Sky starts live handheld guidance directly from the original Find in sky tap; desktop keeps a sensor-free preview",
+      "Sky starts live handheld guidance directly from the original Find in Sky tap; desktop and unsupported handhelds expose no Sky destination or preview",
       "Object detail is concise by default, with the visualization and full evidence available under More details",
       "Place selection through the map's own picker, with the search revealed by the trigger rather than always present",
       "Production-ranked observing opportunities presented as one compact Map answer and a dedicated Tonight briefing",
@@ -788,7 +796,7 @@ export const trackerReviewScenario = {
       "Verify Map, Tonight and Sky preserve one observer/date/target context while giving each task a distinct hierarchy.",
       "Verify Map is top-down by default and the 3D toggle produces pitched, rotatable DEM terrain without losing target state.",
       "Verify Map keeps the recommendation compact while Tonight exposes the full production briefing and Upcoming gateway.",
-      "Verify one phone tap starts live Finder orchestration, tablets remain usable in both orientations, and desktop exposes only preview behavior.",
+      "Verify one phone tap starts live Sky orchestration, tablets remain usable in both orientations, and desktop or unsupported handhelds reserve no Sky entry.",
       "Verify object detail is concise until More details is expanded.",
       "Verify the place search does not exist until the location trigger is opened.",
       "Verify Back from full detail restores the exact prior mode, place, night and selected target.",
@@ -1086,8 +1094,8 @@ export const trackerReviewScenario = {
       throw new Error(`Previous night did not return to the pinned night: ${returned.date}`);
     }
 
-    // 4. The leading Tonight recommendation exposes detail and Sky directly;
-    // there is no legacy in-place card expansion in the new briefing.
+    // 4. Desktop keeps the full Tonight briefing but exposes neither live Sky
+    // nor a placeholder destination for it.
     const leading = assertPass(
       trackerRailValidation(await read(), EXPECTED_NAKED_EYE_CARDS),
       "The leading opportunity broke the Tonight briefing",
@@ -1096,8 +1104,8 @@ export const trackerReviewScenario = {
       throw new Error(`Tonight did not lead with the expected target: ${leading.railCards[0]?.id}`);
     }
     if (leading.mapState !== "tonight") throw new Error("Reading the leading target replaced Tonight.");
-    if (!leading.liveFinderEntryPresent || !/Preview in sky/i.test(leading.finderEntryText ?? "")) {
-      throw new Error("Desktop briefing did not expose the intentional Sky preview entry.");
+    if (leading.liveFinderEntryPresent || leading.skyTabPresent) {
+      throw new Error("Desktop briefing exposed a handheld-only Sky entry.");
     }
     if (leading.finderPermissionAttempts.length > 0) {
       throw new Error(`Desktop browsing requested Finder permissions: ${leading.finderPermissionAttempts}`);
@@ -1118,12 +1126,12 @@ export const trackerReviewScenario = {
       throw new Error(`Full detail did not open the expanded opportunity: event=${detail.detailEvent}`);
     }
     if (
-      !detail.skyMapActionPresent ||
-      !detail.liveFinderEntryPresent ||
-      !/Preview in sky/i.test(detail.finderEntryText ?? "") ||
+      detail.genericShowOnMapPresent ||
+      detail.liveFinderEntryPresent ||
+      detail.skyTabPresent ||
       detail.detailMoreOpen
     ) {
-      throw new Error("Desktop detail did not open in its concise preview-capable state.");
+      throw new Error("Desktop detail did not open in its concise capability-safe state.");
     }
     if (detail.finderPermissionAttempts.length > 0) {
       throw new Error(`Desktop detail requested Finder permissions: ${detail.finderPermissionAttempts}`);
@@ -1156,31 +1164,6 @@ export const trackerReviewScenario = {
       throw new Error(`Back from detail did not restore Tonight: ${JSON.stringify(restored)}`);
     }
     await captureSurface("tracker-detail-back-to-tonight", restored);
-
-    // The same target action becomes an intentional preview on desktop. It
-    // must expose neither protected controls nor permission calls.
-    await page.getByRole("button", { name: /Preview in sky/i }).first().click();
-    await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
-    await settle(700);
-    const desktopPreview = await read();
-    if (
-      desktopPreview.mapState !== "finder" ||
-      desktopPreview.finderDeviceClass !== "desktop" ||
-      desktopPreview.finderExperience !== "preview" ||
-      desktopPreview.finderCameraControlPresent ||
-      desktopPreview.finderGuidanceControlPresent ||
-      desktopPreview.finderPermissionAttempts.length > 0
-    ) {
-      throw new Error(`Desktop Finder policy failed: ${JSON.stringify(desktopPreview)}`);
-    }
-    await captureSurface("tracker-sky-preview-desktop", desktopPreview);
-    await page.getByRole("button", { name: "Close Sky Finder" }).click();
-    await page.waitForFunction(
-      () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "tonight",
-      undefined,
-      { timeout: 20_000 },
-    );
-    await settle(700);
 
     // 6. A telescope is offered what the eyes are not.
     await page.getByRole("button", { name: /Observing with: .*Change/ }).click();
@@ -1380,7 +1363,7 @@ export const trackerReviewScenario = {
     );
     await captureSurface("tracker-cloud-uncertainty", cloudy);
 
-    // 11. The original Find in sky tap starts the phone flow. There is no
+    // 11. The original Find in Sky tap starts the phone flow. There is no
     // redundant Guide/Lock/Start control, and protected calls do not occur
     // before that explicit tap.
     await page.addInitScript(() => {
@@ -1398,11 +1381,37 @@ export const trackerReviewScenario = {
       { waitUntil: "domcontentloaded" },
     );
     await page.locator(`.tk-map-recommendation[data-card="${DETAIL_CARD}"]`).waitFor({ timeout: 30_000 });
-    const phoneEntry = await read();
-    if (!phoneEntry.liveFinderEntryPresent || phoneEntry.finderPermissionAttempts.length > 0) {
-      throw new Error(`Phone Finder entry requested permission too early: ${JSON.stringify(phoneEntry)}`);
+    await settle(900);
+    const phoneMap = await read();
+    if (!phoneMap.liveFinderEntryPresent || !phoneMap.skyTabPresent || phoneMap.finderPermissionAttempts.length > 0) {
+      throw new Error(`Phone Sky entry policy failed: ${JSON.stringify(phoneMap)}`);
     }
-    await page.locator(".tk-map-recommendation .is-finder").click();
+    await captureSurface("tracker-phone-map-2d", phoneMap);
+
+    await page.getByRole("radio", { name: /Oblique terrain/ }).click();
+    await settle(1_200);
+    await captureSurface("tracker-phone-map-3d", await read());
+    await page.getByRole("radio", { name: /Top-down map/ }).click();
+    await settle(700);
+
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.locator(".tk-tonight-lead").waitFor({ timeout: 20_000 });
+    await settle(700);
+    await captureSurface("tracker-phone-tonight", await read());
+
+    await page.getByRole("button", { name: /View details/i }).first().click();
+    await page.locator(".tk-map-detail .tracker-hero").waitFor({ timeout: 20_000 });
+    await settle(500);
+    const phoneDetail = await read();
+    if (phoneDetail.detailMoreOpen || phoneDetail.genericShowOnMapPresent || !phoneDetail.liveFinderEntryPresent) {
+      throw new Error(`Phone detail hierarchy failed: ${JSON.stringify(phoneDetail)}`);
+    }
+    await captureSurface("tracker-phone-object-detail-collapsed", phoneDetail);
+    await page.getByRole("button", { name: /Back to Tonight/i }).click();
+    await page.locator(".tk-tonight-lead .is-finder").waitFor({ timeout: 20_000 });
+    await settle(500);
+
+    await page.locator(".tk-tonight-lead .is-finder").click();
     await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
     await page.waitForFunction(
       () =>
@@ -1421,7 +1430,7 @@ export const trackerReviewScenario = {
     ) {
       throw new Error(`Phone automatic Finder launch failed: ${JSON.stringify(phoneFinder)}`);
     }
-    await captureSurface("tracker-phone-live-sky-auto", phoneFinder);
+    await captureSurface("tracker-phone-sky", phoneFinder);
 
     // 12. A tablet remains a physical pointing device in both orientations,
     // even at a desktop-like landscape width. The review exposes permission
@@ -1456,12 +1465,18 @@ export const trackerReviewScenario = {
     await page.locator(".tk-map-recommendation .is-finder").waitFor({ timeout: 10_000 });
     await settle(900);
     const tabletEntry = await read();
-    if (!tabletEntry.liveFinderEntryPresent || tabletEntry.finderPermissionAttempts.length > 0) {
+    if (!tabletEntry.liveFinderEntryPresent || !tabletEntry.skyTabPresent || tabletEntry.finderPermissionAttempts.length > 0) {
       throw new Error(`Tablet Finder entry policy failed: ${JSON.stringify(tabletEntry)}`);
     }
-    await captureSurface("tracker-tablet-portrait-finder-entry", tabletEntry);
+    await page.getByRole("radio", { name: /Oblique terrain/ }).click();
+    await settle(1_200);
+    await captureSurface("tracker-tablet-map-3d", await read());
+    await page.getByRole("button", { name: "Tonight", exact: true }).click();
+    await page.locator(".tk-tonight-lead").waitFor({ timeout: 20_000 });
+    await settle(700);
+    await captureSurface("tracker-tablet-tonight", await read());
 
-    await page.locator(".tk-map-recommendation .is-finder").click();
+    await page.locator(".tk-tonight-lead .is-finder").click();
     await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
     await settle(500);
     const tabletPortrait = await read();
@@ -1474,7 +1489,7 @@ export const trackerReviewScenario = {
     ) {
       throw new Error(`Tablet portrait Finder capability failed: ${JSON.stringify(tabletPortrait)}`);
     }
-    await captureSurface("tracker-tablet-portrait-live-finder", tabletPortrait);
+    await captureSurface("tracker-tablet-sky", tabletPortrait);
 
     await page.setViewportSize({ width: 1180, height: 820 });
     await settle(700);
@@ -1487,5 +1502,31 @@ export const trackerReviewScenario = {
       throw new Error(`Tablet landscape Finder policy failed: ${JSON.stringify(tabletLandscape)}`);
     }
     await captureSurface("tracker-tablet-landscape-live-finder", tabletLandscape);
+
+    // 13. A touch-first tablet without the required live capabilities has the
+    // same two-mode product as desktop. Later init scripts deliberately
+    // replace the earlier review capabilities before the next navigation.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {} });
+      Object.defineProperty(window, "DeviceOrientationEvent", { configurable: true, value: undefined });
+      Object.defineProperty(window, "DeviceMotionEvent", { configurable: true, value: undefined });
+    });
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await page.goto(
+      `${trackerReviewScenario.reviewUrl}&at=${encodeURIComponent(REVIEW_PIN)}` +
+        `&z=8&pin=${encodeURIComponent(REVIEW_PIN)}&card=${DETAIL_CARD}`,
+      { waitUntil: "domcontentloaded" },
+    );
+    await page.locator(`.tk-map-recommendation[data-card="${DETAIL_CARD}"]`).waitFor({ timeout: 30_000 });
+    await settle(900);
+    const unsupportedTablet = await read();
+    if (
+      unsupportedTablet.skyTabPresent ||
+      unsupportedTablet.liveFinderEntryPresent ||
+      unsupportedTablet.finderPermissionAttempts.length > 0
+    ) {
+      throw new Error(`Unsupported tablet exposed Sky: ${JSON.stringify(unsupportedTablet)}`);
+    }
+    await captureSurface("tracker-unsupported-tablet-no-sky", unsupportedTablet);
   },
 };

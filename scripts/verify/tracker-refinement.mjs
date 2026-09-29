@@ -595,8 +595,16 @@ async function main() {
     await page.waitForTimeout(2000);
 
     check(
-      (await page.getByRole("button", { name: "Show on Map", exact: true }).count()) === 1,
-      "detail exposes Show on Map as its stable first action",
+      (await page.getByRole("button", { name: "Show on Map", exact: true }).count()) === 0,
+      "ordinary celestial detail does not invent a terrestrial Show on Map action",
+    );
+    check(
+      (await page.getByRole("button", { name: "Find in Sky", exact: true }).count()) === 0,
+      "desktop detail does not expose live handheld guidance",
+    );
+    check(
+      (await page.locator('.tk-mode-nav button', { hasText: /^Sky$/ }).count()) === 0,
+      "desktop navigation reserves no space for Sky",
     );
     check(
       (await page.locator(".tk-detail-more[open]").count()) === 0,

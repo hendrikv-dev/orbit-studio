@@ -180,7 +180,7 @@ export function TrackerObservingRail({
   onCollapse,
   onOpenDetail,
   onFindInSky,
-  finderLabel = "Find in sky",
+  finderLabel = "Find in Sky",
   canFindInSky,
   factsFor,
   place,

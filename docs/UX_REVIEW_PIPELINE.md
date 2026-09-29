@@ -144,13 +144,13 @@ Each recovery capture records `recoveryReason`, `recoveryKind`, `recoveryDate`, 
 recovery planning-request key, and the complete ordered recommendation identities. Fixture provenance is
 stored with the captured state so a controlled cloud field cannot be mistaken for live weather.
 
-The main Tracker scenario proves all three production presentations: Map in north-up 2D, the same
-state on the real DEM with a 55–70° 3D pitch, and Tonight with the full production ranking and
-Upcoming gateway. It captures object detail both collapsed and expanded. Desktop Sky remains a
-preview with no protected-API calls. A 390 × 844 phone and an iPadOS-style tablet at 820 × 1180 and
-1180 × 820 prove that the original Find in sky tap initiates camera/orientation work immediately,
-with no redundant Start/Guide/Lock control. The scenario does not synthesize sensor motion or claim
-a desktop target lock.
+The main Tracker scenario proves Map in north-up 2D, the same state on the real DEM with a 55–70°
+3D pitch, and Tonight with the full production ranking and Upcoming gateway. It captures object
+detail both collapsed and expanded. Desktop and unsupported handheld states prove that Sky, Find in
+Sky and generic object-map actions are absent and that no protected APIs are called. A 390 × 844
+phone and an iPadOS-style tablet at 820 × 1180 and 1180 × 820 prove that the original **Find in Sky**
+tap initiates camera/orientation work immediately, with no redundant Start/Guide/Lock control. The
+scenario does not synthesize sensor motion or claim a physical target lock.
 
 A scenario exports:
 

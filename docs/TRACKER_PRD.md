@@ -12,12 +12,16 @@ primary modes:
   opportunity output, recovery planner and Upcoming pipeline; it does not own
   parallel rankings or observer state. Upcoming is planning inside Tonight,
   not a fourth mode.
-- **Sky** is selected-target guidance on eligible handhelds and a selected-time
-  preview on desktop. The original Find in sky action begins required handheld
+- **Sky** is live selected-target guidance on phones and tablets that expose a
+  camera, touch-first form factor and device orientation. Desktop, laptops and
+  unsupported handhelds keep Map and Tonight with no reserved Sky destination
+  or sensor-free preview. The original **Find in Sky** action begins required
   permissions; there is no intermediate Start/Guide/Lock action.
 
 Object detail opens with the target, recommendation, best time, direction,
-key conditions, expectation and actions. Charts, full condition evidence and
+key conditions, expectation and capability-appropriate actions. Geographic
+actions appear only for phenomena with meaningful geographic context; ordinary
+celestial objects do not receive a universal map action. Charts, full condition evidence and
 provenance remain available under one collapsed **More details** disclosure.
 Switching modes preserves observer, date, equipment, layers, selection and
 return state because the modes are projections of the same URL-backed location

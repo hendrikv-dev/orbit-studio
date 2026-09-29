@@ -50,7 +50,7 @@ interface Props {
   conditionsCaption?: string | null;
   /** The forecast state behind the row, for the review harness and for tests. */
   evidenceStatus: string;
-  onShowMap: () => void;
+  mapAction?: { label: string; onSelect: () => void } | null;
   onPrimaryAction: () => void;
   onReminder: () => void;
   /** An extra hero control, where the event has a second distinct tool. */
@@ -73,7 +73,7 @@ export function PhenomenonPage({
   conditions,
   conditionsCaption,
   evidenceStatus,
-  onShowMap,
+  mapAction = null,
   onPrimaryAction,
   onReminder,
   tertiaryAction = null,
@@ -103,8 +103,7 @@ export function PhenomenonPage({
           media={media}
           safety={safety}
           expectation={expectation}
-          onShowMap={onShowMap}
-          onSecondary={onReminder}
+          mapAction={mapAction}
           finder={finderAction}
         />
       </div>
@@ -132,6 +131,9 @@ export function PhenomenonPage({
               {tertiaryAction.label}
             </button>
           ) : null}
+          <button type="button" onClick={onReminder}>
+            {presentation.secondaryAction.label}
+          </button>
         </div>
         <div className="tk-detail-more-grid">
           <aside className="tk-viz-slot" aria-label="Sky and event evidence">

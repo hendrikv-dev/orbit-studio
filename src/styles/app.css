@@ -18705,3 +18705,163 @@ button.primary,
   .tk-finder-camera,
   .tk-finder-target { transition: none; }
 }
+
+/* ---------------------------------------------------- focused refinement
+   These rules preserve the established surfaces while giving each one a
+   clearer visual job: Map is the workspace, Tonight is an editorial briefing,
+   Object Detail is a short decision page, and Sky is live guidance. */
+
+/* A capability destination occupies only the space it can actually use. */
+.tk-mode-nav:has(> button:nth-child(2):last-child) button { min-width: 104px; }
+
+/* Tonight reads as one composed story rather than a stack of bordered widgets. */
+.tk-tonight-surface {
+  padding-inline: max(24px, calc((100vw - 1180px) / 2));
+  background:
+    radial-gradient(circle at 72% -18%, rgba(75, 91, 161, 0.13), transparent 38%),
+    #070a11;
+}
+.tk-tonight-briefing { width: min(1080px, 100%); }
+.tk-tonight-heading { margin-bottom: 26px; }
+.tk-tonight-heading h1 {
+  max-width: 28ch;
+  font-size: clamp(2rem, 4.2vw, 3.25rem);
+  font-weight: 450;
+  letter-spacing: -0.035em;
+}
+.tk-tonight-heading > span { max-width: 62ch; font-size: 0.94rem; }
+.tk-tonight-lead {
+  grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
+  min-height: 286px;
+  border-width: 1px 0;
+  border-radius: 0;
+  border-color: rgba(150, 164, 224, 0.27);
+  background: rgba(15, 20, 33, 0.42);
+}
+.tk-tonight-lead-copy { padding: 27px 32px; }
+.tk-tonight-lead h2 { font-size: clamp(1.7rem, 3.1vw, 2.45rem); letter-spacing: -0.025em; }
+.tk-tonight-next {
+  margin-top: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.tk-tonight-next .tk-tonight-section-heading { padding-bottom: 10px; }
+.tk-tonight-row { min-height: 68px; }
+.tk-tonight-planning {
+  margin-top: 18px;
+  border-color: rgba(137, 153, 204, 0.18);
+  background: rgba(17, 23, 37, 0.48);
+}
+
+/* Object Detail is allowed to end when its concise content ends. The legacy
+   one-screen grid still governs the older full briefing pages elsewhere. */
+.tk-map-detail .tk-page.tk-tonight {
+  display: block;
+  width: min(1180px, 100%);
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  padding: 24px clamp(16px, 3vw, 34px) 48px;
+}
+.tk-map-detail .tk-main-row.is-concise {
+  display: block;
+  min-height: 0;
+  margin-bottom: 14px;
+}
+.tk-map-detail .tracker-hero.tk-hero {
+  grid-template-columns: minmax(0, 1.38fr) minmax(250px, 0.62fr);
+  min-height: 318px;
+  padding: 0;
+}
+.tk-map-detail .tk-hero-body { padding: 24px 28px; }
+.tk-map-detail .tk-hero-media { min-height: 318px; max-height: 360px; }
+.tk-map-detail .tk-detail-key-conditions,
+.tk-map-detail .tk-detail-more { max-width: 820px; }
+.tk-map-detail .tk-detail-key-conditions li {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+}
+.tk-map-detail .tk-detail-more {
+  border-color: rgba(137, 153, 204, 0.17);
+  background: rgba(15, 21, 34, 0.42);
+}
+
+/* Live guidance remains the dominant Sky surface. Diagnostics and calibration
+   exist, but wait behind one disclosure until an observer asks for them. */
+.tk-sky-finder { grid-template-rows: auto minmax(340px, 1fr) auto; }
+.tk-finder-stage { min-height: 340px; }
+.tk-finder-centre { width: 86px; height: 86px; }
+.tk-finder-centre::before { left: 28px; right: 28px; }
+.tk-finder-centre::after { top: 28px; bottom: 28px; }
+.tk-finder-guidance {
+  bottom: 22px;
+  width: min(560px, calc(100vw - 32px));
+  padding: 16px 18px;
+  border-color: rgba(215, 225, 242, 0.12);
+  border-radius: 10px;
+  background: rgba(5, 8, 14, 0.57);
+}
+.tk-finder-guidance strong { font: 600 clamp(1.3rem, 4vw, 1.85rem)/1.1 var(--tk-display); }
+.tk-finder-guidance span { margin-top: 3px; font-size: 0.78rem; }
+.tk-finder-controls {
+  max-height: min(34dvh, 320px);
+  padding-top: 8px;
+}
+.tk-finder-details {
+  border-top: 1px solid rgba(215, 225, 242, 0.13);
+  color: #aeb9cc;
+}
+.tk-finder-details > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: #bbc5d8;
+  font-size: 0.76rem;
+  cursor: pointer;
+  list-style: none;
+}
+.tk-finder-details > summary::-webkit-details-marker { display: none; }
+.tk-finder-details > summary::after { content: "+"; margin-left: auto; color: #8390a4; font-size: 1rem; }
+.tk-finder-details[open] > summary::after { content: "−"; }
+.tk-finder-details > summary:focus-visible { outline: 2px solid #aab7ff; outline-offset: -2px; }
+.tk-finder-status { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 720px) {
+  .tk-tonight-surface { padding-inline: 14px; }
+  .tk-tonight-heading h1 { max-width: none; font-size: 1.75rem; }
+  .tk-tonight-lead { grid-template-columns: minmax(0, 1fr); }
+  .tk-tonight-lead-copy { padding: 19px 18px 21px; }
+  .tk-map-detail .tk-page.tk-tonight { padding-top: 16px; }
+  .tk-finder-stage { min-height: 320px; }
+  .tk-finder-controls { max-height: 30dvh; }
+  .tk-finder-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .tk-map-detail .tracker-hero.tk-hero { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .tk-map-detail .tk-hero-media { order: -1; min-height: 178px; height: 178px; }
+  .tk-map-detail .tk-hero-body { padding: 19px 18px 21px; }
+}
+
+@media (hover: none) and (max-width: 900px) {
+  /* MapLibre can retain its expanded attribution class after a touch sequence.
+     Keep the legal disclosure compact until its own button receives focus; a
+     tap still opens the complete credits and keyboard focus still reveals it. */
+  .tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show:not(:focus-within) {
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    padding: 0;
+  }
+  .tk-map-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show:not(:focus-within) .maplibregl-ctrl-attrib-inner {
+    display: none;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .tk-sky-finder { grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.8fr); grid-template-rows: auto 1fr; }
+  .tk-finder-stage { min-height: 220px; }
+}

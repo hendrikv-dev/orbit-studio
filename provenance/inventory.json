@@ -2327,11 +2327,11 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "3a8bbd9450c4b69c9498014666d27834bbb2c81a9a0c76c3c7bf5338a9c43587"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "52200d842aef9fd0532b0e7e78d6607d16d66a3ff04d375134dbed0396e3acaa"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
-        "Tracker's optional 3D presentation keeps MapLibre's Mercator map and applies the already documented terrain DEM at natural scale, with a pitched and rotatable camera. Hillshade and 3D terrain use distinct MapLibre source instances for the same authoritative DEM so their renderer sampling and decoded tile caches do not conflict; the default presentation remains top-down and removes terrain.",
+        "Tracker's optional 3D presentation keeps MapLibre's Mercator map and applies the already documented terrain DEM at natural scale, with a low observer-centered, pitched and rotatable camera. Terrain mode applies restrained atmospheric depth and reduces road, label, building and boundary emphasis so physical relief remains primary. Hillshade and 3D terrain use distinct MapLibre source instances for the same authoritative DEM so their renderer sampling and decoded tile caches do not conflict; the default presentation remains top-down and removes terrain.",
         "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",
         "The renderer's own hostname appears in the bundle only inside the library's licence banner and error strings. Tracker makes no request to maplibre.org at runtime.",
         "The current OpenFreeMap dark style references a circle-11 city marker that its published sprite manifest omits. Tracker supplies that single deterministic marker through MapLibre's missing-image resolver; unknown missing images remain errors rather than being concealed by placeholders.",

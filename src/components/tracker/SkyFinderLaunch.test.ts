@@ -58,11 +58,13 @@ describe("Sky Finder launch gesture", () => {
     await expect(launch!.camera).resolves.toMatchObject({ phase: "active", stream });
   });
 
-  it("does not touch protected APIs for desktop preview or selected-time preview", () => {
+  it("does not touch protected APIs for unsupported devices or selected dates", () => {
     const request = vi.fn();
     vi.stubGlobal("window", { DeviceOrientationEvent: { requestPermission: request } });
     vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: request } });
     expect(beginSkyFinderLaunch("planet-saturn", { ...phone, deviceClass: "desktop", handheldEligible: false }, true)).toBeNull();
+    expect(beginSkyFinderLaunch("planet-saturn", { ...phone, camera: false }, true)).toBeNull();
+    expect(beginSkyFinderLaunch("planet-saturn", { ...phone, orientation: false }, true)).toBeNull();
     expect(beginSkyFinderLaunch("planet-saturn", phone, false)).toBeNull();
     expect(request).not.toHaveBeenCalled();
   });

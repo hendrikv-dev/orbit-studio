@@ -61,9 +61,8 @@ interface Props {
   safety: string | null;
   /** How the eye differs from the picture, where the two differ. */
   expectation: string | null;
-  /** The stable first action for every target detail. */
-  onShowMap: () => void;
-  onSecondary: () => void;
+  /** Geographic context, only when the phenomenon genuinely has one. */
+  mapAction?: { label: string; onSelect: () => void } | null;
   /** Live local-sky guidance, only for targets with real locator geometry. */
   finder?: { label: string; onSelect: () => void } | null;
 }
@@ -100,8 +99,7 @@ export function EventHero({
   media,
   safety,
   expectation,
-  onShowMap,
-  onSecondary,
+  mapAction = null,
   finder = null,
 }: Props) {
   return (
@@ -174,19 +172,18 @@ export function EventHero({
             information the row's name does not. */}
         {expectation ? <Description key={expectation}>{expectation}</Description> : null}
 
-        <div className="tk-hero-actions">
-          <button type="button" className="tk-action is-primary" onClick={onShowMap}>
-            Show on Map
-          </button>
+        {mapAction || finder ? <div className="tk-hero-actions">
+          {mapAction ? (
+            <button type="button" className="tk-action is-primary" onClick={mapAction.onSelect}>
+              {mapAction.label}
+            </button>
+          ) : null}
           {finder ? (
             <button type="button" className="tk-action is-finder" onClick={finder.onSelect}>
               {finder.label}
             </button>
           ) : null}
-          <button type="button" className="tk-action" onClick={onSecondary}>
-            {presentation.secondaryAction.label}
-          </button>
-        </div>
+        </div> : null}
       </div>
 
       <figure className="tk-hero-media">

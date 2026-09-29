@@ -14,6 +14,7 @@ import {
   signedAngleDifference,
   skyFinderExperience,
   skyFinderTargetFor,
+  supportsLiveSkyFinder,
   type SkyFinderTarget,
 } from "./skyFinder";
 
@@ -239,6 +240,7 @@ describe("Sky Finder capability detection", () => {
       screenOrientation: true,
       orientationPermissionRequest: true,
     });
+    expect(supportsLiveSkyFinder(capabilities)).toBe(true);
   });
 
   it("keeps a useful sensor fallback when camera is denied or unavailable", () => {
@@ -256,6 +258,7 @@ describe("Sky Finder capability detection", () => {
     expect(capabilities.orientation).toBe(true);
     expect(capabilities.geolocation).toBe(true);
     expect(skyFinderExperience(capabilities)).toBe("live");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(false);
   });
 
   it("does not advertise protected APIs on an insecure page", () => {
@@ -276,12 +279,14 @@ describe("Sky Finder capability detection", () => {
         userAgent: "Mozilla/5.0 (Linux; Android 16; Pixel 10) AppleWebKit Mobile",
         userAgentData: { mobile: true, platform: "Android" },
         maxTouchPoints: 5,
+        mediaDevices: { getUserMedia() {} },
       },
       window: { DeviceOrientationEvent: function Orientation() {} },
       matchMedia: (query) => ({ matches: query === "(pointer: coarse)" }),
     });
     expect(capabilities.handheldEligible).toBe(true);
     expect(skyFinderExperience(capabilities)).toBe("live");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(true);
   });
 
   it.each(["portrait", "landscape"])(
@@ -317,6 +322,7 @@ describe("Sky Finder capability detection", () => {
     expect(capabilities.deviceClass).toBe("desktop");
     expect(capabilities.handheldEligible).toBe(false);
     expect(skyFinderExperience(capabilities)).toBe("preview");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(false);
     expect(
       canRequestSkyFinderPermission(capabilities, "camera", {
         liveDate: true,
@@ -337,6 +343,7 @@ describe("Sky Finder capability detection", () => {
     });
     expect(capabilities.handheldEligible).toBe(true);
     expect(skyFinderExperience(capabilities)).toBe("direction-only");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(false);
   });
 
   it("keeps sensor guidance when a phone camera is unavailable or denied", () => {
@@ -350,6 +357,23 @@ describe("Sky Finder capability detection", () => {
     });
     expect(capabilities.camera).toBe(false);
     expect(skyFinderExperience(capabilities, "granted")).toBe("live");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(false);
+  });
+
+  it("does not treat a mobile user-agent without touch capability as a handheld", () => {
+    const capabilities = detectSkyFinderCapabilities({
+      secureContext: true,
+      navigator: {
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile",
+        platform: "iPhone",
+        maxTouchPoints: 0,
+        mediaDevices: { getUserMedia() {} },
+      },
+      window: { DeviceOrientationEvent: function Orientation() {} },
+      matchMedia: () => ({ matches: false }),
+    });
+    expect(capabilities.deviceClass).not.toBe("handheld");
+    expect(supportsLiveSkyFinder(capabilities)).toBe(false);
   });
 
   it("falls back to non-live direction guidance after orientation denial", () => {

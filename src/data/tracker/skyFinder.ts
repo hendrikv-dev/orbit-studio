@@ -134,10 +134,10 @@ function constructorRequestsPermission(value: unknown): boolean {
 
 /**
  * Classify physical pointing devices without treating viewport width as device
- * identity. Explicit phone/tablet hints win, including iPadOS's desktop-style
- * Mac user agent. A touch-first coarse-pointer device is also eligible, while
- * fine-pointer desktop hardware remains desktop even if it has a touchscreen
- * or webcam. Unknown devices degrade to preview instead of risking prompts.
+ * identity. A phone/tablet hint is never enough on its own: it must agree with
+ * an actual touch or coarse-pointer capability. This keeps a spoofed mobile
+ * user agent, a narrow desktop window and a webcam-equipped laptop out of the
+ * live-pointing path while retaining iPadOS's desktop-style Mac identity.
  */
 export function classifySkyFinderDevice(
   environment: Pick<CapabilityEnvironment, "navigator" | "matchMedia">,
@@ -152,15 +152,38 @@ export function classifySkyFinderDevice(
   const coarsePointer = environment.matchMedia?.("(pointer: coarse)").matches === true;
   const fineHoverPointer =
     environment.matchMedia?.("(hover: hover) and (pointer: fine)").matches === true;
+  const touchCapable = touchPoints > 0 || coarsePointer;
   const touchFirstTablet = touchPoints > 1 && coarsePointer && !fineHoverPointer;
 
-  if (mobileHint || explicitHandheld || ipadDesktopIdentity || touchFirstTablet) {
+  if (
+    touchCapable &&
+    (mobileHint || explicitHandheld || ipadDesktopIdentity || touchFirstTablet)
+  ) {
     return "handheld";
   }
 
   const explicitDesktop = /Windows NT|Macintosh|X11|CrOS|Linux x86_64/i.test(userAgent);
   if (explicitDesktop || fineHoverPointer) return "desktop";
   return "unknown";
+}
+
+/**
+ * Whether this device may expose the Sky destination before any permission is
+ * requested.
+ *
+ * Sky is not a responsive layout or a preview. It is a live pointing
+ * capability, so all three parts must already be present: handheld form
+ * factor, a secure camera API, and the orientation stream the guidance loop
+ * actually consumes. Permission denial is handled after entry without
+ * withdrawing the screen the reader is already using.
+ */
+export function supportsLiveSkyFinder(capabilities: FinderCapabilities): boolean {
+  return (
+    capabilities.handheldEligible &&
+    capabilities.secureContext &&
+    capabilities.camera &&
+    capabilities.orientation
+  );
 }
 
 /** Runtime feature detection only; permission is a separate user decision. */

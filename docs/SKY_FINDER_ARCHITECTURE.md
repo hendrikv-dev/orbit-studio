@@ -11,34 +11,37 @@ Sky Finder is a projection of Tracker’s existing observing opportunities. It d
 5. `angularSeparation` compares the rear-camera pointing vector with the target’s local horizontal position. Alignment is withheld below the horizon or when orientation quality is poor.
 6. Manual calibration stores only an in-memory azimuth/altitude correction for the current Finder session. Closing Finder clears it.
 
-Historical or future selected dates enter an explicitly labelled preview. Live camera and phone alignment are disabled there, so a physical phone is never guided using stale/future coordinates.
+Historical or future selected dates do not expose Sky or **Find in Sky**. Planning remains in Tonight and Object Detail, so a physical phone is never guided using stale or future coordinates.
 
-The Finder can add restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source, identifies its IAU constellation when that is scientifically meaningful, and projects nearby HYG v4.1 bright stars into an approximate target-centred field. That catalog is loaded lazily on Finder entry and recalculated on the slow astronomy cadence, never in the sensor loop. The layer is labelled **Expected star field**, appears in desktop preview or after sensor alignment, and does not set visual-verification state. Moving sampled targets such as satellites deliberately omit a made-up constellation label.
+Sky can add restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source, identifies its IAU constellation when that is scientifically meaningful, and projects nearby HYG v4.1 bright stars into an approximate target-centred field. That catalog is loaded lazily on Sky entry and recalculated on the slow astronomy cadence, never in the sensor loop. The layer is labelled **Expected star field**, appears after sensor alignment, and does not set visual-verification state. Moving sampled targets such as satellites deliberately omit a made-up constellation label.
 
 ## Device-class eligibility and permission boundary
 
-Live point-and-look guidance is a handheld feature. `classifySkyFinderDevice` combines mobile or tablet client hints and user-agent evidence with touch, coarse-pointer, hover, platform, and maximum-touch-point signals. Viewport width is deliberately excluded: a landscape tablet remains eligible, while a narrow desktop window and a desktop webcam do not become a live Finder.
+Live point-and-look guidance is a handheld feature. `classifySkyFinderDevice` requires phone/tablet identity evidence to agree with an actual touch or coarse-pointer capability; user-agent or client hints alone never qualify a device. Viewport width is deliberately excluded: a landscape tablet remains eligible, while a narrow desktop window and a desktop webcam do not become Sky.
 
-The device-class decision is applied before individual capability checks:
+The device-class decision is applied before individual capability checks. Sky is exposed only when every pre-permission capability is present:
 
-- an eligible phone or tablet with orientation support can enter live guidance;
-- an eligible phone or tablet with partial support receives the existing sensor or direction-only fallback;
-- a desktop, laptop, or unknown class receives a selected-time sky preview with altitude, azimuth, direction, observability, and detail navigation, but no camera or guidance-permission controls.
+- phone or tablet form factor confirmed by capability evidence;
+- a secure camera API;
+- device-orientation support consumed by the live guidance loop;
+- the current observing date.
 
-Camera, orientation, and motion access is requested only from an eligible handheld and only from the reader’s original **Find in sky** action. `beginSkyFinderLaunch` starts protected calls synchronously inside that user-activation task, then the mounted Finder consumes the resulting permission/stream promises. There is no second Start/Guide/Lock control. Ordinary map, Tonight, Upcoming, detail, and desktop-preview use does not call protected APIs. Camera frames remain local and Phase 1/2 does not claim visual verification.
+Desktop, laptop, unknown, sensorless and camera-less devices receive Map, Tonight and Object Detail only. No navigation space is reserved for Sky and no sensor-free preview is substituted. Direction, altitude, coordinates, charts and equipment information remain available through Object Detail where relevant.
+
+Camera, orientation, and motion access is requested only from an eligible handheld and only from the reader’s original **Find in Sky** action. `beginSkyFinderLaunch` starts protected calls synchronously inside that user-activation task, then the mounted Sky surface consumes the resulting permission/stream promises. There is no second Start/Guide/Lock control. Ordinary Map, Tonight, planning and detail use does not call protected APIs. Camera frames remain local and Phase 1/2 does not claim visual verification.
 
 ## Capability degradation
 
 | Available capability | Behavior |
 | --- | --- |
 | Camera + absolute/fused orientation | Live camera background and sensor guidance |
-| Orientation without camera | Live guidance over the dark instrument view |
 | Relative orientation only | Directional guidance; alignment is withheld until manual calibration |
-| No orientation | Existing altitude/azimuth direction guidance |
-| Camera denied or failed | Sensor guidance continues; denial is stated |
-| Desktop/laptop, including a webcam-equipped desktop | Sky preview only; protected camera and sensor APIs are not requested |
-| Tablet without usable orientation | Direction-only handheld fallback |
-| Historical/future date | Selected-time preview; no live camera/alignment claim |
+| Camera permission denied or stream fails after entry | Sensor guidance continues against the restrained night view; denial is stated |
+| Orientation permission denied after entry | The selected target’s live direction and altitude remain usable; alignment and diagnostics do not dominate the screen |
+| Camera API absent before entry | Sky tab and Find in Sky are absent |
+| Orientation API absent before entry | Sky tab and Find in Sky are absent |
+| Desktop/laptop, including a webcam-equipped desktop | Sky tab and Find in Sky are absent; protected APIs are not requested |
+| Historical/future date | Sky tab and Find in Sky are absent |
 
 Browser access to camera, geolocation, and several sensor APIs requires HTTPS or localhost. iOS browsers may require a user gesture and `requestPermission()` for orientation/motion. Android browsers more commonly emit orientation directly. Magnetic accuracy is not consistently reported, so missing accuracy is described as usable or low confidence rather than invented as a number.
 
