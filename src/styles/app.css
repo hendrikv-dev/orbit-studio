@@ -18865,3 +18865,517 @@ button.primary,
   .tk-sky-finder { grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.8fr); grid-template-rows: auto 1fr; }
   .tk-finder-stage { min-height: 220px; }
 }
+
+/* ===================================================== approved visual pass
+   The product structure above is deliberately unchanged. This final layer
+   brings the four established surfaces into the approved visual register:
+   terrain-first Map, editorial Tonight, object-first Detail and immersive
+   live Sky guidance. */
+
+/* Shared restraint: controls stay legible and reachable, but no longer read
+   as a collection of dashboard widgets laid over the product. */
+.tk-map-shell .tracker-place-current,
+.tk-map-shell .tk-date,
+.tk-mode-nav,
+.tk-projection,
+.tk-map-controls-view {
+  border-color: rgba(167, 181, 214, 0.11);
+  background: rgba(6, 10, 18, 0.72);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(18px) saturate(118%);
+}
+.tk-mode-nav { gap: 1px; padding: 2px; }
+.tk-mode-nav button {
+  min-height: 34px;
+  color: #98a3b7;
+  font-size: 0.75rem;
+  font-weight: 450;
+}
+.tk-mode-nav button[aria-current="page"] {
+  background: linear-gradient(180deg, rgba(96, 121, 229, 0.32), rgba(73, 91, 190, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(152, 169, 255, 0.2), 0 4px 14px rgba(23, 35, 89, 0.28);
+}
+.tk-projection-option[data-current="true"] {
+  background: rgba(104, 126, 231, 0.22);
+}
+
+/* Map: the map remains the canvas. The single answer is part of that canvas,
+   not a panel competing with it. */
+.tk-map-recommendation {
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  gap: 7px 14px;
+  width: min(540px, calc(100vw - 104px));
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 18px;
+  background:
+    linear-gradient(108deg, rgba(12, 17, 28, 0.97), rgba(8, 12, 22, 0.9)),
+    radial-gradient(circle at 18% 0%, rgba(91, 112, 225, 0.2), transparent 42%);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(24px) saturate(125%);
+}
+.tk-map-recommendation-image {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  box-shadow: 0 0 28px rgba(105, 130, 235, 0.12);
+}
+.tk-map-recommendation-kicker {
+  color: #9baaff;
+  font-size: 0.57rem;
+  letter-spacing: 0.15em;
+}
+.tk-map-recommendation-copy strong {
+  margin-top: 4px;
+  font: 560 1.16rem/1.12 var(--tk-display);
+  letter-spacing: -0.02em;
+}
+.tk-map-recommendation-copy > span:last-child { margin-top: 4px; color: #aab4c6; }
+.tk-map-recommendation-quality {
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(94, 207, 164, 0.1);
+  color: #a8e6ce;
+  white-space: nowrap;
+}
+.tk-map-recommendation-actions button,
+.tk-map-recommendation.is-empty > button {
+  border-color: rgba(166, 181, 216, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+}
+.tk-map-recommendation-actions .is-finder {
+  border-color: transparent;
+  background: linear-gradient(135deg, #6979e7, #5267d6);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(53, 71, 173, 0.26);
+}
+.tk-map-target-ring {
+  border-color: rgba(236, 241, 255, 0.96);
+  box-shadow: 0 0 0 7px rgba(94, 119, 231, 0.12), 0 0 24px rgba(94, 119, 231, 0.72);
+}
+.tk-map-target-glow { transform: scale(1.32); }
+
+/* Tonight: one atmospheric editorial page, with a single feature and a quiet
+   ranked reading list rather than repeated containers. */
+.tk-tonight-surface {
+  padding-top: clamp(30px, 4vw, 48px);
+  padding-bottom: 72px;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(91, 112, 190, 0.2), transparent 32%),
+    radial-gradient(circle at 18% 24%, rgba(26, 74, 103, 0.16), transparent 38%),
+    radial-gradient(circle at 12% 12%, rgba(226, 234, 255, 0.28) 0 0.7px, transparent 1px),
+    radial-gradient(circle at 66% 18%, rgba(226, 234, 255, 0.22) 0 0.6px, transparent 1px),
+    linear-gradient(180deg, #080d19 0%, #060910 46%, #05070c 100%);
+  background-size: auto, auto, 43px 43px, 67px 67px, auto;
+}
+.tk-tonight-briefing { width: min(1120px, 100%); }
+.tk-tonight-heading { margin-bottom: clamp(26px, 4vw, 40px); }
+.tk-tonight-heading p {
+  margin-bottom: 14px;
+  color: #8e9ab0;
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+}
+.tk-tonight-heading h1 {
+  max-width: 16ch;
+  font-size: clamp(2.7rem, 5vw, 4.35rem);
+  font-weight: 430;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+.tk-tonight-heading > span {
+  max-width: 55ch;
+  margin-top: 16px;
+  color: #a7b1c2;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.tk-tonight-lead {
+  grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.08fr);
+  min-height: 320px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.tk-tonight-lead-visual {
+  position: relative;
+  min-height: 320px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 54% 42%, rgba(113, 133, 215, 0.13), transparent 45%),
+    #05070d;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+}
+.tk-tonight-lead-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, transparent 48%, rgba(3, 5, 10, 0.35));
+  pointer-events: none;
+}
+.tk-tonight-lead-copy {
+  justify-content: center;
+  padding: 32px clamp(26px, 4vw, 58px);
+}
+.tk-tonight-lead-labels { justify-content: flex-start; align-items: center; gap: 12px; color: #9ca9f5; }
+.tk-tonight-quality {
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(101, 212, 171, 0.1);
+  color: #a7e4cc;
+  text-transform: none;
+}
+.tk-tonight-quality[data-tone="unknown"] {
+  background: rgba(160, 172, 194, 0.07);
+  color: #778397;
+}
+.tk-tonight-lead h2 {
+  margin: 15px 0 10px;
+  font-size: clamp(2.25rem, 4.4vw, 3.8rem);
+  font-weight: 480;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+.tk-tonight-lead-copy > p { max-width: 50ch; color: #aeb8c9; font-size: 0.93rem; line-height: 1.55; }
+.tk-tonight-lead dl { margin-top: 26px; }
+.tk-tonight-lead dl div { border-color: rgba(159, 174, 208, 0.13); }
+.tk-tonight-lead dt { letter-spacing: 0.05em; text-transform: uppercase; }
+.tk-tonight-lead dd { margin-top: 6px; color: #ebeef6; font-size: 0.85rem; }
+.tk-tonight-lead-actions button {
+  border-color: rgba(159, 174, 208, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+}
+.tk-tonight-lead-actions .is-finder {
+  border-color: transparent;
+  background: #6373df;
+  color: white;
+}
+.tk-tonight-next { margin-top: 38px; }
+.tk-tonight-next .tk-tonight-section-heading {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(150, 164, 196, 0.14);
+}
+.tk-tonight-section-heading h2 { font: 500 1.08rem/1.2 var(--tk-display); letter-spacing: -0.01em; }
+.tk-tonight-row {
+  grid-template-columns: 28px 52px minmax(0, 1fr) auto 44px;
+  min-height: 78px;
+  gap: 12px;
+  border-color: rgba(150, 164, 196, 0.1);
+}
+.tk-tonight-row-image { width: 48px; height: 48px; border-radius: 13px; }
+.tk-tonight-row-main strong { font: 520 0.96rem/1.2 var(--tk-display); }
+.tk-tonight-row-main span { margin-top: 2px; color: #8f9bae; font-size: 0.72rem; }
+.tk-tonight-rank { color: #657087; }
+.tk-tonight-planning {
+  margin-top: 28px;
+  border: 0;
+  border-top: 1px solid rgba(150, 164, 196, 0.13);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Detail: the celestial object is the subject. Category context recedes,
+   required attribution stays on the image, and advanced evidence remains
+   behind the existing disclosure. */
+.tk-map-detail {
+  background:
+    radial-gradient(circle at 80% 8%, rgba(70, 89, 167, 0.2), transparent 34%),
+    radial-gradient(circle at 20% 20%, rgba(225, 233, 255, 0.18) 0 0.65px, transparent 1px),
+    linear-gradient(155deg, #080c17 0%, #05070c 62%);
+  background-size: auto, 58px 58px, auto;
+}
+.tk-map-detail .tk-page.tk-tonight {
+  width: min(1240px, 100%);
+  padding-top: 30px;
+}
+.tk-map-detail .tk-page-heading { margin-bottom: 18px; }
+.tk-map-detail .tk-page-heading h1 {
+  margin-top: 8px;
+  color: #7f8ca2;
+  font: 600 0.67rem/1 var(--tk-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.tk-map-detail .tk-page-heading p { margin-top: 6px; color: #697487; font-size: 0.78rem; }
+.tk-map-detail .tk-back {
+  min-height: 38px;
+  margin: 0;
+  color: #aab6ca;
+  text-decoration: none;
+}
+.tk-map-detail .tracker-hero.tk-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+  min-height: 470px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 74% 18%, rgba(91, 111, 210, 0.14), transparent 38%),
+    linear-gradient(120deg, rgba(14, 20, 34, 0.98), rgba(8, 12, 21, 0.76));
+  box-shadow: 0 32px 84px rgba(0, 0, 0, 0.36), inset 0 1px rgba(255, 255, 255, 0.035);
+}
+.tk-map-detail .tk-hero-body { justify-content: center; padding: 44px clamp(32px, 5vw, 68px); }
+.tk-map-detail .tk-hero-head { align-items: flex-start; flex-direction: column; gap: 13px; }
+.tk-map-detail .tracker-hero .tk-hero-name {
+  max-width: none;
+  font-size: clamp(3rem, 6vw, 5.4rem);
+  font-weight: 430;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+.tk-map-detail .tk-pill {
+  border-color: rgba(98, 217, 170, 0.26);
+  background: rgba(73, 197, 151, 0.09);
+  color: #a8e4cd;
+}
+.tk-map-detail .tk-hero-recommendation {
+  margin-top: 20px;
+  color: #e9e9eb;
+  font-size: 1.08rem;
+  line-height: 1.48;
+}
+.tk-map-detail .tk-hero-support { color: #929daf; }
+.tk-map-detail .tk-hero-metrics { margin-top: 28px; border-color: rgba(158, 174, 207, 0.13); }
+.tk-map-detail .tk-metric + .tk-metric { border-color: rgba(158, 174, 207, 0.13); }
+.tk-map-detail .tk-metric dt { letter-spacing: 0.05em; text-transform: uppercase; }
+.tk-map-detail .tk-metric-value { font-family: var(--tk-body); font-size: 0.9rem; font-weight: 500; }
+.tk-hero-why { margin-top: 28px; }
+.tk-hero-why h3 {
+  margin: 0 0 8px;
+  color: #f1eee7;
+  font: 520 1rem/1.2 var(--tk-display);
+  letter-spacing: -0.01em;
+}
+.tk-map-detail .tracker-hero .tracker-expect { margin-top: 0; color: #a1acbd; font-size: 0.84rem; }
+.tk-map-detail .tk-hero-actions { margin-top: 24px; padding-top: 0; }
+.tk-map-detail .tk-action.is-finder {
+  border-color: transparent;
+  background: linear-gradient(135deg, #6c7bea, #5267d8);
+  color: #fff;
+  box-shadow: 0 9px 22px rgba(52, 69, 174, 0.28);
+}
+.tk-map-detail .tk-hero-media { min-height: 470px; max-height: none; background: #03050a; }
+.tk-map-detail .tk-hero-media::before {
+  background:
+    linear-gradient(90deg, rgba(10, 14, 24, 0.98), rgba(10, 14, 24, 0.16) 34%, transparent 64%),
+    linear-gradient(0deg, rgba(3, 5, 10, 0.5), transparent 30%);
+}
+.tk-map-detail .tk-hero-media .tracker-credit {
+  max-width: 76%;
+  color: rgba(205, 214, 229, 0.62);
+  font-size: 0.56rem;
+  line-height: 1.3;
+}
+.tk-map-detail .tk-detail-key-conditions {
+  max-width: none;
+  gap: 0;
+  margin-top: 26px;
+  border-top: 1px solid rgba(150, 165, 196, 0.14);
+  border-bottom: 1px solid rgba(150, 165, 196, 0.14);
+}
+.tk-map-detail .tk-detail-key-conditions li {
+  padding: 16px 18px;
+  border: 0;
+  background: transparent;
+}
+.tk-map-detail .tk-detail-key-conditions li + li { border-left: 1px solid rgba(150, 165, 196, 0.12); }
+.tk-map-detail .tk-detail-more {
+  max-width: none;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.tk-map-detail .tk-detail-more > summary { padding-inline: 4px; color: #a7b1c2; }
+
+/* Sky: live movement and alignment stay dominant. The real expected-star
+   projection is now visible as orientation context before alignment, while
+   diagnostics remain behind their disclosure. */
+.tk-sky-finder {
+  background: #02050c;
+}
+.tk-finder-sky {
+  background:
+    radial-gradient(circle at 48% 42%, rgba(70, 95, 174, 0.24), transparent 24%),
+    radial-gradient(ellipse at 64% 44%, rgba(78, 45, 113, 0.18), transparent 36%),
+    linear-gradient(180deg, #071126 0%, #07101d 55%, #03070d 100%);
+}
+.tk-finder-shade {
+  background:
+    linear-gradient(180deg, rgba(2, 5, 12, 0.78) 0%, transparent 27%, transparent 62%, rgba(2, 5, 10, 0.88) 100%),
+    radial-gradient(circle at 50% 48%, transparent 0 30%, rgba(1, 3, 8, 0.3) 74%);
+}
+.tk-finder-header { align-items: center; padding-bottom: 6px; }
+.tk-finder-header h1 {
+  margin-top: 3px;
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.tk-finder-header p:last-child { color: #8d9bb1; }
+.tk-finder-icon { border-color: rgba(202, 213, 235, 0.12); background: rgba(4, 8, 16, 0.45); }
+.tk-finder-expected-field {
+  opacity: 0.42;
+  filter: drop-shadow(0 0 7px rgba(157, 178, 255, 0.35));
+  transition: opacity 240ms ease, filter 240ms ease;
+}
+.tk-finder-expected-field circle { fill: rgba(235, 241, 255, 0.76); }
+.tk-finder-expected-field circle[data-target-constellation="true"] {
+  fill: #dce4ff;
+  stroke: rgba(126, 151, 255, 0.5);
+}
+.tk-finder-expected-field > span {
+  top: 12px;
+  background: rgba(4, 8, 17, 0.42);
+  color: #8593aa;
+  letter-spacing: 0.11em;
+}
+.tk-sky-finder[data-aligned="true"] .tk-finder-expected-field { opacity: 0.88; filter: drop-shadow(0 0 9px rgba(157, 178, 255, 0.48)); }
+.tk-finder-horizon {
+  top: 68%;
+  left: 5%;
+  width: 90%;
+  border-color: rgba(194, 207, 233, 0.16);
+  box-shadow: 0 -18px 45px rgba(92, 110, 165, 0.08);
+}
+.tk-finder-centre {
+  width: 96px;
+  height: 96px;
+  border-color: rgba(218, 227, 247, 0.74);
+  box-shadow: 0 0 0 15px rgba(115, 137, 229, 0.035), 0 0 42px rgba(105, 128, 222, 0.15);
+}
+.tk-finder-centre::before { left: 31px; right: 31px; }
+.tk-finder-centre::after { top: 31px; bottom: 31px; }
+.tk-finder-target {
+  border-color: #b6c4ff;
+  box-shadow: 0 0 0 8px rgba(118, 139, 235, 0.1), 0 0 30px rgba(114, 137, 239, 0.38);
+}
+.tk-finder-arrow { color: #cbd5ff; text-shadow: 0 0 16px rgba(131, 153, 255, 0.7); }
+.tk-finder-guidance {
+  bottom: 30px;
+  width: min(590px, calc(100vw - 30px));
+  padding: 17px 20px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(9, 16, 31, 0.82), rgba(5, 9, 18, 0.65));
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+.tk-finder-guidance strong {
+  font-size: clamp(1.55rem, 5vw, 2.15rem);
+  font-weight: 480;
+  letter-spacing: -0.035em;
+}
+.tk-finder-guidance span { color: #a1aec2; }
+.tk-sky-finder[data-aligned="true"] .tk-finder-centre {
+  border-color: #a9ead3;
+  box-shadow: 0 0 0 15px rgba(83, 202, 160, 0.06), 0 0 44px rgba(87, 214, 169, 0.3);
+}
+.tk-sky-finder[data-aligned="true"] .tk-finder-guidance {
+  background: linear-gradient(135deg, rgba(20, 55, 49, 0.86), rgba(6, 23, 24, 0.72));
+}
+.tk-finder-controls {
+  width: min(820px, 100%);
+  background: linear-gradient(180deg, transparent, rgba(2, 5, 11, 0.72));
+}
+.tk-finder-warning {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: rgba(77, 57, 28, 0.28);
+  color: #cfb98e;
+}
+.tk-finder-details { border-color: rgba(190, 204, 229, 0.1); }
+
+@media (max-width: 900px) {
+  .tk-map-detail .tracker-hero.tk-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    border-radius: 20px;
+  }
+  .tk-map-detail .tk-hero-media { order: -1; min-height: 270px; height: 270px; }
+  .tk-map-detail .tk-hero-media::before {
+    background: linear-gradient(0deg, rgba(9, 13, 23, 0.98), transparent 48%), radial-gradient(circle at 50% 44%, transparent, rgba(2, 4, 9, 0.12) 70%);
+  }
+  .tk-map-detail .tk-hero-body { padding: 24px 22px 28px; }
+  .tk-map-detail .tracker-hero .tk-hero-name { font-size: clamp(2.8rem, 11vw, 4rem); }
+}
+
+@media (max-width: 720px) {
+  .tk-mode-nav button { min-height: 40px; }
+  .tk-map-recommendation {
+    right: var(--tk-control-gutter, 62px);
+    bottom: 10px;
+    left: 10px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-areas: "image copy" "actions actions";
+    width: auto;
+    padding: 10px 11px;
+    border-radius: 16px;
+  }
+  .tk-map-recommendation-image { width: 48px; height: 48px; }
+  .tk-map-recommendation-copy strong { font-size: 1rem; }
+  .tk-tonight-surface { padding: 24px 16px 48px; }
+  .tk-tonight-heading { margin-bottom: 22px; }
+  .tk-tonight-heading h1 { max-width: 14ch; font-size: clamp(2.05rem, 9.5vw, 2.85rem); line-height: 1.02; }
+  .tk-tonight-heading > span { margin-top: 12px; font-size: 0.88rem; }
+  .tk-tonight-lead { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .tk-tonight-lead-visual { min-height: 126px; height: 126px; border-radius: 17px; }
+  .tk-tonight-lead-copy { padding: 18px 2px 0; }
+  .tk-tonight-lead-labels { gap: 8px; }
+  .tk-tonight-lead h2 { margin-top: 10px; font-size: 1.85rem; }
+  .tk-tonight-lead-copy > p { font-size: 0.82rem; line-height: 1.45; }
+  .tk-tonight-lead dl { margin: 16px 0 7px; }
+  .tk-tonight-lead dd { font-size: 0.76rem; }
+  .tk-tonight-equipment { margin-top: 3px !important; }
+  .tk-tonight-lead-actions { padding-top: 13px; }
+  .tk-tonight-next { margin-top: 32px; }
+  .tk-tonight-row { grid-template-columns: 20px 44px minmax(0, 1fr) 40px; min-height: 72px; gap: 9px; }
+  .tk-tonight-row-image { width: 42px; height: 42px; }
+  .tk-tonight-planning { margin-top: 20px; }
+  .tk-map-detail .tk-page.tk-tonight { padding: 16px 12px 42px; }
+  .tk-map-detail .tk-page-heading { padding-inline: 4px; }
+  .tk-map-detail .tk-page-heading p { display: none; }
+  .tk-map-detail .tk-hero-media { min-height: 178px; height: 178px; }
+  .tk-map-detail .tk-hero-media .tracker-credit { max-width: 82%; font-size: 0.5rem; }
+  .tk-map-detail .tk-hero-body { padding: 19px 18px 21px; }
+  .tk-map-detail .tracker-hero .tk-hero-name { font-size: 2.7rem; }
+  .tk-map-detail .tk-hero-head { gap: 9px; }
+  .tk-map-detail .tk-hero-recommendation { margin-top: 13px; font-size: 0.9rem; line-height: 1.42; }
+  .tk-map-detail .tk-hero-support { font-size: 0.76rem; }
+  .tk-map-detail .tk-hero-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 17px;
+    padding-top: 12px;
+  }
+  .tk-map-detail .tk-metric { padding: 0 7px 0 0; border: 0; }
+  .tk-map-detail .tk-metric + .tk-metric { padding: 0 0 0 8px; border-top: 0; border-left: 1px solid rgba(158, 174, 207, 0.13); }
+  .tk-map-detail .tk-metric dt { min-height: 2.3em; font-size: 0.58rem; }
+  .tk-map-detail .tk-metric-value { font-size: 0.73rem; }
+  .tk-hero-why { margin-top: 18px; }
+  .tk-map-detail .tracker-hero .tracker-expect {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+  .tk-map-detail .tk-hero-actions { margin-top: 16px; }
+  .tk-map-detail .tk-detail-key-conditions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
+  .tk-map-detail .tk-detail-key-conditions li { padding: 13px 8px; }
+  .tk-map-detail .tk-detail-key-conditions li + li { border-top: 0; border-left: 1px solid rgba(150, 165, 196, 0.12); }
+  .tk-finder-header { padding-inline: 12px; gap: 10px; }
+  .tk-finder-stage { min-height: 360px; }
+  .tk-finder-guidance { bottom: 18px; }
+  .tk-finder-controls { max-height: 27dvh; padding-inline: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-finder-expected-field { transition: none; }
+}

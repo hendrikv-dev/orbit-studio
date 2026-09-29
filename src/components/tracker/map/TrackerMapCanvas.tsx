@@ -696,7 +696,7 @@ export function TrackerMapCanvas({
     }
     programmatic.current = true;
     instance.easeTo({
-      pitch: terrain ? 68 : 0,
+      pitch: terrain ? 58 : 0,
       bearing: terrain ? -24 : 0,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
@@ -715,7 +715,7 @@ export function TrackerMapCanvas({
     instance.stop();
     programmatic.current = true;
     instance.easeTo({
-      pitch: projection === "terrain" ? 68 : 0,
+      pitch: projection === "terrain" ? 58 : 0,
       bearing: projection === "terrain" ? -24 : 0,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
@@ -994,10 +994,10 @@ function recolour(instance: MapLibreMap, terrain = false) {
         paint("line-opacity", 0.9);
       } else if (isBoundary) {
         paint("line-color", INK.boundary);
-        paint("line-opacity", terrain ? 0.32 : 0.5);
+        paint("line-opacity", terrain ? 0.16 : 0.5);
       } else {
         paint("line-color", isMotorway ? INK.roadMajor : INK.road);
-        paint("line-opacity", terrain ? (isMotorway ? 0.34 : 0.18) : (isMotorway ? 0.9 : 0.62));
+        paint("line-opacity", terrain ? (isMotorway ? 0.18 : 0.07) : (isMotorway ? 0.9 : 0.62));
       }
     } else if (layer.type === "symbol") {
       /**
@@ -1015,9 +1015,9 @@ function recolour(instance: MapLibreMap, terrain = false) {
       paint("text-halo-blur", 0.4);
       if (source === "transportation_name") {
         paint("text-color", INK.labelFaint);
-        paint("text-opacity", terrain ? 0.22 : 1);
+        paint("text-opacity", terrain ? 0.1 : 1);
       } else {
-        paint("text-opacity", terrain ? 0.78 : 1);
+        paint("text-opacity", terrain ? 0.62 : 1);
       }
     } else if (layer.type === "raster") {
       /**
@@ -1028,10 +1028,10 @@ function recolour(instance: MapLibreMap, terrain = false) {
        * behind a hill. Held well below the labels so it reads as ground rather
        * than as content, but emphatically present.
        */
-      paint("raster-opacity", 0.5);
-      paint("raster-saturation", -0.55);
-      paint("raster-contrast", 0.15);
-      paint("raster-brightness-max", 0.5);
+      paint("raster-opacity", terrain ? 0.68 : 0.5);
+      paint("raster-saturation", terrain ? -0.42 : -0.55);
+      paint("raster-contrast", terrain ? 0.24 : 0.15);
+      paint("raster-brightness-max", terrain ? 0.56 : 0.5);
     }
   }
 }

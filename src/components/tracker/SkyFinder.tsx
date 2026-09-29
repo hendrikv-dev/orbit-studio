@@ -541,7 +541,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       </header>
 
       <div className="tk-finder-stage" style={reticleStyle}>
-        {expectedContext && alignment.aligned ? (
+        {expectedContext ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               {expectedContext.stars.map((star) => (

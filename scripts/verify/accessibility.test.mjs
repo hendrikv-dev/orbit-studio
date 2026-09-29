@@ -111,7 +111,7 @@ describe("accessibility gate source guards", () => {
 describe("accessibility gate state setup", () => {
   const before = (needle) => gateCode.indexOf(needle);
 
-  it("establishes the observing location itself before asking for rail content", () => {
+  it("establishes the observing location itself before asking for recommendation content", () => {
     const chooses = before('chooseFirstResult(page, "Joshua Tree Village Campground")');
     const opens = before("await openDetail(page)");
     expect(chooses).toBeGreaterThan(-1);
@@ -120,12 +120,14 @@ describe("accessibility gate state setup", () => {
   });
 
   /**
-   * A bare Tracker has no rail, and the gate says so before it selects
+   * A bare Tracker has no recommendation surface, and the gate says so before it selects
    * anything. If that assertion ever passes by accident — because a place
    * leaked in from storage or a previous scenario — this is where it shows.
    */
-  it("asserts a bare Tracker offers no rail until a place is chosen", () => {
-    expect(gateCode).toMatch(/\.tk-rail"\)\.count\(\)\) === 0/);
+  it("asserts a bare Tracker offers no recommendation until a place is chosen", () => {
+    expect(gateCode).toContain(
+      '(await page.locator(".tk-map-recommendation, .tk-tonight-surface").count()) === 0',
+    );
     expect(gateCode).toMatch(/const TRACKER = `\$\{PREVIEW_ORIGIN\}\/\?app=tracker`/);
   });
 

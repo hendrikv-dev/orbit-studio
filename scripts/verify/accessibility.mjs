@@ -407,7 +407,7 @@ async function chooseFirstResult(page, query) {
    * was never hard to reverse, and it disagreed with a click on the map, which
    * had always committed immediately.
    */
-  await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+  await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
   // The place itself now lives in the top bar rather than at the head of a
   // panel, so that is where "a place is selected" is proved.
   await page.waitForSelector(".tk-map-topbar-lead", { timeout: 30_000 });
@@ -421,27 +421,17 @@ async function chooseFirstResult(page, query) {
  * this gate should be making. What changed is only how a reader reaches them.
  */
 async function openDetail(page) {
-  // A rail card is a summary until it is opened, and the link into the full
-  // event page lives inside the expanded card. That is one more click than the
-  // panel needed, and it is the point: the rail answers most questions without
-  // leaving the map, so the page is reached deliberately.
-  //
-  // The head is a toggle, so a card that is already open must not be clicked
-  // again — returning from a detail view restores the card that was open, and
-  // a blind click there would close it and then wait forever for its link.
-  await page.waitForSelector(".tk-rail-card", { timeout: 30_000 });
-  if ((await page.locator('.tk-rail-card[data-expanded="true"]').count()) === 0) {
-    await page.locator(".tk-rail-card .tk-rail-card-head").first().click();
-  }
-  await page.waitForSelector(".tk-rail-details", { timeout: 30_000 });
-  await page.locator(".tk-rail-details").first().click();
+  // Map and Tonight share one production detail action. The presentation is
+  // different, but the transition and return-state contract are the same.
+  await page.waitForSelector(".tk-map-recommendation, .tk-tonight-surface", { timeout: 30_000 });
+  await page.getByRole("button", { name: /^(view )?details$/i }).first().click();
   await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
 }
 
 /** Back out of the event page to the map that opened it. */
 async function backToMap(page) {
   await page.goBack();
-  await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+  await page.waitForSelector(".tk-map-recommendation, .tk-tonight-surface", { timeout: 30_000 });
 }
 
 /** Waits for the worker-backed future view to finish without mistaking its
@@ -459,8 +449,9 @@ async function visibleBounds(page) {
       ".tracker-bar",
       ".tracker-shell",
       // The map's own furniture. The surface fills the viewport by design, so
-      // what is worth measuring is the rail and the things floating on it.
-      ".tk-rail",
+      // what is worth measuring is the answer and the things floating on it.
+      ".tk-map-recommendation",
+      ".tk-tonight-surface",
       ".tk-map-topbar",
       ".tk-map-controls-view",
       ".tk-callout",
@@ -639,7 +630,7 @@ async function run() {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
     expect(
-      (await page.locator(".tk-rail").count()) === 0,
+      (await page.locator(".tk-map-recommendation, .tk-tonight-surface").count()) === 0,
       "nothing should claim to be a selected location before one is selected",
     );
 
@@ -842,7 +833,7 @@ async function run() {
     // The ranked row this next block inspects lives on the event page, which is
     // one deliberate step in from the panel.
     if ((await page.locator(".tracker-hero .tk-hero-name").count()) === 0) {
-      await page.waitForSelector(".tk-rail", { timeout: 30_000 });
+      await page.waitForSelector(".tk-map-recommendation, .tk-tonight-surface", { timeout: 30_000 });
       await openDetail(page);
     }
 
@@ -894,7 +885,7 @@ async function run() {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
-    await page.waitForSelector(".tk-rail", { timeout: 60_000 });
+    await page.waitForSelector(".tk-map-recommendation, .tk-tonight-surface", { timeout: 60_000 });
     await openDetail(page);
     await page.waitForSelector(".tk-page[data-category='eclipses']", { timeout: 30_000 }).catch(() => {});
     await page.waitForTimeout(2_500);
@@ -910,7 +901,7 @@ async function run() {
     const mapOpener = page.getByRole("button", { name: "View visibility map" }).first();
     if ((await mapOpener.count()) > 0) {
       await mapOpener.click();
-      await page.waitForSelector(".tk-rail-card", { timeout: 30_000 }).catch(() => {});
+      await page.waitForSelector(".tk-map-recommendation", { timeout: 30_000 }).catch(() => {});
       await page.waitForTimeout(2_500);
 
       // Every control is a real button with a name, or a screen reader
@@ -951,57 +942,46 @@ async function run() {
     await chooseFirstResult(phone, "Joshua Tree Village Campground");
     await scan(phone, "map with a location selected on a phone");
 
-    /* --- the rail, which is what a phone gets instead of a sheet ----------
+    /* --- Map and Tonight are different views of one recommendation state --
      *
-     * There used to be a bottom sheet here: a collapsed strip with a button
-     * that expanded it over most of the screen. The rail replaced it, and the
-     * sheet went with it rather than being kept alongside.
-     *
-     * The reason is that the sheet and the rail answer the same question in
-     * ways that cannot both be right. A sheet says "the details are somewhere
-     * else, here is a handle"; the rail says "the details are in the card you
-     * tapped". Two mechanisms for opening the same content on the same screen
-     * is exactly the duplication this pass exists to remove — and the rail is
-     * the better of the two on a phone, because expanding a card keeps the map
-     * visible where expanding the sheet covered it.
-     *
-     * So what is asserted here is the rail's own contract: it is present, its
-     * cards are reachable, exactly one opens at a time, and opening one does
-     * not cover the map.
+     * Map keeps one compact answer over the geography. Tonight owns the full
+     * vertical briefing. Neither view revives the superseded horizontal rail
+     * or the old bottom sheet.
      */
-    await phone.waitForSelector(".tk-rail-card", { timeout: 30_000 });
+    await phone.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     expect(
       (await phone.locator(".tk-map-sheet-handle").count()) === 0,
-      "the bottom sheet should be gone, not living alongside the rail",
-    );
-    const railHead = phone.locator(".tk-rail-card .tk-rail-card-head").first();
-    expect(
-      (await railHead.getAttribute("aria-expanded")) === "false",
-      "a rail card should say whether it is open",
-    );
-    await railHead.click();
-    await phone.waitForSelector('.tk-rail-card[data-expanded="true"]', { timeout: 5_000 });
-    expect(
-      (await railHead.getAttribute("aria-expanded")) === "true",
-      "a rail card should report its expanded state",
+      "the bottom sheet should be gone, not living alongside Map",
     );
     expect(
-      (await phone.locator('.tk-rail-card[data-expanded="true"]').count()) === 1,
-      "only one rail card should be open at a time on a phone",
+      (await phone.locator(".tk-rail, .tk-rail-card").count()) === 0,
+      "the superseded observing rail should not remain beside Map",
     );
     expect(
       await phone.evaluate(() => {
-        const rail = document.querySelector(".tk-rail");
-        if (!rail) return false;
-        // The map has to stay the larger half of the screen: a card that grows
-        // to cover it has become the sheet it replaced.
-        return rail.getBoundingClientRect().height < window.innerHeight * 0.6;
+        const answer = document.querySelector(".tk-map-recommendation");
+        if (!answer) return false;
+        return answer.getBoundingClientRect().height < window.innerHeight * 0.3;
       }),
-      "an expanded rail card should leave most of the map visible",
+      "the compact Map answer should leave the geography dominant",
     );
-    await scan(phone, "rail card expanded on a phone");
-    await railHead.click();
-    await phone.waitForSelector('.tk-rail-card[data-expanded="false"]', { timeout: 5_000 });
+    await scan(phone, "compact Map recommendation on a phone");
+    if ((await phone.locator(".tk-callout").count()) > 0) {
+      await phone.keyboard.press("Escape");
+      await phone.locator(".tk-callout").waitFor({ state: "detached", timeout: 5_000 });
+    }
+
+    await phone.getByRole("button", { name: "Tonight", exact: true }).click();
+    await phone.waitForSelector(".tk-tonight-surface", { timeout: 30_000 });
+    expect(
+      (await phone.locator(".tk-tonight-lead").count()) === 1,
+      "Tonight should expose one leading recommendation on a phone",
+    );
+    expect(
+      (await phone.locator(".tk-rail, .tk-rail-card").count()) === 0,
+      "Tonight should not retain the superseded horizontal rail",
+    );
+    await scan(phone, "Tonight briefing on a phone");
 
     await openDetail(phone);
     await scan(phone, "recommendation on a phone");
@@ -1052,7 +1032,7 @@ async function run() {
     await narrowPage.goto(TRACKER, { waitUntil: "domcontentloaded" });
     // A stored place opens the map on that place, so the event page is one
     // deliberate step in rather than the landing screen.
-    await narrowPage.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await narrowPage.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     await openDetail(narrowPage);
     await scan(narrowPage, "recommendation at 320 CSS pixels");
     assertNoHorizontalClipping(await visibleBounds(narrowPage), "320px Tonight");
@@ -1083,7 +1063,7 @@ async function run() {
     await reducedPage.goto(TRACKER, { waitUntil: "domcontentloaded" });
     // A stored place opens the map on that place, so the event page is one
     // deliberate step in rather than the landing screen.
-    await reducedPage.waitForSelector(".tk-rail", { timeout: 30_000 });
+    await reducedPage.waitForSelector(".tk-map-recommendation", { timeout: 30_000 });
     await openDetail(reducedPage);
     expect(
       await reducedPage.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),

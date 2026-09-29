@@ -170,7 +170,12 @@ export function EventHero({
         
             The pixels came from the list's thumbnails instead, which carry no
             information the row's name does not. */}
-        {expectation ? <Description key={expectation}>{expectation}</Description> : null}
+        {expectation ? (
+          <section className="tk-hero-why" aria-labelledby="tk-hero-why-title">
+            <h3 id="tk-hero-why-title">Why it’s worth it</h3>
+            <Description key={expectation}>{expectation}</Description>
+          </section>
+        ) : null}
 
         {mapAction || finder ? <div className="tk-hero-actions">
           {mapAction ? (

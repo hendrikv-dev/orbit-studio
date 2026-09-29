@@ -3637,7 +3637,11 @@ function TrackerScreen() {
               ...(projection === "terrain" && location.pin
                 ? {
                     centre: location.pin,
-                    zoom: Math.max(location.zoom, 9.25),
+                    // Terrain is an observer-scale experience, not a tilted
+                    // regional road map. Keep the natural DEM scale and move
+                    // the camera close enough for the surrounding ridges and
+                    // valleys to become the subject of the view.
+                    zoom: MAP_MAX_ZOOM,
                   }
                 : {}),
             })
