@@ -552,13 +552,11 @@ async function main() {
     );
 
     /**
-     * One left edge for the whole page.
+     * One page edge and one fact edge.
      *
-     * The way back used to be a pill positioned over the top-left corner, and
-     * the heading was pushed 168 pixels clear of it to avoid a collision — so
-     * the title alone stood a hundred and sixty-eight pixels right of the hero,
-     * the conditions and everything else, and the number was the width of one
-     * particular English label.
+     * Conditions now belong inside the object hero with the essential metrics,
+     * so their edge should match those facts rather than the hero's outer box.
+     * The page-level invariant remains: Back and the hero begin together.
      */
     const edges = await page.evaluate(() => {
       const left = (selector) => {
@@ -568,13 +566,13 @@ async function main() {
       return {
         back: left(".tk-map-detail .tk-back"),
         hero: left(".tracker-hero"),
+        metrics: left(".tracker-hero .tk-hero-metrics"),
         conditions: left(".tk-detail-key-conditions"),
       };
     });
-    const distinct = [...new Set(Object.values(edges).filter((value) => value !== null))];
     check(
-      distinct.length === 1,
-      `back, hero and key conditions share one page edge (${JSON.stringify(edges)})`,
+      edges.back === edges.hero && edges.metrics === edges.conditions,
+      `Back and hero share the page edge; metrics and conditions share the fact edge (${JSON.stringify(edges)})`,
     );
     const conciseText = await page.locator(".tk-map-detail .tk-main-row, .tk-detail-key-conditions").allInnerTexts();
     check(
@@ -1994,9 +1992,9 @@ async function main() {
     await openCloud(page);
 
     await page.getByRole("button", { name: "Tonight", exact: true }).click();
-    await page.waitForSelector(".tk-tonight-lead .tk-tonight-cloud", { timeout: 20_000 });
+    await page.waitForSelector(".tk-tonight-surface .tk-tonight-cloud", { timeout: 20_000 });
     const note = await page.evaluate(() => {
-      const node = document.querySelector(".tk-tonight-lead .tk-tonight-cloud");
+      const node = document.querySelector(".tk-tonight-surface .tk-tonight-cloud");
       const card = node?.closest(".tk-tonight-lead");
       return node ? {
         card: card?.dataset.card ?? "",

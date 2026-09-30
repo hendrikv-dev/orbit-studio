@@ -67,7 +67,10 @@ function TonightRow({
       <button type="button" className="tk-tonight-row-main" onClick={onOpenDetail}>
         <strong>{card.presentation.shortTitle ?? card.presentation.title}</strong>
         <span>{when.value} · {where.value}</span>
-        <small>{featured ? card.presentation.recommendation : equipmentContext(card, configured)}</small>
+        <small>
+          {quality.tone !== "unknown" && usefulMetric(quality.value) ? `${quality.value} · ` : ""}
+          {featured ? card.presentation.recommendation : equipmentContext(card, configured)}
+        </small>
       </button>
       {quality.tone !== "unknown" && usefulMetric(quality.value) ? (
         <span className="tk-tonight-quality" data-tone={quality.tone}>
@@ -121,7 +124,8 @@ export function TrackerTonightBriefing({
         <header className="tk-tonight-heading">
           {strongest ? (
             <div className="tk-tonight-atmosphere" aria-hidden>
-              <CardFigure media={strongest.media} />
+              <img src="/sky/eso-potw1033a-night-sky-detail.webp" alt="" />
+              <small>Representative long-exposure · ESO/S. Guisard</small>
             </div>
           ) : null}
           <div className="tk-tonight-heading-copy">

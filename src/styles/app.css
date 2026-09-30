@@ -19457,6 +19457,16 @@ button.primary,
 }
 .tk-tonight-atmosphere > *,
 .tk-tonight-atmosphere img { width: 100%; height: 100%; object-fit: cover; }
+.tk-tonight-atmosphere small {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 2;
+  width: auto;
+  height: auto;
+  color: rgba(207, 216, 234, 0.5);
+  font-size: 0.52rem;
+}
 .tk-tonight-atmosphere::after {
   content: "";
   position: absolute;
@@ -19494,15 +19504,29 @@ button.primary,
   border-top: 1px solid rgba(151, 166, 198, 0.1);
 }
 .tk-tonight-row[data-primary="true"] {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px 58px minmax(0, 1fr) auto 42px;
   min-height: 94px;
   margin-bottom: 5px;
   padding: 10px 12px 10px 8px;
+  overflow: visible;
   border: 1px solid rgba(137, 154, 212, 0.13);
   border-radius: 17px;
   background: linear-gradient(108deg, rgba(19, 28, 47, 0.82), rgba(8, 13, 24, 0.45));
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.025);
 }
 .tk-tonight-row[data-primary="true"] .tk-tonight-row-image { width: 58px; height: 58px; margin-left: -3px; }
+.tk-tonight-row.tk-tonight-lead .tk-tonight-row-image {
+  position: static;
+  inset: auto;
+  display: block;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 .tk-tonight-row-main { gap: 2px; }
 .tk-tonight-row-main strong { font-size: 0.98rem; }
 .tk-tonight-row-main span { color: #a1adbf; font-size: 0.73rem; }
@@ -19800,7 +19824,11 @@ button.primary,
   .tk-tonight-next .tk-tonight-section-heading { padding-bottom: 8px; }
   .tk-tonight-section-heading span { display: none; }
   .tk-tonight-row { grid-template-columns: 18px 42px minmax(0, 1fr) 36px; min-height: 61px; gap: 8px; padding-block: 5px; }
-  .tk-tonight-row[data-primary="true"] { min-height: 82px; padding: 8px 8px 8px 6px; }
+  .tk-tonight-row[data-primary="true"] {
+    grid-template-columns: 18px 50px minmax(0, 1fr) 36px;
+    min-height: 82px;
+    padding: 8px 8px 8px 6px;
+  }
   .tk-tonight-row[data-primary="true"] .tk-tonight-row-image { width: 50px; height: 50px; }
   .tk-tonight-row .tk-tonight-quality { display: none; }
   .tk-tonight-row-main strong { font-size: 0.87rem; }

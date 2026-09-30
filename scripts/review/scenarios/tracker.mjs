@@ -1114,7 +1114,9 @@ export const trackerReviewScenario = {
 
     // 5. Full detail, and the way back.
     const beforeDetail = await read();
-    await page.getByRole("button", { name: /View details/i }).click();
+    // The editorial Tonight row is itself the detail action; its accessible
+    // name is the object identity and observing summary, not legacy CTA copy.
+    await page.locator(".tk-tonight-lead .tk-tonight-row-main").click();
     await page.waitForFunction(
       () => document.querySelector(".tracker-shell")?.getAttribute("data-map-state") === "detail",
       undefined,
@@ -1353,7 +1355,7 @@ export const trackerReviewScenario = {
       undefined,
       { timeout: 60_000 },
     );
-    await page.locator('.tk-tonight-lead[data-card="planet-saturn"] .tk-tonight-cloud').waitFor({
+    await page.locator('.tk-tonight-surface .tk-tonight-cloud').waitFor({
       timeout: 30_000,
     });
     await settle(1_500);
@@ -1399,7 +1401,7 @@ export const trackerReviewScenario = {
     await settle(700);
     await captureSurface("tracker-phone-tonight", await read());
 
-    await page.getByRole("button", { name: /View details/i }).first().click();
+    await page.locator(".tk-tonight-lead .tk-tonight-row-main").click();
     await page.locator(".tk-map-detail .tracker-hero").waitFor({ timeout: 20_000 });
     await settle(500);
     const phoneDetail = await read();

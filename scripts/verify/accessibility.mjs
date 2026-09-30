@@ -423,8 +423,16 @@ async function chooseFirstResult(page, query) {
 async function openDetail(page) {
   // Map and Tonight share one production detail action. The presentation is
   // different, but the transition and return-state contract are the same.
+  // Tonight's editorial rows use the object identity and observing summary as
+  // their accessible name; requiring legacy "View details" copy here would
+  // test a discarded presentation rather than the production interaction.
   await page.waitForSelector(".tk-map-recommendation, .tk-tonight-surface", { timeout: 30_000 });
-  await page.getByRole("button", { name: /^(view )?details$/i }).first().click();
+  const tonightAction = page.locator(".tk-tonight-row-main").first();
+  if (await tonightAction.isVisible()) {
+    await tonightAction.click();
+  } else {
+    await page.getByRole("button", { name: /^(view )?details$/i }).first().click();
+  }
   await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 30_000 });
 }
 

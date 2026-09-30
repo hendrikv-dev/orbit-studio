@@ -5,10 +5,10 @@ import brightStars from "../stars/hygBrightStars.v41.json";
 import {
   normalizeDegrees,
   positionForSkyFinderTarget,
-  signedAngleDifference,
   type PhonePointing,
   type SkyFinderTarget,
 } from "./skyFinder";
+import { projectSkyField } from "./skyFieldProjection";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "./skyMarker";
 
 interface BrightStarRecord {
@@ -74,9 +74,6 @@ export interface ExpectedSkyContext {
   objects: ExpectedSkyObject[];
 }
 
-const HORIZONTAL_FOV_DEG = 82;
-const VERTICAL_FOV_DEG = 66;
-
 function targetEquatorial(
   target: SkyFinderTarget,
   observer: { latitudeDeg: number; longitudeDeg: number },
@@ -129,28 +126,6 @@ function constellationAt(raHours: number, decDeg: number) {
   }
 }
 
-function projectHorizontal(
-  centre: PhonePointing,
-  position: { azimuthDeg: number; altitudeDeg: number },
-): { xPercent: number; yPercent: number; inField: boolean } {
-  // Longitude contracts toward the zenith on the local celestial sphere. This
-  // remains an approximate camera field because browsers do not disclose the
-  // rear-lens FOV, but it preserves local angular relationships better than
-  // treating azimuth degrees as a flat Cartesian axis.
-  const averageAltitude = ((centre.altitudeDeg + position.altitudeDeg) / 2) * (Math.PI / 180);
-  const horizontalError =
-    signedAngleDifference(centre.azimuthDeg, position.azimuthDeg) *
-    Math.max(0.22, Math.cos(averageAltitude));
-  const verticalError = position.altitudeDeg - centre.altitudeDeg;
-  const xPercent = 50 + (horizontalError / HORIZONTAL_FOV_DEG) * 100;
-  const yPercent = 50 - (verticalError / VERTICAL_FOV_DEG) * 100;
-  return {
-    xPercent,
-    yPercent,
-    inField: xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100,
-  };
-}
-
 function friendlyStarLabel(name: string | null, magnitude: number): string | null {
   if (!name || magnitude > 1.8) return null;
   // HYG contains both common names (Sirius) and compact Bayer/Flamsteed forms
@@ -185,7 +160,7 @@ export function expectedSkyContext(
   const stars = (brightStars as BrightStarRecord[])
     .flatMap((star) => {
       const horizontal = Horizon(time, astronomyObserver, star.raHours, star.decDeg, "normal");
-      const projected = projectHorizontal(centre, {
+      const projected = projectSkyField(centre, {
         azimuthDeg: horizontal.azimuth,
         altitudeDeg: horizontal.altitude,
       });
@@ -223,7 +198,7 @@ export function expectedSkyContext(
           decDeg,
           "normal",
         );
-        return projectHorizontal(centre, {
+        return projectSkyField(centre, {
           azimuthDeg: horizontal.azimuth,
           altitudeDeg: horizontal.altitude,
         });
@@ -290,7 +265,7 @@ export function expectedSkyContext(
     .flatMap((candidate) => {
       const position = positionForSkyFinderTarget(candidate, observer, at);
       if (!position || position.altitudeDeg <= 0) return [];
-      const projected = projectHorizontal(centre, position);
+      const projected = projectSkyField(centre, position);
       if (!projected.inField) return [];
       return [{
         id: candidate.id,

@@ -34,6 +34,7 @@ import {
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 import type { ExpectedSkyContext } from "../../data/tracker/skyFinderContext";
+import { projectSkyField } from "../../data/tracker/skyFieldProjection";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "../../data/tracker/skyMarker";
 
 type PermissionPhase = "idle" | "requesting" | "granted" | "denied" | "unavailable";
@@ -479,15 +480,13 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       : null;
   const verticalError =
     pointing && targetPosition ? targetPosition.altitudeDeg - pointing.altitudeDeg : null;
-  const arrowAngle =
-    horizontalError !== null && verticalError !== null
-      ? degreesForArrow(horizontalError, verticalError)
-      : 0;
+  const projectedTarget = pointing && targetPosition
+    ? projectSkyField(pointing, targetPosition)
+    : null;
   const reticleStyle = {
-    "--finder-x": `${Math.max(-42, Math.min(42, (horizontalError ?? 0) * 1.7))}%`,
-    "--finder-y": `${Math.max(-34, Math.min(34, -(verticalError ?? 0) * 1.7))}%`,
+    "--finder-x": `${Math.max(-46, Math.min(46, (projectedTarget?.xPercent ?? 50) - 50))}%`,
+    "--finder-y": `${Math.max(-42, Math.min(42, (projectedTarget?.yPercent ?? 50) - 50))}%`,
     "--finder-radius": `${Math.max(28, Math.min(64, 28 + target.angularRadiusDeg * 8))}px`,
-    "--finder-angle": `${arrowAngle}deg`,
   } as CSSProperties;
 
   const selectedReference = referenceOptions.find((entry) => entry.target.id === referenceId) ?? null;
@@ -761,8 +760,4 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       </div>
     </section>
   );
-}
-
-function degreesForArrow(horizontalError: number, verticalError: number): number {
-  return (Math.atan2(horizontalError, verticalError) * 180) / Math.PI;
 }
