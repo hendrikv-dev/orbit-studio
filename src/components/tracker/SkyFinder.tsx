@@ -34,6 +34,7 @@ import {
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 import type { ExpectedSkyContext } from "../../data/tracker/skyFinderContext";
+import { skyMarkerKindForTarget, type SkyMarkerKind } from "../../data/tracker/skyMarker";
 
 type PermissionPhase = "idle" | "requesting" | "granted" | "denied" | "unavailable";
 type CameraPhase = "idle" | "requesting" | "active" | "denied" | "unavailable";
@@ -180,6 +181,14 @@ function shapeLabel(target: SkyFinderTarget): string {
   return "Target position";
 }
 
+function SkyMarkerGlyph({ kind, label }: { kind: SkyMarkerKind; label?: string }) {
+  return (
+    <span className="tk-sky-object-glyph" data-marker={kind} aria-label={label}>
+      <i aria-hidden />
+    </span>
+  );
+}
+
 function movementGuidance(horizontalDeg: number, verticalDeg: number): string {
   const horizontalMagnitude = Math.abs(horizontalDeg);
   const verticalMagnitude = Math.abs(verticalDeg);
@@ -251,23 +260,6 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   );
   const targetPosition = livePosition;
   const solutionAt = astronomyNow;
-
-  useEffect(() => {
-    if (!targetPosition) {
-      setExpectedContext(null);
-      return undefined;
-    }
-    let cancelled = false;
-    // Keep the 1,839-star licensed catalog out of Tracker's main bundle. The
-    // calculation follows the slower astronomy cadence, never sensor frames.
-    void import("../../data/tracker/skyFinderContext").then(({ expectedSkyContext }) => {
-      if (cancelled) return;
-      setExpectedContext(expectedSkyContext(target, observer, solutionAt, targetPosition));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [observer, solutionAt, target, targetPosition]);
 
   const referenceOptions = useMemo(
     () =>
@@ -442,6 +434,38 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     () => (rawPointing ? applyCalibration(rawPointing, calibration) : null),
     [calibration, rawPointing],
   );
+  const contextAzimuth = pointing
+    ? Math.round(pointing.azimuthDeg / 3) * 3
+    : targetPosition?.azimuthDeg ?? null;
+  const contextAltitude = pointing
+    ? Math.round(pointing.altitudeDeg / 3) * 3
+    : targetPosition?.altitudeDeg ?? null;
+  const contextCentre = useMemo(
+    () =>
+      contextAzimuth === null || contextAltitude === null
+        ? null
+        : { azimuthDeg: normalizeDegrees(contextAzimuth), altitudeDeg: contextAltitude },
+    [contextAltitude, contextAzimuth],
+  );
+
+  useEffect(() => {
+    if (!contextCentre) {
+      setExpectedContext(null);
+      return undefined;
+    }
+    let cancelled = false;
+    // The catalog and conventional figure data stay in Sky's lazy chunk. The
+    // three-degree bucket follows the live pointing field without recomputing
+    // 1,839 catalog stars on every noisy sensor event.
+    void import("../../data/tracker/skyFinderContext").then(({ expectedSkyContext }) => {
+      if (cancelled) return;
+      setExpectedContext(expectedSkyContext(target, observer, solutionAt, contextCentre, references));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [contextCentre, observer, references, solutionAt, target]);
+
   const effectiveQuality: PointingQuality = calibration && sensorQuality === "poor" ? "fair" : sensorQuality;
   const alignment = useMemo(
     () =>
@@ -497,6 +521,21 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     alignment.separationDeg === null
       ? null
       : Math.round(alignment.separationDeg / precision) * precision;
+  const guidanceTitle = alignment.aligned
+    ? `${target.title} is here`
+    : horizontalError !== null && verticalError !== null
+      ? movementGuidance(horizontalError, verticalError)
+      : noSensors && targetPosition
+        ? `Face ${cardinalDirection(targetPosition.azimuthDeg)}`
+        : "Preparing live guidance";
+  const guidanceDetail = alignment.aligned
+    ? "On target"
+    : roundedSeparation !== null
+      ? `${roundedSeparation}° away`
+      : targetPosition
+        ? `${Math.round(targetPosition.azimuthDeg)}° · ${Math.round(targetPosition.altitudeDeg)}° high`
+        : "Position unavailable";
+  const targetMarker = skyMarkerKindForTarget(target);
 
   return (
     <section
@@ -512,6 +551,10 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       data-pointing-quality={effectiveQuality}
       data-visual-verification="not-attempted"
       data-expected-constellation={expectedContext?.constellation?.symbol}
+      data-expected-stars={expectedContext?.stars.length ?? 0}
+      data-expected-lines={expectedContext?.lines.length ?? 0}
+      data-expected-labels={expectedContext?.labels.length ?? 0}
+      data-expected-objects={expectedContext?.objects.length ?? 0}
       aria-label={`Find ${target.title} in the sky`}
     >
       <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
@@ -522,10 +565,13 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         <button type="button" className="tk-finder-icon" onClick={onClose} aria-label="Close Sky">
           <X size={20} aria-hidden />
         </button>
-        <div>
-          <p className="tk-finder-kicker">Sky</p>
-          <h1>{target.title}</h1>
-          <p>{equipmentLabel(target)}</p>
+        <div className="tk-finder-guidance" aria-live="polite">
+          <SkyMarkerGlyph kind={targetMarker} />
+          <span>
+            <small>Finding {target.title}</small>
+            <strong>{guidanceTitle}</strong>
+          </span>
+          <em>{guidanceDetail}</em>
         </div>
         {capabilities.camera ? (
           <button
@@ -544,20 +590,55 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         {expectedContext ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              <g className="tk-finder-constellation-lines">
+                {expectedContext.lines.map((line) => (
+                  <line
+                    key={line.id}
+                    x1={line.points[0].xPercent}
+                    y1={line.points[0].yPercent}
+                    x2={line.points[1].xPercent}
+                    y2={line.points[1].yPercent}
+                    data-primary={line.primary ? "true" : undefined}
+                    data-constellation={line.constellation}
+                  />
+                ))}
+              </g>
               {expectedContext.stars.map((star) => (
-                <g key={star.id}>
+                <g key={star.id} className="tk-finder-star">
                   <circle
                     cx={star.xPercent}
                     cy={star.yPercent}
                     r={star.radiusPx / 2}
                     data-target-constellation={star.inTargetConstellation ? "true" : undefined}
                   />
-                  {star.name && star.magnitude <= 2.4 ? (
-                    <text x={star.xPercent + 1.2} y={star.yPercent - 1.2}>{star.name}</text>
+                  {star.label ? (
+                    <text className="tk-finder-star-label" x={star.xPercent + 1.2} y={star.yPercent - 1.2}>{star.label}</text>
                   ) : null}
                 </g>
               ))}
+              <g className="tk-finder-constellation-labels">
+                {expectedContext.labels.map((label) => (
+                  <text
+                    key={label.symbol}
+                    x={label.xPercent}
+                    y={label.yPercent}
+                    data-primary={label.primary ? "true" : undefined}
+                  >
+                    {label.name}
+                  </text>
+                ))}
+              </g>
             </svg>
+            {expectedContext.objects.map((object) => (
+              <span
+                key={object.id}
+                className="tk-finder-object"
+                style={{ left: `${object.xPercent}%`, top: `${object.yPercent}%` }}
+              >
+                <SkyMarkerGlyph kind={object.marker} />
+                <small>{object.title}</small>
+              </span>
+            ))}
           </div>
         ) : null}
         <div className="tk-finder-sky-context" aria-hidden>
@@ -572,41 +653,27 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <span>{targetPosition ? `${Math.round(targetPosition.azimuthDeg)}°` : "—"}</span>
           <strong>{targetPosition ? cardinalDirection(targetPosition.azimuthDeg) : "Horizon"}</strong>
         </div>
-        {targetPosition && pointing ? (
-          <div className="tk-finder-lock" data-shape={target.shape} aria-hidden>
-            <span />
+        {targetPosition ? (
+          <div className="tk-finder-lock" data-shape={target.shape} data-marker={targetMarker} aria-hidden>
+            <SkyMarkerGlyph kind={targetMarker} />
             <em>{target.title}</em>
           </div>
         ) : null}
 
-        <div className="tk-finder-guidance" aria-live="polite">
-          {alignment.aligned ? (
-            <>
-              <strong>{target.title} is here</strong>
-              <span>On target</span>
-            </>
-          ) : horizontalError !== null && verticalError !== null ? (
-            <>
-              <strong>{movementGuidance(horizontalError, verticalError)}</strong>
-              <span>
-                {roundedSeparation}° away · {shapeLabel(target).replace(/^Target position$/, "Target")}
-              </span>
-            </>
-          ) : (
-            <>
-              <Compass size={25} aria-hidden />
-              <strong>
-                {noSensors && targetPosition
-                  ? `Face ${cardinalDirection(targetPosition.azimuthDeg)}`
-                  : "Preparing live guidance"}
-              </strong>
-              <span>
-                {targetPosition
-                  ? `${Math.round(targetPosition.azimuthDeg)}° direction · raise phone to ${Math.round(targetPosition.altitudeDeg)}°`
-                  : "This target does not have a live position right now."}
-              </span>
-            </>
-          )}
+        <div className="tk-finder-target-card">
+          <SkyMarkerGlyph kind={targetMarker} />
+          <span>
+            <small>Target</small>
+            <strong>{target.title}</strong>
+            <em>
+              {targetPosition
+                ? `${cardinalDirection(targetPosition.azimuthDeg)} · ${Math.round(targetPosition.altitudeDeg)}° high`
+                : shapeLabel(target)}
+            </em>
+          </span>
+          <b data-aligned={alignment.aligned ? "true" : undefined}>
+            {alignment.aligned ? "On target" : equipmentLabel(target)}
+          </b>
         </div>
       </div>
 

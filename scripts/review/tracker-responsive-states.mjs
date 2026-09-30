@@ -135,9 +135,12 @@ async function productState(page) {
       [...document.querySelectorAll(selector)].map((node) => node.textContent?.replace(/\s+/g, " ").trim());
     const nav = buttonText(".tk-mode-nav button");
     const buttons = buttonText("button");
-    const finderEntries = buttonText(
+    const finderEntries = [...document.querySelectorAll(
       ".tk-map-recommendation .is-finder, .tk-tonight-lead .is-finder, .tk-tonight-row-finder, .tk-action.is-finder",
-    );
+    )].map((node) => {
+      const label = node.getAttribute("aria-label") ?? node.textContent ?? "";
+      return label.split(":")[0].replace(/\s+/g, " ").trim();
+    });
     const map = window.__trackerMap;
     return {
       mapState: document.querySelector(".tracker-shell")?.getAttribute("data-map-state") ?? null,
@@ -154,6 +157,11 @@ async function productState(page) {
       cameraState: document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") ?? null,
       aligned: document.querySelector(".tk-sky-finder")?.getAttribute("data-aligned") === "true",
       targetLocks: document.querySelectorAll(".tk-finder-lock").length,
+      skyStars: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-stars") ?? 0),
+      skyLines: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-lines") ?? 0),
+      skyLabels: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-labels") ?? 0),
+      skyObjects: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-objects") ?? 0),
+      selectedMarker: document.querySelector(".tk-finder-lock .tk-sky-object-glyph")?.getAttribute("data-marker") ?? null,
       diagnosticsOpen: Boolean(document.querySelector(".tk-finder-details[open]")),
       guidance: document.querySelector(".tk-finder-guidance strong")?.textContent?.trim() ?? null,
       permissionAttempts: Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__)
@@ -218,7 +226,9 @@ async function selectTonight(page) {
 }
 
 async function openDetail(page) {
-  await page.getByRole("button", { name: /View details|Details/i }).first().click();
+  const rankedLead = page.locator(".tk-tonight-lead .tk-tonight-row-main").first();
+  if (await rankedLead.count()) await rankedLead.click();
+  else await page.getByRole("button", { name: /View details|Details/i }).first().click();
   await page.locator(".tk-map-detail .tracker-hero").waitFor({ timeout: 30_000 });
   await page.waitForTimeout(700);
 }
@@ -250,6 +260,20 @@ async function dispatchReviewPointing(page) {
     () => !/preparing/i.test(document.querySelector(".tk-finder-guidance strong")?.textContent ?? ""),
     null,
     { timeout: 10_000 },
+  );
+}
+
+async function waitForPopulatedSky(page) {
+  await page.waitForFunction(
+    () => {
+      const finder = document.querySelector(".tk-sky-finder");
+      return Number(finder?.getAttribute("data-expected-stars") ?? 0) >= 8 &&
+        Number(finder?.getAttribute("data-expected-lines") ?? 0) > 0 &&
+        Number(finder?.getAttribute("data-expected-labels") ?? 0) > 0 &&
+        finder?.querySelector(".tk-finder-lock .tk-sky-object-glyph[data-marker='saturn']");
+    },
+    null,
+    { timeout: 15_000 },
   );
 }
 
@@ -366,26 +390,29 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
       null,
       { timeout: 10_000 },
     );
+    await waitForPopulatedSky(page);
     await capture(page, "09-phone-sky-camera-granted", "Fixture-driven supported-phone state after camera and orientation permission are granted. This proves the active production camera path and immediate entry, but is not physical-device AR evidence.", async () => {
       const state = await productState(page);
-      return state.cameraState === "active" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen
-        ? `camera ${state.cameraState}; permissions ${state.permissionAttempts.join(", ")}; diagnostics collapsed`
+      return state.cameraState === "active" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn"
+        ? `camera ${state.cameraState}; ${state.skyStars} real stars; ${state.skyLines} figure segments; ${state.skyLabels} constellation labels; Saturn marker; diagnostics collapsed`
         : "";
     });
     await dispatchReviewPointing(page);
+    await waitForPopulatedSky(page);
     await page.waitForTimeout(500);
     await capture(page, "10-phone-sky-guiding", "Fixture-driven supported-phone Sky actively guiding with one coherent target lock and the production movement cue. This is deterministic interaction evidence, not physical sensor validation.", async () => {
       const state = await productState(page);
-      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && !state.diagnosticsOpen && state.targetLocks === 1 && /move|raise|lower|almost/i.test(state.guidance ?? "")
-        ? `live ${state.finderMode}; camera active; one target lock; cue "${state.guidance}"; diagnostics collapsed`
+      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && !state.diagnosticsOpen && state.targetLocks === 1 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && /move|raise|lower|almost/i.test(state.guidance ?? "")
+        ? `live ${state.finderMode}; camera active; ${state.skyStars} real stars; constellation figures labelled; one Saturn target lock; cue "${state.guidance}"`
         : "";
     });
     await dispatchAlignedPointing(page);
+    await waitForPopulatedSky(page);
     await page.waitForTimeout(500);
     await capture(page, "11-phone-sky-aligned", "Fixture-driven supported-phone Sky aligned on target with the same single target lock transitioned into its on-target state.", async () => {
       const state = await productState(page);
-      return state.aligned && state.cameraState === "active" && state.targetLocks === 1 && /is here/i.test(state.guidance ?? "")
-        ? `aligned; camera active; one target lock; cue "${state.guidance}"`
+      return state.aligned && state.cameraState === "active" && state.targetLocks === 1 && state.selectedMarker === "saturn" && state.skyLines > 0 && /is here/i.test(state.guidance ?? "")
+        ? `aligned; camera active; one Saturn target lock; populated real sky; cue "${state.guidance}"`
         : "";
     });
     await context.close();
@@ -414,11 +441,12 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.locator(".tk-tonight-lead .is-finder").click();
     await page.locator(".tk-sky-finder").waitFor({ timeout: 30_000 });
     await dispatchReviewPointing(page);
+    await waitForPopulatedSky(page);
     await page.waitForTimeout(500);
     await capture(page, "14-tablet-sky-guiding", "Fixture-driven supported-tablet Sky is live guidance, not a desktop-style preview; camera permission is granted and one target lock carries the deterministic movement cue.", async () => {
       const state = await productState(page);
-      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && state.targetLocks === 1 && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
-        ? `live ${state.finderMode}; camera active; one target lock; cue "${state.guidance}"; diagnostics collapsed`
+      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && state.targetLocks === 1 && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
+        ? `live ${state.finderMode}; camera active; populated and labelled real sky; one Saturn target lock; cue "${state.guidance}"`
         : "";
     });
     await context.close();

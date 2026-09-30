@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import type { ConditionCard } from "../../data/tracker/conditionCards";
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
 import type { HeroImagery } from "../../data/tracker/imagery";
 import { TrackerScene, TrackerCredit } from "./TrackerScene";
@@ -61,6 +62,8 @@ interface Props {
   safety: string | null;
   /** How the eye differs from the picture, where the two differ. */
   expectation: string | null;
+  /** Useful current conditions integrated with the essential facts. */
+  conditions?: ConditionCard[];
   /** Geographic context, only when the phenomenon genuinely has one. */
   mapAction?: { label: string; onSelect: () => void } | null;
   /** Live local-sky guidance, only for targets with real locator geometry. */
@@ -99,6 +102,7 @@ export function EventHero({
   media,
   safety,
   expectation,
+  conditions = [],
   mapAction = null,
   finder = null,
 }: Props) {
@@ -151,6 +155,18 @@ export function EventHero({
             </div>
           ))}
         </dl>
+
+        {conditions.length > 0 ? (
+          <ul className="tk-detail-key-conditions tk-hero-conditions" aria-label="Key observing conditions">
+            {conditions.map((condition) => (
+              <li key={condition.id} data-tone={condition.tone}>
+                <span>{condition.label}</span>
+                <strong>{condition.value}</strong>
+                {condition.interpretation ? <small>{condition.interpretation}</small> : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {/* What your eyes will actually see.
         

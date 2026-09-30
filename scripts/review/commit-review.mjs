@@ -30,9 +30,10 @@
  * Usage:
  *   node scripts/review/commit-review.mjs [--commit <ref>] [--states a,b,c]
  *                                         [--gates <results.json>] [--why <text>]
+ *                                         [--references <directory>]
  */
 import { execFileSync } from "node:child_process";
-import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -191,22 +192,24 @@ function screenshotLinks(shots, ids) {
 /**
  * Comparison notes belong beside the exact frames they discuss.
  *
- * The approved source-image files are not repository inputs, so this document
- * never invents a pixel comparison. It maps the approved visual requirements
- * to the implemented product frames and says exactly where evidence stops.
+ * The approved source-image files are supplied externally and copied into the
+ * private package. This document places those exact references beside the
+ * implementation frames while keeping them out of release source.
  */
-function referenceComparisonMarkdown(commit, shots) {
+function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
   const rows = [
     {
       surface: "Map 2D",
+      reference: "01-map-3d.png",
       target: "Quiet top-down geographic reading, restrained chrome, and one integrated recommendation.",
       ids: ["01-desktop-map-2d", "05-phone-map-2d", "15-unsupported-tablet-map"],
       matched: "Top-down geography remains primary; controls recede; one compact answer replaces the legacy rail.",
       deviation: "Production place labels and scientific overlays remain available because they carry real map meaning.",
-      limitation: "No pixel-difference claim: the approved source-image files were not present in the checkout.",
+      limitation: "The supplied Map reference is 3D; 2D intentionally keeps top-down geographic reading.",
     },
     {
       surface: "Map 3D",
+      reference: "01-map-3d.png",
       target: "Close observer-centred terrain atlas with immediately legible real ridges, valleys, slopes, and atmospheric depth.",
       ids: ["02-desktop-map-3d", "06-phone-map-3d", "12-tablet-map-3d"],
       matched: "DEM geometry visibly rises and falls; the camera is local and oblique; roads and transport labels are subordinate.",
@@ -215,14 +218,16 @@ function referenceComparisonMarkdown(commit, shots) {
     },
     {
       surface: "Tonight",
+      reference: "02-tonight.png",
       target: "Editorial nightly briefing with one composed lead, elegant secondary ranking, confident type, and little dashboard chrome.",
       ids: ["03-desktop-tonight-no-sky", "07-phone-tonight", "13-tablet-tonight", "16-unsupported-tablet-tonight"],
       matched: "The lead image and recommendation form one unit; secondary targets flatten into a quieter ranked list; raw unavailable labels are omitted.",
       deviation: "Production ranking, recovery, equipment, and evidence wording remain authoritative rather than being replaced by reference-image placeholder copy.",
-      limitation: "The reference composition is assessed by hierarchy and density; source pixels were unavailable for direct overlay.",
+      limitation: "Production object media differs from the illustrative reference imagery, while its visual allocation and order are retained.",
     },
     {
       surface: "Object Detail",
+      reference: "04-object-detail.png",
       target: "Object-first identity, prominent recommendation, concise observing facts, visible why-it-is-worth-it, and collapsed depth.",
       ids: ["04-desktop-object-detail", "08-phone-object-detail-collapsed", "17-unsupported-tablet-object-detail"],
       matched: "The object owns the sole heading; category framing is absent; More details is closed; ordinary celestial objects have no generic map action.",
@@ -231,14 +236,16 @@ function referenceComparisonMarkdown(commit, shots) {
     },
     {
       surface: "Sky",
+      reference: "03-sky.png",
       target: "Emotional live-guidance payoff: selected target, one elegant lock, immediate movement cue, sky context, and minimal diagnostics.",
       ids: ["09-phone-sky-camera-granted", "10-phone-sky-guiding", "11-phone-sky-aligned", "14-tablet-sky-guiding"],
-      matched: "One target lock carries direction and alignment; guidance changes through active and on-target states; diagnostics remain collapsed.",
-      deviation: "No synthetic constellation lines are drawn because the catalog does not contain an authoritative line figure.",
+      matched: "One target lock carries direction and alignment; real catalog stars, projected constellation figures and names populate the field; Saturn uses a ringed marker; diagnostics remain collapsed.",
+      deviation: "The camera field uses an approximate 82° × 66° projection because browsers do not disclose a calibrated rear-lens FOV.",
       limitation: "These are explicitly fixture-driven browser frames with an empty MediaStream, not physical-device camera or sensor evidence.",
     },
     {
       surface: "Capability boundary",
+      reference: null,
       target: "Sky and Find in Sky only on camera-and-orientation-capable phones/tablets, with no reserved gap elsewhere.",
       ids: ["03-desktop-tonight-no-sky", "04-desktop-object-detail", "15-unsupported-tablet-map", "17-unsupported-tablet-object-detail"],
       matched: "Desktop and unsupported-tablet frames show Map · Tonight only; object detail contains neither live action nor generic Show on Map.",
@@ -250,13 +257,72 @@ function referenceComparisonMarkdown(commit, shots) {
   return `# Approved-reference comparison
 
 - **Commit** \`${commit.full}\`
-- **Method** Requirement-to-frame comparison against the approved visual direction.
-- **Evidence boundary** The approved generated source-image files were not available in this checkout, so this is an explicit visual-trait comparison rather than a pixel overlay or a parity claim.
+- **Method** Direct reference-to-render comparison. See \`COMPARISON_SHEET.png\` for paired visual evidence.
+- **Evidence boundary** ${referencesIncluded ? "The four supplied source images are copied unchanged into `references/` inside this private package." : "No reference directory was supplied to the generator; visual pairing is unavailable and this package must not claim direct comparison."}
 
-| Surface | Reference target | Implemented screenshot | What matched | Intentional deviation | Remaining limitation |
-| --- | --- | --- | --- | --- | --- |
-${rows.map((row) => `| ${row.surface} | ${row.target} | ${screenshotLinks(shots, row.ids) || "_Not captured_"} | ${row.matched} | ${row.deviation} | ${row.limitation} |`).join("\n")}
+| Surface | Reference | Reference target | Implemented screenshot | What matched | Intentional deviation | Remaining limitation |
+| --- | --- | --- | --- | --- | --- | --- |
+${rows.map((row) => `| ${row.surface} | ${row.reference && referencesIncluded ? `[${row.reference}](references/${row.reference})` : "_Behavioral rule_"} | ${row.target} | ${screenshotLinks(shots, row.ids) || "_Not captured_"} | ${row.matched} | ${row.deviation} | ${row.limitation} |`).join("\n")}
 `;
+}
+
+const REFERENCE_FILES = [
+  "01-map-3d.png",
+  "02-tonight.png",
+  "03-sky.png",
+  "04-object-detail.png",
+];
+
+async function copyApprovedReferences(sourceDir, destinationDir) {
+  if (!sourceDir) return false;
+  const resolved = await realpath(sourceDir);
+  await mkdir(destinationDir, { recursive: true });
+  for (const file of REFERENCE_FILES) {
+    const source = path.join(resolved, file);
+    if (!existsSync(source)) throw new Error(`Missing approved reference: ${source}`);
+    await copyFile(source, path.join(destinationDir, file));
+  }
+  return true;
+}
+
+async function writeReferenceComparisonSheet({ browser, referencesDir, shotsDir, outFile, shots }) {
+  const pairs = [
+    ["Map 3D", "01-map-3d.png", "06-phone-map-3d"],
+    ["Tonight", "02-tonight.png", "07-phone-tonight"],
+    ["Sky · guiding fixture", "03-sky.png", "10-phone-sky-guiding"],
+    ["Object Detail · collapsed", "04-object-detail.png", "08-phone-object-detail-collapsed"],
+  ];
+  const cards = [];
+  for (const [label, referenceFile, shotId] of pairs) {
+    const shot = shots.find((candidate) => candidate.id === shotId);
+    if (!shot) continue;
+    const [reference, implementation] = await Promise.all([
+      readFile(path.join(referencesDir, referenceFile)),
+      readFile(path.join(shotsDir, shot.file)),
+    ]);
+    cards.push(`
+      <section>
+        <h2>${label}</h2>
+        <div class="pair">
+          <figure><figcaption>Approved reference</figcaption><img src="data:image/png;base64,${reference.toString("base64")}"></figure>
+          <figure><figcaption>Implementation · ${shot.id}</figcaption><img src="data:image/png;base64,${implementation.toString("base64")}"></figure>
+        </div>
+        <p>${shot.caption}</p>
+      </section>`);
+  }
+  const context = await browser.newContext({ viewport: { width: 1640, height: 980 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await page.setContent(`<!doctype html><html><head><style>
+    *{box-sizing:border-box} body{margin:0;padding:38px;background:#070a10;color:#ecf0f7;font:15px/1.45 system-ui,sans-serif}
+    header{margin:0 auto 34px;max-width:1500px} h1{margin:0;font-size:34px;letter-spacing:-.04em} header p,section>p{color:#98a5ba}
+    section{max-width:1500px;margin:0 auto 34px;padding:24px;border:1px solid #202838;border-radius:18px;background:#0c111c;break-inside:avoid}
+    h2{margin:0 0 16px;font-size:22px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+    figure{margin:0;min-width:0}figcaption{margin:0 0 8px;color:#b9c4d6;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+    img{display:block;width:100%;height:720px;object-fit:contain;object-position:top center;border-radius:13px;background:#03050a}
+    section>p{margin:14px 0 0;font-size:13px}
+  </style></head><body><header><h1>Approved reference / implementation</h1><p>Exact supplied reference images paired with final production-build phone captures. Different aspect ratios are contained without cropping.</p></header>${cards.join("")}</body></html>`);
+  await page.screenshot({ path: outFile, fullPage: true, animations: "disabled" });
+  await context.close();
 }
 
 function terrainAndSkyValidationMarkdown(commit, shots) {
@@ -286,6 +352,10 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 ## Sky / camera and sensors
 
 - Browser fixture evidence: ${sky || "_Not captured_"}.
+- Star population: HYG Database v4.1 magnitude-limited subset (1,839 stars, apparent magnitude ≤ 5.1), projected through Astronomy Engine for the selected observer and UTC instant.
+- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries.
+- Constellation names are derived from the real projected figures visible in the current approximate 82° × 66° field. Selective major-star labels come from HYG common names.
+- Notable-object markers are visual classifications of Tracker's existing ranked \`SkyFinderTarget\` instances. Saturn, Jupiter, Mars, Venus, Moon, satellite, radiant, cluster and deep-sky treatments do not create another object catalogue.
 - The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths.
 - The fixture's \`MediaStream\` contains no camera frames. It does **not** validate live rear-camera composition, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
 - No compatible physical phone or tablet was connected for this package. Physical-device Sky validation is therefore **blocked, not passed**. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
@@ -342,6 +412,8 @@ async function main() {
   await rm(stagingDir, { recursive: true, force: true });
   const shotsDir = path.join(stagingDir, "screenshots");
   await mkdir(shotsDir, { recursive: true });
+  const referencesDir = path.join(stagingDir, "references");
+  const referencesIncluded = await copyApprovedReferences(option("references"), referencesDir);
 
   const gates = await readGateResults(option("gates"));
   const only = option("states") ? option("states").split(",").filter(Boolean) : null;
@@ -364,6 +436,15 @@ async function main() {
     shots,
     title: `${commit.short} — ${commit.subject}`,
   });
+  if (referencesIncluded) {
+    await writeReferenceComparisonSheet({
+      browser,
+      referencesDir,
+      shotsDir,
+      outFile: path.join(stagingDir, "COMPARISON_SHEET.png"),
+      shots,
+    });
+  }
   await browser.close();
   if (server) await server.close();
 
@@ -385,7 +466,7 @@ async function main() {
   await writeFile(path.join(stagingDir, "GATES.md"), gatesMarkdown(commit, gates));
   await writeFile(
     path.join(stagingDir, "REFERENCE_COMPARISON.md"),
-    referenceComparisonMarkdown(commit, shots),
+    referenceComparisonMarkdown(commit, shots, referencesIncluded),
   );
   await writeFile(
     path.join(stagingDir, "TERRAIN_AND_SKY_VALIDATION.md"),

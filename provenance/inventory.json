@@ -815,6 +815,54 @@
       }
     },
     {
+      "id": "d3-celestial-constellation-figure-lines",
+      "category": "astronomical-reference-data",
+      "repositoryPaths": [
+        "src/data/constellations/constellationLines.d3Celestial.json",
+        "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt",
+        "src/data/constellations/README.md"
+      ],
+      "productionBundlePaths": [
+        "assets/skyFinderContext-*.js"
+      ],
+      "originalSource": {
+        "title": "d3-celestial constellation line figures",
+        "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/data/constellations.lines.json",
+        "publicationUrl": "https://github.com/ofrohn/d3-celestial",
+        "publisher": "Olaf Frohn and d3-celestial contributors",
+        "version": "commit 7e720a3de062059d4c5400a379146a601d9010e0 (2022-07-05)",
+        "retrievedAt": "2026-09-30",
+        "originalSha256": "294f66bef5d5cf50b1e17f16d2efa1d97a15131612c68dd935adef6e7373e13c"
+      },
+      "localSha256": {
+        "src/data/constellations/constellationLines.d3Celestial.json": "97bcec91f0233c93a26d1da1f17a793276b38958adbb912b887eb4e29f11ad0f",
+        "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt": "221e8ff1505d1e70f60234e7d809c67a8729b78ac27ae8645e3e15abbb22b612",
+        "src/data/constellations/README.md": "12bab322f6ecf06d6d37c32591c9179cbdc2bcc2345c8c2d098c8e8f3cd156a5"
+      },
+      "processing": [
+        "The upstream GeoJSON is retained byte-for-byte except for a final POSIX newline.",
+        "Coordinates remain J2000 right ascension and declination. Runtime code projects endpoints through Astronomy Engine for the selected observer and UTC instant, clips segments to the current approximate camera field, and derives labels only from visible segments.",
+        "These conventional line figures are orientation aids, not IAU constellation boundaries. HYG v4.1 remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "BSD 3-Clause License, reproduced with the dataset.",
+        "evidenceUrls": [
+          "https://github.com/ofrohn/d3-celestial/blob/7e720a3de062059d4c5400a379146a601d9010e0/LICENSE",
+          "https://github.com/ofrohn/d3-celestial/blob/7e720a3de062059d4c5400a379146a601d9010e0/data/constellations.lines.json"
+        ],
+        "attribution": "Constellation figure lines from d3-celestial by Olaf Frohn and contributors, BSD 3-Clause.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "not-modified-except-final-newline"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Retain the BSD 3-Clause copyright notice and disclaimer. Do not describe the figures as IAU boundaries or as visually detected camera features."
+      }
+    },
+    {
       "id": "hyg-database-v4-1-bright-stars",
       "category": "astronomical-catalog-data",
       "repositoryPaths": [

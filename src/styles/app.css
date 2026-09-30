@@ -19430,3 +19430,454 @@ button.primary,
   .tk-finder-lock,
   .tk-map-controlgroup { transition: none; }
 }
+
+/* ================================================= reference-fidelity pass
+   The supplied reference screens determine composition and relative weight.
+   Product state and interaction ownership remain unchanged. */
+
+/* Tonight is one briefing composition: an atmospheric lead-in followed by a
+   ranked reading order, not a hero panel plus a second card system. */
+.tk-tonight-heading {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 72% 42%, rgba(108, 128, 225, 0.2), transparent 31%),
+    linear-gradient(135deg, #0a1325 0%, #080d18 58%, #04070d 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+.tk-tonight-atmosphere {
+  position: absolute;
+  inset: 0 0 0 36%;
+  overflow: hidden;
+  opacity: 0.84;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 42%);
+  mask-image: linear-gradient(90deg, transparent, #000 42%);
+}
+.tk-tonight-atmosphere > *,
+.tk-tonight-atmosphere img { width: 100%; height: 100%; object-fit: cover; }
+.tk-tonight-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 7, 14, 0.08), rgba(4, 7, 14, 0.7));
+}
+.tk-tonight-heading-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: min(68%, 680px);
+  min-height: 240px;
+  padding: clamp(26px, 4vw, 48px);
+  background: linear-gradient(90deg, rgba(7, 12, 22, 0.98), rgba(7, 12, 22, 0.7) 76%, transparent);
+}
+.tk-tonight-heading p { margin-bottom: 11px; }
+.tk-tonight-heading h1 { font-size: clamp(2.45rem, 5vw, 4.15rem); }
+.tk-tonight-heading-copy > span {
+  display: block;
+  max-width: 48ch;
+  margin-top: 13px;
+  color: #a7b1c2;
+  font-size: 0.88rem;
+  line-height: 1.48;
+}
+.tk-tonight-next { margin-top: 24px; padding: 0; background: none; border: 0; }
+.tk-tonight-next .tk-tonight-section-heading { padding: 0 2px 11px; }
+.tk-tonight-next ol { margin-top: 0; }
+.tk-tonight-row {
+  grid-template-columns: 24px 52px minmax(0, 1fr) auto 42px;
+  min-height: 72px;
+  padding: 7px 2px;
+  border-top: 1px solid rgba(151, 166, 198, 0.1);
+}
+.tk-tonight-row[data-primary="true"] {
+  min-height: 94px;
+  margin-bottom: 5px;
+  padding: 10px 12px 10px 8px;
+  border: 1px solid rgba(137, 154, 212, 0.13);
+  border-radius: 17px;
+  background: linear-gradient(108deg, rgba(19, 28, 47, 0.82), rgba(8, 13, 24, 0.45));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.025);
+}
+.tk-tonight-row[data-primary="true"] .tk-tonight-row-image { width: 58px; height: 58px; margin-left: -3px; }
+.tk-tonight-row-main { gap: 2px; }
+.tk-tonight-row-main strong { font-size: 0.98rem; }
+.tk-tonight-row-main span { color: #a1adbf; font-size: 0.73rem; }
+.tk-tonight-row-main small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #77849a;
+  font-size: 0.66rem;
+  font-weight: 400;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.tk-tonight-row[data-primary="true"] .tk-tonight-row-main small { color: #a8b2c4; }
+.tk-tonight-cloud {
+  width: fit-content;
+  margin: 15px 0 0;
+  border: 0;
+  border-left: 2px solid rgba(126, 146, 225, 0.54);
+  border-radius: 0;
+  padding: 3px 0 3px 12px;
+  background: none;
+  color: #aeb8ca;
+  font-size: 0.76rem;
+}
+
+/* Object detail: facts read as a short observing decision. Current conditions
+   are part of the same visual unit instead of a second panel below it. */
+.tk-map-detail .tk-hero-conditions {
+  margin-top: 0;
+  border-top: 0;
+}
+.tk-map-detail .tk-hero-conditions li { min-width: 0; }
+.tk-map-detail .tk-hero-conditions small { color: #748096; }
+
+/* Sky is a field, not a diagnostic surface. The top strip owns the immediate
+   instruction; constellation context and object identity stay inside the sky;
+   one selected-target lock is the only alignment mark. */
+.tk-sky-finder { grid-template-rows: auto minmax(0, 1fr) auto; }
+.tk-finder-header {
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 9px;
+}
+.tk-finder-header .tk-finder-guidance {
+  position: relative;
+  inset: auto;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  padding: 8px 11px;
+  border: 1px solid rgba(189, 204, 233, 0.12);
+  border-radius: 15px;
+  background: rgba(7, 12, 23, 0.58);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.035);
+  text-align: left;
+  transform: none;
+  backdrop-filter: blur(18px) saturate(118%);
+}
+.tk-finder-header .tk-finder-guidance span { min-width: 0; color: inherit; }
+.tk-finder-header .tk-finder-guidance small {
+  display: block;
+  overflow: hidden;
+  color: #8593aa;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tk-finder-header .tk-finder-guidance strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: #f3f5fa;
+  font: 520 clamp(0.92rem, 3.6vw, 1.14rem)/1.13 var(--tk-display);
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-finder-header .tk-finder-guidance em {
+  color: #9da9bd;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tk-sky-finder[data-aligned="true"] .tk-finder-header .tk-finder-guidance {
+  border-color: rgba(116, 222, 184, 0.25);
+  background: rgba(8, 35, 33, 0.68);
+}
+.tk-finder-stage { min-height: 0; }
+.tk-finder-expected-field { z-index: 1; opacity: 0.86; filter: none; }
+.tk-sky-finder[data-camera="active"] .tk-finder-expected-field { opacity: 0.72; }
+.tk-finder-constellation-lines line {
+  stroke: rgba(121, 150, 220, 0.31);
+  stroke-width: 0.28;
+  vector-effect: non-scaling-stroke;
+}
+.tk-finder-constellation-lines line[data-primary="true"] {
+  stroke: rgba(153, 176, 244, 0.58);
+  stroke-width: 0.42;
+}
+.tk-finder-expected-field .tk-finder-star circle { fill: rgba(239, 244, 255, 0.9); }
+.tk-finder-expected-field .tk-finder-star circle[data-target-constellation="true"] {
+  fill: #f7f8ff;
+  stroke: rgba(145, 170, 255, 0.52);
+}
+.tk-finder-expected-field .tk-finder-star-label {
+  fill: rgba(216, 225, 243, 0.78);
+  font: 1.62px var(--tk-body);
+  letter-spacing: 0.02em;
+}
+.tk-finder-constellation-labels text {
+  fill: rgba(141, 164, 214, 0.68);
+  font: 500 2.2px/1 var(--tk-body);
+  letter-spacing: 0.16em;
+  text-anchor: middle;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: rgba(2, 5, 12, 0.88);
+  stroke-width: 0.5px;
+}
+.tk-finder-constellation-labels text[data-primary="true"] { fill: rgba(190, 207, 248, 0.92); }
+.tk-finder-object {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: #d9e0ee;
+  transform: translate(-50%, -50%);
+}
+.tk-finder-object small {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: rgba(3, 7, 14, 0.5);
+  color: rgba(222, 229, 242, 0.74);
+  font-size: 0.56rem;
+  white-space: nowrap;
+}
+.tk-sky-object-glyph {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  filter: drop-shadow(0 0 8px rgba(148, 168, 232, 0.24));
+}
+.tk-sky-object-glyph i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: rgba(180, 193, 222, 0.15);
+}
+.tk-sky-object-glyph[data-marker="saturn"] { color: #e8d3a6; }
+.tk-sky-object-glyph[data-marker="saturn"]::before {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+.tk-sky-object-glyph[data-marker="saturn"] i { background: #c8aa75; }
+.tk-sky-object-glyph[data-marker="jupiter"] { color: #e1c59f; }
+.tk-sky-object-glyph[data-marker="jupiter"] i {
+  width: 15px;
+  height: 15px;
+  background: repeating-linear-gradient(180deg, #d8bea0 0 3px, #8d715d 3px 5px);
+}
+.tk-sky-object-glyph[data-marker="mars"] { color: #f29670; }
+.tk-sky-object-glyph[data-marker="mars"] i { background: #b95137; box-shadow: inset -3px -2px rgba(66, 20, 15, 0.35); }
+.tk-sky-object-glyph[data-marker="venus"] { color: #fff0bd; }
+.tk-sky-object-glyph[data-marker="venus"] i { background: #fff0bd; box-shadow: -4px 0 0 1px #0a1020 inset; }
+.tk-sky-object-glyph[data-marker="moon"] { color: #f4edcd; }
+.tk-sky-object-glyph[data-marker="moon"] i { width: 16px; height: 16px; background: #e8dfbd; box-shadow: -5px 0 0 #091020 inset; }
+.tk-sky-object-glyph[data-marker="satellite"] { color: #b8cdfa; }
+.tk-sky-object-glyph[data-marker="satellite"] i { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); }
+.tk-sky-object-glyph[data-marker="satellite"]::before,
+.tk-sky-object-glyph[data-marker="satellite"]::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  border-top: 2px solid currentColor;
+}
+.tk-sky-object-glyph[data-marker="satellite"]::before { left: 1px; transform: rotate(45deg); }
+.tk-sky-object-glyph[data-marker="satellite"]::after { right: 1px; transform: rotate(45deg); }
+.tk-sky-object-glyph[data-marker="radiant"] i { border: 0; background: currentColor; clip-path: polygon(50% 0, 60% 38%, 100% 50%, 60% 62%, 50% 100%, 40% 62%, 0 50%, 40% 38%); }
+.tk-sky-object-glyph[data-marker="cluster"] i { border-style: dotted; box-shadow: 4px -3px 0 -3px currentColor, -4px 3px 0 -3px currentColor; }
+.tk-sky-object-glyph[data-marker="deep-sky"] i { border-radius: 40% 60%; transform: rotate(-25deg); }
+.tk-finder-lock {
+  z-index: 4;
+  width: calc(var(--finder-radius) + 30px);
+  height: calc(var(--finder-radius) + 30px);
+  border-color: rgba(207, 218, 255, 0.78);
+  background: radial-gradient(circle, rgba(133, 157, 235, 0.1), transparent 58%);
+  box-shadow: 0 0 0 7px rgba(106, 132, 226, 0.045), 0 0 38px rgba(103, 131, 229, 0.28);
+}
+.tk-finder-lock::before { display: none; }
+.tk-finder-lock > .tk-sky-object-glyph {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border: 0;
+  transform: translate(-50%, -50%);
+}
+.tk-finder-lock em { top: calc(100% + 8px); }
+.tk-finder-target-card {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(520px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 1px solid rgba(190, 204, 230, 0.12);
+  border-radius: 16px;
+  background: rgba(5, 9, 18, 0.69);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px) saturate(118%);
+}
+.tk-finder-target-card > span { display: grid; min-width: 0; }
+.tk-finder-target-card small { color: #7e8ba1; font-size: 0.57rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.tk-finder-target-card strong { margin-top: 2px; font: 520 1.05rem/1.1 var(--tk-display); }
+.tk-finder-target-card em { margin-top: 3px; color: #97a4b9; font-size: 0.66rem; font-style: normal; }
+.tk-finder-target-card b {
+  max-width: 120px;
+  color: #a7b2c6;
+  font-size: 0.63rem;
+  font-weight: 500;
+  text-align: right;
+}
+.tk-finder-target-card b[data-aligned="true"] { color: #a8e6cf; }
+.tk-finder-controls {
+  max-height: min(18dvh, 136px);
+  padding-top: 5px;
+  background: rgba(2, 5, 11, 0.8);
+}
+.tk-finder-details > summary { min-height: 42px; }
+
+@media (max-width: 900px) {
+  .tk-map-detail .tk-hero-media { min-height: 280px; height: 280px; }
+}
+
+@media (max-width: 720px) {
+  /* The reference order is mode first, then compact context controls. */
+  .tk-map-shell:not([data-map-state="finder"]) .tk-mode-nav {
+    top: 8px;
+    min-height: 38px;
+  }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-map-topbar {
+    top: 52px;
+    gap: 4px 6px;
+  }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-map-shell .tracker-place-current,
+  .tk-map-shell:not([data-map-state="finder"]) .tracker-place-current { min-height: 38px; }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-date { min-height: 38px; padding-block: 0; }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-date-step { min-width: 38px; min-height: 38px; }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-map-topbar-end button { min-width: 38px; min-height: 38px; }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-projection {
+    top: calc(52px + var(--tk-bar-height, 84px) + 6px);
+  }
+  .tk-map-shell:not([data-map-state="finder"]) .tk-projection-option { min-height: 31px; padding-inline: 9px; }
+  .tk-map-recommendation {
+    min-height: 104px;
+    padding: 9px 10px;
+    border-radius: 15px;
+  }
+  .tk-map-recommendation-actions button { min-height: 36px; }
+
+  .tk-tonight-surface { padding: 14px 12px 42px; }
+  .tk-tonight-heading { min-height: 190px; margin-bottom: 17px; border-radius: 20px; }
+  .tk-tonight-atmosphere { left: 25%; }
+  .tk-tonight-heading-copy {
+    width: 82%;
+    min-height: 190px;
+    padding: 19px 18px 20px;
+  }
+  .tk-tonight-heading h1 { max-width: 12ch; font-size: clamp(2rem, 9vw, 2.55rem); line-height: 0.98; }
+  .tk-tonight-heading-copy > span { margin-top: 9px; font-size: 0.76rem; line-height: 1.4; }
+  .tk-tonight-next { margin-top: 0; }
+  .tk-tonight-next .tk-tonight-section-heading { padding-bottom: 8px; }
+  .tk-tonight-section-heading span { display: none; }
+  .tk-tonight-row { grid-template-columns: 18px 42px minmax(0, 1fr) 36px; min-height: 61px; gap: 8px; padding-block: 5px; }
+  .tk-tonight-row[data-primary="true"] { min-height: 82px; padding: 8px 8px 8px 6px; }
+  .tk-tonight-row[data-primary="true"] .tk-tonight-row-image { width: 50px; height: 50px; }
+  .tk-tonight-row .tk-tonight-quality { display: none; }
+  .tk-tonight-row-main strong { font-size: 0.87rem; }
+  .tk-tonight-row-main span { font-size: 0.65rem; }
+  .tk-tonight-row-main small { font-size: 0.61rem; }
+  .tk-tonight-planning { min-height: 54px; margin-top: 10px; }
+
+  .tk-map-detail .tk-page.tk-tonight { padding: 11px 10px 34px; }
+  .tk-map-detail .tk-hero-media { min-height: 248px; height: 248px; border-radius: 20px; }
+  .tk-map-detail .tk-hero-body {
+    position: relative;
+    z-index: 2;
+    margin-top: -62px;
+    padding: 21px 17px 20px;
+    border-radius: 22px 22px 0 0;
+    background: linear-gradient(180deg, rgba(8, 13, 23, 0.88), #080d17 62px);
+  }
+  .tk-map-detail .tracker-hero .tk-hero-name { font-size: 3.15rem; }
+  .tk-map-detail .tk-hero-recommendation { margin-top: 11px; }
+  .tk-map-detail .tk-hero-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 14px;
+    padding: 0;
+    border-top: 1px solid rgba(158, 174, 207, 0.13);
+  }
+  .tk-map-detail .tk-metric,
+  .tk-map-detail .tk-metric + .tk-metric {
+    display: grid;
+    grid-template-columns: minmax(94px, 0.75fr) minmax(0, 1.25fr);
+    align-items: center;
+    gap: 10px;
+    min-height: 43px;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid rgba(158, 174, 207, 0.1);
+  }
+  .tk-map-detail .tk-metric dt { min-height: 0; font-size: 0.61rem; }
+  .tk-map-detail .tk-metric-value { font-size: 0.76rem; text-align: right; }
+  .tk-map-detail .tk-hero-conditions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0;
+    border: 0;
+  }
+  .tk-map-detail .tk-hero-conditions li,
+  .tk-map-detail .tk-hero-conditions li + li {
+    display: grid;
+    grid-template-columns: minmax(94px, 0.75fr) minmax(0, 1.25fr);
+    gap: 4px 10px;
+    min-height: 46px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 1px solid rgba(158, 174, 207, 0.1);
+    background: transparent;
+  }
+  .tk-map-detail .tk-hero-conditions strong { text-align: right; }
+  .tk-map-detail .tk-hero-conditions small { grid-column: 1 / -1; padding-left: 0; }
+  .tk-hero-why { margin-top: 17px; }
+  .tk-map-detail .tracker-hero .tracker-expect { -webkit-line-clamp: 2; }
+  .tk-map-detail .tk-detail-more { margin-top: 8px; }
+
+  .tk-map-shell[data-map-state="finder"] .tk-finder-header {
+    padding: max(58px, calc(env(safe-area-inset-top) + 54px)) 10px 8px;
+  }
+  .tk-finder-header { grid-template-columns: 40px minmax(0, 1fr) 40px; }
+  .tk-finder-icon { width: 40px; height: 40px; }
+  .tk-finder-header .tk-finder-guidance { grid-template-columns: 30px minmax(0, 1fr); gap: 7px; padding: 7px 9px; }
+  .tk-finder-header .tk-finder-guidance > em { display: none; }
+  .tk-finder-stage { min-height: 0; }
+  .tk-finder-sky-context { top: 5px; }
+  .tk-finder-target-card { right: 10px; bottom: 10px; left: 10px; width: calc(100% - 20px); }
+  .tk-finder-target-card b { max-width: 82px; }
+  .tk-finder-controls { max-height: 108px; padding: 4px 12px max(7px, env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-finder-camera,
+  .tk-finder-expected-field,
+  .tk-finder-lock { transition: none; }
+}

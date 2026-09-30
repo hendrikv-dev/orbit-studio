@@ -179,6 +179,28 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: none
 - Restrictions and notes: Action revisions must remain commit-pinned. Updating a commit requires an intentional inventory checksum, version, and rights-evidence update.
 
+## d3-celestial constellation line figures
+
+- Inventory ID: `d3-celestial-constellation-figure-lines`
+- Category: astronomical-reference-data
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Olaf Frohn and d3-celestial contributors
+- Version or snapshot: commit 7e720a3de062059d4c5400a379146a601d9010e0 (2022-07-05)
+- Retrieval date: 2026-09-30
+- Authoritative source: https://github.com/ofrohn/d3-celestial
+- Authoritative source: https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/data/constellations.lines.json
+- Rights basis: BSD 3-Clause License, reproduced with the dataset.
+- Rights evidence: https://github.com/ofrohn/d3-celestial/blob/7e720a3de062059d4c5400a379146a601d9010e0/LICENSE
+- Rights evidence: https://github.com/ofrohn/d3-celestial/blob/7e720a3de062059d4c5400a379146a601d9010e0/data/constellations.lines.json
+- Attribution: Constellation figure lines from d3-celestial by Olaf Frohn and contributors, BSD 3-Clause.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: not-modified-except-final-newline
+- Repository paths: `src/data/constellations/constellationLines.d3Celestial.json`, `src/data/constellations/LICENSE-BSD-3-CLAUSE.txt`, `src/data/constellations/README.md`
+- Production paths: `assets/skyFinderContext-*.js`
+- Restrictions and notes: Retain the BSD 3-Clause copyright notice and disclaimer. Do not describe the figures as IAU boundaries or as visually detected camera features.
+
 ## HYG Database v4.1
 
 - Inventory ID: `hyg-database-v4-1-bright-stars`

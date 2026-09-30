@@ -37,6 +37,7 @@ function usefulMetric(value: string): boolean {
 function TonightRow({
   card,
   rank,
+  featured,
   configured,
   finderLabel,
   canFindInSky,
@@ -45,6 +46,7 @@ function TonightRow({
 }: {
   card: RailCard;
   rank: number;
+  featured: boolean;
   configured: EquipmentRule;
   finderLabel: string;
   canFindInSky: boolean;
@@ -54,13 +56,18 @@ function TonightRow({
   const [when, , where] = card.presentation.metrics;
   const quality = card.presentation.row.quality;
   return (
-    <li className="tk-tonight-row" data-card={card.id} data-reason={card.reason}>
+    <li
+      className={`tk-tonight-row${featured ? " tk-tonight-lead" : ""}`}
+      data-card={card.id}
+      data-reason={card.reason}
+      data-primary={featured ? "true" : undefined}
+    >
       <span className="tk-tonight-rank" aria-label={`Rank ${rank}`}>{rank}</span>
       <span className="tk-tonight-row-image" aria-hidden><CardFigure media={card.media} /></span>
       <button type="button" className="tk-tonight-row-main" onClick={onOpenDetail}>
         <strong>{card.presentation.shortTitle ?? card.presentation.title}</strong>
-        <span>{when.value}</span>
-        <span>{where.value} · {equipmentContext(card, configured)}</span>
+        <span>{when.value} · {where.value}</span>
+        <small>{featured ? card.presentation.recommendation : equipmentContext(card, configured)}</small>
       </button>
       {quality.tone !== "unknown" && usefulMetric(quality.value) ? (
         <span className="tk-tonight-quality" data-tone={quality.tone}>
@@ -70,7 +77,7 @@ function TonightRow({
       {canFindInSky ? (
         <button
           type="button"
-          className="tk-tonight-row-finder"
+          className={`tk-tonight-row-finder${featured ? " is-finder" : ""}`}
           onClick={onFindInSky}
           aria-label={`${finderLabel}: ${card.presentation.title}`}
         >
@@ -87,8 +94,8 @@ function TonightRow({
  * A nightly briefing composed from the production ranking.
  *
  * This is not a rail moved into a tab. It gives the strongest answer its own
- * hierarchy, then renders the remaining ranked opportunities as a short
- * comparison list and planning as a distinct next step. Every value still
+ * hierarchy, then renders the full ranked briefing as one composed list and
+ * planning as a distinct next step. Every value still
  * comes from `RailCard`/recovery/Upcoming, so only presentation changed.
  */
 export function TrackerTonightBriefing({
@@ -107,24 +114,29 @@ export function TrackerTonightBriefing({
 }: Props) {
   const strongest = cards[0] ?? null;
   const leadFacts = strongest ? factsFor(strongest) : null;
-  const leadMetrics = strongest?.presentation.metrics.filter((metric) => usefulMetric(metric.value)) ?? [];
-  const leadQuality = strongest?.presentation.row.quality ?? null;
 
   return (
     <section className="tk-tonight-surface" aria-labelledby="tk-tonight-title">
       <div className="tk-tonight-briefing">
         <header className="tk-tonight-heading">
-          <p><CalendarDays size={14} aria-hidden /> {dateLabel} · {place}</p>
-          <h1 id="tk-tonight-title">
-            {strongest
-              ? `${strongest.presentation.shortTitle ?? strongest.presentation.title} leads tonight’s sky`
-              : "Plan the next clear window"}
-          </h1>
-          <span>
-            {strongest
-              ? "One clear answer first, then the rest of the night in order."
-              : "Nothing clears Tracker’s observing threshold for this night. The nearest worthwhile opportunity comes first."}
-          </span>
+          {strongest ? (
+            <div className="tk-tonight-atmosphere" aria-hidden>
+              <CardFigure media={strongest.media} />
+            </div>
+          ) : null}
+          <div className="tk-tonight-heading-copy">
+            <p><CalendarDays size={14} aria-hidden /> {dateLabel} · {place}</p>
+            <h1 id="tk-tonight-title">
+              {strongest
+                ? `${strongest.presentation.shortTitle ?? strongest.presentation.title} leads tonight’s sky`
+                : "Plan the next clear window"}
+            </h1>
+            <span>
+              {strongest
+                ? "Your strongest observing window, followed by the night in rank order."
+                : "Nothing clears Tracker’s observing threshold for this night. The nearest worthwhile opportunity comes first."}
+            </span>
+          </div>
         </header>
 
         {loading ? (
@@ -134,66 +146,31 @@ export function TrackerTonightBriefing({
           </div>
         ) : strongest ? (
           <>
-            <article className="tk-tonight-lead" data-card={strongest.id} data-reason={strongest.reason}>
-              <div className="tk-tonight-lead-visual" aria-hidden>
-                <CardFigure media={strongest.media} />
+            <section className="tk-tonight-next" aria-labelledby="tk-tonight-next-title">
+              <div className="tk-tonight-section-heading">
+                <h2 id="tk-tonight-next-title">Tonight, in order</h2>
+                <span>Ranked for this place and equipment</span>
               </div>
-              <div className="tk-tonight-lead-copy">
-                <div className="tk-tonight-lead-labels">
-                  <span>Top recommendation</span>
-                  {leadQuality && leadQuality.tone !== "unknown" && usefulMetric(leadQuality.value) ? (
-                    <span className="tk-tonight-quality" data-tone={leadQuality.tone}>
-                      {leadQuality.value}
-                    </span>
-                  ) : null}
-                </div>
-                <h2>{strongest.presentation.recommendation}</h2>
-                <dl>
-                  {leadMetrics.map((metric) => (
-                    <div key={metric.label}>
-                      <dt>{metric.label}</dt>
-                      <dd>{metric.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {leadFacts?.cloud && leadFacts.cloud.warning ? (
-                  <p className="tk-tonight-cloud" data-go-anyway={leadFacts.cloud.goAnyway ? "true" : undefined}>
-                    {leadFacts.cloud.warning}
-                  </p>
-                ) : null}
-                <p className="tk-tonight-equipment">{equipmentContext(strongest, equipment)}</p>
-                <div className="tk-tonight-lead-actions">
-                  <button type="button" onClick={() => onOpenDetail(strongest.id)}>View details</button>
-                  {canFindInSky(strongest) ? (
-                    <button type="button" className="is-finder" onClick={() => onFindInSky(strongest.id)}>
-                      <Compass size={15} aria-hidden /> {finderLabel}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-
-            {cards.length > 1 ? (
-              <section className="tk-tonight-next" aria-labelledby="tk-tonight-next-title">
-                <div className="tk-tonight-section-heading">
-                  <h2 id="tk-tonight-next-title">Also worth your time</h2>
-                  <span>Ranked for this place, night, and equipment</span>
-                </div>
-                <ol>
-                  {cards.slice(1, 5).map((card, index) => (
-                    <TonightRow
-                      key={card.id}
-                      card={card}
-                      rank={index + 2}
-                      configured={equipment}
-                      finderLabel={finderLabel}
-                      canFindInSky={canFindInSky(card)}
-                      onOpenDetail={() => onOpenDetail(card.id)}
-                      onFindInSky={() => onFindInSky(card.id)}
-                    />
-                  ))}
-                </ol>
-              </section>
+              <ol>
+                {cards.slice(0, 5).map((card, index) => (
+                  <TonightRow
+                    key={card.id}
+                    card={card}
+                    rank={index + 1}
+                    featured={index === 0}
+                    configured={equipment}
+                    finderLabel={finderLabel}
+                    canFindInSky={canFindInSky(card)}
+                    onOpenDetail={() => onOpenDetail(card.id)}
+                    onFindInSky={() => onFindInSky(card.id)}
+                  />
+                ))}
+              </ol>
+            </section>
+            {leadFacts?.cloud && leadFacts.cloud.warning ? (
+              <p className="tk-tonight-cloud" data-go-anyway={leadFacts.cloud.goAnyway ? "true" : undefined}>
+                {leadFacts.cloud.warning}
+              </p>
             ) : null}
           </>
         ) : (

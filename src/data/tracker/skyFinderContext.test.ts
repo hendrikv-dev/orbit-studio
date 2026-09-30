@@ -24,10 +24,20 @@ describe("expected Sky Finder context", () => {
     const centre = positionForSkyFinderTarget(ORION_NEBULA, observer, at);
     expect(centre).not.toBeNull();
 
-    const context = expectedSkyContext(ORION_NEBULA, observer, at, centre!);
+    const nearbyJupiter: SkyFinderTarget = {
+      ...ORION_NEBULA,
+      id: "jupiter",
+      title: "Jupiter",
+      shape: "point",
+      source: { kind: "equatorial", rightAscensionHours: 5.68, declinationDeg: -4.8 },
+    };
+    const context = expectedSkyContext(ORION_NEBULA, observer, at, centre!, [nearbyJupiter]);
     expect(context.constellation).toEqual({ symbol: "Ori", name: "Orion" });
     expect(context.stars.length).toBeGreaterThan(5);
     expect(context.stars.some((star) => star.inTargetConstellation)).toBe(true);
+    expect(context.lines.some((line) => line.constellation === "Ori" && line.primary)).toBe(true);
+    expect(context.labels).toContainEqual(expect.objectContaining({ symbol: "Ori", name: "Orion" }));
+    expect(context.objects).toContainEqual(expect.objectContaining({ id: "jupiter", marker: "jupiter" }));
     for (const star of context.stars) {
       expect(star.xPercent).toBeGreaterThanOrEqual(0);
       expect(star.xPercent).toBeLessThanOrEqual(100);
@@ -66,5 +76,6 @@ describe("expected Sky Finder context", () => {
     );
     expect(context.constellation).toBeNull();
     expect(context.stars.length).toBeGreaterThan(0);
+    expect(context.lines.length).toBeGreaterThan(0);
   });
 });

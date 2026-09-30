@@ -97,22 +97,11 @@ export function PhenomenonPage({
           media={media}
           safety={safety}
           expectation={expectation}
+          conditions={conciseConditions}
           mapAction={mapAction}
           finder={finderAction}
         />
       </div>
-
-      {conciseConditions.length > 0 ? (
-        <ul className="tk-detail-key-conditions" aria-label="Key observing conditions">
-          {conciseConditions.map((condition) => (
-            <li key={condition.id} data-tone={condition.tone}>
-              <span>{condition.label}</span>
-              <strong>{condition.value}</strong>
-              {condition.interpretation ? <small>{condition.interpretation}</small> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
       <details className="tk-detail-more">
         <summary>More details</summary>
