@@ -15,7 +15,11 @@ import { BASEMAP } from "../../../data/tracker/basemapSource";
 import { trackerBasemapFallbackImage } from "../../../data/tracker/basemapStyleImage";
 import { dismissOpenSurfaces } from "../../../data/tracker/dismissable";
 import { TERRAIN } from "../../../data/tracker/terrainSource";
-import { MAP_MAX_ZOOM, MAP_MIN_ZOOM } from "../../../data/tracker/mapNavigation";
+import {
+  MAP_MAX_ZOOM,
+  MAP_MIN_ZOOM,
+  TERRAIN_CAMERA,
+} from "../../../data/tracker/mapNavigation";
 import { subsolarPoint, sunAltitudeAt, twilightBandFor } from "../../../data/tracker/daylight";
 import {
   bilinear,
@@ -584,8 +588,8 @@ export function TrackerMapCanvas({
       Math.abs(recentreTarget.current.longitudeDeg - centre.longitudeDeg) <= 1e-4;
     const camera = completingRecentre
       ? {
-          pitch: projection === "terrain" ? 58 : 0,
-          bearing: projection === "terrain" ? -24 : 0,
+          pitch: projection === "terrain" ? TERRAIN_CAMERA.pitchDeg : 0,
+          bearing: projection === "terrain" ? TERRAIN_CAMERA.bearingDeg : 0,
         }
       : {};
     if (km > 400) {
@@ -668,7 +672,10 @@ export function TrackerMapCanvas({
    *
    * The DEM dataset already powers Tracker's restrained hillshade and horizon
    * checks. In 3D MapLibre drapes the same basemap, labels, weather and event
-   * overlays over a dedicated renderer source for that DEM at exaggeration 1.
+   * overlays over a dedicated renderer source for that DEM. The fixed 1.35×
+   * presentation scale is intentionally modest and documented beside the
+   * camera constants: it reveals ordinary local relief without changing the
+   * geography or fabricating terrain.
    * A separate source instance avoids making one decoded tile cache serve two
    * rendering jobs with different sampling needs. Switching back removes
    * terrain and resets the camera to north-up. The observer, date, selection
@@ -683,7 +690,7 @@ export function TrackerMapCanvas({
     try {
       instance.setTerrain(
         terrain && instance.getSource(TERRAIN_SOURCE)
-          ? { source: TERRAIN_SOURCE, exaggeration: 1 }
+          ? { source: TERRAIN_SOURCE, exaggeration: TERRAIN_CAMERA.verticalExaggeration }
           : null,
       );
     } catch {
@@ -695,13 +702,13 @@ export function TrackerMapCanvas({
       instance.setSky(
         terrain
           ? {
-              "sky-color": "#040711",
-              "horizon-color": "#172238",
-              "fog-color": "#111a29",
-              "fog-ground-blend": 0.72,
-              "horizon-fog-blend": 0.78,
-              "sky-horizon-blend": 0.52,
-              "atmosphere-blend": 0.08,
+              "sky-color": "#02050b",
+              "horizon-color": "#142031",
+              "fog-color": "#0b1320",
+              "fog-ground-blend": 0.64,
+              "horizon-fog-blend": 0.86,
+              "sky-horizon-blend": 0.44,
+              "atmosphere-blend": 0.12,
             }
           : {
               "sky-color": "rgba(4, 7, 17, 0)",
@@ -725,8 +732,9 @@ export function TrackerMapCanvas({
     }
     programmatic.current = true;
     instance.easeTo({
-      pitch: terrain ? 58 : 0,
-      bearing: terrain ? -24 : 0,
+      zoom: terrain ? Math.max(instance.getZoom(), TERRAIN_CAMERA.zoom) : instance.getZoom(),
+      pitch: terrain ? TERRAIN_CAMERA.pitchDeg : 0,
+      bearing: terrain ? TERRAIN_CAMERA.bearingDeg : 0,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
       essential: true,
     });
@@ -749,8 +757,8 @@ export function TrackerMapCanvas({
       latitudeDeg: target.latitudeDeg,
       longitudeDeg: target.longitudeDeg,
     };
-    const pitch = projection === "terrain" ? 58 : 0;
-    const bearing = projection === "terrain" ? -24 : 0;
+    const pitch = projection === "terrain" ? TERRAIN_CAMERA.pitchDeg : 0;
+    const bearing = projection === "terrain" ? TERRAIN_CAMERA.bearingDeg : 0;
     instance.stop();
     /**
      * A URL-centre reconciliation can legitimately interrupt this animation.
@@ -771,7 +779,7 @@ export function TrackerMapCanvas({
     programmatic.current = true;
     instance.easeTo({
       center: [target.longitudeDeg, target.latitudeDeg],
-      zoom,
+      zoom: projection === "terrain" ? Math.max(zoom, TERRAIN_CAMERA.zoom) : zoom,
       pitch,
       bearing,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520,
@@ -1061,7 +1069,7 @@ function recolour(instance: MapLibreMap, terrain = false) {
         paint("line-opacity", terrain ? 0.16 : 0.5);
       } else {
         paint("line-color", isMotorway ? INK.roadMajor : INK.road);
-        paint("line-opacity", terrain ? (isMotorway ? 0.18 : 0.07) : (isMotorway ? 0.9 : 0.62));
+        paint("line-opacity", terrain ? (isMotorway ? 0.11 : 0.035) : (isMotorway ? 0.9 : 0.62));
       }
     } else if (layer.type === "symbol") {
       /**
@@ -1079,9 +1087,9 @@ function recolour(instance: MapLibreMap, terrain = false) {
       paint("text-halo-blur", 0.4);
       if (source === "transportation_name") {
         paint("text-color", INK.labelFaint);
-        paint("text-opacity", terrain ? 0.1 : 1);
+        paint("text-opacity", terrain ? 0.05 : 1);
       } else {
-        paint("text-opacity", terrain ? 0.62 : 1);
+        paint("text-opacity", terrain ? 0.5 : 1);
       }
     } else if (layer.type === "raster") {
       /**
@@ -1120,9 +1128,9 @@ const TERRAIN_SOURCE = "tracker-terrain-3d-dem";
  * ## Why it stays restrained
  *
  * In 2D this stays low-contrast beneath every label and overlay. In the
- * optional 3D presentation the same DEM dataset becomes real terrain at
- * natural scale through a separate renderer source; the hillshade remains the
- * tonal cue rather than an exaggerated mesh.
+ * optional 3D presentation the same DEM dataset becomes real terrain through a
+ * separate renderer source at the documented fixed 1.35× display scale; the
+ * hillshade remains the tonal cue rather than a synthetic mesh.
  */
 function addHillshade(instance: MapLibreMap) {
   try {
@@ -1183,10 +1191,10 @@ function addHillshade(instance: MapLibreMap) {
            * drawn under every label — but moderate terrain is now legible,
            * which is the only reason the layer exists.
            */
-          "hillshade-exaggeration": 0.5,
-          "hillshade-shadow-color": "#000308",
-          "hillshade-highlight-color": "#5c6f92",
-          "hillshade-accent-color": "#0d1422",
+          "hillshade-exaggeration": 0.72,
+          "hillshade-shadow-color": "#010207",
+          "hillshade-highlight-color": "#7185a8",
+          "hillshade-accent-color": "#111c2d",
           // North-west, the cartographic convention: relief lit from anywhere
           // else reads as holes rather than hills to most people.
           "hillshade-illumination-direction": 315,

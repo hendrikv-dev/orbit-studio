@@ -30,6 +30,10 @@ function equipmentContext(card: RailCard, configured: EquipmentRule): string {
   return "Naked eye";
 }
 
+function usefulMetric(value: string): boolean {
+  return !/^not known$/i.test(value.trim());
+}
+
 function TonightRow({
   card,
   rank,
@@ -48,6 +52,7 @@ function TonightRow({
   onFindInSky: () => void;
 }) {
   const [when, , where] = card.presentation.metrics;
+  const quality = card.presentation.row.quality;
   return (
     <li className="tk-tonight-row" data-card={card.id} data-reason={card.reason}>
       <span className="tk-tonight-rank" aria-label={`Rank ${rank}`}>{rank}</span>
@@ -57,9 +62,11 @@ function TonightRow({
         <span>{when.value}</span>
         <span>{where.value} · {equipmentContext(card, configured)}</span>
       </button>
-      <span className="tk-tonight-quality" data-tone={card.presentation.row.quality.tone}>
-        {card.presentation.row.quality.value}
-      </span>
+      {quality.tone !== "unknown" && usefulMetric(quality.value) ? (
+        <span className="tk-tonight-quality" data-tone={quality.tone}>
+          {quality.value}
+        </span>
+      ) : null}
       {canFindInSky ? (
         <button
           type="button"
@@ -100,7 +107,8 @@ export function TrackerTonightBriefing({
 }: Props) {
   const strongest = cards[0] ?? null;
   const leadFacts = strongest ? factsFor(strongest) : null;
-  const bestWindow = strongest?.presentation.metrics[0].value ?? null;
+  const leadMetrics = strongest?.presentation.metrics.filter((metric) => usefulMetric(metric.value)) ?? [];
+  const leadQuality = strongest?.presentation.row.quality ?? null;
 
   return (
     <section className="tk-tonight-surface" aria-labelledby="tk-tonight-title">
@@ -108,13 +116,13 @@ export function TrackerTonightBriefing({
         <header className="tk-tonight-heading">
           <p><CalendarDays size={14} aria-hidden /> {dateLabel} · {place}</p>
           <h1 id="tk-tonight-title">
-            {strongest && bestWindow
-              ? `Best window: ${bestWindow}`
+            {strongest
+              ? `${strongest.presentation.shortTitle ?? strongest.presentation.title} leads tonight’s sky`
               : "Plan the next clear window"}
           </h1>
           <span>
             {strongest
-              ? strongest.presentation.recommendation
+              ? "One clear answer first, then the rest of the night in order."
               : "Nothing clears Tracker’s observing threshold for this night. The nearest worthwhile opportunity comes first."}
           </span>
         </header>
@@ -133,21 +141,22 @@ export function TrackerTonightBriefing({
               <div className="tk-tonight-lead-copy">
                 <div className="tk-tonight-lead-labels">
                   <span>Top recommendation</span>
-                  <span className="tk-tonight-quality" data-tone={strongest.presentation.row.quality.tone}>
-                    {strongest.presentation.row.quality.value}
-                  </span>
+                  {leadQuality && leadQuality.tone !== "unknown" && usefulMetric(leadQuality.value) ? (
+                    <span className="tk-tonight-quality" data-tone={leadQuality.tone}>
+                      {leadQuality.value}
+                    </span>
+                  ) : null}
                 </div>
-                <h2>{strongest.presentation.title}</h2>
-                <p>{strongest.presentation.recommendation}</p>
+                <h2>{strongest.presentation.recommendation}</h2>
                 <dl>
-                  {strongest.presentation.metrics.map((metric) => (
+                  {leadMetrics.map((metric) => (
                     <div key={metric.label}>
                       <dt>{metric.label}</dt>
                       <dd>{metric.value}</dd>
                     </div>
                   ))}
                 </dl>
-                {leadFacts?.cloud ? (
+                {leadFacts?.cloud && leadFacts.cloud.warning ? (
                   <p className="tk-tonight-cloud" data-go-anyway={leadFacts.cloud.goAnyway ? "true" : undefined}>
                     {leadFacts.cloud.warning}
                   </p>

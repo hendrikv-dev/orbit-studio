@@ -57,6 +57,7 @@ export function TrackerMapRecommendation({
   }
 
   const [when, , where] = card.presentation.metrics;
+  const quality = card.presentation.row.quality;
   return (
     <aside
       className="tk-map-recommendation"
@@ -72,7 +73,9 @@ export function TrackerMapRecommendation({
         <strong>{card.presentation.shortTitle ?? card.presentation.title}</strong>
         <span>{when.value} · {where.value}</span>
       </span>
-      <span className="tk-map-recommendation-quality">{card.presentation.row.quality.value}</span>
+      {quality.tone !== "unknown" && !/^not known$/i.test(quality.value) ? (
+        <span className="tk-map-recommendation-quality">{quality.value}</span>
+      ) : null}
       <span className="tk-map-recommendation-actions">
         <button type="button" onClick={onOpenDetail}>Details</button>
         {canFindInSky ? (

@@ -63,7 +63,7 @@ async function installCapabilityBoundary(context, capability) {
       value: {
         getUserMedia: async () => {
           attempts.push("camera");
-          throw new DOMException("Review camera denied", "NotAllowedError");
+          return new MediaStream();
         },
       },
     });
@@ -148,8 +148,12 @@ async function productState(page) {
       terrainSource: map?.getTerrain?.()?.source ?? null,
       pitch: Math.round(map?.getPitch?.() ?? 0),
       bearing: Math.round(map?.getBearing?.() ?? 0),
+      zoom: Number((map?.getZoom?.() ?? 0).toFixed(2)),
       finderDeviceClass: document.querySelector(".tk-sky-finder")?.getAttribute("data-device-class") ?? null,
       finderMode: document.querySelector(".tk-sky-finder")?.getAttribute("data-mode") ?? null,
+      cameraState: document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") ?? null,
+      aligned: document.querySelector(".tk-sky-finder")?.getAttribute("data-aligned") === "true",
+      targetLocks: document.querySelectorAll(".tk-finder-lock").length,
       diagnosticsOpen: Boolean(document.querySelector(".tk-finder-details[open]")),
       guidance: document.querySelector(".tk-finder-guidance strong")?.textContent?.trim() ?? null,
       permissionAttempts: Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__)
@@ -200,7 +204,7 @@ async function gotoMap(page, origin) {
 async function selectTerrain(page) {
   await page.getByRole("radio", { name: /Oblique terrain/ }).click();
   await page.waitForFunction(
-    () => window.__trackerMap?.getTerrain?.()?.source === "tracker-terrain-3d-dem" && window.__trackerMap?.getPitch?.() >= 55,
+    () => window.__trackerMap?.getTerrain?.()?.source === "tracker-terrain-3d-dem" && window.__trackerMap?.getPitch?.() >= 65,
     null,
     { timeout: 20_000 },
   );
@@ -219,6 +223,21 @@ async function openDetail(page) {
   await page.waitForTimeout(700);
 }
 
+async function dispatchOrientation(page, alpha, beta, repeats = 1) {
+  await page.evaluate(({ alphaValue, betaValue, repeatCount }) => {
+    for (let index = 0; index < repeatCount; index += 1) {
+      const event = new Event("deviceorientationabsolute");
+      Object.defineProperties(event, {
+        alpha: { value: alphaValue },
+        beta: { value: betaValue },
+        gamma: { value: 0 },
+        absolute: { value: true },
+      });
+      window.dispatchEvent(event);
+    }
+  }, { alphaValue: alpha, betaValue: beta, repeatCount: repeats });
+}
+
 async function dispatchReviewPointing(page) {
   await page.waitForFunction(
     () => Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__) &&
@@ -226,18 +245,22 @@ async function dispatchReviewPointing(page) {
     null,
     { timeout: 10_000 },
   );
-  await page.evaluate(() => {
-    const event = new Event("deviceorientationabsolute");
-    Object.defineProperties(event, {
-      alpha: { value: 90 },
-      beta: { value: 90 },
-      gamma: { value: 0 },
-      absolute: { value: true },
-    });
-    window.dispatchEvent(event);
-  });
+  await dispatchOrientation(page, 90, 90);
   await page.waitForFunction(
     () => !/preparing/i.test(document.querySelector(".tk-finder-guidance strong")?.textContent ?? ""),
+    null,
+    { timeout: 10_000 },
+  );
+}
+
+async function dispatchAlignedPointing(page) {
+  const target = await page.locator(".tk-sky-finder").evaluate((node) => ({
+    azimuth: Number(node.getAttribute("data-target-azimuth")),
+    altitude: Number(node.getAttribute("data-target-altitude")),
+  }));
+  await dispatchOrientation(page, target.azimuth, 90 + target.altitude, 32);
+  await page.waitForFunction(
+    () => document.querySelector(".tk-sky-finder")?.getAttribute("data-aligned") === "true",
     null,
     { timeout: 10_000 },
   );
@@ -269,9 +292,10 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
   const problems = [];
   const wanted = only ? new Set(only) : null;
   const capture = makeCapture({ shots, problems, wanted, shotsDir });
+  const wantsAny = (...ids) => !wanted || ids.some((id) => wanted.has(id));
 
-  console.log("\nDesktop capability boundary");
-  {
+  if (wantsAny("01-desktop-map-2d", "02-desktop-map-3d", "03-desktop-tonight-no-sky", "04-desktop-object-detail")) {
+    console.log("\nDesktop capability boundary");
     const { context, page } = await openDevice(browser, "desktop", { width: 1440, height: 900 });
     await gotoMap(page, origin);
     await capture(page, "01-desktop-map-2d", "Desktop Map in accurate top-down 2D; navigation is Map · Tonight with no Sky or Find in Sky.", async () => {
@@ -281,10 +305,10 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     });
 
     await selectTerrain(page);
-    await capture(page, "02-desktop-map-3d", "Desktop Map in observer-centred, naturally scaled DEM terrain with a low oblique camera.", async () => {
+    await capture(page, "02-desktop-map-3d", "Desktop Map in close observer-centred DEM terrain. Relief is rendered from the real elevation mesh at the documented fixed 1.35× display scale.", async () => {
       const state = await productState(page);
-      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 55 && state.pitch <= 75
-        ? `DEM ${state.terrainSource}; pitch ${state.pitch}°; bearing ${state.bearing}°`
+      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 65 && state.pitch <= 70 && state.zoom >= 11
+        ? `DEM ${state.terrainSource}; zoom ${state.zoom}; pitch ${state.pitch}°; bearing ${state.bearing}°; vertical scale 1.35×`
         : "";
     });
 
@@ -304,8 +328,8 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await context.close();
   }
 
-  console.log("\nSupported phone");
-  {
+  if (wantsAny("05-phone-map-2d", "06-phone-map-3d", "07-phone-tonight", "08-phone-object-detail-collapsed", "09-phone-sky-camera-granted", "10-phone-sky-guiding", "11-phone-sky-aligned")) {
+    console.log("\nSupported phone");
     const { context, page } = await openDevice(browser, "phone", { width: 390, height: 844 });
     await gotoMap(page, origin);
     await capture(page, "05-phone-map-2d", "Supported phone Map in top-down 2D with Map · Tonight · Sky and direct Find in Sky.", async () => {
@@ -314,10 +338,10 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     });
 
     await selectTerrain(page);
-    await capture(page, "06-phone-map-3d", "Supported phone Map in naturally scaled 3D terrain.", async () => {
+    await capture(page, "06-phone-map-3d", "Supported phone Map in close observer-centred DEM terrain at the documented fixed 1.35× relief display scale.", async () => {
       const state = await productState(page);
-      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 55
-        ? `DEM terrain at ${state.pitch}° pitch`
+      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 65 && state.zoom >= 11
+        ? `DEM terrain at zoom ${state.zoom}, ${state.pitch}° pitch; vertical scale 1.35×`
         : "";
     });
 
@@ -337,31 +361,50 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
 
     await page.getByRole("button", { name: "Find in Sky", exact: true }).click();
     await page.locator(".tk-sky-finder").waitFor({ timeout: 30_000 });
+    await page.waitForFunction(
+      () => document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") === "active",
+      null,
+      { timeout: 10_000 },
+    );
+    await capture(page, "09-phone-sky-camera-granted", "Fixture-driven supported-phone state after camera and orientation permission are granted. This proves the active production camera path and immediate entry, but is not physical-device AR evidence.", async () => {
+      const state = await productState(page);
+      return state.cameraState === "active" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen
+        ? `camera ${state.cameraState}; permissions ${state.permissionAttempts.join(", ")}; diagnostics collapsed`
+        : "";
+    });
     await dispatchReviewPointing(page);
     await page.waitForTimeout(500);
-    await capture(page, "09-phone-sky", "Supported phone Sky enters guidance immediately; a deterministic orientation sample drives the production movement cue while diagnostics remain collapsed.", async () => {
+    await capture(page, "10-phone-sky-guiding", "Fixture-driven supported-phone Sky actively guiding with one coherent target lock and the production movement cue. This is deterministic interaction evidence, not physical sensor validation.", async () => {
       const state = await productState(page);
-      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && !state.diagnosticsOpen && state.permissionAttempts.includes("orientation") && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
-        ? `live ${state.finderMode}; cue "${state.guidance}"; permissions ${state.permissionAttempts.join(", ")}; diagnostics collapsed`
+      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && !state.diagnosticsOpen && state.targetLocks === 1 && /move|raise|lower|almost/i.test(state.guidance ?? "")
+        ? `live ${state.finderMode}; camera active; one target lock; cue "${state.guidance}"; diagnostics collapsed`
+        : "";
+    });
+    await dispatchAlignedPointing(page);
+    await page.waitForTimeout(500);
+    await capture(page, "11-phone-sky-aligned", "Fixture-driven supported-phone Sky aligned on target with the same single target lock transitioned into its on-target state.", async () => {
+      const state = await productState(page);
+      return state.aligned && state.cameraState === "active" && state.targetLocks === 1 && /is here/i.test(state.guidance ?? "")
+        ? `aligned; camera active; one target lock; cue "${state.guidance}"`
         : "";
     });
     await context.close();
   }
 
-  console.log("\nSupported tablet");
-  {
+  if (wantsAny("12-tablet-map-3d", "13-tablet-tonight", "14-tablet-sky-guiding")) {
+    console.log("\nSupported tablet");
     const { context, page } = await openDevice(browser, "tablet", { width: 820, height: 1180 });
     await gotoMap(page, origin);
     await selectTerrain(page);
-    await capture(page, "10-tablet-map-3d", "Supported tablet Map in observer-centred 3D terrain with full touch rotation capability.", async () => {
+    await capture(page, "12-tablet-map-3d", "Supported tablet Map in close observer-centred 3D terrain with full touch rotation capability and the documented 1.35× relief display scale.", async () => {
       const state = await productState(page);
-      return hasExact(state.nav, "Sky") && state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 55
-        ? `nav ${state.nav.join(" · ")}; DEM terrain at ${state.pitch}°`
+      return hasExact(state.nav, "Sky") && state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 65 && state.zoom >= 11
+        ? `nav ${state.nav.join(" · ")}; DEM terrain at zoom ${state.zoom}, ${state.pitch}° pitch`
         : "";
     });
 
     await selectTonight(page);
-    await capture(page, "11-tablet-tonight", "Supported tablet Tonight uses the wider editorial briefing composition without exposing default expert density.", async () => {
+    await capture(page, "13-tablet-tonight", "Supported tablet Tonight uses the wider editorial briefing composition without exposing default expert density.", async () => {
       const state = await productState(page);
       return state.mapState === "tonight" && hasExact(state.nav, "Sky") && hasExact(state.finderEntries, "Find in Sky")
         ? "Tonight; capable tablet navigation and action present"
@@ -372,27 +415,35 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.locator(".tk-sky-finder").waitFor({ timeout: 30_000 });
     await dispatchReviewPointing(page);
     await page.waitForTimeout(500);
-    await capture(page, "12-tablet-sky", "Supported tablet Sky is live guidance, not a desktop-style preview; a deterministic orientation sample exercises the movement cue with technical detail collapsed.", async () => {
+    await capture(page, "14-tablet-sky-guiding", "Fixture-driven supported-tablet Sky is live guidance, not a desktop-style preview; camera permission is granted and one target lock carries the deterministic movement cue.", async () => {
       const state = await productState(page);
-      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
-        ? `live ${state.finderMode}; cue "${state.guidance}"; diagnostics collapsed`
+      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && state.targetLocks === 1 && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
+        ? `live ${state.finderMode}; camera active; one target lock; cue "${state.guidance}"; diagnostics collapsed`
         : "";
     });
     await context.close();
   }
 
-  console.log("\nUnsupported tablet capability boundary");
-  {
+  if (wantsAny("15-unsupported-tablet-map", "16-unsupported-tablet-tonight", "17-unsupported-tablet-object-detail")) {
+    console.log("\nUnsupported tablet capability boundary");
     const { context, page } = await openDevice(browser, "unsupported-tablet", { width: 820, height: 1180 });
     await gotoMap(page, origin);
-    await capture(page, "13-unsupported-tablet-map", "Touch-first tablet without camera/orientation support shows Map · Tonight only, with no Find in Sky and no reserved navigation space.", async () => {
+    await capture(page, "15-unsupported-tablet-map", "Touch-first tablet without camera/orientation support shows Map · Tonight only, with no Find in Sky and no reserved navigation space.", async () => {
       const state = await productState(page);
       const capability = navigationCapabilityProof(state, false);
       return state.nav.join("|") === "Map|Tonight" && capability ? capability : "";
     });
 
+    await selectTonight(page);
+    await capture(page, "16-unsupported-tablet-tonight", "Unsupported tablet Tonight remains a complete nightly briefing with Map · Tonight navigation and no capability-shaped gap.", async () => {
+      const state = await productState(page);
+      return state.mapState === "tonight" && state.nav.join("|") === "Map|Tonight" && state.finderEntries.length === 0
+        ? "Tonight; Map · Tonight only; no Find in Sky"
+        : "";
+    });
+
     await openDetail(page);
-    await capture(page, "14-unsupported-tablet-object-detail", "Unsupported tablet Object Detail remains usable and concise without Find in Sky or a generic object-map action.", async () => {
+    await capture(page, "17-unsupported-tablet-object-detail", "Unsupported tablet Object Detail remains usable and concise without Find in Sky or a generic object-map action.", async () => {
       const state = await productState(page);
       return ordinaryDetailProof(state, false);
     });

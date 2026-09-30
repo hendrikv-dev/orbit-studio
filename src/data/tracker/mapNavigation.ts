@@ -115,9 +115,11 @@ export interface TrackerMapLocation {
    * Which projection the map is drawn in.
    *
    * Tracker is 2D first and stays that way. The optional 3D representation is
-   * the same local geography draped over the real DEM at natural scale, not a
-   * globe or an illustrative extrusion. It is in the URL because it is part of
-   * what a shared link should reproduce.
+   * the same local geography draped over the real DEM, not a globe or an
+   * illustrative extrusion. Terrain uses the fixed, documented 1.35× display
+   * scale in `TERRAIN_CAMERA`; the geography and observer coordinate remain
+   * authoritative. It is in the URL because it is part of what a shared link
+   * should reproduce.
    */
   projection: "mercator" | "terrain";
   /**
@@ -142,18 +144,35 @@ const DRILLS = new Set(["sky"]);
  * The zoom range, in MapLibre's convention: level 0 is the whole world in one
  * tile and each step doubles the scale.
  *
- * The ceiling is not a rendering limit. It is the zoom the basemap archive we
- * intend to serve ourselves will actually carry — see `basemapSource.ts` — so
- * the interface never learns to ask for detail we will not have. z10 shows
- * villages, lanes and the shape of the terrain, which is what choosing between
- * two observing sites an hour apart requires; street level is a different
- * product's problem and is what makes the archive expensive.
+ * The ceiling is not a street-map promise. It is the closest local terrain
+ * view Tracker needs in order to make the hills around an observer legible.
+ * The current vector basemap may be overzoomed beyond its authored z10 tiles;
+ * MapLibre scales that existing geometry while the independent DEM continues
+ * to supply native elevation detail. That trade is deliberate: 3D is for
+ * local-horizon context, not for discovering ever more road detail.
  *
  * The floor keeps at least a hemisphere on screen. Below it the map is an
  * illustration rather than a place, and eclipse geography stops being readable.
  */
 export const MAP_MIN_ZOOM = 1;
-export const MAP_MAX_ZOOM = 10;
+export const MAP_MAX_ZOOM = 12;
+
+/**
+ * Tracker's designed 3D camera.
+ *
+ * These values are presentation, not scientific data. The observer remains at
+ * the true coordinate and the terrain remains the licensed DEM geometry. A
+ * 1.35× vertical scale is a fixed, restrained legibility aid: it is enough to
+ * keep modest local relief from collapsing under perspective without turning
+ * valleys into fabricated mountains. The review package records the factor so
+ * a screenshot can never silently imply natural-scale rendering.
+ */
+export const TERRAIN_CAMERA = {
+  zoom: 11.35,
+  pitchDeg: 67,
+  bearingDeg: 92,
+  verticalExaggeration: 1.35,
+} as const;
 
 /**
  * Where the map opens before anything is known.

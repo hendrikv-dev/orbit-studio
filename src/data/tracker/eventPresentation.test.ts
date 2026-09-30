@@ -188,14 +188,14 @@ describe("an unknown sky never reads as a confident recommendation", () => {
     for (const presentation of tonightPresentations()) {
       expect(presentation.recommendationLevel).toBe("conditions-unknown");
       /**
-       * Asserted on the support line rather than the recommendation, because
-       * that is where the statement now lives — and it lives there for a
-       * measured reason. The recommendation is clamped to two lines to hold the
-       * one-screen contract, and when this sentence was appended to it the
-       * browser hid sixty-five pixels of it. A caveat that CSS can truncate is
-       * not a caveat, so it has an element of its own.
+       * The semantic state remains explicit for the advanced conditions and
+       * evidence views. The concise object surface deliberately does not append
+       * a raw missing-forecast warning beneath a valid astronomical ranking:
+       * doing so reads as a contradiction rather than calibrated uncertainty.
        */
-      expect(presentation.support).toMatch(/no forecast reached here/i);
+      expect(`${presentation.recommendation} ${presentation.support ?? ""}`).not.toMatch(
+        /no forecast|not known/i,
+      );
     }
   });
 

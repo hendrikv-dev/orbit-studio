@@ -375,7 +375,11 @@ function limitingConditionLine(level: ReturnType<typeof recommendationFor>): str
     case "conditions-limited":
       return "Cloud is forecast to cover most of the sky.";
     case "conditions-unknown":
-      return "No forecast reached here — check the sky first.";
+      // Absence of forecast evidence is preserved in the advanced conditions
+      // and provenance views. Repeating it directly under a valid ranked
+      // recommendation reads as a contradiction, not as calibrated
+      // uncertainty, so the concise object surface simply omits the line.
+      return null;
     default:
       return null;
   }

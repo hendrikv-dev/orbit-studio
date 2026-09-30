@@ -2,7 +2,6 @@ import {
   Camera,
   CameraOff,
   Compass,
-  Crosshair,
   RotateCcw,
   X,
 } from "lucide-react";
@@ -134,8 +133,8 @@ export function beginSkyFinderLaunch(
         return {
           phase: denied ? "denied" as const : "unavailable" as const,
           message: denied
-            ? "Camera access was denied. Live pointing continues against the night view."
-            : "The rear camera could not start. Live pointing continues against the night view.",
+            ? "Camera unavailable — guidance continues with the night view."
+            : "Camera unavailable — guidance continues with the night view.",
         };
       });
   }
@@ -329,7 +328,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         stream.current = result.stream;
         if (video.current) {
           video.current.srcObject = result.stream;
-          await video.current.play().catch(() => undefined);
+          void video.current.play().catch(() => undefined);
         }
         setCameraPhase("active");
       });
@@ -348,7 +347,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     ) {
       setCameraPhase("unavailable");
       setCameraMessage(
-        "This browser cannot open a rear camera here. Direction guidance is still available.",
+        "Camera unavailable — direction guidance is still available.",
       );
       return;
     }
@@ -363,7 +362,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       stream.current = media;
       if (video.current) {
         video.current.srcObject = media;
-        await video.current.play();
+        void video.current.play().catch(() => undefined);
       }
       setCameraPhase("active");
     } catch (error) {
@@ -371,8 +370,8 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       setCameraPhase(denied ? "denied" : "unavailable");
       setCameraMessage(
         denied
-          ? "Camera access was denied. Live pointing continues against the night view."
-          : "The rear camera could not start. Live pointing continues against the night view.",
+          ? "Camera unavailable — guidance continues with the night view."
+          : "Camera unavailable — guidance continues with the night view.",
       );
     }
   }, [capabilities, liveDate]);
@@ -464,6 +463,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     "--finder-x": `${Math.max(-42, Math.min(42, (horizontalError ?? 0) * 1.7))}%`,
     "--finder-y": `${Math.max(-34, Math.min(34, -(verticalError ?? 0) * 1.7))}%`,
     "--finder-radius": `${Math.max(28, Math.min(64, 28 + target.angularRadiusDeg * 8))}px`,
+    "--finder-angle": `${arrowAngle}deg`,
   } as CSSProperties;
 
   const selectedReference = referenceOptions.find((entry) => entry.target.id === referenceId) ?? null;
@@ -525,7 +525,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         <div>
           <p className="tk-finder-kicker">Sky</p>
           <h1>{target.title}</h1>
-          <p>{shapeLabel(target)} · {equipmentLabel(target)}</p>
+          <p>{equipmentLabel(target)}</p>
         </div>
         {capabilities.camera ? (
           <button
@@ -545,52 +545,51 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               {expectedContext.stars.map((star) => (
-                <circle
-                  key={star.id}
-                  cx={star.xPercent}
-                  cy={star.yPercent}
-                  r={star.radiusPx / 2}
-                  data-target-constellation={star.inTargetConstellation ? "true" : undefined}
-                />
+                <g key={star.id}>
+                  <circle
+                    cx={star.xPercent}
+                    cy={star.yPercent}
+                    r={star.radiusPx / 2}
+                    data-target-constellation={star.inTargetConstellation ? "true" : undefined}
+                  />
+                  {star.name && star.magnitude <= 2.4 ? (
+                    <text x={star.xPercent + 1.2} y={star.yPercent - 1.2}>{star.name}</text>
+                  ) : null}
+                </g>
               ))}
             </svg>
-            <span>
-              Expected star field
-              {expectedContext.constellation ? ` · ${expectedContext.constellation.name}` : ""}
-            </span>
           </div>
         ) : null}
-        <div className="tk-finder-horizon" aria-hidden />
-        <div className="tk-finder-centre" aria-hidden>
-          <span />
-          <span />
+        <div className="tk-finder-sky-context" aria-hidden>
+          <span>{expectedContext?.constellation?.name ?? "Local sky"}</span>
+          {targetPosition ? (
+            <strong>
+              {cardinalDirection(targetPosition.azimuthDeg)} · {Math.round(targetPosition.altitudeDeg)}° high
+            </strong>
+          ) : null}
+        </div>
+        <div className="tk-finder-horizon" aria-hidden>
+          <span>{targetPosition ? `${Math.round(targetPosition.azimuthDeg)}°` : "—"}</span>
+          <strong>{targetPosition ? cardinalDirection(targetPosition.azimuthDeg) : "Horizon"}</strong>
         </div>
         {targetPosition && pointing ? (
-          <div className="tk-finder-target" data-shape={target.shape} aria-hidden>
+          <div className="tk-finder-lock" data-shape={target.shape} aria-hidden>
             <span />
-          </div>
-        ) : null}
-        {horizontalError !== null && verticalError !== null && !alignment.aligned ? (
-          <div className="tk-finder-arrow" style={{ transform: `rotate(${arrowAngle}deg)` }} aria-hidden>
-            ↑
+            <em>{target.title}</em>
           </div>
         ) : null}
 
         <div className="tk-finder-guidance" aria-live="polite">
           {alignment.aligned ? (
             <>
-              <Crosshair size={28} aria-hidden />
-              <strong>On target</strong>
-              <span>{target.title} is here</span>
+              <strong>{target.title} is here</strong>
+              <span>On target</span>
             </>
           ) : horizontalError !== null && verticalError !== null ? (
             <>
               <strong>{movementGuidance(horizontalError, verticalError)}</strong>
               <span>
-                {Math.abs(Math.round(horizontalError))}° {horizontalError < 0 ? "left" : "right"}
-                {" · "}
-                {Math.abs(Math.round(verticalError))}° {verticalError < 0 ? "down" : "up"}
-                {" · "}{roundedSeparation}° from target
+                {roundedSeparation}° away · {shapeLabel(target).replace(/^Target position$/, "Target")}
               </span>
             </>
           ) : (
@@ -622,7 +621,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <p className="tk-finder-warning">Compass unreliable — calibrate for better guidance.</p>
         ) : null}
         <details className="tk-finder-details">
-          <summary>Pointing details</summary>
+          <summary>Accuracy and calibration</summary>
           <dl className="tk-finder-status">
             <div>
               <dt>Above horizon</dt>

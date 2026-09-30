@@ -7,7 +7,8 @@ primary modes:
 
 - **Map** is the default geographic workspace. Its recommendation is a compact
   leading card, while 2D remains north-up and 3D uses the same MapLibre scene
-  over the production DEM at natural scale with an oblique, rotatable camera.
+  over the production DEM with an oblique, rotatable camera and a fixed,
+  documented 1.35× relief display scale for local-horizon legibility.
 - **Tonight** is the full decision surface. It reads the existing ranked
   opportunity output, recovery planner and Upcoming pipeline; it does not own
   parallel rankings or observer state. Upcoming is planning inside Tonight,

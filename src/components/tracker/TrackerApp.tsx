@@ -109,6 +109,7 @@ import { auroraSignificance, priorityFor } from "../../data/tracker/significance
 import {
   MAP_MAX_ZOOM,
   MAP_MIN_ZOOM,
+  TERRAIN_CAMERA,
   type TrackerMapLocation,
 } from "../../data/tracker/mapNavigation";
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
@@ -3638,10 +3639,10 @@ function TrackerScreen() {
                 ? {
                     centre: location.pin,
                     // Terrain is an observer-scale experience, not a tilted
-                    // regional road map. Keep the natural DEM scale and move
-                    // the camera close enough for the surrounding ridges and
-                    // valleys to become the subject of the view.
-                    zoom: MAP_MAX_ZOOM,
+                    // regional road map. The documented display scale stays
+                    // fixed while the closer camera makes surrounding ridges
+                    // and valleys the subject of the view.
+                    zoom: TERRAIN_CAMERA.zoom,
                   }
                 : {}),
             })
@@ -3759,7 +3760,6 @@ function TrackerScreen() {
               onSelect: backToMap,
             }}
             categoryId={heroEvent.presentation.categoryId}
-            nightWord={describeDate(selectedDate, today).heading}
             presentation={heroPresentation ?? heroEvent.presentation}
             media={heroEvent.media}
             visualization={visualization}

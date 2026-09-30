@@ -18492,85 +18492,12 @@ button.primary,
   stroke: rgba(139, 156, 255, 0.28);
   stroke-width: 0.35;
 }
-.tk-finder-expected-field > span {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(5, 8, 14, 0.58);
-  color: #9eabc0;
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
 .tk-finder-horizon {
   position: absolute;
   top: 65%;
   left: 8%;
   width: 84%;
   border-top: 1px solid rgba(210, 220, 238, 0.14);
-}
-.tk-finder-centre {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 68px;
-  height: 68px;
-  border: 1px solid rgba(235, 240, 249, 0.74);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.tk-finder-centre::before,
-.tk-finder-centre::after {
-  content: "";
-  position: absolute;
-  background: rgba(235, 240, 249, 0.82);
-}
-.tk-finder-centre::before { top: 50%; left: 22px; right: 22px; height: 1px; }
-.tk-finder-centre::after { left: 50%; top: 22px; bottom: 22px; width: 1px; }
-.tk-finder-centre span {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: rgba(235, 240, 249, 0.88);
-}
-.tk-finder-centre span:first-child { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; border-radius: 50% 0 0; }
-.tk-finder-centre span:last-child { right: -1px; bottom: -1px; border-right: 2px solid; border-bottom: 2px solid; border-radius: 0 0 50%; }
-.tk-finder-target {
-  position: absolute;
-  top: calc(50% + var(--finder-y));
-  left: calc(50% + var(--finder-x));
-  width: var(--finder-radius);
-  height: var(--finder-radius);
-  border: 2px solid #aab7ff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 5px rgba(126, 140, 248, 0.12);
-  transition: top 110ms linear, left 110ms linear;
-}
-.tk-finder-target[data-shape="cluster"],
-.tk-finder-target[data-shape="region"],
-.tk-finder-target[data-shape="radiant"] { border-style: dashed; }
-.tk-finder-target span {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #dce2ff;
-  transform: translate(-50%, -50%);
-}
-.tk-finder-arrow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: -96px 0 0 -16px;
-  color: #dce2ff;
-  font: 300 2rem/1 sans-serif;
-  transform-origin: 16px 96px;
 }
 .tk-finder-guidance {
   position: absolute;
@@ -18592,7 +18519,6 @@ button.primary,
 }
 .tk-finder-guidance strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
 .tk-finder-guidance span { flex-basis: 100%; color: #aeb9cc; font-size: 0.72rem; }
-.tk-sky-finder[data-aligned="true"] .tk-finder-centre { border-color: #a7e3cf; box-shadow: 0 0 0 6px rgba(107, 204, 171, 0.12); }
 .tk-sky-finder[data-aligned="true"] .tk-finder-guidance { border-color: rgba(126, 224, 191, 0.35); color: #c8f2e3; }
 .tk-finder-controls {
   position: relative;
@@ -18703,7 +18629,7 @@ button.primary,
 
 @media (prefers-reduced-motion: reduce) {
   .tk-finder-camera,
-  .tk-finder-target { transition: none; }
+  .tk-finder-lock { transition: none; }
 }
 
 /* ---------------------------------------------------- focused refinement
@@ -18793,9 +18719,6 @@ button.primary,
    exist, but wait behind one disclosure until an observer asks for them. */
 .tk-sky-finder { grid-template-rows: auto minmax(340px, 1fr) auto; }
 .tk-finder-stage { min-height: 340px; }
-.tk-finder-centre { width: 86px; height: 86px; }
-.tk-finder-centre::before { left: 28px; right: 28px; }
-.tk-finder-centre::after { top: 28px; bottom: 28px; }
 .tk-finder-guidance {
   bottom: 22px;
   width: min(560px, calc(100vw - 32px));
@@ -18907,14 +18830,25 @@ button.primary,
 .tk-projection-option[data-current="true"] {
   background: rgba(104, 126, 231, 0.22);
 }
+.tk-map-controlgroup {
+  border-color: rgba(167, 181, 214, 0.1);
+  background: rgba(6, 10, 18, 0.66);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(16px) saturate(112%);
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+}
+.tk-map-controlgroup:hover,
+.tk-map-controlgroup:focus-within { opacity: 1; }
+.tk-map-control { width: 40px; height: 40px; }
 
 /* Map: the map remains the canvas. The single answer is part of that canvas,
    not a panel competing with it. */
 .tk-map-recommendation {
-  grid-template-columns: 62px minmax(0, 1fr) auto;
-  gap: 7px 14px;
-  width: min(540px, calc(100vw - 104px));
-  padding: 13px 14px;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 6px 13px;
+  width: min(500px, calc(100vw - 104px));
+  padding: 11px 12px;
   border: 0;
   border-radius: 18px;
   background:
@@ -18924,8 +18858,8 @@ button.primary,
   backdrop-filter: blur(24px) saturate(125%);
 }
 .tk-map-recommendation-image {
-  width: 62px;
-  height: 62px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   box-shadow: 0 0 28px rgba(105, 130, 235, 0.12);
 }
@@ -18986,7 +18920,7 @@ button.primary,
   letter-spacing: 0.13em;
 }
 .tk-tonight-heading h1 {
-  max-width: 16ch;
+  max-width: 18ch;
   font-size: clamp(2.7rem, 5vw, 4.35rem);
   font-weight: 430;
   line-height: 0.98;
@@ -18997,37 +18931,51 @@ button.primary,
   max-width: 55ch;
   margin-top: 16px;
   color: #a7b1c2;
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1.55;
 }
 .tk-tonight-lead {
-  grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.08fr);
-  min-height: 320px;
-  overflow: visible;
+  position: relative;
+  display: block;
+  min-height: 360px;
+  overflow: hidden;
   border: 0;
-  border-radius: 0;
-  background: transparent;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 78% 45%, rgba(104, 125, 222, 0.12), transparent 34%),
+    linear-gradient(112deg, #0d1423 0%, #090e19 58%, #05070d 100%);
+  box-shadow: 0 30px 84px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.035);
 }
 .tk-tonight-lead-visual {
-  position: relative;
-  min-height: 320px;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 54% 42%, rgba(113, 133, 215, 0.13), transparent 45%),
-    #05070d;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  position: absolute;
+  inset: 0 0 0 38%;
+  min-height: 0;
+  border-radius: 0;
+  background: #05070d;
+  box-shadow: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.46) 19%, #000 47%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.46) 19%, #000 47%);
 }
+.tk-tonight-lead-visual .tracker-media,
+.tk-tonight-lead-visual img { object-fit: cover; object-position: center; }
 .tk-tonight-lead-visual::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, transparent 48%, rgba(3, 5, 10, 0.35));
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(6, 10, 18, 0.16), transparent 46%),
+    linear-gradient(180deg, transparent 52%, rgba(3, 5, 10, 0.42));
   pointer-events: none;
 }
 .tk-tonight-lead-copy {
+  position: relative;
+  z-index: 1;
+  width: 59%;
+  min-height: 360px;
   justify-content: center;
-  padding: 32px clamp(26px, 4vw, 58px);
+  padding: 38px clamp(30px, 4vw, 54px);
+  background: linear-gradient(90deg, rgba(13, 20, 35, 0.99) 0%, rgba(13, 20, 35, 0.9) 75%, transparent 100%);
 }
 .tk-tonight-lead-labels { justify-content: flex-start; align-items: center; gap: 12px; color: #9ca9f5; }
 .tk-tonight-quality {
@@ -19042,11 +18990,12 @@ button.primary,
   color: #778397;
 }
 .tk-tonight-lead h2 {
-  margin: 15px 0 10px;
-  font-size: clamp(2.25rem, 4.4vw, 3.8rem);
-  font-weight: 480;
-  line-height: 0.98;
-  letter-spacing: -0.05em;
+  max-width: 31ch;
+  margin: 18px 0 12px;
+  font-size: clamp(1.42rem, 2.6vw, 2.1rem);
+  font-weight: 430;
+  line-height: 1.15;
+  letter-spacing: -0.032em;
 }
 .tk-tonight-lead-copy > p { max-width: 50ch; color: #aeb8c9; font-size: 0.93rem; line-height: 1.55; }
 .tk-tonight-lead dl { margin-top: 26px; }
@@ -19073,6 +19022,7 @@ button.primary,
   min-height: 78px;
   gap: 12px;
   border-color: rgba(150, 164, 196, 0.1);
+  background: transparent;
 }
 .tk-tonight-row-image { width: 48px; height: 48px; border-radius: 13px; }
 .tk-tonight-row-main strong { font: 520 0.96rem/1.2 var(--tk-display); }
@@ -19097,18 +19047,10 @@ button.primary,
   background-size: auto, 58px 58px, auto;
 }
 .tk-map-detail .tk-page.tk-tonight {
-  width: min(1240px, 100%);
+  width: min(1160px, 100%);
   padding-top: 30px;
 }
-.tk-map-detail .tk-page-heading { margin-bottom: 18px; }
-.tk-map-detail .tk-page-heading h1 {
-  margin-top: 8px;
-  color: #7f8ca2;
-  font: 600 0.67rem/1 var(--tk-body);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-.tk-map-detail .tk-page-heading p { margin-top: 6px; color: #697487; font-size: 0.78rem; }
+.tk-map-detail .tk-page-heading { margin-bottom: 8px; }
 .tk-map-detail .tk-back {
   min-height: 38px;
   margin: 0;
@@ -19116,21 +19058,21 @@ button.primary,
   text-decoration: none;
 }
 .tk-map-detail .tracker-hero.tk-hero {
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
-  min-height: 470px;
+  grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.72fr);
+  min-height: 390px;
   overflow: hidden;
   border: 0;
-  border-radius: 24px;
+  border-radius: 0;
   background:
-    radial-gradient(circle at 74% 18%, rgba(91, 111, 210, 0.14), transparent 38%),
-    linear-gradient(120deg, rgba(14, 20, 34, 0.98), rgba(8, 12, 21, 0.76));
-  box-shadow: 0 32px 84px rgba(0, 0, 0, 0.36), inset 0 1px rgba(255, 255, 255, 0.035);
+    radial-gradient(circle at 74% 18%, rgba(91, 111, 210, 0.11), transparent 38%),
+    linear-gradient(120deg, rgba(12, 18, 31, 0.72), rgba(8, 12, 21, 0.18));
+  box-shadow: none;
 }
-.tk-map-detail .tk-hero-body { justify-content: center; padding: 44px clamp(32px, 5vw, 68px); }
+.tk-map-detail .tk-hero-body { justify-content: center; padding: 38px clamp(30px, 5vw, 62px) 38px 8px; }
 .tk-map-detail .tk-hero-head { align-items: flex-start; flex-direction: column; gap: 13px; }
 .tk-map-detail .tracker-hero .tk-hero-name {
   max-width: none;
-  font-size: clamp(3rem, 6vw, 5.4rem);
+  font-size: clamp(3.3rem, 6vw, 5.65rem);
   font-weight: 430;
   line-height: 0.95;
   letter-spacing: -0.055em;
@@ -19167,9 +19109,10 @@ button.primary,
   box-shadow: 0 9px 22px rgba(52, 69, 174, 0.28);
 }
 .tk-map-detail .tk-hero-media { min-height: 470px; max-height: none; background: #03050a; }
+.tk-map-detail .tk-hero-media { min-height: 390px; max-height: 430px; border-radius: 22px; }
 .tk-map-detail .tk-hero-media::before {
   background:
-    linear-gradient(90deg, rgba(10, 14, 24, 0.98), rgba(10, 14, 24, 0.16) 34%, transparent 64%),
+    linear-gradient(90deg, rgba(8, 12, 21, 0.72), rgba(8, 12, 21, 0.08) 24%, transparent 58%),
     linear-gradient(0deg, rgba(3, 5, 10, 0.5), transparent 30%);
 }
 .tk-map-detail .tk-hero-media .tracker-credit {
@@ -19200,9 +19143,9 @@ button.primary,
 }
 .tk-map-detail .tk-detail-more > summary { padding-inline: 4px; color: #a7b1c2; }
 
-/* Sky: live movement and alignment stay dominant. The real expected-star
-   projection is now visible as orientation context before alignment, while
-   diagnostics remain behind their disclosure. */
+/* Sky: the camera or night field is the canvas. One moving target lock carries
+   direction and alignment; catalog stars, horizon and compass are context, not
+   competing instruments. Diagnostics remain behind their disclosure. */
 .tk-sky-finder {
   background: #02050c;
 }
@@ -19214,10 +19157,10 @@ button.primary,
 }
 .tk-finder-shade {
   background:
-    linear-gradient(180deg, rgba(2, 5, 12, 0.78) 0%, transparent 27%, transparent 62%, rgba(2, 5, 10, 0.88) 100%),
-    radial-gradient(circle at 50% 48%, transparent 0 30%, rgba(1, 3, 8, 0.3) 74%);
+    linear-gradient(180deg, rgba(2, 5, 12, 0.72) 0%, transparent 25%, transparent 65%, rgba(2, 5, 10, 0.9) 100%),
+    radial-gradient(circle at 50% 47%, transparent 0 34%, rgba(1, 3, 8, 0.24) 78%);
 }
-.tk-finder-header { align-items: center; padding-bottom: 6px; }
+.tk-finder-header { align-items: center; padding-bottom: 2px; }
 .tk-finder-header h1 {
   margin-top: 3px;
   font-size: clamp(1.35rem, 4vw, 1.85rem);
@@ -19225,70 +19168,145 @@ button.primary,
   letter-spacing: -0.035em;
 }
 .tk-finder-header p:last-child { color: #8d9bb1; }
-.tk-finder-icon { border-color: rgba(202, 213, 235, 0.12); background: rgba(4, 8, 16, 0.45); }
+.tk-finder-icon { border-color: rgba(202, 213, 235, 0.1); background: rgba(4, 8, 16, 0.34); }
 .tk-finder-expected-field {
-  opacity: 0.42;
-  filter: drop-shadow(0 0 7px rgba(157, 178, 255, 0.35));
+  opacity: 0.62;
+  filter: drop-shadow(0 0 6px rgba(157, 178, 255, 0.28));
   transition: opacity 240ms ease, filter 240ms ease;
 }
-.tk-finder-expected-field circle { fill: rgba(235, 241, 255, 0.76); }
+.tk-sky-finder[data-camera="active"] .tk-finder-expected-field { opacity: 0.48; }
+.tk-finder-expected-field circle { fill: rgba(244, 247, 255, 0.92); }
 .tk-finder-expected-field circle[data-target-constellation="true"] {
   fill: #dce4ff;
-  stroke: rgba(126, 151, 255, 0.5);
+  stroke: rgba(126, 151, 255, 0.42);
 }
-.tk-finder-expected-field > span {
-  top: 12px;
-  background: rgba(4, 8, 17, 0.42);
-  color: #8593aa;
-  letter-spacing: 0.11em;
+.tk-finder-expected-field text {
+  fill: rgba(194, 207, 231, 0.66);
+  font: 1.55px var(--tk-body);
+  letter-spacing: 0.03em;
+  paint-order: stroke;
+  stroke: rgba(2, 5, 11, 0.75);
+  stroke-width: 0.35px;
 }
 .tk-sky-finder[data-aligned="true"] .tk-finder-expected-field { opacity: 0.88; filter: drop-shadow(0 0 9px rgba(157, 178, 255, 0.48)); }
+.tk-finder-sky-context {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(4, 8, 17, 0.36);
+  color: #8e9cb2;
+  font-size: 0.64rem;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.tk-finder-sky-context strong { color: #c5cede; font-weight: 500; }
 .tk-finder-horizon {
-  top: 68%;
-  left: 5%;
-  width: 90%;
-  border-color: rgba(194, 207, 233, 0.16);
+  top: 70%;
+  left: 4%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 92%;
+  border-color: rgba(194, 207, 233, 0.2);
   box-shadow: 0 -18px 45px rgba(92, 110, 165, 0.08);
 }
-.tk-finder-centre {
-  width: 96px;
-  height: 96px;
-  border-color: rgba(218, 227, 247, 0.74);
-  box-shadow: 0 0 0 15px rgba(115, 137, 229, 0.035), 0 0 42px rgba(105, 128, 222, 0.15);
+.tk-finder-horizon span,
+.tk-finder-horizon strong {
+  margin-top: 7px;
+  color: rgba(181, 194, 216, 0.58);
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
-.tk-finder-centre::before { left: 31px; right: 31px; }
-.tk-finder-centre::after { top: 31px; bottom: 31px; }
-.tk-finder-target {
-  border-color: #b6c4ff;
-  box-shadow: 0 0 0 8px rgba(118, 139, 235, 0.1), 0 0 30px rgba(114, 137, 239, 0.38);
+.tk-finder-lock {
+  position: absolute;
+  top: calc(50% + var(--finder-y));
+  left: calc(50% + var(--finder-x));
+  z-index: 3;
+  width: calc(var(--finder-radius) + 38px);
+  height: calc(var(--finder-radius) + 38px);
+  border: 1.5px solid rgba(204, 215, 255, 0.92);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(186, 201, 255, 0.14) 0 3px, transparent 4px);
+  box-shadow:
+    0 0 0 10px rgba(112, 135, 231, 0.055),
+    0 0 44px rgba(105, 128, 226, 0.32),
+    inset 0 0 24px rgba(139, 158, 238, 0.08);
+  transform: translate(-50%, -50%);
+  transition: top 130ms linear, left 130ms linear, border-color 200ms ease, box-shadow 200ms ease;
 }
-.tk-finder-arrow { color: #cbd5ff; text-shadow: 0 0 16px rgba(131, 153, 255, 0.7); }
+.tk-finder-lock::before {
+  content: "";
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid rgba(213, 222, 255, 0.9);
+  border-left: 5px solid transparent;
+  transform: translateX(-50%) rotate(var(--finder-angle));
+  transform-origin: 50% calc((var(--finder-radius) + 72px) / 2);
+}
+.tk-finder-lock span {
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(195, 207, 251, 0.38);
+  border-radius: 50%;
+}
+.tk-finder-lock em {
+  position: absolute;
+  top: calc(100% + 11px);
+  left: 50%;
+  color: #eef1ff;
+  font: 500 0.71rem/1 var(--tk-body);
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 8px #03050a;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.tk-sky-finder[data-aligned="true"] .tk-finder-lock {
+  border-color: #a9ead3;
+  box-shadow: 0 0 0 12px rgba(83, 202, 160, 0.07), 0 0 48px rgba(87, 214, 169, 0.38), inset 0 0 28px rgba(87, 214, 169, 0.1);
+}
+.tk-sky-finder[data-aligned="true"] .tk-finder-lock::before { display: none; }
 .tk-finder-guidance {
-  bottom: 30px;
-  width: min(590px, calc(100vw - 30px));
-  padding: 17px 20px;
+  bottom: 24px;
+  width: auto;
+  min-width: min(330px, calc(100vw - 30px));
+  max-width: min(520px, calc(100vw - 30px));
+  padding: 13px 20px;
   border: 0;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(9, 16, 31, 0.82), rgba(5, 9, 18, 0.65));
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(9, 16, 31, 0.76), rgba(5, 9, 18, 0.56));
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(18px) saturate(120%);
 }
 .tk-finder-guidance strong {
-  font-size: clamp(1.55rem, 5vw, 2.15rem);
+  font-size: clamp(1.35rem, 4.6vw, 1.9rem);
   font-weight: 480;
   letter-spacing: -0.035em;
 }
 .tk-finder-guidance span { color: #a1aec2; }
-.tk-sky-finder[data-aligned="true"] .tk-finder-centre {
-  border-color: #a9ead3;
-  box-shadow: 0 0 0 15px rgba(83, 202, 160, 0.06), 0 0 44px rgba(87, 214, 169, 0.3);
-}
 .tk-sky-finder[data-aligned="true"] .tk-finder-guidance {
   background: linear-gradient(135deg, rgba(20, 55, 49, 0.86), rgba(6, 23, 24, 0.72));
 }
 .tk-finder-controls {
   width: min(820px, 100%);
-  background: linear-gradient(180deg, transparent, rgba(2, 5, 11, 0.72));
+  max-height: min(24dvh, 220px);
+  padding-top: 4px;
+  background: linear-gradient(180deg, transparent, rgba(2, 5, 11, 0.52));
 }
 .tk-finder-warning {
   width: fit-content;
@@ -19297,6 +19315,8 @@ button.primary,
   padding: 7px 10px;
   background: rgba(77, 57, 28, 0.28);
   color: #cfb98e;
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 .tk-finder-details { border-color: rgba(190, 204, 229, 0.1); }
 
@@ -19306,7 +19326,7 @@ button.primary,
     min-height: 0;
     border-radius: 20px;
   }
-  .tk-map-detail .tk-hero-media { order: -1; min-height: 270px; height: 270px; }
+  .tk-map-detail .tk-hero-media { order: -1; min-height: 230px; height: 230px; }
   .tk-map-detail .tk-hero-media::before {
     background: linear-gradient(0deg, rgba(9, 13, 23, 0.98), transparent 48%), radial-gradient(circle at 50% 44%, transparent, rgba(2, 4, 9, 0.12) 70%);
   }
@@ -19332,12 +19352,25 @@ button.primary,
   .tk-tonight-heading { margin-bottom: 22px; }
   .tk-tonight-heading h1 { max-width: 14ch; font-size: clamp(2.05rem, 9.5vw, 2.85rem); line-height: 1.02; }
   .tk-tonight-heading > span { margin-top: 12px; font-size: 0.88rem; }
-  .tk-tonight-lead { grid-template-columns: minmax(0, 1fr); min-height: 0; }
-  .tk-tonight-lead-visual { min-height: 126px; height: 126px; border-radius: 17px; }
-  .tk-tonight-lead-copy { padding: 18px 2px 0; }
+  .tk-tonight-lead { min-height: 0; border-radius: 20px; }
+  .tk-tonight-lead-visual {
+    position: relative;
+    inset: auto;
+    min-height: 154px;
+    height: 154px;
+    border-radius: 0;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 54%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 54%, transparent 100%);
+  }
+  .tk-tonight-lead-copy {
+    width: 100%;
+    min-height: 0;
+    margin-top: -34px;
+    padding: 10px 18px 20px;
+    background: linear-gradient(180deg, transparent, rgba(11, 17, 29, 0.96) 30%);
+  }
   .tk-tonight-lead-labels { gap: 8px; }
-  .tk-tonight-lead h2 { margin-top: 10px; font-size: 1.85rem; }
-  .tk-tonight-lead-copy > p { font-size: 0.82rem; line-height: 1.45; }
+  .tk-tonight-lead h2 { margin-top: 11px; font-size: 1.28rem; line-height: 1.18; }
   .tk-tonight-lead dl { margin: 16px 0 7px; }
   .tk-tonight-lead dd { font-size: 0.76rem; }
   .tk-tonight-equipment { margin-top: 3px !important; }
@@ -19348,8 +19381,7 @@ button.primary,
   .tk-tonight-planning { margin-top: 20px; }
   .tk-map-detail .tk-page.tk-tonight { padding: 16px 12px 42px; }
   .tk-map-detail .tk-page-heading { padding-inline: 4px; }
-  .tk-map-detail .tk-page-heading p { display: none; }
-  .tk-map-detail .tk-hero-media { min-height: 178px; height: 178px; }
+  .tk-map-detail .tk-hero-media { min-height: 168px; height: 168px; border-radius: 17px; }
   .tk-map-detail .tk-hero-media .tracker-credit { max-width: 82%; font-size: 0.5rem; }
   .tk-map-detail .tk-hero-body { padding: 19px 18px 21px; }
   .tk-map-detail .tracker-hero .tk-hero-name { font-size: 2.7rem; }
@@ -19386,11 +19418,15 @@ button.primary,
   .tk-map-detail .tk-detail-key-conditions li > small { grid-column: 1; }
   .tk-map-detail .tk-detail-key-conditions li + li { border-top: 0; border-left: 1px solid rgba(150, 165, 196, 0.12); }
   .tk-finder-header { padding-inline: 12px; gap: 10px; }
-  .tk-finder-stage { min-height: 360px; }
+  .tk-finder-stage { min-height: 390px; }
   .tk-finder-guidance { bottom: 18px; }
-  .tk-finder-controls { max-height: 27dvh; padding-inline: 14px; }
+  .tk-finder-controls { max-height: 21dvh; padding-inline: 14px; }
+  .tk-finder-sky-context { top: 8px; }
+  .tk-finder-lock em { font-size: 0.66rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tk-finder-expected-field { transition: none; }
+  .tk-finder-expected-field,
+  .tk-finder-lock,
+  .tk-map-controlgroup { transition: none; }
 }

@@ -219,19 +219,6 @@ export function UpcomingEventPage({
     <>
     <PhenomenonPage
       categoryId={built.presentation.categoryId}
-      /**
-       * This page is always about a specific future night, so it names it.
-       *
-       * Kept valid rather than left dangling: nothing routes to this component
-       * since the date control replaced the Upcoming destination, and it is
-       * outside the compiler's reach because the typecheck follows imports
-       * from the entry point. A file left half-edited on the way past is a trap
-       * for whoever turns it back on.
-       */
-      nightWord={`on ${new Intl.DateTimeFormat(undefined, {
-        day: "numeric",
-        month: "short",
-      }).format(new Date(built.presentation.atUtc))}`}
       presentation={built.presentation}
       media={built.media}
       visualization={built.visualization}

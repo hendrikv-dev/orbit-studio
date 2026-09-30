@@ -2173,7 +2173,7 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/data/tracker/basemapSource.ts": "5e14196e9c1e1f65e813cba83aa551f018b14993f320010e3aada00f1cf129b6"
+        "src/data/tracker/basemapSource.ts": "02c7dfce1da9b087c4df814a8a2ac8fefbeba434d7ec681386402729f940b2cf"
       },
       "processing": [
         "The basemap style, its sprites and its vector tiles are fetched from the public OpenFreeMap instance at runtime. No API key is used and no account exists; requests carry the viewport and nothing that identifies the reader.",
@@ -2327,11 +2327,11 @@
         "retrievedAt": "2026-08-28"
       },
       "localSha256": {
-        "src/components/tracker/map/TrackerMapCanvas.tsx": "d8a5d814631b50c8e0793bdd266cdd468a7187656c1ce98012afd383478381dc"
+        "src/components/tracker/map/TrackerMapCanvas.tsx": "07a673f213ef9a9ba08f733b0698bef34d2f3cc0ba84ff6abd3971886f8d748d"
       },
       "processing": [
         "Tracker draws its map with MapLibre rather than projecting outlines by hand. The projection, tiling, label placement and input handling are the library's; the palette, the night terminator, the aurora field and the selected-location target are Tracker's own layers drawn on top.",
-        "Tracker's optional 3D presentation keeps MapLibre's Mercator map and applies the already documented terrain DEM at natural scale, with a low observer-centered, pitched and rotatable camera. Terrain mode applies restrained atmospheric depth and reduces road, label, building and boundary emphasis so physical relief remains primary. Hillshade and 3D terrain use distinct MapLibre source instances for the same authoritative DEM so their renderer sampling and decoded tile caches do not conflict; the default presentation remains top-down and removes terrain.",
+        "Tracker's optional 3D presentation keeps MapLibre's Mercator map and applies the already documented terrain DEM at a fixed 1.35× relief display scale, with a close observer-centered, pitched and rotatable camera. The scale is presentation only and does not alter observer coordinates or fabricate terrain. Terrain mode applies restrained atmospheric depth and reduces road, label, building and boundary emphasis so physical relief remains primary. Hillshade and 3D terrain use distinct MapLibre source instances for the same authoritative DEM so their renderer sampling and decoded tile caches do not conflict; the default presentation remains top-down and removes terrain.",
         "The library's tile-decoding worker is bundled by Vite and its address handed to MapLibre with setWorkerUrl. Left to resolve itself the worker looks for a sibling file that a hashed asset directory does not contain, and every failure that follows is silent: the style loads, no error is raised, and no tile is ever drawn.",
         "The renderer's own hostname appears in the bundle only inside the library's licence banner and error strings. Tracker makes no request to maplibre.org at runtime.",
         "The current OpenFreeMap dark style references a circle-11 city marker that its published sprite manifest omits. Tracker supplies that single deterministic marker through MapLibre's missing-image resolver; unknown missing images remain errors rather than being concealed by placeholders.",

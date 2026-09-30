@@ -35,9 +35,11 @@
  * `SELF_HOSTED`. Nothing else in the map component refers to the tile source,
  * which is the point of the indirection.
  *
- * `MAP_MAX_ZOOM` is deliberately pinned to the same ceiling the archive will
- * carry, so the interface never learns to ask for tiles we will not serve. The
- * cutover is then invisible: the same map, from our own storage.
+ * The authored archive can remain at z10 while Tracker's local terrain camera
+ * reaches z12: MapLibre overzooms the existing vector geometry, while the
+ * separately licensed DEM supplies elevation at its own native levels. That
+ * intentionally reveals more relief, not more road data, and keeps the final
+ * archive cost bounded.
  */
 
 export interface BasemapSource {

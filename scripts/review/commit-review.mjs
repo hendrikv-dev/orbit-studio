@@ -180,6 +180,118 @@ ${rows}
 ${failed.length ? `\n**${failed.length} of these did not pass.**\n` : ""}`;
 }
 
+function screenshotLinks(shots, ids) {
+  return ids
+    .map((id) => shots.find((shot) => shot.id === id))
+    .filter(Boolean)
+    .map((shot) => `[${shot.id}](screenshots/${shot.file})`)
+    .join(" · ");
+}
+
+/**
+ * Comparison notes belong beside the exact frames they discuss.
+ *
+ * The approved source-image files are not repository inputs, so this document
+ * never invents a pixel comparison. It maps the approved visual requirements
+ * to the implemented product frames and says exactly where evidence stops.
+ */
+function referenceComparisonMarkdown(commit, shots) {
+  const rows = [
+    {
+      surface: "Map 2D",
+      target: "Quiet top-down geographic reading, restrained chrome, and one integrated recommendation.",
+      ids: ["01-desktop-map-2d", "05-phone-map-2d", "15-unsupported-tablet-map"],
+      matched: "Top-down geography remains primary; controls recede; one compact answer replaces the legacy rail.",
+      deviation: "Production place labels and scientific overlays remain available because they carry real map meaning.",
+      limitation: "No pixel-difference claim: the approved source-image files were not present in the checkout.",
+    },
+    {
+      surface: "Map 3D",
+      target: "Close observer-centred terrain atlas with immediately legible real ridges, valleys, slopes, and atmospheric depth.",
+      ids: ["02-desktop-map-3d", "06-phone-map-3d", "12-tablet-map-3d"],
+      matched: "DEM geometry visibly rises and falls; the camera is local and oblique; roads and transport labels are subordinate.",
+      deviation: "A disclosed fixed 1.35× relief display scale is used for legibility instead of claiming natural-scale presentation.",
+      limitation: "Screenshot evidence proves visible relief and renderer state, not survey-grade horizon accuracy.",
+    },
+    {
+      surface: "Tonight",
+      target: "Editorial nightly briefing with one composed lead, elegant secondary ranking, confident type, and little dashboard chrome.",
+      ids: ["03-desktop-tonight-no-sky", "07-phone-tonight", "13-tablet-tonight", "16-unsupported-tablet-tonight"],
+      matched: "The lead image and recommendation form one unit; secondary targets flatten into a quieter ranked list; raw unavailable labels are omitted.",
+      deviation: "Production ranking, recovery, equipment, and evidence wording remain authoritative rather than being replaced by reference-image placeholder copy.",
+      limitation: "The reference composition is assessed by hierarchy and density; source pixels were unavailable for direct overlay.",
+    },
+    {
+      surface: "Object Detail",
+      target: "Object-first identity, prominent recommendation, concise observing facts, visible why-it-is-worth-it, and collapsed depth.",
+      ids: ["04-desktop-object-detail", "08-phone-object-detail-collapsed", "17-unsupported-tablet-object-detail"],
+      matched: "The object owns the sole heading; category framing is absent; More details is closed; ordinary celestial objects have no generic map action.",
+      deviation: "A small required image credit remains visible while full provenance and technical evidence stay in advanced disclosure.",
+      limitation: "Phenomenon-specific geographic actions require their own event review and are not represented by Saturn.",
+    },
+    {
+      surface: "Sky",
+      target: "Emotional live-guidance payoff: selected target, one elegant lock, immediate movement cue, sky context, and minimal diagnostics.",
+      ids: ["09-phone-sky-camera-granted", "10-phone-sky-guiding", "11-phone-sky-aligned", "14-tablet-sky-guiding"],
+      matched: "One target lock carries direction and alignment; guidance changes through active and on-target states; diagnostics remain collapsed.",
+      deviation: "No synthetic constellation lines are drawn because the catalog does not contain an authoritative line figure.",
+      limitation: "These are explicitly fixture-driven browser frames with an empty MediaStream, not physical-device camera or sensor evidence.",
+    },
+    {
+      surface: "Capability boundary",
+      target: "Sky and Find in Sky only on camera-and-orientation-capable phones/tablets, with no reserved gap elsewhere.",
+      ids: ["03-desktop-tonight-no-sky", "04-desktop-object-detail", "15-unsupported-tablet-map", "17-unsupported-tablet-object-detail"],
+      matched: "Desktop and unsupported-tablet frames show Map · Tonight only; object detail contains neither live action nor generic Show on Map.",
+      deviation: "None; the capability rule is preserved as specified.",
+      limitation: "Browser capability fixtures validate gating logic; the operating-system permission UI still requires a physical-device run.",
+    },
+  ];
+
+  return `# Approved-reference comparison
+
+- **Commit** \`${commit.full}\`
+- **Method** Requirement-to-frame comparison against the approved visual direction.
+- **Evidence boundary** The approved generated source-image files were not available in this checkout, so this is an explicit visual-trait comparison rather than a pixel overlay or a parity claim.
+
+| Surface | Reference target | Implemented screenshot | What matched | Intentional deviation | Remaining limitation |
+| --- | --- | --- | --- | --- | --- |
+${rows.map((row) => `| ${row.surface} | ${row.target} | ${screenshotLinks(shots, row.ids) || "_Not captured_"} | ${row.matched} | ${row.deviation} | ${row.limitation} |`).join("\n")}
+`;
+}
+
+function terrainAndSkyValidationMarkdown(commit, shots) {
+  const terrain = screenshotLinks(shots, [
+    "02-desktop-map-3d",
+    "06-phone-map-3d",
+    "12-tablet-map-3d",
+  ]);
+  const sky = screenshotLinks(shots, [
+    "09-phone-sky-camera-granted",
+    "10-phone-sky-guiding",
+    "11-phone-sky-aligned",
+    "14-tablet-sky-guiding",
+  ]);
+  return `# Terrain and Sky validation notes
+
+- **Commit** \`${commit.full}\`
+
+## Terrain / DEM
+
+- Production renderer: MapLibre terrain over the existing licensed DEM, not a decorative mesh.
+- Default 3D camera: zoom **11.35**, pitch **67°**, bearing **92°**.
+- Vertical display scale: fixed **1.35×**. This is a restrained presentation transform; observer coordinates and underlying DEM geography remain authoritative.
+- Visual evidence: ${terrain || "_Not captured_"}.
+- Runtime preconditions record the DEM source, zoom, pitch, and bearing in \`screenshots/manifest.json\`.
+
+## Sky / camera and sensors
+
+- Browser fixture evidence: ${sky || "_Not captured_"}.
+- The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths.
+- The fixture's \`MediaStream\` contains no camera frames. It does **not** validate live rear-camera composition, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
+- No compatible physical phone or tablet was connected for this package. Physical-device Sky validation is therefore **blocked, not passed**. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
+`;
+}
+
 async function main() {
   const repoRoot = await realpath(git("rev-parse", "--show-toplevel"));
   const ref = option("commit", "HEAD");
@@ -271,6 +383,14 @@ async function main() {
   );
   await writeFile(path.join(stagingDir, "FILES_CHANGED.md"), filesMarkdown(commit));
   await writeFile(path.join(stagingDir, "GATES.md"), gatesMarkdown(commit, gates));
+  await writeFile(
+    path.join(stagingDir, "REFERENCE_COMPARISON.md"),
+    referenceComparisonMarkdown(commit, shots),
+  );
+  await writeFile(
+    path.join(stagingDir, "TERRAIN_AND_SKY_VALIDATION.md"),
+    terrainAndSkyValidationMarkdown(commit, shots),
+  );
   await writeFile(
     path.join(stagingDir, "LIMITATIONS.md"),
     `# Limitations\n\n${option("limitations", "None known from this commit.")}\n`,

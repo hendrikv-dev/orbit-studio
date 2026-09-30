@@ -118,14 +118,8 @@ export function EventHero({
           </p>
         ) : null}
 
-        {/* An h2, not an h1.
-        
-            The page already has one: the category heading above. Two
-            document-level headings on one page is not a styling question — it
-            leaves a screen-reader user with no single answer to "what is this
-            page", and both were competing for it because both are visually
-            large. The category names the page; the event is a section of it.
-            Nothing about the appearance changes. */}
+        {/* The object is the page subject. Category context belongs to browsing,
+            not to the decision surface, so this is the one document heading. */}
         {/* Name and state on one line.
         
             They were stacked, which spent a whole row on two or three short
@@ -133,7 +127,7 @@ export function EventHero({
             paid on every page, to no benefit, since the pills are short by
             construction. */}
         <div className="tk-hero-head">
-          <h2 className="tk-hero-name">{presentation.title}</h2>
+          <h1 className="tk-hero-name">{presentation.title}</h1>
           <div className="tk-hero-pills">
             {presentation.pills.map((pill) => (
               <span key={pill.label} className={`tk-pill is-${pill.tone}`}>
@@ -150,7 +144,7 @@ export function EventHero({
         ) : null}
 
         <dl className="tk-hero-metrics">
-          {presentation.metrics.map((metric) => (
+          {presentation.metrics.filter((metric) => !/^not known$/i.test(metric.value)).map((metric) => (
             <div key={metric.label} className="tk-metric">
               <dt>{metric.label}</dt>
               <dd className={`tk-metric-value is-${metric.tone}`}>{metric.value}</dd>

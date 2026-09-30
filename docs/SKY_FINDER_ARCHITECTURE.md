@@ -13,7 +13,7 @@ Sky Finder is a projection of Tracker’s existing observing opportunities. It d
 
 Historical or future selected dates do not expose Sky or **Find in Sky**. Planning remains in Tonight and Object Detail, so a physical phone is never guided using stale or future coordinates.
 
-Sky can add restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source, identifies its IAU constellation when that is scientifically meaningful, and projects nearby HYG v4.1 bright stars into an approximate target-centred field. That catalog is loaded lazily on Sky entry and recalculated on the slow astronomy cadence, never in the sensor loop. The layer is labelled **Expected star field**, appears after sensor alignment, and does not set visual-verification state. Moving sampled targets such as satellites deliberately omit a made-up constellation label.
+Sky can add restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source, identifies its IAU constellation when that is scientifically meaningful, and projects nearby HYG v4.1 bright stars into an approximate target-centred field. That catalog is loaded lazily on Sky entry and recalculated on the slow astronomy cadence, never in the sensor loop. The field is presented as quiet orientation context, without a diagnostic **Expected star field** label, and does not set visual-verification state. Named bright stars may be labelled; synthetic constellation lines are not drawn because the current catalog does not carry an authoritative line figure. Moving sampled targets such as satellites deliberately omit a made-up constellation label.
 
 ## Device-class eligibility and permission boundary
 
@@ -29,6 +29,14 @@ The device-class decision is applied before individual capability checks. Sky is
 Desktop, laptop, unknown, sensorless and camera-less devices receive Map, Tonight and Object Detail only. No navigation space is reserved for Sky and no sensor-free preview is substituted. Direction, altitude, coordinates, charts and equipment information remain available through Object Detail where relevant.
 
 Camera, orientation, and motion access is requested only from an eligible handheld and only from the reader’s original **Find in Sky** action. `beginSkyFinderLaunch` starts protected calls synchronously inside that user-activation task, then the mounted Sky surface consumes the resulting permission/stream promises. There is no second Start/Guide/Lock control. Ordinary Map, Tonight, planning and detail use does not call protected APIs. Camera frames remain local and Phase 1/2 does not claim visual verification.
+
+The primary overlay has one target lock. Its position carries the pointing error, its directional notch carries the correction, and the same lock changes to the aligned treatment when the sensor solution reaches tolerance. A second crosshair, detached arrow, or diagnostic reticle would create competing instructions and is deliberately absent.
+
+## Physical-device validation gate
+
+Browser fixtures can prove capability gating, permission orchestration, state transitions, and deterministic movement calculations. They cannot prove rear-camera composition, magnetic-heading behavior, sensor jitter, operating-system permission presentation, or background/resume recovery. A release claim for the primary Sky experience therefore requires an attached physical phone or tablet and evidence from the production build.
+
+The device record must name hardware, operating system, browser, build hash, location/time, and whether compass calibration was performed. It must capture camera permission granted, a movement cue in at least two axes, the aligned state, rotation/orientation change, ten seconds of steady-hand jitter, permission denial and recovery, and background/resume. Screenshots or recording frames must show the live camera feed; a deterministic star field or empty `MediaStream` is fixture evidence only. Any angular-error note is a measured observation for that device/session, not a general accuracy claim.
 
 ## Capability degradation
 

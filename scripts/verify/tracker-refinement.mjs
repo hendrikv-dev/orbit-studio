@@ -527,8 +527,16 @@ async function main() {
     await page.waitForSelector(".tracker-hero .tk-hero-name", { timeout: 45_000 });
     await page.waitForTimeout(2500);
 
-    const heading = await page.locator(".tk-page-heading").innerText();
-    check(!/tonight/i.test(heading), `the category heading is date-aware ("${heading.replace(/\n+/g, " / ")}")`);
+    const objectHeading = await page.locator(".tracker-hero .tk-hero-name").innerText();
+    check(objectHeading.length > 0, `the selected object is the page heading ("${objectHeading}")`);
+    check(
+      (await page.locator(".tk-map-detail h1").count()) === 1,
+      "Object Detail has one document heading, owned by the selected object",
+    );
+    check(
+      (await page.locator(".tk-page-heading h1").count()) === 0,
+      "category/catalog framing does not lead the object page",
+    );
     /**
      * One ranking, and it is the rail's.
      *
@@ -559,8 +567,6 @@ async function main() {
       };
       return {
         back: left(".tk-map-detail .tk-back"),
-        heading: left(".tk-page-heading h1"),
-        subtitle: left(".tk-page-heading p"),
         hero: left(".tracker-hero"),
         conditions: left(".tk-detail-key-conditions"),
       };
@@ -568,7 +574,12 @@ async function main() {
     const distinct = [...new Set(Object.values(edges).filter((value) => value !== null))];
     check(
       distinct.length === 1,
-      `back, heading, subtitle, hero and key conditions share one left edge (${JSON.stringify(edges)})`,
+      `back, hero and key conditions share one page edge (${JSON.stringify(edges)})`,
+    );
+    const conciseText = await page.locator(".tk-map-detail .tk-main-row, .tk-detail-key-conditions").allInnerTexts();
+    check(
+      !/not known|not reported|no forecast reached/i.test(conciseText.join(" ")),
+      "the concise object surface omits low-value unavailable forecast labels",
     );
     check(
       (await page.locator(".tk-detail-more[open]").count()) === 0,
@@ -1165,6 +1176,7 @@ async function main() {
         return {
           projection: (map.getProjection?.() ?? style.projection ?? { type: "mercator" }).type,
           terrain: map.getTerrain?.()?.source ?? null,
+          terrainExaggeration: map.getTerrain?.()?.exaggeration ?? null,
           pitch: Math.round(map.getPitch()),
           bearing: Math.round(map.getBearing()),
           rotationEnabled: map.dragRotate.isEnabled(),
@@ -1230,7 +1242,9 @@ async function main() {
     const terrain = await state();
     check(terrain.projection === "mercator", "3D keeps the local Mercator ground plane");
     check(terrain.terrain === "tracker-terrain-3d-dem", "the arrow keys enable the dedicated production DEM source");
-    check(terrain.pitch >= 55 && terrain.pitch <= 70, `3D uses an oblique camera (${terrain.pitch}°)`);
+    check(terrain.pitch >= 65 && terrain.pitch <= 70, `3D uses a close oblique camera (${terrain.pitch}°)`);
+    check(terrain.centre.zoom >= 11, `3D moves into the local observing area (zoom ${terrain.centre.zoom})`);
+    check(terrain.terrainExaggeration === 1.35, "3D declares the fixed restrained 1.35× relief display scale");
     check(terrain.bearing !== 0 && terrain.rotationEnabled, "3D enables a rotated, user-adjustable camera");
     check(terrain.selected?.includes("Oblique terrain") === true, "and the selection follows");
     check(terrain.url.terrain === "1", "and terrain is a state the URL describes");
@@ -1247,7 +1261,7 @@ async function main() {
     await page.waitForTimeout(1200);
     const resetTerrain = await state();
     check(
-      resetTerrain.pitch >= 55 && resetTerrain.pitch <= 70 && resetTerrain.bearing !== 37,
+      resetTerrain.pitch >= 65 && resetTerrain.pitch <= 70 && resetTerrain.bearing !== 37,
       `terrain recenter restores the designed oblique camera (${resetTerrain.pitch}° / ${resetTerrain.bearing}°)`,
     );
 
@@ -1263,11 +1277,15 @@ async function main() {
       JSON.stringify(terrain[key]) === JSON.stringify(back[key]);
     for (const [key, what] of [
       ["card", "the expanded card"],
-      ["centre", "the camera"],
       ["overlays", "the event overlay"],
     ]) {
       check(kept(key), `2D → 3D → 2D keeps ${what}`);
     }
+    check(
+      flat.centre.lat === terrain.centre.lat && flat.centre.lng === terrain.centre.lng &&
+      terrain.centre.lat === back.centre.lat && terrain.centre.lng === back.centre.lng,
+      "2D → 3D → 2D keeps the authoritative geographic centre while 3D changes camera distance",
+    );
     for (const field of ["pin", "date", "show", "layers"]) {
       check(
         flat.url[field] === terrain.url[field] && terrain.url[field] === back.url[field],
@@ -2262,7 +2280,9 @@ async function main() {
       await page.locator(".tk-detail-more > summary").click();
       await page.waitForSelector(".tk-detail-more[open]", { timeout: 10_000 });
       const detail = await page.evaluate(() => ({
-        heading: document.querySelector(".tk-page-heading")?.textContent?.trim() ?? "",
+        category: document.querySelector(".tk-map-detail")?.getAttribute("data-category") ?? "",
+        heading: document.querySelector(".tracker-hero .tk-hero-name")?.textContent?.trim() ?? "",
+        documentHeadings: document.querySelectorAll(".tk-map-detail h1").length,
         image: document.querySelector(".tracker-media img")?.getAttribute("src") ?? "",
         timing: document.querySelector(".tk-viz-timing")?.textContent?.trim() ?? "",
         limitations: [...document.querySelectorAll(".tk-limitation, .tk-hero-limitation")].map(
@@ -2270,7 +2290,10 @@ async function main() {
         ),
         body: document.body.innerText,
       }));
-      check(/satellite/i.test(detail.heading), `the page is filed under satellites (${detail.heading})`);
+      check(
+        detail.category === "satellites" && /station/i.test(detail.heading) && detail.documentHeadings === 1,
+        `the satellite keeps its semantic category while the object owns the sole heading (${detail.category} / ${detail.heading})`,
+      );
       /**
        * A picture of the station, not of the sky it crosses.
        *

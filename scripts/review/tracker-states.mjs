@@ -241,7 +241,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await capture(
       page,
       "02-desktop-3d-terrain",
-      "The same Portland observing state over the real DEM at natural scale, pitched obliquely with normal rotation enabled. Labels and overlays remain in the production MapLibre renderer.",
+      "The same Portland observing state over the real DEM at the documented fixed 1.35× relief display scale, pitched close and obliquely with normal rotation enabled. Labels and overlays remain in the production MapLibre renderer.",
       async () => {
       const state = await page.evaluate(() => {
         const map = window.__trackerMap;
@@ -254,7 +254,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
             ?.getAttribute("aria-label"),
         };
       });
-        return state.terrain === "tracker-terrain-3d-dem" && state.pitch >= 55
+        return state.terrain === "tracker-terrain-3d-dem" && state.pitch >= 65
           ? `terrain ${state.terrain}, pitch ${state.pitch}°, bearing ${state.bearing}°, "${state.selected}"`
           : "";
       },

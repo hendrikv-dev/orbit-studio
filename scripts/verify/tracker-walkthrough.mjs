@@ -98,7 +98,7 @@ async function shot(page, name, note) {
 async function readPageState(page) {
   return page.evaluate(() => ({
     category: document.querySelector(".tk-page")?.getAttribute("data-category") ?? null,
-    heading: document.querySelector(".tk-page-heading h1")?.textContent?.trim() ?? null,
+    heading: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? null,
     subtitle: document.querySelector(".tk-page-heading p")?.textContent?.trim() ?? null,
     heroName: document.querySelector(".tk-hero-name")?.textContent?.trim() ?? null,
     recommendationLevel:
@@ -122,7 +122,7 @@ async function readPageState(page) {
     visualization: document.querySelector(".tk-viz-slot .tk-viz-title")?.textContent?.trim() ?? null,
     /** The geometry the universal layout promises, as booleans. */
     geometry: {
-      heading: Boolean(document.querySelector(".tk-page-heading h1")),
+      heading: Boolean(document.querySelector(".tk-hero-name")),
       hero: Boolean(document.querySelector(".tk-hero .tk-hero-name")),
       visualization: Boolean(document.querySelector(".tk-viz-slot")?.firstElementChild),
       conditions: document.querySelectorAll(".tk-condition-card").length,
@@ -140,7 +140,7 @@ async function readPageState(page) {
       /** Where each region sits, so drift between phenomena is measurable. */
       rects: Object.fromEntries(
         [
-          ["heading", ".tk-page-heading h1"],
+          ["heading", ".tk-hero-name"],
           ["hero", ".tk-hero"],
           ["visualization", ".tk-viz-slot"],
           ["conditions", ".tk-conditions-row"],
@@ -159,7 +159,7 @@ async function readPageState(page) {
 }
 
 function assertUniversalGeometry(state, label) {
-  check(state.geometry.heading, `${label}: has the category heading`);
+  check(state.geometry.heading, `${label}: the selected object owns the page heading`);
   check(state.geometry.hero, `${label}: has the hero`);
   check(state.geometry.visualization, `${label}: has a visualization in the fixed slot`);
   /**
@@ -684,7 +684,10 @@ async function main() {
   check(await openTonightEvent(portland, "meteors"), "meteors are still reachable directly");
   const meteorState = await readPageState(portland);
   assertUniversalGeometry(meteorState, "meteors");
-  check(meteorState.heading === "Meteor showers", "the heading names the phenomenon category");
+  check(
+    meteorState.category === "meteors" && meteorState.heading === meteorState.heroName,
+    "the meteor object, not its catalog category, owns the page heading",
+  );
   check(
     /activity/i.test(meteorState.visualization ?? ""),
     "the meteor slot holds activity through the night, not a map",
@@ -994,7 +997,10 @@ async function main() {
     await portland.waitForTimeout(2500);
     const solarState = await readPageState(portland);
     assertUniversalGeometry(solarState, "solar eclipse");
-    check(solarState.heading === "Eclipses", "the eclipse page uses the eclipse heading");
+    check(
+      solarState.category === "eclipses" && solarState.heading === solarState.heroName,
+      "the selected eclipse, not its catalog category, owns the page heading",
+    );
     /**
      * Both forecastable cards say the forecast does not exist yet; the third is
      * geometry and answers anyway.
@@ -1302,7 +1308,10 @@ async function main() {
     } else {
       const state = await readPageState(page);
       assertUniversalGeometry(state, "aurora");
-      check(state.heading === "Auroras", "the aurora page uses the aurora heading");
+      check(
+        state.category === "auroras" && state.heading === state.heroName,
+        "the selected aurora, not its catalog category, owns the page heading",
+      );
       check(
         state.metrics.some((metric) => /NOAA/i.test(metric.label ?? "")),
         "the probability is attributed to NOAA rather than presented as Tracker's",
@@ -1750,7 +1759,7 @@ async function main() {
           });
           return Math.max(0, ...worst);
         })(),
-        hasHeading: region(".tk-page-heading h1"),
+        hasHeading: region(".tk-hero-name"),
         hasHero: region(".tk-hero .tk-hero-name"),
         hasViz: region(".tk-viz-slot"),
         hasConditions: region(".tk-condition-card"),
@@ -1850,7 +1859,7 @@ async function main() {
   await dated.waitForTimeout(4500);
 
   const historical = await dated.evaluate(() => ({
-    heading: document.querySelector(".tk-page-heading h1")?.textContent ?? "",
+    heading: document.querySelector(".tk-hero-name")?.textContent ?? "",
     body: document.body.innerText,
     // The map's place control, not the app header: the event page no longer
     // carries one, because the map behind it owns the place and the date.
@@ -1862,8 +1871,8 @@ async function main() {
   }));
 
   check(
-    /planet|moon|eclipse|meteor|aurora|deep sky|pairing/i.test(historical.heading),
-    `the page still names its phenomenon on a historical night (${historical.heading})`,
+    historical.heading.trim().length > 0,
+    `the page still names the selected object on a historical night (${historical.heading})`,
   );
   check(
     !/historical|past mode|future mode|archive/i.test(historical.body),
