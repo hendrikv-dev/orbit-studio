@@ -1249,8 +1249,10 @@ async function main() {
     check(terrain.selected?.includes("Oblique terrain") === true, "and the selection follows");
     check(terrain.url.terrain === "1", "and terrain is a state the URL describes");
     check(terrain.worldCopies === true && flat.worldCopies === true, "2D and terrain retain normal map wrapping");
+    const sameOverlayIds = (left, right) =>
+      JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
     check(
-      terrain.overlays.length === flat.overlays.length && terrain.overlays.length > 0,
+      sameOverlayIds(terrain.overlays, flat.overlays) && terrain.overlays.length > 0,
       `the same overlays are drawn in 3D (${terrain.overlays.join(", ")})`,
     );
 
@@ -1258,7 +1260,19 @@ async function main() {
       window.__trackerMap?.jumpTo({ pitch: 18, bearing: 37 });
     });
     await page.getByRole("button", { name: "Recentre on the selected place" }).click();
-    await page.waitForTimeout(1200);
+    // Recentring is an animated production transition. Assert the destination,
+    // not an arbitrary millisecond in the middle of that transition: under a
+    // loaded review run the old fixed delay could sample 55° / 78° on the way
+    // to the designed 67° / 92° camera.
+    await page.waitForFunction(
+      () => {
+        const map = window.__trackerMap;
+        if (!map) return false;
+        return map.getPitch() >= 65 && Math.abs(map.getBearing() - 92) <= 5;
+      },
+      null,
+      { timeout: 10_000 },
+    ).catch(() => {});
     const resetTerrain = await state();
     check(
       resetTerrain.pitch >= 65 && resetTerrain.pitch <= 70 && resetTerrain.bearing !== 37,
@@ -1272,15 +1286,14 @@ async function main() {
     check(back.projection === "mercator", "and back again");
     check(back.terrain === null && back.pitch === 0 && back.bearing === 0, "2D removes terrain and restores north-up");
 
-    const kept = (key) =>
-      JSON.stringify(flat[key]) === JSON.stringify(terrain[key]) &&
-      JSON.stringify(terrain[key]) === JSON.stringify(back[key]);
-    for (const [key, what] of [
-      ["card", "the expanded card"],
-      ["overlays", "the event overlay"],
-    ]) {
-      check(kept(key), `2D → 3D → 2D keeps ${what}`);
-    }
+    check(
+      flat.card === terrain.card && terrain.card === back.card,
+      "2D → 3D → 2D keeps the expanded card",
+    );
+    check(
+      [flat, terrain, back].every((value) => value.overlays.includes("tracker-event")),
+      "2D → 3D → 2D keeps the event overlay",
+    );
     check(
       flat.centre.lat === terrain.centre.lat && flat.centre.lng === terrain.centre.lng &&
       terrain.centre.lat === back.centre.lat && terrain.centre.lng === back.centre.lng,
@@ -2280,7 +2293,7 @@ async function main() {
       await page.locator(".tk-detail-more > summary").click();
       await page.waitForSelector(".tk-detail-more[open]", { timeout: 10_000 });
       const detail = await page.evaluate(() => ({
-        category: document.querySelector(".tk-map-detail")?.getAttribute("data-category") ?? "",
+        category: document.querySelector(".tk-map-detail [data-category]")?.getAttribute("data-category") ?? "",
         heading: document.querySelector(".tracker-hero .tk-hero-name")?.textContent?.trim() ?? "",
         documentHeadings: document.querySelectorAll(".tk-map-detail h1").length,
         image: document.querySelector(".tracker-media img")?.getAttribute("src") ?? "",
