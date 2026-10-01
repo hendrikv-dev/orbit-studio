@@ -27,6 +27,19 @@ describe("Explorer filter and selected-object semantics", () => {
     });
   });
 
+  it("derives constellation regimes from their architecture shells", () => {
+    const view = explorerSnapshotView(currentExplorerSnapshot);
+    const starlink = view.byId.get("explorer-starlink-constellation")!;
+    const gps = view.byId.get("explorer-gps-constellation")!;
+
+    expect(explorerEntryMatchesFilters(starlink, "leo", new Set())).toBe(true);
+    expect(explorerEntryMatchesFilters(starlink, "meo", new Set())).toBe(false);
+    expect(explorerFilterConflict(starlink, "leo", new Set())).toBeNull();
+
+    expect(explorerEntryMatchesFilters(gps, "meo", new Set())).toBe(true);
+    expect(explorerEntryMatchesFilters(gps, "leo", new Set())).toBe(false);
+  });
+
   it("reports only applicable object-type conflicts", () => {
     expect(explorerFilterConflict(hubble, "all", new Set(["payloads"]))).toBeNull();
     expect(explorerFilterConflict(hubble, "all", new Set(["debris"]))).toEqual({

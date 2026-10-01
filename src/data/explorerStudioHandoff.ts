@@ -1,12 +1,11 @@
 import { createPlaygroundScenario, type Scenario } from "../lib/scenario";
 
+/**
+ * Explorer and Playground intentionally do not share catalog selections.
+ * This compatibility helper now always returns a clean authored Playground.
+ * A future import workflow must be explicit and must copy data through a
+ * dedicated boundary rather than inheriting Explorer state.
+ */
 export function createStudioScenarioFromExplorerSelection(scenario: Scenario): Scenario {
-  const selectedObjectId = scenario.selectedObjectId;
-  const selectedObjectType = scenario.selectedObjectType;
-  const selectedSatellite =
-    selectedObjectType === "satellite"
-      ? scenario.satellites.find((item) => item.id === selectedObjectId)
-      : undefined;
-
-  return createPlaygroundScenario(new Date(scenario.simulationTimeUtc), selectedSatellite);
+  return createPlaygroundScenario(new Date(scenario.simulationTimeUtc));
 }

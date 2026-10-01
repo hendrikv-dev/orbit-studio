@@ -1,17 +1,33 @@
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { preview } from "vite";
 import { readSourceIdentity } from "../release/source-identity.mjs";
+import { assertOutsideRepository, resolveReviewRoot } from "./review-location.mjs";
 import { acquireReviewLock } from "./review-lock.mjs";
+import { reviewPlaybackSpeedLabel, reviewPlaybackTimeScales } from "./playback-speeds.mjs";
 import { reviewScenarios } from "./scenarios/index.mjs";
+
+const scenarioOptionIndex = process.argv.indexOf("--scenario");
+const requestedScenarioIds =
+  scenarioOptionIndex >= 0
+    ? (process.argv[scenarioOptionIndex + 1] ?? "").split(",").filter(Boolean)
+    : [];
+const activeReviewScenarios =
+  requestedScenarioIds.length === 0
+    ? reviewScenarios
+    : reviewScenarios.filter((scenario) => requestedScenarioIds.includes(scenario.id));
+if (activeReviewScenarios.length !== (requestedScenarioIds.length || reviewScenarios.length)) {
+  throw new Error(`Unknown review scenario in: ${requestedScenarioIds.join(", ")}`);
+}
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
-const outputRoot = path.join(projectRoot, "review");
+const reviewRoot = assertOutsideRepository(resolveReviewRoot({ env: process.env, repoRoot: projectRoot }), projectRoot);
+const outputRoot = path.join(reviewRoot, "runs", `review-${new Date().toISOString().replace(/[:.]/g, "-")}`);
 const screenshotsRoot = path.join(outputRoot, "screenshots");
 const temporaryVideoRoot = path.join(outputRoot, ".video");
 const timelineFramesRoot = path.join(temporaryVideoRoot, "frames");
@@ -225,7 +241,40 @@ async function readScreenshotPopulationEvidence(page, screenshotBuffer) {
   }, `data:image/webp;base64,${screenshotBuffer.toString("base64")}`);
 }
 
+/**
+ * What a scenario is allowed to say about the current satellite catalog.
+ *
+ * Read from the scenario registry rather than taken from the state a scenario
+ * hands back, and stamped after that state is spread, so a surface cannot
+ * declare its own authority — neither to claim a catalog identity it never
+ * loaded, nor to disclaim one it did. The release verifier trusts this field to
+ * decide which states owe it release-safe catalog metadata, so the moment a
+ * scenario could write it the check would be self-certifying.
+ */
+function catalogAuthorityOf(scenarioId) {
+  const scenario = reviewScenarios.find((candidate) => candidate.id === scenarioId);
+  if (!scenario?.catalogAuthority) {
+    throw new Error(
+      `Review scenario ${scenarioId} declares no catalogAuthority. ` +
+        `Every scenario must state whether its states certify the current catalog.`,
+    );
+  }
+  return scenario.catalogAuthority;
+}
+
 function createScenarioTools(page, scenarioId, extras = {}) {
+  const catalogAuthority = catalogAuthorityOf(scenarioId);
+  const captureSurface = async (id, state = {}) => {
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+    await page.waitForTimeout(250);
+    const screenshot = `screenshots/${id}.webp`;
+    await captureWebp(page, path.join(outputRoot, screenshot));
+    const captured = { id, scenario: scenarioId, ...state, catalogAuthority, screenshot };
+    artifactStates.push(captured);
+    return captured;
+  };
   const waitForState = async (predicate, options = {}) => {
     const timeoutMs = options.timeoutMs ?? 45_000;
     const deadline = Date.now() + timeoutMs;
@@ -270,20 +319,32 @@ function createScenarioTools(page, scenarioId, extras = {}) {
     );
   };
 
-  const speedLabels = {
-    "1x": "1×",
-    "10x": "10×",
-    "100x": "100×",
-    "1000x": "1000×",
-    max: "2,500×",
-  };
+  // Wait on the applied time scale rather than the rendered speed label. The label is a
+  // localized rendering of that number, so a harness that mirrors its formatting turns an
+  // application-side presentation change into a silent 45-second timeout. Checking the
+  // label separately, once the scale has landed, still catches a genuine label regression
+  // and reports it immediately.
   const setPlaybackSpeed = async (speed) => {
+    const expectedTimeScale = reviewPlaybackTimeScales[speed];
+    if (expectedTimeScale === undefined) {
+      throw new Error(`Unknown review playback speed "${speed}".`);
+    }
     await page.evaluate((value) => {
       window.__ORBIT_STUDIO_REVIEW__?.setPlaybackSpeed(value);
     }, speed);
-    return waitForState(
-      (state) => !state.playback.isPlaying && state.playback.speed === speedLabels[speed],
+    const state = await waitForState(
+      (candidate) =>
+        !candidate.playback.isPlaying &&
+        candidate.playback.timeScale === expectedTimeScale,
     );
+    const expectedLabel = reviewPlaybackSpeedLabel(expectedTimeScale);
+    if (state.playback.speed !== expectedLabel) {
+      throw new Error(
+        `Playback speed ${speed} applied ${expectedTimeScale}× but reads ` +
+        `"${state.playback.speed}" instead of "${expectedLabel}".`,
+      );
+    }
+    return state;
   };
 
   // The production main thread can spend several hundred milliseconds committing a full
@@ -357,6 +418,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
       playback: state.playback,
       dataCoverage: state.dataCoverage,
       datasets: state.datasets,
+      catalogAuthority,
       warningState: state.warningState,
       renderer: state.renderer,
       visualEvidence,
@@ -389,6 +451,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
 
   return {
     capture,
+    captureSurface,
     clearReviewContext,
     page,
     readReviewState: () => readReviewState(page),
@@ -407,7 +470,9 @@ function createScenarioTools(page, scenarioId, extras = {}) {
   };
 }
 
-async function openReviewPage(browser, scenarioId, options = {}) {
+async function openReviewPage(browser, scenarioOrId, options = {}) {
+  const scenario = typeof scenarioOrId === "string" ? null : scenarioOrId;
+  const scenarioId = scenario?.id ?? scenarioOrId;
   const context = await browser.newContext({
     viewport,
     deviceScaleFactor: 1,
@@ -421,10 +486,25 @@ async function openReviewPage(browser, scenarioId, options = {}) {
   });
   const page = await context.newPage();
   attachBrowserDiagnostics(page, scenarioId);
-  await page.goto(reviewUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await waitForReviewBridge(page);
+  // Fixtures go in before the first navigation, not inside run(). A scenario that
+  // pins its clock or routes a feed after the page has already loaded has let the
+  // real one answer the opening request, which is the difference between a
+  // deterministic run and one that happens to agree with the network that morning.
+  if (typeof scenario?.prepare === "function") {
+    await scenario.prepare({ context, page });
+  }
+  await page.goto(scenario?.reviewUrl ?? reviewUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  if (scenario?.requiresReviewBridge === false) {
+    await page.locator(scenario.readySelector ?? "main").waitFor({ state: "visible", timeout: 45_000 });
+  } else {
+    await waitForReviewBridge(page);
+  }
   await page.addStyleTag({ content: "html, body, input, textarea { caret-color: transparent !important; }" });
-  await settleApplication(page, 800);
+  if (scenario?.requiresReviewBridge === false) {
+    await page.waitForTimeout(800);
+  } else {
+    await settleApplication(page, 800);
+  }
   return { context, page };
 }
 
@@ -524,7 +604,7 @@ async function recordTimeline(browser, scenario) {
 
 function reviewNotesMarkdown() {
   const merge = (key) => [
-    ...new Set(reviewScenarios.flatMap((scenario) => scenario.notes[key])),
+    ...new Set(activeReviewScenarios.flatMap((scenario) => scenario.notes[key])),
   ];
   const section = (title, entries) => `## ${title}\n\n${entries.map((entry) => `- ${entry}`).join("\n")}`;
 
@@ -542,7 +622,9 @@ async function main() {
   const releaseReviewLock = await acquireReviewLock(reviewLockPath);
 
   try {
-    await rm(outputRoot, { recursive: true, force: true });
+    await mkdir(path.dirname(outputRoot), { recursive: true });
+    assertOutsideRepository(await realpath(path.dirname(outputRoot)), await realpath(projectRoot));
+    await mkdir(outputRoot); // Append-only: a collision fails rather than replacing evidence.
     await mkdir(screenshotsRoot, { recursive: true });
     await mkdir(temporaryVideoRoot, { recursive: true });
 
@@ -564,18 +646,18 @@ async function main() {
       });
       browser = await chromium.launch({ headless: true });
 
-      for (const scenario of reviewScenarios) {
+      for (const scenario of activeReviewScenarios) {
         console.log(`[review] Capturing ${scenario.title}...`);
-        const { context, page } = await openReviewPage(browser, scenario.id);
+        const { context, page } = await openReviewPage(browser, scenario);
         await scenario.run(createScenarioTools(page, scenario.id));
         await context.close();
       }
 
-      const timelineScenario = reviewScenarios.find((scenario) => scenario.recordTimeline);
-      if (!timelineScenario) throw new Error("No review scenario defines a timeline recording.");
-
-      console.log("[review] Recording the deterministic timeline clip...");
-      await recordTimeline(browser, timelineScenario);
+      const timelineScenario = activeReviewScenarios.find((scenario) => scenario.recordTimeline);
+      if (timelineScenario) {
+        console.log("[review] Recording the deterministic timeline clip...");
+        await recordTimeline(browser, timelineScenario);
+      }
 
       const source = await readSourceIdentity(projectRoot);
       const reviewDocument = {
@@ -594,9 +676,10 @@ async function main() {
         historicalDatasetVersion:
           datasetVersions?.historicalDatasetVersion ?? "unavailable",
         viewport,
-        scenarios: reviewScenarios.map((scenario) => ({
+        scenarios: activeReviewScenarios.map((scenario) => ({
           id: scenario.id,
           title: scenario.title,
+          catalogAuthority: scenario.catalogAuthority,
           stateIds: artifactStates
             .filter((state) => state.scenario === scenario.id)
             .map((state) => state.id),

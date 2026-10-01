@@ -34,6 +34,30 @@ function releaseNoticesPlugin(): Plugin {
 }
 
 export default defineConfig({
+  /**
+   * MapLibre ships its tile decoder as a separate worker entry and loads it by
+   * URL. Vite's dependency pre-bundler rewrites that URL into `.vite/deps/` but
+   * does not emit the worker there, so it 404s, no tile is ever decoded, and
+   * the map renders as an empty dark rectangle with no error — the style, the
+   * sprites and the TileJSON all load, which is what makes it look fine until
+   * you notice nothing is drawn.
+   *
+   * Leaving the package unbundled keeps the worker resolving against the real
+   * files. Production builds go through Rollup, which handles the worker
+   * correctly on its own; this is a development-server concern only.
+   */
+  optimizeDeps: {
+    exclude: ["maplibre-gl"],
+  },
+  /**
+   * MapLibre's worker is an ES module and imports a shared chunk. Bundled as a
+   * classic worker it loses the import; built as an ES module worker it keeps
+   * it, which is the difference between a map that loads tiles and one that
+   * silently never finishes.
+   */
+  worker: {
+    format: "es",
+  },
   plugins: [
     react(),
     releaseNoticesPlugin(),

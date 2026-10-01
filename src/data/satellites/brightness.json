@@ -1,0 +1,35 @@
+{
+  "format": "orbit-studio-satellite-brightness-v1",
+  "generatedBy": "scripts/build-satellite-brightness.mjs",
+  "note": "Every magnitude here is a published measurement. Nothing is derived from orbital geometry, and an object with no measurement is not offered.",
+  "standardMagnitudeSource": {
+    "url": "https://mmccants.org/programs/qsmag.zip",
+    "published": "2020-09-14",
+    "sha256": "3f3f507014a047b6319813e73e818f065a029355c37a4b4e644213408f6a70a9",
+    "citation": "McCants, M. — Quicksat intrinsic magnitude file (qs.mag), 14 September 2020, https://mmccants.org/programs/",
+    "convention": "Visual magnitude at 1000 km range and 50 per cent illumination, which is a phase angle of 90 degrees."
+  },
+  "spacecraft": [
+    {
+      "id": "iss",
+      "catalogNumber": 25544,
+      "name": "International Space Station",
+      "designator": "1998-067A",
+      "appearance": "A steady white point, brighter than any star, crossing the sky in a few minutes without blinking. Aircraft have flashing lights and change course; this does neither.",
+      "standardMagnitude": -2.5
+    }
+  ],
+  "starlink": {
+    "id": "starlink-orbit-raising",
+    "citation": "Mallama, A., Cole, R. E., Respler, J., Harrington, S., Lee, R. and Worley, A. (2024) — The Brightness of Starlink Mini Satellites During Orbit-Raising, arXiv:2405.12007",
+    "citationUrl": "https://arxiv.org/abs/2405.12007",
+    "convention": "Mean apparent magnitude adjusted to a uniform distance of 1000 km. Distance is normalised out; phase angle is not, so only range may be applied to it.",
+    "brightBelowKm": 357,
+    "magnitudeAt1000KmBelowThreshold": 4.58,
+    "magnitudeAt1000KmAboveThreshold": 7.52,
+    "modeSeparation": 2.94,
+    "uncertaintyMargin": 1.47,
+    "deorbitingBelowKm": 250,
+    "confidentBelowKm": 340
+  }
+}

@@ -38,7 +38,12 @@ be added later once the user provides credentials.
 
 NOAA GOES and NASA SatCORPS global mosaic data may be useful for higher-fidelity cloud/weather
 animation later, especially for animated operational weather layers. They are not implemented in
-this pass.
+the Explorer/Playground renderer.
+
+Tracker does use GOES, and not as imagery: `netlify/functions/goes-cloud-mask.mts` reads the ABI
+Level-2 Clear Sky Mask through Unidata's THREDDS server, and `src/data/tracker/cloudObservation.ts`
+presents it as the per-pixel classification it is. See the `noaa-goes-clear-sky-mask` entry in
+`provenance/inventory.json` for the rights basis and the restrictions that come with it.
 
 Bundled ground station entries are approximate Deep Space Network demo stations. They are included
 only to exercise editing, contact analysis, and coverage visualization workflows.
@@ -91,14 +96,15 @@ the current-tree audit. Run `npm run history:validate` for publishable ancestry 
 ## Star Field
 
 Public builds use the magnitude-limited authentic catalog in
-`src/data/stars/hygBrightStars.v41.json`, generated from HYG Database v4.1. The runtime file contains
-all 1,839 non-Sun records with apparent visual magnitude `V <= 5.1`; it does not mix in procedural
-or fictional filler stars. The source fields include J2000 coordinates, magnitude, B-V color index,
-Cartesian position, and space velocity for proper-motion updates in the inertial EQJ frame.
+`src/data/stars/bsc5pBrightStars.json`, generated from the Yale Bright Star Catalog BSC5P table
+distributed by NASA/GSFC HEASARC. The runtime file contains all 8,404 records with a reported visual
+magnitude `V <= 6.5`; it does not mix in procedural or fictional filler stars. The source fields
+include J2000 coordinates, magnitude, B−V colour index, proper motion, designation, and HR identity.
 
-- Upstream: HYG Database v4.1 by David Nash
-- Source: <https://github.com/astronexus/HYG-Database>
-- License: Creative Commons Attribution-ShareAlike 4.0 International
+- Upstream: Bright Star Catalog, 5th Revised Edition (Hoffleit & Warren, 1991; V/50)
+- Source: <https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html>
+- Use basis: HEASARC's official free-use policy; no commercial restriction or share-alike term is
+  declared for BSC5P. <https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html>
 - Local generation and field documentation: `src/data/stars/README.md`
-- Generation script: `scripts/build-hyg-bright-stars.mjs`
-- Bundled license copy: `src/data/stars/LICENSE-CC-BY-SA-4.0.txt`
+- Generation script: `scripts/build-bsc5p-bright-stars.mjs`
+- Local source/use notice: `src/data/stars/SOURCE-USE-NOTICE.txt`

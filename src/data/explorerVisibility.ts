@@ -146,8 +146,10 @@ export function resolveExplorerVisibility(
       satelliteIds[satelliteIds.length - 1] = selectedObjectId;
     }
   }
-  const groundStationIds = visibleEntries
-    .filter((entry) => entry.selectionKind === "ground-station")
+  // Ground stations are a reference layer, independent of orbital object and
+  // regime filters. The same visibility authority applies to list and renderer.
+  const groundStationIds = view.records
+    .filter((entry) => entry.selectionKind === "ground-station" && isExplorerEntryVisible(entry, visibility))
     .map((entry) => entry.id);
   if (
     selectedObjectId &&

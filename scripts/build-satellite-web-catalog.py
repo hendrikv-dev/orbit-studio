@@ -60,6 +60,16 @@ ROW_SCHEMA = [
     "raanDegReconstructed",
     "argumentOfPerigeeDegReconstructed",
     "meanAnomalyDegReconstructed",
+    # Fragmentation linkage. GCAT carries an authoritative Parent for every
+    # debris and component row; it is exported only when it resolves to another
+    # row in this same export, so a consumer never holds a dangling reference.
+    "parentJcat",
+    "separationDatePrecision",
+    "separationDateUncertain",
+    # GCAT's State column: the responsible state, distinct from the Owner
+    # organisation code. Without it the interface had no country to show and
+    # fell back to the owner code, so a record read "Operator KVR / Region KVR".
+    "stateCode",
 ]
 
 
@@ -258,9 +268,14 @@ def web_rows(
             o.inclination_deg,
             r.raan_deg_reconstructed,
             r.argument_of_perigee_deg_reconstructed,
-            r.mean_anomaly_deg_reconstructed
+            r.mean_anomaly_deg_reconstructed,
+            NULLIF(TRIM(COALESCE(s.parent, '')), '-'),
+            o.separation_date_precision,
+            o.separation_date_uncertain,
+            o.state_code
         FROM objects o
         LEFT JOIN reconstruction_parameters r USING (jcat)
+        LEFT JOIN source_rows s USING (jcat)
         WHERE o.primary_body = 'Earth'
           AND o.object_class IN ('payload', 'rocket_body', 'component', 'debris')
         ORDER BY o.jcat
@@ -292,6 +307,10 @@ def web_rows(
         package_raan,
         package_argument_of_perigee,
         package_mean_anomaly,
+        parent_jcat,
+        separation_date_precision,
+        separation_date_uncertain,
+        state_code,
     ) in query_rows:
         class_counts[object_class] += 1
         first_year, last_year = ranges.get(jcat, (None, None))
@@ -341,11 +360,39 @@ def web_rows(
                 apogee_km,
                 inclination_deg,
                 *angles,
+                parent_jcat,
+                separation_date_precision,
+                1 if separation_date_uncertain else 0,
+                state_code,
             ]
         )
 
+    # A parent is only useful if the consumer can look it up. Drop references to
+    # rows outside this export rather than shipping a link that resolves to
+    # nothing, and count what survives so the loss is visible rather than
+    # discovered later.
+    parent_index = ROW_SCHEMA.index("parentJcat")
+    class_index = ROW_SCHEMA.index("objectClassCode")
+    known = {row[0] for row in rows}
+    declared_parent = 0
+    resolved_parent = 0
+    resolved_debris_parent = 0
+    for row in rows:
+        if not row[parent_index]:
+            continue
+        declared_parent += 1
+        if row[parent_index] in known:
+            resolved_parent += 1
+            if row[class_index] == CLASS_CODES["debris"]:
+                resolved_debris_parent += 1
+        else:
+            row[parent_index] = None
+
     return rows, {
         "earthAssociatedSupportedClassCount": len(rows),
+        "declaredParentCount": declared_parent,
+        "resolvedParentCount": resolved_parent,
+        "resolvedDebrisParentCount": resolved_debris_parent,
         "latestPackageReconstructionParameterCount": latest_package_angles,
         "historicalReconstructionParameterCount": historical_derived_angles,
         "allHistoryReconstructionParameterCount":

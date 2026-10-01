@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const projectRoot = resolve(import.meta.dirname, "..");
@@ -11,6 +12,7 @@ const trackedArtifactPath = resolve(
   projectRoot,
   "src/data/generated/satelliteCatalog.web.json",
 );
+const run = promisify(execFile);
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -22,15 +24,22 @@ describe("canonical satellite web export", () => {
     const generatedPath = join(directory, "satelliteCatalog.web.json");
 
     try {
-      const build = spawnSync(
-        "python3",
-        [scriptPath, "--output", generatedPath],
-        {
+      let build;
+      try {
+        const output = await run("python3", [scriptPath, "--output", generatedPath], {
           cwd: projectRoot,
           encoding: "utf8",
           timeout: 180_000,
-        },
-      );
+          maxBuffer: 1 << 24,
+        });
+        build = { status: 0, stdout: output.stdout, stderr: output.stderr };
+      } catch (error) {
+        build = {
+          status: typeof error.code === "number" ? error.code : 1,
+          stdout: error.stdout ?? "",
+          stderr: `${error.stderr ?? ""}${error.message ? `\n${error.message}` : ""}`,
+        };
+      }
       expect(
         build.status,
         `${build.stdout}\n${build.stderr}`,

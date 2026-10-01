@@ -126,6 +126,32 @@ The runner in `scripts/review/run-review.mjs` owns the invariant pipeline: build
 browser configuration, state settling, WebP capture, MP4 encoding, metadata generation, and cleanup.
 Workspace-specific behavior lives in `scripts/review/scenarios/`.
 
+Tracker's empty-night recovery has its own `tracker-recovery` scenario rather than being inferred
+from the general Tracker tour. It supplies a provider-shaped all-night cloud forecast plus fresh,
+high-confidence obstruction evidence for each exact target direction, then exercises later-tonight,
+tomorrow, bounded-horizon Upcoming fallback, observer invalidation, and forecast invalidation through
+the production planner. The fixture is installed before navigation and exists only in that review
+context; ordinary Tracker URLs cannot activate it.
+
+Recovery screenshots use a 390 × 844 phone viewport. Their ordered recommendation identities must
+begin with the future opportunity (a forecast-backed chance or an anticipation-worthy Upcoming
+event), followed by the compact current-night context. The fallback check deliberately includes an
+earlier routine lunar phase and proves that the stronger authoritative conjunction is promoted
+instead.
+
+Each recovery capture records `recoveryReason`, `recoveryKind`, `recoveryDate`, `recoveryTarget`,
+`recoveryText`, the shell and recovery observer identities, the current-night plan identity, the
+recovery planning-request key, and the complete ordered recommendation identities. Fixture provenance is
+stored with the captured state so a controlled cloud field cannot be mistaken for live weather.
+
+The main Tracker scenario proves Map in north-up 2D, the same state on the real DEM with a 55–70°
+3D pitch, and Tonight with the full production ranking and Upcoming gateway. It captures object
+detail both collapsed and expanded. Desktop and unsupported handheld states prove that Sky, Find in
+Sky and generic object-map actions are absent and that no protected APIs are called. A 390 × 844
+phone and an iPadOS-style tablet at 820 × 1180 and 1180 × 820 prove that the original **Find in Sky**
+tap initiates camera/orientation work immediately, with no redundant Start/Guide/Lock control. The
+scenario does not synthesize sensor motion or claim a physical target lock.
+
 A scenario exports:
 
 - `id` and `title`;

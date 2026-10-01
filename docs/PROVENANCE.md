@@ -42,7 +42,7 @@ The inventory cites the authoritative publisher or upstream license for each ret
   credits;
 - Natural Earth's official terms, which expressly permit modification and electronic
   dissemination of its public-domain map data;
-- the HYG Database repository's CC BY-SA 4.0 license at the recorded immutable commit;
+- the BSC5P catalogue identity, exact HEASARC query/checksum, HEASARC free-use policy, and requested acknowledgement;
 - GCAT's official publication page and CC BY 4.0 statement, together with the exact package,
   immutable raw, SQLite, generated browser-artifact, and transformation checksums;
 - NASA/JPL Horizons and U.S. Naval Observatory API documentation for the scientific fixture;

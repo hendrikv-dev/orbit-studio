@@ -1,0 +1,35 @@
+Orbit Studio Tracker
+
+Copyright (c) 2026 Hendrik Verweij. All rights reserved.
+
+This licence covers the files listed under "Tracker" in LICENSES.md. Everything
+else in this repository is offered under the MIT License in LICENSE.
+
+No permission is granted to copy, modify, distribute, sublicense, or make
+derivative works of the covered files, except as follows:
+
+1. Reading the source, running it locally, and using it to understand or verify
+   what the published product does are expressly permitted. This repository is
+   public because a product that makes claims about the sky should be checkable,
+   and that remains true.
+
+2. Contributions submitted to this repository are welcome and are licensed to
+   the copyright holder for use in the product. Submitting a contribution does
+   not place it under the MIT License.
+
+3. Versions of these files published previously under the MIT License remain
+   available under the MIT License at the commits where they were published.
+   This licence is not retroactive and withdraws no permission already granted.
+   Nothing in it reaches backwards into a release that has already been made.
+
+4. Third-party material incorporated in these files keeps its own licence and
+   its own required attribution, which this licence neither replaces nor
+   restricts. See THIRD_PARTY_NOTICES.md, ATTRIBUTION.md and
+   provenance/inventory.json.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

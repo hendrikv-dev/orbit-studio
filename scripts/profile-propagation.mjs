@@ -10,7 +10,7 @@ try {
   const propagation = await server.ssrLoadModule("/src/lib/propagation.ts");
   const coordinates = await server.ssrLoadModule("/src/rendering/coordinates.ts");
   const kepler = await server.ssrLoadModule("/src/physics/kepler.ts");
-  const stars = await server.ssrLoadModule("/src/data/stars/hygBrightStars.v41.json");
+  const stars = await server.ssrLoadModule("/src/data/stars/bsc5pBrightStars.json");
   const snapshot = catalog.explorerSnapshots[catalog.explorerSnapshots.length - 1];
   const createStarted = performance.now();
   const scenario = catalog.createExplorerScenario(snapshot);
