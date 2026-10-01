@@ -16,15 +16,27 @@ import {
 
 import { formatClockTime, type PlaceClock } from "../../lib/localTime";
 import {
+  calibratedDevicePose,
+  devicePoseFromOrientation,
+  devicePoseLookingAt,
+  DevicePoseStabilizer,
+  edgeCueForProjection,
+  horizontalToEnu,
+  normalizeDegrees,
+  pointingFromDevicePose,
+  poseWithAbsoluteHeading,
+  projectEnuDirection,
+  type DevicePose,
+} from "../../astronomy/topocentricSky";
+import {
   alignmentFor,
-  applyCalibration,
   calibrationFromAlignment,
   canRequestSkyFinderPermission,
   detectSkyFinderCapabilities,
-  normalizeDegrees,
-  pointingFromDeviceOrientation,
+  describeTargetAltitude,
+  guidanceForSkyTarget,
+  nextRiseForSkyFinderTarget,
   positionForSkyFinderTarget,
-  signedAngleDifference,
   skyFinderExperience,
   supportsLiveSkyFinder,
   type FinderCalibration,
@@ -34,7 +46,6 @@ import {
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 import type { ExpectedSkyContext } from "../../data/tracker/skyFinderContext";
-import { projectSkyField } from "../../data/tracker/skyFieldProjection";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "../../data/tracker/skyMarker";
 
 type PermissionPhase = "idle" | "requesting" | "granted" | "denied" | "unavailable";
@@ -151,10 +162,6 @@ function screenAngle(): number {
   return typeof legacy === "number" ? legacy : 0;
 }
 
-function smoothAngle(previous: number, next: number, strength = 0.22): number {
-  return normalizeDegrees(previous + signedAngleDifference(previous, next) * strength);
-}
-
 function qualityLabel(quality: PointingQuality): string {
   switch (quality) {
     case "good":
@@ -190,18 +197,6 @@ function SkyMarkerGlyph({ kind, label }: { kind: SkyMarkerKind; label?: string }
   );
 }
 
-function movementGuidance(horizontalDeg: number, verticalDeg: number): string {
-  const horizontalMagnitude = Math.abs(horizontalDeg);
-  const verticalMagnitude = Math.abs(verticalDeg);
-  if (horizontalMagnitude < 3 && verticalMagnitude < 3) return "Almost there";
-  if (horizontalMagnitude >= verticalMagnitude) {
-    const qualifier = horizontalMagnitude < 15 ? " slightly" : "";
-    return `Move${qualifier} ${horizontalDeg < 0 ? "left" : "right"}`;
-  }
-  const qualifier = verticalMagnitude < 15 ? " slightly" : "";
-  return verticalDeg < 0 ? `Lower phone${qualifier}` : `Raise phone${qualifier}`;
-}
-
 function cardinalDirection(azimuthDeg: number): string {
   const labels = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
   return labels[Math.round(normalizeDegrees(azimuthDeg) / 45) % labels.length];
@@ -225,6 +220,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const [astronomyNow, setAstronomyNow] = useState(() => new Date());
   const [sensorsEnabled, setSensorsEnabled] = useState(false);
   const [sensorPermission, setSensorPermission] = useState<PermissionPhase>("idle");
+  const [rawPose, setRawPose] = useState<DevicePose | null>(null);
   const [rawPointing, setRawPointing] = useState<PhonePointing | null>(null);
   const [sensorQuality, setSensorQuality] = useState<PointingQuality>("unavailable");
   const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
@@ -236,7 +232,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const [expectedContext, setExpectedContext] = useState<ExpectedSkyContext | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
-  const smoothed = useRef<PhonePointing | null>(null);
+  const stabilizer = useRef(new DevicePoseStabilizer());
   const lastAbsolute = useRef(0);
   const deviceExperience = skyFinderExperience(
     capabilities,
@@ -394,7 +390,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       if (!isAbsoluteEvent && Date.now() - lastAbsolute.current < 1_000) return;
       if (isAbsoluteEvent) lastAbsolute.current = Date.now();
 
-      let next = pointingFromDeviceOrientation(
+      let nextPose = devicePoseFromOrientation(
         event.alpha,
         event.beta,
         event.gamma,
@@ -402,17 +398,13 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       );
       const safariHeading = event.webkitCompassHeading;
       if (typeof safariHeading === "number" && Number.isFinite(safariHeading)) {
-        next = { ...next, azimuthDeg: normalizeDegrees(safariHeading) };
+        // Safari's magnetic/true heading corrects the complete camera attitude.
+        // Replacing only azimuth would detach every other celestial overlay.
+        nextPose = poseWithAbsoluteHeading(nextPose, safariHeading);
       }
-      const previous = smoothed.current;
-      const filtered = previous
-        ? {
-            azimuthDeg: smoothAngle(previous.azimuthDeg, next.azimuthDeg),
-            altitudeDeg: previous.altitudeDeg + (next.altitudeDeg - previous.altitudeDeg) * 0.22,
-          }
-        : next;
-      smoothed.current = filtered;
-      setRawPointing(filtered);
+      const filteredPose = stabilizer.current.update(nextPose, event.timeStamp || performance.now());
+      setRawPose(filteredPose);
+      setRawPointing(pointingFromDevicePose(filteredPose));
 
       const accuracy = event.webkitCompassAccuracy;
       setHeadingAccuracy(typeof accuracy === "number" && accuracy >= 0 ? accuracy : null);
@@ -428,13 +420,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     return () => {
       window.removeEventListener("deviceorientationabsolute", update, true);
       window.removeEventListener("deviceorientation", update, true);
+      stabilizer.current.reset();
     };
   }, [sensorsEnabled]);
 
-  const pointing = useMemo(
-    () => (rawPointing ? applyCalibration(rawPointing, calibration) : null),
-    [calibration, rawPointing],
+  const pose = useMemo(
+    () => (rawPose ? calibratedDevicePose(rawPose, calibration) : null),
+    [calibration, rawPose],
   );
+  const pointing = useMemo(() => (pose ? pointingFromDevicePose(pose) : null), [pose]);
   const contextAzimuth = pointing
     ? Math.round(pointing.azimuthDeg / 3) * 3
     : targetPosition?.azimuthDeg ?? null;
@@ -448,6 +442,10 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         : { azimuthDeg: normalizeDegrees(contextAzimuth), altitudeDeg: contextAltitude },
     [contextAltitude, contextAzimuth],
   );
+  const displayPose = useMemo(
+    () => pose ?? (contextCentre ? devicePoseLookingAt(contextCentre) : null),
+    [contextCentre, pose],
+  );
 
   useEffect(() => {
     if (!contextCentre) {
@@ -457,7 +455,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     let cancelled = false;
     // The catalog and conventional figure data stay in Sky's lazy chunk. The
     // three-degree bucket follows the live pointing field without recomputing
-    // 1,839 catalog stars on every noisy sensor event.
+    // 8,404 catalog stars on every noisy sensor event.
     void import("../../data/tracker/skyFinderContext").then(({ expectedSkyContext }) => {
       if (cancelled) return;
       setExpectedContext(expectedSkyContext(target, observer, solutionAt, contextCentre, references));
@@ -467,6 +465,32 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     };
   }, [contextCentre, observer, references, solutionAt, target]);
 
+  const projectedContext = useMemo(() => {
+    if (!expectedContext || !displayPose) return null;
+    const stars = expectedContext.stars.flatMap((star) => {
+      const projected = projectEnuDirection(star.direction, displayPose);
+      return projected.inField ? [{ ...star, ...projected }] : [];
+    });
+    const lines = expectedContext.lines.flatMap((line) => {
+      const start = projectEnuDirection(line.start, displayPose);
+      const end = projectEnuDirection(line.end, displayPose);
+      if (!start.inFront || !end.inFront) return [];
+      const withinExtendedField = [start, end].some(
+        (point) => point.xPercent >= -20 && point.xPercent <= 120 && point.yPercent >= -20 && point.yPercent <= 120,
+      );
+      return withinExtendedField ? [{ ...line, start, end }] : [];
+    });
+    const labels = expectedContext.labels.flatMap((label) => {
+      const projected = projectEnuDirection(label.direction, displayPose);
+      return projected.inField ? [{ ...label, ...projected }] : [];
+    });
+    const objects = expectedContext.objects.flatMap((object) => {
+      const projected = projectEnuDirection(object.direction, displayPose);
+      return projected.inField ? [{ ...object, ...projected }] : [];
+    });
+    return { stars, lines, labels, objects };
+  }, [displayPose, expectedContext]);
+
   const effectiveQuality: PointingQuality = calibration && sensorQuality === "poor" ? "fair" : sensorQuality;
   const alignment = useMemo(
     () =>
@@ -474,18 +498,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     [effectiveQuality, pointing, target.alignmentToleranceDeg, targetPosition],
   );
 
-  const horizontalError =
-    pointing && targetPosition
-      ? signedAngleDifference(pointing.azimuthDeg, targetPosition.azimuthDeg)
-      : null;
-  const verticalError =
-    pointing && targetPosition ? targetPosition.altitudeDeg - pointing.altitudeDeg : null;
-  const projectedTarget = pointing && targetPosition
-    ? projectSkyField(pointing, targetPosition)
+  const projectedTarget = displayPose && targetPosition
+    ? projectEnuDirection(horizontalToEnu(targetPosition), displayPose)
+    : null;
+  const targetEdgeCue = projectedTarget && !projectedTarget.inField
+    ? edgeCueForProjection(projectedTarget)
     : null;
   const reticleStyle = {
-    "--finder-x": `${Math.max(-46, Math.min(46, (projectedTarget?.xPercent ?? 50) - 50))}%`,
-    "--finder-y": `${Math.max(-42, Math.min(42, (projectedTarget?.yPercent ?? 50) - 50))}%`,
+    "--finder-x": `${(projectedTarget?.xPercent ?? 50) - 50}%`,
+    "--finder-y": `${(projectedTarget?.yPercent ?? 50) - 50}%`,
     "--finder-radius": `${Math.max(28, Math.min(64, 28 + target.angularRadiusDeg * 8))}px`,
   } as CSSProperties;
 
@@ -504,6 +525,13 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   };
 
   const aboveHorizon = targetPosition !== null && targetPosition.altitudeDeg > 0;
+  const nextRiseUtc = useMemo(
+    () =>
+      targetPosition && targetPosition.altitudeDeg < 0
+        ? nextRiseForSkyFinderTarget(target, observer, astronomyNow)
+        : null,
+    [astronomyNow, observer, target, targetPosition],
+  );
   const noSensors = !capabilities.orientation || sensorPermission === "denied" || sensorPermission === "unavailable";
   const finderAvailability =
     targetPosition === null
@@ -520,19 +548,26 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     alignment.separationDeg === null
       ? null
       : Math.round(alignment.separationDeg / precision) * precision;
-  const guidanceTitle = alignment.aligned
-    ? `${target.title} is here`
-    : horizontalError !== null && verticalError !== null
-      ? movementGuidance(horizontalError, verticalError)
-      : noSensors && targetPosition
-        ? `Face ${cardinalDirection(targetPosition.azimuthDeg)}`
-        : "Preparing live guidance";
-  const guidanceDetail = alignment.aligned
-    ? "On target"
+  const guidance = guidanceForSkyTarget(
+    target.title,
+    pointing,
+    targetPosition,
+    target.alignmentToleranceDeg,
+    effectiveQuality,
+  );
+  const guidanceTitle = guidance.kind === "direction" && !pointing && targetPosition
+    ? `Face ${cardinalDirection(targetPosition.azimuthDeg)}`
+    : guidance.instruction;
+  const guidanceDetail = guidance.kind === "below-horizon"
+    ? nextRiseUtc
+      ? `Rises ${formatClockTime(nextRiseUtc, clock)}`
+      : "Not visible right now"
+    : guidance.kind === "aligned"
+      ? "On target"
     : roundedSeparation !== null
       ? `${roundedSeparation}° away`
       : targetPosition
-        ? `${Math.round(targetPosition.azimuthDeg)}° · ${Math.round(targetPosition.altitudeDeg)}° high`
+        ? `${Math.round(targetPosition.azimuthDeg)}° · ${describeTargetAltitude(targetPosition.altitudeDeg)}`
         : "Position unavailable";
   const targetMarker = skyMarkerKindForTarget(target);
 
@@ -540,6 +575,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     <section
       className="tk-sky-finder"
       data-camera={cameraPhase === "active" ? "active" : "off"}
+      data-visual-base={cameraPhase === "active" ? "camera" : "rendered-fallback"}
       data-aligned={alignment.aligned ? "true" : "false"}
       data-mode={targetPosition ? "live" : "unavailable"}
       data-device-class={capabilities.deviceClass}
@@ -550,10 +586,10 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       data-pointing-quality={effectiveQuality}
       data-visual-verification="not-attempted"
       data-expected-constellation={expectedContext?.constellation?.symbol}
-      data-expected-stars={expectedContext?.stars.length ?? 0}
-      data-expected-lines={expectedContext?.lines.length ?? 0}
-      data-expected-labels={expectedContext?.labels.length ?? 0}
-      data-expected-objects={expectedContext?.objects.length ?? 0}
+      data-expected-stars={projectedContext?.stars.length ?? 0}
+      data-expected-lines={projectedContext?.lines.length ?? 0}
+      data-expected-labels={projectedContext?.labels.length ?? 0}
+      data-expected-objects={projectedContext?.objects.length ?? 0}
       aria-label={`Find ${target.title} in the sky`}
     >
       <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
@@ -580,43 +616,32 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
             aria-label={cameraPhase === "active" ? "Turn camera off" : "Turn camera on"}
             disabled={cameraPhase === "requesting"}
           >
-            {cameraPhase === "active" ? <CameraOff size={20} aria-hidden /> : <Camera size={20} aria-hidden />}
+            {cameraPhase === "active" ? <Camera size={20} aria-hidden /> : <CameraOff size={20} aria-hidden />}
           </button>
         ) : <span aria-hidden />}
       </header>
 
       <div className="tk-finder-stage" style={reticleStyle}>
-        {expectedContext ? (
+        {projectedContext ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
               <g className="tk-finder-constellation-lines">
-                {expectedContext.lines.map((line) => (
+                {projectedContext.lines.map((line) => (
                   <line
                     key={line.id}
-                    x1={line.points[0].xPercent}
-                    y1={line.points[0].yPercent}
-                    x2={line.points[1].xPercent}
-                    y2={line.points[1].yPercent}
+                    x1={line.start.xPercent}
+                    y1={line.start.yPercent}
+                    x2={line.end.xPercent}
+                    y2={line.end.yPercent}
                     data-primary={line.primary ? "true" : undefined}
                     data-constellation={line.constellation}
+                    data-start-star={line.startStarId}
+                    data-end-star={line.endStarId}
                   />
                 ))}
               </g>
-              {expectedContext.stars.map((star) => (
-                <g key={star.id} className="tk-finder-star">
-                  <circle
-                    cx={star.xPercent}
-                    cy={star.yPercent}
-                    r={star.radiusPx / 2}
-                    data-target-constellation={star.inTargetConstellation ? "true" : undefined}
-                  />
-                  {star.label ? (
-                    <text className="tk-finder-star-label" x={star.xPercent + 1.2} y={star.yPercent - 1.2}>{star.label}</text>
-                  ) : null}
-                </g>
-              ))}
               <g className="tk-finder-constellation-labels">
-                {expectedContext.labels.map((label) => (
+                {projectedContext.labels.map((label) => (
                   <text
                     key={label.symbol}
                     x={label.xPercent}
@@ -628,7 +653,24 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
                 ))}
               </g>
             </svg>
-            {expectedContext.objects.map((object) => (
+            {projectedContext.stars.map((star) => (
+              <span
+                key={star.id}
+                className="tk-finder-star"
+                data-target-constellation={star.inTargetConstellation ? "true" : undefined}
+                style={{
+                  left: `${star.xPercent}%`,
+                  top: `${star.yPercent}%`,
+                  "--star-size": `${star.radiusPx}px`,
+                  "--star-color": star.color,
+                  "--star-opacity": 0.32 + star.luminance * 0.68,
+                } as CSSProperties}
+              >
+                <i />
+                {star.label ? <small>{star.label}</small> : null}
+              </span>
+            ))}
+            {projectedContext.objects.map((object) => (
               <span
                 key={object.id}
                 className="tk-finder-object"
@@ -644,7 +686,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <span>{expectedContext?.constellation?.name ?? "Local sky"}</span>
           {targetPosition ? (
             <strong>
-              {cardinalDirection(targetPosition.azimuthDeg)} · {Math.round(targetPosition.altitudeDeg)}° high
+              {cardinalDirection(targetPosition.azimuthDeg)} · {describeTargetAltitude(targetPosition.altitudeDeg)}
             </strong>
           ) : null}
         </div>
@@ -652,10 +694,20 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           <span>{targetPosition ? `${Math.round(targetPosition.azimuthDeg)}°` : "—"}</span>
           <strong>{targetPosition ? cardinalDirection(targetPosition.azimuthDeg) : "Horizon"}</strong>
         </div>
-        {targetPosition ? (
+        {aboveHorizon && projectedTarget?.inField ? (
           <div className="tk-finder-lock" data-shape={target.shape} data-marker={targetMarker} aria-hidden>
             <SkyMarkerGlyph kind={targetMarker} />
             <em>{target.title}</em>
+          </div>
+        ) : null}
+        {aboveHorizon && targetEdgeCue ? (
+          <div
+            className="tk-finder-edge-cue"
+            style={{ left: `${targetEdgeCue.xPercent}%`, top: `${targetEdgeCue.yPercent}%` }}
+            aria-hidden
+          >
+            <SkyMarkerGlyph kind={targetMarker} />
+            <span>{guidanceTitle}</span>
           </div>
         ) : null}
 
@@ -665,13 +717,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
             <small>Target</small>
             <strong>{target.title}</strong>
             <em>
-              {targetPosition
-                ? `${cardinalDirection(targetPosition.azimuthDeg)} · ${Math.round(targetPosition.altitudeDeg)}° high`
+              {!aboveHorizon && nextRiseUtc
+                ? guidanceDetail
+                : targetPosition
+                ? `${cardinalDirection(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}`
                 : shapeLabel(target)}
             </em>
           </span>
           <b data-aligned={alignment.aligned ? "true" : undefined}>
-            {alignment.aligned ? "On target" : equipmentLabel(target)}
+            {alignment.aligned ? "On target" : !aboveHorizon ? "Below horizon" : equipmentLabel(target)}
           </b>
         </div>
       </div>

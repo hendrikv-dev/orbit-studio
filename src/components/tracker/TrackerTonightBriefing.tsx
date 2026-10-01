@@ -27,6 +27,7 @@ function equipmentContext(card: RailCard, configured: EquipmentRule): string {
   if (needed === "binoculars") return "Binoculars recommended";
   if (configured === "telescope") return "Easy to find · telescope adds detail";
   if (configured === "binoculars") return "Easy to find · binoculars add detail";
+  if (configured === "imaging") return "Well placed for imaging";
   return "Naked eye";
 }
 

@@ -14,17 +14,18 @@ describe("Sky field projection", () => {
     )).toEqual(expect.objectContaining({ xPercent: 50, yPercent: 0, inField: true }));
   });
 
-  it("contracts azimuth toward the zenith and handles the north wrap", () => {
+  it("uses perspective on the celestial sphere near the zenith and handles the north wrap", () => {
     const high = projectSkyField(
       { azimuthDeg: 0, altitudeDeg: 60 },
       { azimuthDeg: 82, altitudeDeg: 60 },
     );
-    expect(high.xPercent).toBeCloseTo(100, 8);
+    expect(high.xPercent).toBeCloseTo(86.2889546, 6);
+    expect(high.inField).toBe(true);
 
     const wrapped = projectSkyField(
       { azimuthDeg: 350, altitudeDeg: 0 },
       { azimuthDeg: 10, altitudeDeg: 0 },
     );
-    expect(wrapped.xPercent).toBeCloseTo(74.3902439, 6);
+    expect(wrapped.xPercent).toBeCloseTo(70.9349929, 6);
   });
 });

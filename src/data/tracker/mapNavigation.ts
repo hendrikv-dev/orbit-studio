@@ -131,7 +131,7 @@ export interface TrackerMapLocation {
    * answer it was showing, and because a reader who has said "telescope" should
    * not have to say it again after a reload.
    */
-  equipment: "eyes" | "binoculars" | "telescope";
+  equipment: "eyes" | "binoculars" | "telescope" | "imaging";
 }
 
 export const TRACKER_APP_PARAM = "app";
@@ -272,7 +272,7 @@ export function parseMapLocation(search: string): TrackerMapLocation {
   // The eyes unless the reader says otherwise, which is the default the
   // product's own question implies.
   const equipment = params.get("with");
-  if (equipment === "binoculars" || equipment === "telescope") location.equipment = equipment;
+  if (equipment === "binoculars" || equipment === "telescope" || equipment === "imaging") location.equipment = equipment;
 
   const drill = params.get("drill");
   if (drill && DRILLS.has(drill)) location.drill = drill as TrackerMapLocation["drill"];

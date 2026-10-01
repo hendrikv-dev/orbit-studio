@@ -1,0 +1,17 @@
+{
+  "generatedAtUtc": "2026-09-30T00:00:00.000Z",
+  "source": "NASA/JPL Horizons observer tables, apparent airless azimuth/elevation, queried through the official API",
+  "sourceDocumentation": "https://ssd.jpl.nasa.gov/horizons/manual.html#observer-table",
+  "observer": {
+    "latitudeDeg": 45.52,
+    "longitudeDeg": -122.68,
+    "elevationKm": 0
+  },
+  "timestampUtc": "2026-09-26T04:00:00.000Z",
+  "frame": "topocentric apparent with Earth refraction model; azimuth clockwise from true north; elevation above the local horizon",
+  "vectors": [
+    { "body": "Sun", "horizonsCommand": "Sun", "azimuthDeg": 291.092330, "altitudeDeg": -20.445828 },
+    { "body": "Moon", "horizonsCommand": "301", "azimuthDeg": 117.333428, "altitudeDeg": 24.382893 },
+    { "body": "Saturn", "horizonsCommand": "699", "azimuthDeg": 103.175854, "altitudeDeg": 15.729475 }
+  ]
+}

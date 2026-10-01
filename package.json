@@ -40,7 +40,7 @@
     "provenance:validate": "node scripts/provenance/validate-provenance.mjs",
     "licenses:validate": "node scripts/provenance/dependency-licenses.mjs --check",
     "test": "vitest run",
-    "stars:build": "node scripts/build-hyg-bright-stars.mjs",
+    "stars:build": "node scripts/build-bsc5p-bright-stars.mjs",
     "science:references": "node scripts/fetch-celestial-reference.mjs",
     "science:report": "node scripts/report-celestial-validation.mjs",
     "mobile-sheets:verify": "node scripts/verify/mobile-sheet-contract.mjs",

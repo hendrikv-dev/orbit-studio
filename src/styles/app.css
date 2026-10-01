@@ -17422,6 +17422,41 @@ button.primary,
   font-size: 0.74rem;
 }
 .tk-equipment-check { color: var(--tk-accent, #7c8cf8); }
+.tk-equipment-setup {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 8px 2px;
+  border-top: 1px solid rgba(126, 152, 190, 0.12);
+  color: var(--tk-ink-dim, #a9b6cd);
+  font-size: 0.72rem;
+}
+.tk-equipment-setup > p { margin: 0; line-height: 1.4; }
+.tk-equipment-setup label { display: grid; gap: 4px; }
+.tk-equipment-setup select,
+.tk-equipment-setup input {
+  min-height: 36px;
+  border: 1px solid rgba(126, 152, 190, 0.18);
+  border-radius: 8px;
+  padding: 0 9px;
+  background: rgba(5, 9, 17, 0.72);
+  color: var(--tk-ink, #e8ecf6);
+  font: inherit;
+}
+.tk-equipment-configure,
+.tk-equipment-save {
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(126, 152, 190, 0.12);
+  color: var(--tk-ink, #e8ecf6);
+  font: 500 0.75rem/1 var(--tk-body);
+  cursor: pointer;
+}
+.tk-equipment-save { background: #5a63f0; color: white; }
+.tk-equipment-form { display: grid; gap: 8px; max-height: min(48dvh, 390px); overflow-y: auto; padding-right: 2px; }
+.tk-equipment-form .tk-equipment-check-row { display: flex; align-items: center; gap: 8px; }
+.tk-equipment-form .tk-equipment-check-row input { min-height: auto; }
 @media (max-width: 720px) {
   /* The label goes; the icon and the target stay the size they were. */
   .tk-equipment-current { display: none; }
@@ -18486,12 +18521,6 @@ button.primary,
   opacity: 0.78;
 }
 .tk-finder-expected-field svg { width: 100%; height: 100%; overflow: visible; }
-.tk-finder-expected-field circle { fill: rgba(230, 236, 249, 0.66); vector-effect: non-scaling-stroke; }
-.tk-finder-expected-field circle[data-target-constellation="true"] {
-  fill: rgba(204, 213, 255, 0.96);
-  stroke: rgba(139, 156, 255, 0.28);
-  stroke-width: 0.35;
-}
 .tk-finder-horizon {
   position: absolute;
   top: 65%;
@@ -19175,11 +19204,6 @@ button.primary,
   transition: opacity 240ms ease, filter 240ms ease;
 }
 .tk-sky-finder[data-camera="active"] .tk-finder-expected-field { opacity: 0.48; }
-.tk-finder-expected-field circle { fill: rgba(244, 247, 255, 0.92); }
-.tk-finder-expected-field circle[data-target-constellation="true"] {
-  fill: #dce4ff;
-  stroke: rgba(126, 151, 255, 0.42);
-}
 .tk-finder-expected-field text {
   fill: rgba(194, 207, 231, 0.66);
   font: 1.55px var(--tk-body);
@@ -19634,15 +19658,35 @@ button.primary,
   stroke: rgba(153, 176, 244, 0.58);
   stroke-width: 0.42;
 }
-.tk-finder-expected-field .tk-finder-star circle { fill: rgba(239, 244, 255, 0.9); }
-.tk-finder-expected-field .tk-finder-star circle[data-target-constellation="true"] {
-  fill: #f7f8ff;
-  stroke: rgba(145, 170, 255, 0.52);
+.tk-finder-star {
+  position: absolute;
+  z-index: 1;
+  width: var(--star-size);
+  height: var(--star-size);
+  transform: translate(-50%, -50%);
 }
-.tk-finder-expected-field .tk-finder-star-label {
-  fill: rgba(216, 225, 243, 0.78);
-  font: 1.62px var(--tk-body);
+.tk-finder-star > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--star-color);
+  box-shadow: 0 0 calc(var(--star-size) * 2.2) color-mix(in srgb, var(--star-color) 42%, transparent);
+  opacity: var(--star-opacity);
+}
+.tk-finder-star[data-target-constellation="true"] > i {
+  outline: 1px solid rgba(145, 170, 255, 0.22);
+  outline-offset: 1px;
+}
+.tk-finder-star > small {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: -8px;
+  color: rgba(216, 225, 243, 0.78);
+  font: 500 0.58rem/1 var(--tk-body);
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 3px rgba(2, 5, 12, 0.95);
+  white-space: nowrap;
 }
 .tk-finder-constellation-labels text {
   fill: rgba(141, 164, 214, 0.68);
@@ -19742,6 +19786,25 @@ button.primary,
   transform: translate(-50%, -50%);
 }
 .tk-finder-lock em { top: calc(100% + 8px); }
+.tk-finder-edge-cue {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: #e6dbbf;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.72));
+}
+.tk-finder-edge-cue::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.tk-finder-edge-cue span { font-size: 0.58rem; white-space: nowrap; }
 .tk-finder-target-card {
   position: absolute;
   right: 16px;
@@ -19773,6 +19836,16 @@ button.primary,
   text-align: right;
 }
 .tk-finder-target-card b[data-aligned="true"] { color: #a8e6cf; }
+.tk-telescope-guidance {
+  display: grid;
+  gap: 4px;
+  margin-top: 13px;
+  border-left: 2px solid rgba(142, 158, 236, 0.56);
+  padding: 2px 0 2px 12px;
+}
+.tk-telescope-guidance small { color: #8e9bb0; }
+.tk-telescope-guidance strong { color: #e8ecf6; font: 520 0.88rem/1.25 var(--tk-body); }
+.tk-telescope-guidance p { margin: 0; color: #a8b3c5; font-size: 0.74rem; line-height: 1.45; }
 .tk-finder-controls {
   max-height: min(18dvh, 136px);
   padding-top: 5px;

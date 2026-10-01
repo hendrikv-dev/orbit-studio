@@ -59,6 +59,12 @@ describe("what a rule admits", () => {
     expect(admits("telescope", "telescope")).toBe(true);
     expect(admits("telescope", "eyes")).toBe(true);
   });
+
+  it("keeps imaging in the same product with telescope-tier eligibility", () => {
+    expect(admits("imaging", "eyes")).toBe(true);
+    expect(admits("imaging", "binoculars")).toBe(true);
+    expect(admits("imaging", "telescope")).toBe(true);
+  });
 });
 
 describe("reading a target's own numbers", () => {

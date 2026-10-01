@@ -979,6 +979,34 @@ async function run() {
       await phone.locator(".tk-callout").waitFor({ state: "detached", timeout: 5_000 });
     }
 
+    /* --- viewing capability ---------------------------------------------
+     *
+     * The selector is optional, but it changes the recommendation authority.
+     * Its compact mobile trigger therefore has to be keyboard reachable, the
+     * four choices have to expose state, and closing it has to return focus to
+     * the trigger rather than dropping the reader at the document body.
+     */
+    const viewingTrigger = phone.getByRole("button", { name: /Viewing: Naked eye/ });
+    await viewingTrigger.focus();
+    await phone.keyboard.press("Enter");
+    await phone.waitForSelector('.tk-equipment-panel[role="dialog"]');
+    await scan(phone, "viewing capability selector on a phone");
+    expect(
+      (await phone.locator('.tk-equipment-panel [role="switch"]').count()) === 4,
+      "the Viewing selector should expose four capability choices",
+    );
+    await phone.keyboard.press("Tab");
+    expect(
+      await phone.evaluate(() => document.activeElement?.getAttribute("role") === "switch"),
+      "Tab from the Viewing trigger should enter its capability choices",
+    );
+    await phone.keyboard.press("Escape");
+    await phone.locator(".tk-equipment-panel").waitFor({ state: "detached" });
+    expect(
+      await viewingTrigger.evaluate((element) => element === document.activeElement),
+      "closing the Viewing selector should restore focus to its trigger",
+    );
+
     await phone.getByRole("button", { name: "Tonight", exact: true }).click();
     await phone.waitForSelector(".tk-tonight-surface", { timeout: 30_000 });
     expect(

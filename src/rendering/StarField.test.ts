@@ -20,27 +20,27 @@ function expectedSceneDirection(raDeg: number, decDeg: number): Vector3 {
 
 function namedStar(name: string) {
   const star = starCatalogPointsForQuality("high").find((candidate) => candidate.name === name);
-  if (!star) throw new Error(`Missing HYG star ${name}`);
+  if (!star) throw new Error(`Missing BSC5P star ${name}`);
   return star;
 }
 
-describe("authentic HYG star-layer geometry", () => {
-  it("renders only the real magnitude-limited HYG v4.1 subset", () => {
+describe("authentic BSC5P star-layer geometry", () => {
+  it("renders only the real magnitude-limited BSC5P subset", () => {
     const stars = starCatalogPointsForQuality("high");
-    expect(stars).toHaveLength(1839);
+    expect(stars).toHaveLength(1832);
     expect(stars.every((star) => star.id > 0 && star.magnitude <= 5.1)).toBe(true);
     expect(stars.every((star) => star.direction.length() > 0.999_999)).toBe(true);
   });
 
   it.each([
-    ["Sirius", 32349, 101.287155, -16.716116],
-    ["Vega", 91262, 279.234735, 38.783689],
-    ["Betelgeuse", 27989, 88.792939, 7.407064],
-  ])("preserves the cataloged direction of %s", (name, hip, raDeg, decDeg) => {
+    ["Sirius", 2491, 101.287083, -16.716111],
+    ["Vega", 7001, 279.234583, 38.783611],
+    ["Betelgeuse", 2061, 88.792917, 7.406889],
+  ])("preserves the cataloged direction of %s", (name, hr, raDeg, decDeg) => {
     const star = namedStar(name as string);
-    expect(star.hip).toBe(hip);
+    expect(star.id).toBe(hr);
     expect(star.direction.angleTo(expectedSceneDirection(raDeg as number, decDeg as number))).toBeLessThan(
-      2e-5,
+      5e-5,
     );
   });
 

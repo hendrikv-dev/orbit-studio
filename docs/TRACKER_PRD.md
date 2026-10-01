@@ -440,11 +440,12 @@ among several.
   A three.js sky dome is not required for phase 1, and my earlier estimate that the
   renderer would be the largest phase-1 item was wrong.
 
-- **R7.5 — Reuse the existing star catalog.** `src/data/stars/hygBrightStars.v41.json`
-  ships 1,839 stars with right ascension, declination, magnitude, colour index and
-  constellation, already declared in `celestialFrames.ts` as `HYG Database v4.1` at
-  J2000/EQJ. It reaches a sky view through the same conversion as the planets. No new
-  asset, no new attribution.
+- **R7.5 — One commercially usable star authority.**
+  `src/data/stars/bsc5pBrightStars.json` ships 8,404 BSC5P stars with reported
+  `V <= 6.5`, J2000 right ascension/declination, magnitude, B−V colour, proper motion,
+  designation and HR identity. Both the Explorer star shell and Tracker Sky use this one
+  catalogue. It reaches the local sky through the same topocentric ENU pipeline as target
+  guidance; no procedural astronomical stars or share-alike stellar catalogue remain.
 
 - **R7.6 — The map's floating surfaces have one depth order, and it names containers.**
   Tracker draws five families of furniture over one map. On a desktop they sit in separate
@@ -536,7 +537,7 @@ them.
 | Source | Use | Terms that matter |
 |---|---|---|
 | Astronomy Engine | Analytic astronomy | MIT; already vendored |
-| HYG v4.1 | Star field | Already vendored and attributed |
+| Yale BSC5P via NASA/GSFC HEASARC | Star field | HEASARC official free-use policy; exact query and checksums recorded; acknowledgement requested |
 | IAU MDC + IMO | Meteor stream elements (**phase 1**) | Vendored static snapshot, not fetched. Pinned, checksummed and registered in provenance; attribution required. See R9.1–R9.4 |
 | CelesTrak | Orbital elements (phase 3) | GP data no more than once per 2-hour cycle; stop on any non-200 and escalate; IP blocking for abuse; caching proxy expected — **this alone forecloses direct browser fetches and therefore requires a backend** |
 | Space-Track | Orbital elements (alternative) | Redistribution to third parties prohibited without express approval (Public Law 108-136 §913). Compute from it; do not mirror it |

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { positionForSkyFinderTarget, type SkyFinderTarget } from "./skyFinder";
 import { expectedSkyContext } from "./skyFinderContext";
+import { devicePoseLookingAt, projectEnuDirection } from "../../astronomy/topocentricSky";
 
 const ORION_NEBULA: SkyFinderTarget = {
   id: "deep-sky-orion-nebula",
@@ -38,12 +39,9 @@ describe("expected Sky Finder context", () => {
     expect(context.lines.some((line) => line.constellation === "Ori" && line.primary)).toBe(true);
     expect(context.labels).toContainEqual(expect.objectContaining({ symbol: "Ori", name: "Orion" }));
     expect(context.objects).toContainEqual(expect.objectContaining({ id: "jupiter", marker: "jupiter" }));
-    for (const star of context.stars) {
-      expect(star.xPercent).toBeGreaterThanOrEqual(0);
-      expect(star.xPercent).toBeLessThanOrEqual(100);
-      expect(star.yPercent).toBeGreaterThanOrEqual(0);
-      expect(star.yPercent).toBeLessThanOrEqual(100);
-    }
+    const pose = devicePoseLookingAt(centre!);
+    expect(context.stars.some((star) => projectEnuDirection(star.direction, pose).inField)).toBe(true);
+    expect(context.lines.every((line) => line.startStarId > 0 && line.endStarId > 0)).toBe(true);
   });
 
   it("keeps sampled moving targets honest by omitting an invented constellation", () => {

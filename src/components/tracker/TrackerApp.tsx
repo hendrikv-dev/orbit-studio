@@ -157,6 +157,12 @@ import { buildRail, type RailCandidate } from "../../data/tracker/observingRail"
 import { cardMediaFor } from "../../data/tracker/cardMedia";
 import { cameraForEvent } from "../../data/tracker/eventCamera";
 import { admissible } from "../../data/tracker/observingRules";
+import {
+  activeTelescopeSetup,
+  loadTelescopeSetups,
+  saveTelescopeSetups,
+  telescopeGuidanceFor,
+} from "../../data/tracker/viewingCapability";
 import { useDismissableSurface } from "../../data/tracker/dismissable";
 import { EclipseFigure } from "./media/CardFigures";
 import { assessEventTerrain, describeTerrain } from "../../data/tracker/eventTerrain";
@@ -673,6 +679,9 @@ function TrackerScreen() {
   const [upcomingOpen, setUpcomingOpen] = useState(false);
   /** Protected calls begun by the original Find in Sky gesture. */
   const [finderLaunch, setFinderLaunch] = useState<SkyFinderLaunchAttempt | null>(null);
+  const [telescopeSetups, setTelescopeSetups] = useState(() =>
+    loadTelescopeSetups(typeof window === "undefined" ? null : window.localStorage),
+  );
   const upcomingTrigger = useRef<HTMLButtonElement>(null);
   /** The place control's trigger, so a local search can send the reader to it. */
   const placeTrigger = useRef<HTMLButtonElement>(null);
@@ -697,6 +706,10 @@ function TrackerScreen() {
   useEffect(() => {
     if (place) persistConfirmedPlace(place);
   }, [place]);
+
+  useEffect(() => {
+    saveTelescopeSetups(typeof window === "undefined" ? null : window.localStorage, telescopeSetups);
+  }, [telescopeSetups]);
 
   // Time is an explicit input to every current-state projection. Recompute it
   // on a bounded cadence instead of sprinkling untracked `new Date()` reads
@@ -2813,7 +2826,11 @@ function TrackerScreen() {
     const shape =
       location.equipment === "eyes"
         ? {}
-        : { routineLimit: 4, limit: 6, aided: location.equipment };
+        : {
+            routineLimit: 4,
+            limit: 6,
+            aided: location.equipment === "imaging" ? "telescope" as const : location.equipment,
+          };
     const rail = buildRail(visible, shape);
     /**
      * How many cards cloud actually cost the reader.
@@ -3506,6 +3523,8 @@ function TrackerScreen() {
           <TrackerEquipmentRule
             rule={location.equipment}
             onSelect={(equipment) => navigate({ equipment })}
+            telescopeSetups={telescopeSetups}
+            onTelescopeSetupsChange={setTelescopeSetups}
           />
           <TrackerEventFinder
             from={now}
@@ -3825,6 +3844,14 @@ function TrackerScreen() {
                     label: "Find in Sky",
                     onSelect: () => openSkyFinder(heroEvent.id),
                   }
+                : null
+            }
+            telescopeGuidance={
+              location.equipment === "telescope" && heroEvent.entry
+                ? telescopeGuidanceFor(
+                    heroEvent.entry.opportunity,
+                    activeTelescopeSetup(telescopeSetups),
+                  )
                 : null
             }
             onReminder={() => remind(heroEvent.presentation)}

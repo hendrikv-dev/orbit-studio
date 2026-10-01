@@ -21,17 +21,19 @@ import { nakedEyeVerdict, skyConditionsAt, type NakedEyeVerdict } from "./nakedE
  * offered a galaxy.
  */
 
-export type EquipmentRule = Equipment;
+export type EquipmentRule = Equipment | "imaging";
 
 export const EQUIPMENT_RULES: { id: EquipmentRule; label: string; blurb: string }[] = [
   { id: "eyes", label: "Naked eye", blurb: "Only what you can see without help" },
   { id: "binoculars", label: "Binoculars", blurb: "Adds what binoculars bring in" },
   { id: "telescope", label: "Telescope", blurb: "Adds deep-sky targets and fine detail" },
+  { id: "imaging", label: "Astrophotography", blurb: "Prioritizes camera-friendly targets" },
 ];
 
 /** Whether a rule admits something needing this much equipment. */
 export function admits(rule: EquipmentRule, needed: Equipment): boolean {
-  return EQUIPMENT_ORDER[needed] <= EQUIPMENT_ORDER[rule];
+  const available = rule === "imaging" ? EQUIPMENT_ORDER.telescope : EQUIPMENT_ORDER[rule];
+  return EQUIPMENT_ORDER[needed] <= available;
 }
 
 export interface ObservingContext {

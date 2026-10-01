@@ -8,29 +8,26 @@ import {
   ShaderMaterial,
   Vector3,
 } from "three";
+import { equatorialAtDate } from "../astronomy/topocentricSky";
 import { EARTH_RADIUS_KM } from "../physics/constants";
-import HYG_BRIGHT_STARS from "../data/stars/hygBrightStars.v41.json";
+import BSC5P_BRIGHT_STARS from "../data/stars/bsc5pBrightStars.json";
 import type { QualityLevel } from "../lib/scenario";
 import { readSceneCelestialState } from "./sceneMotion";
 
-interface HygBrightStarRecord {
+interface Bsc5pBrightStarRecord {
   id: number;
-  hip: number | null;
   name: string | null;
+  designation: string | null;
   raHours: number;
   decDeg: number;
   magnitude: number;
   colorIndexBv: number | null;
-  xParsec: number;
-  yParsec: number;
-  zParsec: number;
-  vxParsecPerYear: number;
-  vyParsecPerYear: number;
-  vzParsecPerYear: number;
-  constellation: string | null;
+  properMotionRaArcsecPerYear: number | null;
+  properMotionDecArcsecPerYear: number | null;
+  constellation: string;
 }
 
-const HYG_STARS = HYG_BRIGHT_STARS as HygBrightStarRecord[];
+const BSC5P_STARS = BSC5P_BRIGHT_STARS as Bsc5pBrightStarRecord[];
 
 interface StarFieldProps {
   quality: QualityLevel;
@@ -67,7 +64,6 @@ const STAR_FRAGMENT_SHADER = `
 
 export interface StarRenderPoint {
   id: number;
-  hip: number | null;
   name: string | null;
   direction: Vector3;
   magnitude: number;
@@ -114,15 +110,27 @@ export function createStarFieldMaterial(): ShaderMaterial {
 }
 
 export function starDirectionAtJulianDate(
-  star: HygBrightStarRecord,
+  star: Bsc5pBrightStarRecord,
   julianDateUtc: number,
   target = new Vector3(),
 ): Vector3 {
-  const yearsSinceJ2000 = (julianDateUtc - 2_451_545) / 365.25;
-  const x = star.xParsec + star.vxParsecPerYear * yearsSinceJ2000;
-  const y = star.yParsec + star.vyParsecPerYear * yearsSinceJ2000;
-  const z = star.zParsec + star.vzParsecPerYear * yearsSinceJ2000;
-  return target.set(x, z, -y).normalize();
+  const at = new Date((julianDateUtc - 2_440_587.5) * 86_400_000);
+  const coordinate = equatorialAtDate(
+    {
+      raHours: star.raHours,
+      decDeg: star.decDeg,
+      properMotionRaArcsecPerYear: star.properMotionRaArcsecPerYear,
+      properMotionDecArcsecPerYear: star.properMotionDecArcsecPerYear,
+    },
+    at,
+  );
+  const ra = (coordinate.raHours * Math.PI) / 12;
+  const dec = (coordinate.decDeg * Math.PI) / 180;
+  return target.set(
+    Math.cos(dec) * Math.cos(ra),
+    Math.sin(dec),
+    -Math.cos(dec) * Math.sin(ra),
+  ).normalize();
 }
 
 export function starCatalogPointsForQuality(
@@ -131,9 +139,8 @@ export function starCatalogPointsForQuality(
 ): StarRenderPoint[] {
   const magnitudeLimit = magnitudeLimitForQuality(quality);
 
-  return HYG_STARS.filter((star) => star.magnitude <= magnitudeLimit).map((star) => ({
+  return BSC5P_STARS.filter((star) => star.magnitude <= magnitudeLimit).map((star) => ({
     id: star.id,
-    hip: star.hip,
     name: star.name,
     direction: starDirectionAtJulianDate(star, julianDateUtc),
     magnitude: star.magnitude,
@@ -169,7 +176,7 @@ export function StarField({ quality, emphasis = 1 }: StarFieldProps) {
   const frameDirectionRef = useRef(new Vector3());
   const { camera } = useThree();
   const stars = useMemo(
-    () => HYG_STARS.filter((star) => star.magnitude <= magnitudeLimitForQuality(quality)),
+    () => BSC5P_STARS.filter((star) => star.magnitude <= magnitudeLimitForQuality(quality)),
     [quality],
   );
   const [geometry, material] = useMemo(() => {
@@ -238,7 +245,7 @@ export function StarField({ quality, emphasis = 1 }: StarFieldProps) {
       frustumCulled={false}
       renderOrder={-1000}
       raycast={() => undefined}
-      userData={{ layer: "sky", catalog: "HYG Database v4.1", epoch: "J2000.0" }}
+      userData={{ layer: "sky", catalog: "Yale Bright Star Catalog BSC5P via NASA HEASARC", epoch: "J2000.0" }}
     />
   );
 }

@@ -235,11 +235,20 @@ function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
       limitation: "Phenomenon-specific geographic actions require their own event review and are not represented by Saturn.",
     },
     {
+      surface: "Viewing capability",
+      reference: null,
+      target: "One approachable product whose ranking and contextual guidance adapt to Naked eye, Binoculars, Telescope, or Astrophotography.",
+      ids: ["07-phone-tonight", "07a-phone-viewing-capability-selector", "07b-phone-tonight-telescope", "08-phone-object-detail-collapsed"],
+      matched: "The compact selector stays on Tonight; setup is optional; the saved telescope adds only contextual 10 mm / 120× guidance to the same collapsed detail surface.",
+      deviation: "The supplied visual references do not depict capability selection, so this row is compared against the behavioral requirement rather than a reference image.",
+      limitation: "The fixture proves one saved 8-inch Dobsonian path; it does not constitute observational validation of every equipment combination.",
+    },
+    {
       surface: "Sky",
       reference: "03-sky.png",
       target: "Emotional live-guidance payoff: selected target, one elegant lock, immediate movement cue, sky context, and minimal diagnostics.",
-      ids: ["09-phone-sky-camera-granted", "10-phone-sky-guiding", "11-phone-sky-aligned", "14-tablet-sky-guiding"],
-      matched: "One target lock carries direction and alignment; real catalog stars, projected constellation figures and names populate the field; Saturn uses a ringed marker; diagnostics remain collapsed.",
+      ids: ["09-phone-sky-camera-granted", "10-phone-sky-guiding", "10a-phone-sky-almost-aligned", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "14-tablet-sky-guiding"],
+      matched: "One target lock carries direction and alignment; real catalog stars, projected constellation figures and names populate the field; Saturn uses a ringed marker; below-horizon guidance stops; diagnostics remain collapsed.",
       deviation: "The camera field uses an approximate 82° × 66° projection because browsers do not disclose a calibrated rear-lens FOV.",
       limitation: "These are explicitly fixture-driven browser frames with an empty MediaStream, not physical-device camera or sensor evidence.",
     },
@@ -334,7 +343,9 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
   const sky = screenshotLinks(shots, [
     "09-phone-sky-camera-granted",
     "10-phone-sky-guiding",
+    "10a-phone-sky-almost-aligned",
     "11-phone-sky-aligned",
+    "11a-phone-sky-below-horizon",
     "14-tablet-sky-guiding",
   ]);
   return `# Terrain and Sky validation notes
@@ -352,13 +363,24 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 ## Sky / camera and sensors
 
 - Browser fixture evidence: ${sky || "_Not captured_"}.
-- Star population: HYG Database v4.1 magnitude-limited subset (1,839 stars, apparent magnitude ≤ 5.1), projected through Astronomy Engine for the selected observer and UTC instant.
+- Solar-system authority: Astronomy Engine **2.1.19**, MIT, for Sun, Moon, planets and the applicable equatorial/horizon transforms. The independent regression fixture uses NASA/JPL Horizons topocentric values and records its own timestamp, observer, frame, refraction mode and tolerances.
+- Star population: Yale Bright Star Catalog BSC5P via NASA/GSFC HEASARC (8,404 records with reported apparent magnitude ≤ 6.5), projected through the shared topocentric ENU pipeline for the selected observer and UTC instant. No procedural astronomical stars are rendered. HEASARC's official policy makes its materials freely available for use and asks for acknowledgement; it does not assign BSC5P an SPDX license, so this package records that free-use basis rather than inventing one.
+- BSC5P source: \`https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html\`; raw query SHA-256 \`4b7e89fc0f18103683db2f8e66cd2de597b1912d7469f6d44f295c290f4fc1a0\`; deterministic local catalog SHA-256 \`529702e4a4fdedce2c98c1974f9a35cfdee4a0b33ff83a9c3d1373e6c40ae384\`.
 - Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries.
-- Constellation names are derived from the real projected figures visible in the current approximate 82° × 66° field. Selective major-star labels come from HYG common names.
+- All 893 conventional-figure endpoints are mapped to real BSC5P HR stars within 0.008397°. Constellation names derive from the projected figures; selective major-star labels use the documented IAU identity crosswalk.
+- Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path.
+- Coordinate pipeline: catalog or ephemeris position → apparent equatorial position → observer/UTC horizontal position → fixed local ENU direction → stabilized device quaternion → camera projection. Celestial directions never derive from device callbacks.
+- Pose stabilization: W3C orientation, rear-camera correction, screen rotation, heading correction and calibration compose into one quaternion; a 0.18° deadband and 85 ms time-based slerp stabilize the whole scene rather than any target.
 - Notable-object markers are visual classifications of Tracker's existing ranked \`SkyFinderTarget\` instances. Saturn, Jupiter, Mars, Venus, Moon, satellite, radiant, cluster and deep-sky treatments do not create another object catalogue.
 - The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths.
 - The fixture's \`MediaStream\` contains no camera frames. It does **not** validate live rear-camera composition, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
 - No compatible physical phone or tablet was connected for this package. Physical-device Sky validation is therefore **blocked, not passed**. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
+
+## Observing capability
+
+- Phone evidence: ${screenshotLinks(shots, ["07-phone-tonight", "07a-phone-viewing-capability-selector", "07b-phone-tonight-telescope", "08-phone-object-detail-collapsed"]) || "_Not captured_"}.
+- The default remains Naked eye. Capability selection immediately reuses the existing eligibility/ranking path; it does not create a parallel recommendation product.
+- Optional telescope details are versioned, device-local and skippable. The fixture uses an 8-inch, 1,200 mm Dobsonian with 25 mm and 10 mm eyepieces; Saturn detail conservatively selects 10 mm / 120× and does not expose that guidance in Naked eye mode.
 `;
 }
 

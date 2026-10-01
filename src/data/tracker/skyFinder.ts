@@ -1,5 +1,10 @@
 import { Body, Equator, Horizon, MakeTime, Observer } from "astronomy-engine";
 
+import {
+  devicePoseFromOrientation,
+  pointingFromDevicePose,
+} from "../../astronomy/topocentricSky";
+
 import type { BestWindow } from "./conditions";
 import type { Opportunity } from "./opportunity";
 import { skyPathFor, type SkyPath, type SkyPoint } from "./skyPath";
@@ -300,6 +305,58 @@ export function alignmentFor(
   return { separationDeg, aligned };
 }
 
+export type SkyGuidanceKind = "unavailable" | "below-horizon" | "direction" | "almost" | "aligned";
+
+export function describeTargetAltitude(altitudeDeg: number): string {
+  return altitudeDeg < 0
+    ? `${Math.round(Math.abs(altitudeDeg))}° below horizon`
+    : `${Math.round(altitudeDeg)}° high`;
+}
+
+/** Pure guidance policy: below-horizon targets never receive pointing instructions. */
+export function guidanceForSkyTarget(
+  title: string,
+  pointing: PhonePointing | null,
+  target: HorizontalPosition | null,
+  toleranceDeg: number,
+  quality: PointingQuality,
+): { kind: SkyGuidanceKind; instruction: string; separationDeg: number | null } {
+  if (!target) return { kind: "unavailable", instruction: "Preparing live guidance", separationDeg: null };
+  if (target.altitudeDeg < 0) {
+    return {
+      kind: "below-horizon",
+      instruction: `${title} is below the horizon`,
+      separationDeg: null,
+    };
+  }
+  if (!pointing) return { kind: "direction", instruction: "Direction only", separationDeg: null };
+  const alignment = alignmentFor(pointing, target, toleranceDeg, quality);
+  if (alignment.aligned) {
+    return { kind: "aligned", instruction: `${title} is here`, separationDeg: alignment.separationDeg };
+  }
+  const horizontalDeg = signedAngleDifference(pointing.azimuthDeg, target.azimuthDeg);
+  const verticalDeg = target.altitudeDeg - pointing.altitudeDeg;
+  const horizontalMagnitude = Math.abs(horizontalDeg);
+  const verticalMagnitude = Math.abs(verticalDeg);
+  if (horizontalMagnitude < 3 && verticalMagnitude < 3) {
+    return { kind: "almost", instruction: "Almost there", separationDeg: alignment.separationDeg };
+  }
+  if (horizontalMagnitude >= verticalMagnitude) {
+    return {
+      kind: "direction",
+      instruction: `Move${horizontalMagnitude < 15 ? " slightly" : ""} ${horizontalDeg < 0 ? "left" : "right"}`,
+      separationDeg: alignment.separationDeg,
+    };
+  }
+  return {
+    kind: "direction",
+    instruction: verticalDeg < 0
+      ? `Lower phone${verticalMagnitude < 15 ? " slightly" : ""}`
+      : `Raise phone${verticalMagnitude < 15 ? " slightly" : ""}`,
+    separationDeg: alignment.separationDeg,
+  };
+}
+
 /**
  * Convert W3C alpha/beta/gamma into the rear-camera optical axis.
  *
@@ -314,48 +371,9 @@ export function pointingFromDeviceOrientation(
   gammaDeg: number,
   screenOrientationDeg = 0,
 ): PhonePointing {
-  const alpha = radians(alphaDeg);
-  const beta = radians(betaDeg);
-  const gamma = radians(-gammaDeg);
-
-  // Quaternion for Euler(beta, alpha, -gamma, "YXZ").
-  const c1 = Math.cos(beta / 2);
-  const c2 = Math.cos(alpha / 2);
-  const c3 = Math.cos(gamma / 2);
-  const s1 = Math.sin(beta / 2);
-  const s2 = Math.sin(alpha / 2);
-  const s3 = Math.sin(gamma / 2);
-  let qx = s1 * c2 * c3 + c1 * s2 * s3;
-  let qy = c1 * s2 * c3 - s1 * c2 * s3;
-  let qz = c1 * c2 * s3 - s1 * s2 * c3;
-  let qw = c1 * c2 * c3 + s1 * s2 * s3;
-
-  const multiply = (x: number, y: number, z: number, w: number) => {
-    const nextX = qw * x + qx * w + qy * z - qz * y;
-    const nextY = qw * y - qx * z + qy * w + qz * x;
-    const nextZ = qw * z + qx * y - qy * x + qz * w;
-    const nextW = qw * w - qx * x - qy * y - qz * z;
-    qx = nextX;
-    qy = nextY;
-    qz = nextZ;
-    qw = nextW;
-  };
-
-  // Camera looks through the back of a portrait phone, not along device -Z.
-  multiply(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
-  const halfScreen = radians(-screenOrientationDeg) / 2;
-  multiply(0, 0, Math.sin(halfScreen), Math.cos(halfScreen));
-
-  // Rotate the local camera forward vector (0, 0, -1).
-  const x = -2 * (qx * qz + qw * qy);
-  const y = 2 * (qw * qx - qy * qz);
-  const z = -1 + 2 * (qx * qx + qy * qy);
-
-  // DeviceOrientationControls world axes: north=-Z, east=-X, up=Y.
-  return {
-    azimuthDeg: normalizeDegrees(degrees(Math.atan2(-x, -z))),
-    altitudeDeg: degrees(Math.asin(Math.max(-1, Math.min(1, y)))),
-  };
+  return pointingFromDevicePose(
+    devicePoseFromOrientation(alphaDeg, betaDeg, gammaDeg, screenOrientationDeg),
+  );
 }
 
 export function calibrationFromAlignment(
@@ -477,6 +495,38 @@ export function positionForSkyFinderTarget(
     case "sampled":
       return interpolatePath(target.source.path, at);
   }
+}
+
+/** Find the next upward horizon crossing using the same production target position path. */
+export function nextRiseForSkyFinderTarget(
+  target: SkyFinderTarget,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  after: Date,
+  limitHours = 72,
+): string | null {
+  const stepMs = 10 * 60_000;
+  const end = after.getTime() + limitHours * 3_600_000;
+  let previousAt = after.getTime();
+  let previous = positionForSkyFinderTarget(target, observer, after);
+  for (let stamp = previousAt + stepMs; stamp <= end; stamp += stepMs) {
+    const next = positionForSkyFinderTarget(target, observer, new Date(stamp));
+    if (previous && next && previous.altitudeDeg <= 0 && next.altitudeDeg > 0) {
+      let low = previousAt;
+      let high = stamp;
+      for (let iteration = 0; iteration < 18; iteration += 1) {
+        const middle = (low + high) / 2;
+        const position = positionForSkyFinderTarget(target, observer, new Date(middle));
+        if (position && position.altitudeDeg > 0) high = middle;
+        else low = middle;
+      }
+      return new Date(high).toISOString();
+    }
+    if (next) {
+      previous = next;
+      previousAt = stamp;
+    }
+  }
+  return null;
 }
 
 function deepSkyFinderSource(opportunity: Opportunity): SkyFinderSource | null {

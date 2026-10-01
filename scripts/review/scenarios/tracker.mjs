@@ -1168,7 +1168,7 @@ export const trackerReviewScenario = {
     await captureSurface("tracker-detail-back-to-tonight", restored);
 
     // 6. A telescope is offered what the eyes are not.
-    await page.getByRole("button", { name: /Observing with: .*Change/ }).click();
+    await page.getByRole("button", { name: /Viewing: .*Change/ }).click();
     await settle(600);
     await page.getByRole("switch", { name: /Telescope/i }).click();
     await settle(3_000);
@@ -1183,9 +1183,8 @@ export const trackerReviewScenario = {
       throw new Error(`${TELESCOPE_ONLY_CARD} was already offered to the naked eye, so it proves nothing.`);
     }
     await captureSurface("tracker-equipment-telescope", telescope);
-    // The panel closes on choosing, so going back to the eyes reopens it.
-    await page.getByRole("button", { name: /Observing with: .*Change/ }).click();
-    await settle(600);
+    // Telescope keeps the selector open so the optional saved-setup path is
+    // available without another step. Return directly to the naked-eye rule.
     await page.getByRole("switch", { name: /Naked eye/i }).click();
     await settle(3_000);
     const eyesAgain = await read();
