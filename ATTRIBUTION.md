@@ -197,31 +197,31 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: not-modified-except-final-newline
-- Repository paths: `src/data/constellations/constellationLines.d3Celestial.json`, `src/data/constellations/LICENSE-BSD-3-CLAUSE.txt`, `src/data/constellations/README.md`
+- Repository paths: `src/data/constellations/constellationLines.d3Celestial.json`, `src/data/constellations/constellationFigureStars.bsc5p.json`, `src/data/constellations/LICENSE-BSD-3-CLAUSE.txt`, `src/data/constellations/README.md`
 - Production paths: `assets/skyFinderContext-*.js`
 - Restrictions and notes: Retain the BSD 3-Clause copyright notice and disclaimer. Do not describe the figures as IAU boundaries or as visually detected camera features.
 
-## HYG Database v4.1
+## Bright Star Catalog, 5th Revised Edition (Preliminary), BSC5P
 
-- Inventory ID: `hyg-database-v4-1-bright-stars`
+- Inventory ID: `yale-bsc5p-bright-stars`
 - Category: astronomical-catalog-data
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: David Nash / Astronomy Nexus
-- Version or snapshot: v4.1 at commit 3bf37f4b2d5460e1278286320d1d62fab9b493c1 (2024-08-17)
-- Retrieval date: 2026-07-25
-- Authoritative source: https://github.com/astronexus/HYG-Database
-- Authoritative source: https://raw.githubusercontent.com/astronexus/HYG-Database/3bf37f4b2d5460e1278286320d1d62fab9b493c1/hyg/CURRENT/hygdata_v41.csv
-- Rights basis: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
-- Rights evidence: https://github.com/astronexus/HYG-Database/blob/3bf37f4b2d5460e1278286320d1d62fab9b493c1/LICENSE
-- Rights evidence: https://creativecommons.org/licenses/by-sa/4.0/
-- Attribution: HYG Database v4.1 by David Nash / Astronomy Nexus, licensed CC BY-SA 4.0; Orbit Studio magnitude-limited transformed subset.
+- Publisher or rights holder: Dorrit Hoffleit and Wayne H. Warren Jr.; distributed by NASA/GSFC HEASARC
+- Version or snapshot: V/50/catalog; HEASARC table last modified 2024-09-16
+- Retrieval date: 2026-09-30
+- Authoritative source: https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html
+- Authoritative source: https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html
+- Rights basis: NASA/GSFC HEASARC official free-use data policy; the BSC5P table declares no additional commercial restriction, copyleft, or share-alike condition. No SPDX software license is asserted.
+- Rights evidence: https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html
+- Rights evidence: https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html
+- Attribution: Bright Star Catalog, 5th Revised Edition (Hoffleit & Warren, 1991), acquired through NASA/GSFC HEASARC; HEASARC acknowledgement retained.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
-- Modification status: permitted-share-alike
-- Repository paths: `src/data/stars/hygBrightStars.v41.json`, `src/data/stars/LICENSE-CC-BY-SA-4.0.txt`
-- Production paths: `assets/index-*.js`
-- Restrictions and notes: The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description.
+- Modification status: factual-catalog-transformation-under-free-use-policy
+- Repository paths: `src/data/stars/bsc5pBrightStars.json`, `src/data/stars/README.md`, `src/data/stars/SOURCE-USE-NOTICE.txt`, `scripts/build-bsc5p-bright-stars.mjs`
+- Production paths: `assets/index-*.js`, `assets/skyFinderContext-*.js`
+- Restrictions and notes: Retain source/query/checksums and the HEASARC requested acknowledgement. Re-verify the source policy before replacing or expanding the catalogue.
 
 ## NASA/JPL Horizons DE441 and U.S. Naval Observatory Astronomical Applications API reference results
 
@@ -241,7 +241,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Public source redistribution: source-safe
 - Public deployment redistribution: not-in-production-bundle
 - Modification status: factual-output-transformation-permitted
-- Repository paths: `src/astronomy/reference/jplHorizonsUsnoReference.json`
+- Repository paths: `src/astronomy/reference/jplHorizonsUsnoReference.json`, `src/astronomy/reference/jplHorizonsTopocentricSky.json`
 - Production paths: none
 - Restrictions and notes: The fixture verifies model agreement at declared instants; it does not transfer JPL or USNO endorsement.
 

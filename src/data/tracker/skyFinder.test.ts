@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Opportunity } from "./opportunity";
+import topocentricReference from "../../astronomy/reference/jplHorizonsTopocentricSky.json";
 import {
   alignmentFor,
   angularSeparation,
@@ -9,6 +10,9 @@ import {
   canRequestSkyFinderPermission,
   classifySkyFinderDevice,
   detectSkyFinderCapabilities,
+  describeTargetAltitude,
+  guidanceForSkyTarget,
+  nextRiseForSkyFinderTarget,
   pointingFromDeviceOrientation,
   positionForSkyFinderTarget,
   signedAngleDifference,
@@ -112,6 +116,82 @@ describe("Sky Finder astronomical target integration", () => {
     expect(portland).not.toBeNull();
     expect(sydney).not.toBeNull();
     expect(Math.abs(portland!.altitudeDeg - sydney!.altitudeDeg)).toBeGreaterThan(20);
+  });
+
+  it.each(topocentricReference.vectors)(
+    "matches independent JPL Horizons topocentric $body azimuth/elevation",
+    (reference) => {
+      const target: SkyFinderTarget = {
+        id: `reference-${reference.body.toLowerCase()}`,
+        title: reference.body,
+        shape: "point",
+        angularRadiusDeg: 0.2,
+        alignmentToleranceDeg: 3,
+        source: { kind: "body", body: reference.body },
+        recommendedAtUtc: topocentricReference.timestampUtc,
+        equipment: "eyes",
+        appearance: "Reference target.",
+        observableTonight: true,
+        visualVerification: "not-attempted",
+      };
+      const position = positionForSkyFinderTarget(
+        target,
+        topocentricReference.observer,
+        new Date(topocentricReference.timestampUtc),
+      );
+      expect(position).not.toBeNull();
+      // Both references include refraction, but Astronomy Engine's recommended
+      // `normal` model and Horizons' Earth model diverge most for the deeply
+      // below-horizon Sun. Horizons documents atmospheric-model uncertainty of
+      // up to 0.3° near the horizon; 0.16° covers the measured model delta here.
+      expect(Math.abs(position!.azimuthDeg - reference.azimuthDeg)).toBeLessThan(0.12);
+      expect(Math.abs(position!.altitudeDeg - reference.altitudeDeg)).toBeLessThan(0.16);
+    },
+  );
+
+  it("uses an explicit below-horizon state and never describes negative altitude as high", () => {
+    const target = { altitudeDeg: -41, azimuthDeg: 95, atUtc: "2026-09-26T04:00:00Z" };
+    const guidance = guidanceForSkyTarget(
+      "Saturn",
+      { altitudeDeg: -38, azimuthDeg: 90 },
+      target,
+      3,
+      "good",
+    );
+    expect(guidance).toEqual({
+      kind: "below-horizon",
+      instruction: "Saturn is below the horizon",
+      separationDeg: null,
+    });
+    expect(describeTargetAltitude(-41)).toBe("41° below horizon");
+    expect(describeTargetAltitude(-41)).not.toContain("high");
+  });
+
+  it("finds the next upward horizon crossing for below-horizon guidance", () => {
+    const target: SkyFinderTarget = {
+      id: "planet-saturn",
+      title: "Saturn",
+      shape: "point",
+      angularRadiusDeg: 0.1,
+      alignmentToleranceDeg: 3,
+      source: { kind: "body", body: "Saturn" },
+      recommendedAtUtc: "2026-09-03T05:00:00Z",
+      equipment: "eyes",
+      appearance: "A steady point.",
+      observableTonight: true,
+      visualVerification: "not-attempted",
+    };
+    const observer = { latitudeDeg: 45.5152, longitudeDeg: -122.6784 };
+    const after = new Date("2026-09-02T18:00:00Z");
+    const riseUtc = nextRiseForSkyFinderTarget(target, observer, after, 24);
+    expect(riseUtc).not.toBeNull();
+    const rise = new Date(riseUtc!);
+    expect(rise.getTime()).toBeGreaterThan(after.getTime());
+    expect(rise.getTime()).toBeLessThan(after.getTime() + 24 * 3_600_000);
+    expect(positionForSkyFinderTarget(target, observer, rise)!.altitudeDeg).toBeGreaterThanOrEqual(0);
+    expect(
+      positionForSkyFinderTarget(target, observer, new Date(rise.getTime() - 60_000))!.altitudeDeg,
+    ).toBeLessThan(0);
   });
 
   it("recomputes a body as time advances instead of retaining stale guidance", () => {

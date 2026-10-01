@@ -31,17 +31,22 @@ V1 should require only the user's location, with a manual-location fallback if p
 
 V1 must not ask the user to:
 
-- Create an equipment profile.
+- Create an equipment profile before seeing recommendations.
 - State whether they are camping.
 - Choose between eyes, binoculars, or telescope during onboarding.
-- Enter telescope type, aperture, mount, eyepieces, or experience level.
+- Enter telescope type, aperture, mount, eyepieces, or experience level as a mandatory step.
 - Complete a preference questionnaire before seeing a recommendation.
 
-Equipment is a property of an observing opportunity, not a required property of the user.
+Equipment is a property of an observing opportunity, not a required property of the user. A compact,
+optional **Viewing** control may remember a device-local setup after the user deliberately configures
+one; the default remains **Naked eye**, and detailed setup is always skippable.
 
 Dark-sky quality should be inferred from location, local darkness, light pollution, and available conditions where data permits. A user at a campsite should automatically receive recommendations appropriate to that location without declaring that they are camping.
 
-Telescope owners should be served by clearly identifying worthwhile telescope opportunities and providing useful telescope guidance after the user chooses one. Selecting a telescope opportunity is enough context for that interaction; V1 does not need to remember or model the user's equipment.
+Telescope owners should be served by clearly identifying worthwhile telescope opportunities and
+providing useful telescope guidance after the user chooses one. General telescope guidance requires
+no setup. When the user voluntarily selects a saved setup, its limited known properties may refine
+the same recommendation and detail surfaces without creating a separate expert mode.
 
 The initial experience must remain useful with no information beyond location and time.
 
@@ -206,7 +211,8 @@ The exact relationship between the global activity view and the local guidance v
 
 #### Confirmed
 
-V1 should include especially worthwhile telescope targets without asking whether the user owns a telescope.
+V1 should include especially worthwhile telescope targets without requiring the user to say whether
+they own a telescope. The optional Viewing control may be used to select a saved setup quickly.
 
 Every such opportunity should clearly state **Telescope required** or an equivalent requirement in the ranked list and detail view.
 
@@ -217,7 +223,9 @@ After the user selects it, Tracker should provide guidance appropriate to a gene
 - A realistic visual expectation rather than an astrophotograph.
 - Simple finding or setup guidance when it can be given without knowing the user's equipment.
 
-V1 should not make aperture-specific promises, prescribe a particular eyepiece, or rank based on an assumed instrument.
+V1 should not make aperture-specific promises, prescribe a particular eyepiece, or rank based on an
+assumed instrument. It may provide conservative, setup-specific guidance only when the user has
+selected a setup whose relevant properties are known.
 
 Aurora and meteor showers remain wide-field phenomena. Tracker should not imply that a telescope improves them.
 
@@ -338,7 +346,10 @@ When the same user opens Tracker from a substantially darker location, phenomena
 
 ### A3 — Telescope opportunity
 
-A worthwhile telescope target appears with its requirement clearly marked. A user can select it and receive general guidance. Tracker never asks for or assumes a particular telescope in V1.
+A worthwhile telescope target appears with its requirement clearly marked. A user can select it and
+receive general guidance without configuration. A user who opts into the compact Viewing control can
+select or save a telescope and receive conservative contextual guidance; Tracker never assumes a
+particular telescope and never blocks the default experience on setup.
 
 ### A4 — Immediate satellite pass
 
@@ -364,7 +375,8 @@ A user without an active paid entitlement never receives a reminder, data produc
 
 V1 is not:
 
-- An equipment inventory or telescope configurator.
+- A mandatory equipment inventory, telescope configurator, or separate expert mode. A compact,
+  optional device-local setup selector is allowed.
 - A user-preference onboarding flow.
 - A generic astronomy encyclopedia.
 - A complete catalog of everything above the horizon.
@@ -410,4 +422,3 @@ These may inform design exploration but are not approved requirements:
 - NASA Spot the Station: https://www.nasa.gov/missions/station/spot-the-station-frequently-asked-questions/
 - Sky Tonight: https://apps.apple.com/us/app/sky-tonight-stargazing-guide/id1570594940
 - TU Delft Urban Meteor Map: https://research.tudelft.nl/en/publications/urban-meteor-map-a-map-based-forecast-of-hourly-rates-for-visual-/
-

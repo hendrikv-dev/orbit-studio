@@ -1,39 +1,48 @@
-import { Body, Constellation, Equator, Horizon, MakeTime, Observer } from "astronomy-engine";
+import { Body, Constellation, Equator, MakeTime, Observer } from "astronomy-engine";
 
-import constellationFigures from "../constellations/constellationLines.d3Celestial.json";
-import brightStars from "../stars/hygBrightStars.v41.json";
 import {
+  catalogDirectionForObserver,
+  horizontalToEnu,
   normalizeDegrees,
+  type EnuDirection,
+} from "../../astronomy/topocentricSky";
+import constellationFigures from "../constellations/constellationFigureStars.bsc5p.json";
+import brightStars from "../stars/bsc5pBrightStars.json";
+import {
   positionForSkyFinderTarget,
   type PhonePointing,
   type SkyFinderTarget,
 } from "./skyFinder";
-import { projectSkyField } from "./skyFieldProjection";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "./skyMarker";
 
-interface BrightStarRecord {
+export interface Bsc5pBrightStarRecord {
   id: number;
-  hip: number | null;
   name: string | null;
+  designation: string | null;
   raHours: number;
   decDeg: number;
   magnitude: number;
+  colorIndexBv: number | null;
+  properMotionRaArcsecPerYear: number | null;
+  properMotionDecArcsecPerYear: number | null;
   constellation: string;
 }
 
-interface ConstellationFigureFeature {
+interface ConstellationFigureRecord {
   id: string;
-  properties: { rank: string };
-  geometry: { type: "MultiLineString"; coordinates: number[][][] };
+  rank: number;
+  lines: number[][];
 }
 
 export interface ExpectedSkyStar {
   id: number;
   name: string | null;
+  designation: string | null;
   label: string | null;
-  xPercent: number;
-  yPercent: number;
+  direction: EnuDirection;
   radiusPx: number;
+  luminance: number;
+  color: string;
   magnitude: number;
   inTargetConstellation: boolean;
 }
@@ -41,15 +50,17 @@ export interface ExpectedSkyStar {
 export interface ExpectedSkyLine {
   id: string;
   constellation: string;
-  points: Array<{ xPercent: number; yPercent: number }>;
+  startStarId: number;
+  endStarId: number;
+  start: EnuDirection;
+  end: EnuDirection;
   primary: boolean;
 }
 
 export interface ExpectedSkyLabel {
   symbol: string;
   name: string;
-  xPercent: number;
-  yPercent: number;
+  direction: EnuDirection;
   primary: boolean;
 }
 
@@ -57,22 +68,25 @@ export interface ExpectedSkyObject {
   id: string;
   title: string;
   marker: SkyMarkerKind;
-  xPercent: number;
-  yPercent: number;
+  direction: EnuDirection;
 }
 
 export interface ExpectedSkyContext {
   /** IAU constellation containing the selected target coordinate, when one exists. */
   constellation: { symbol: string; name: string } | null;
-  /** Real HYG v4.1 stars projected into the current approximate Finder field of view. */
+  /** Real BSC5P stars fixed in the observer's local ENU frame for this UTC instant. */
   stars: ExpectedSkyStar[];
-  /** Conventional d3-celestial figure segments projected from J2000 into this local field. */
+  /** Conventional d3-celestial figures, with every endpoint anchored to a BSC5P HR star. */
   lines: ExpectedSkyLine[];
-  /** Names derived from the actual projected figure segments visible in the field. */
+  /** Names for the actual visible figure candidates, never decorative placement. */
   labels: ExpectedSkyLabel[];
-  /** Other production-ranked objects whose real positions fall inside the field. */
+  /** Other production-ranked objects fixed in the same local ENU frame. */
   objects: ExpectedSkyObject[];
 }
+
+const STARS = brightStars as Bsc5pBrightStarRecord[];
+const STAR_BY_ID = new Map(STARS.map((star) => [star.id, star]));
+const FIGURES = constellationFigures as ConstellationFigureRecord[];
 
 function targetEquatorial(
   target: SkyFinderTarget,
@@ -92,7 +106,6 @@ function targetEquatorial(
   const time = MakeTime(at);
   const vectors = bodies.flatMap((body) => {
     try {
-      // ofdate=false returns the J2000 frame required by Constellation().
       const equator = Equator(body as Body, time, astronomyObserver, false, true);
       const ra = (equator.ra * Math.PI) / 12;
       const dec = (equator.dec * Math.PI) / 180;
@@ -110,10 +123,9 @@ function targetEquatorial(
     (total, value) => ({ x: total.x + value.x, y: total.y + value.y, z: total.z + value.z }),
     { x: 0, y: 0, z: 0 },
   );
-  const horizontal = Math.hypot(sum.x, sum.y);
   return {
     raHours: normalizeDegrees((Math.atan2(sum.y, sum.x) * 180) / Math.PI) / 15,
-    decDeg: (Math.atan2(sum.z, horizontal) * 180) / Math.PI,
+    decDeg: (Math.atan2(sum.z, Math.hypot(sum.x, sum.y)) * 180) / Math.PI,
   };
 }
 
@@ -126,22 +138,86 @@ function constellationAt(raHours: number, decDeg: number) {
   }
 }
 
-function friendlyStarLabel(name: string | null, magnitude: number): string | null {
-  if (!name || magnitude > 1.8) return null;
-  // HYG contains both common names (Sirius) and compact Bayer/Flamsteed forms
-  // ("21Alp Tau"). Only the former are useful in the low-clutter live field.
-  return /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/.test(name) ? name : null;
+function dot(left: EnuDirection, right: EnuDirection): number {
+  return left.east * right.east + left.north * right.north + left.up * right.up;
+}
+
+function averageDirection(directions: EnuDirection[]): EnuDirection {
+  const sum = directions.reduce(
+    (total, direction) => ({
+      east: total.east + direction.east,
+      north: total.north + direction.north,
+      up: total.up + direction.up,
+    }),
+    { east: 0, north: 0, up: 0 },
+  );
+  const length = Math.hypot(sum.east, sum.north, sum.up) || 1;
+  return { east: sum.east / length, north: sum.north / length, up: sum.up / length };
+}
+
+function friendlyStarLabel(star: Bsc5pBrightStarRecord): string | null {
+  if (star.name && star.magnitude <= 1.8) return star.name;
+  return null;
+}
+
+export function starColorFromBv(colorIndexBv: number | null): string {
+  if (colorIndexBv === null) return "rgb(236 241 255)";
+  const t = Math.max(0, Math.min(1, (colorIndexBv + 0.3) / 1.9));
+  if (t < 0.5) {
+    const amount = t / 0.5;
+    return `rgb(${Math.round(174 + 81 * amount)} ${Math.round(202 + 47 * amount)} ${Math.round(255 - 22 * amount)})`;
+  }
+  const amount = (t - 0.5) / 0.5;
+  return `rgb(255 ${Math.round(249 - 78 * amount)} ${Math.round(233 - 111 * amount)})`;
+}
+
+function directionForStar(
+  star: Bsc5pBrightStarRecord,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  at: Date,
+): EnuDirection {
+  return catalogDirectionForObserver(
+    {
+      raHours: star.raHours,
+      decDeg: star.decDeg,
+      properMotionRaArcsecPerYear: star.properMotionRaArcsecPerYear,
+      properMotionDecArcsecPerYear: star.properMotionDecArcsecPerYear,
+    },
+    observer,
+    at,
+  ).enu;
+}
+
+interface CachedDirectionFrame {
+  key: string;
+  directions: Map<number, EnuDirection>;
+}
+
+// One Sky surface is live at a time. Keep exactly its most recent derived
+// catalog frame so crossing a three-degree pointing bucket only re-culls the
+// field instead of re-running 8,404 observer transforms. The observer and UTC
+// instant are the complete cache key; a location or 15-second astronomy tick
+// replaces the frame rather than allowing stale positions to accumulate.
+let cachedDirectionFrame: CachedDirectionFrame | null = null;
+
+function directionFrameFor(
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  at: Date,
+): Map<number, EnuDirection> {
+  const key = `${observer.latitudeDeg.toFixed(7)}:${observer.longitudeDeg.toFixed(7)}:${at.getTime()}`;
+  if (cachedDirectionFrame?.key === key) return cachedDirectionFrame.directions;
+  const directions = new Map(
+    STARS.map((star) => [star.id, directionForStar(star, observer, at)] as const),
+  );
+  cachedDirectionFrame = { key, directions };
+  return directions;
 }
 
 /**
- * Build truthful visual context for Sky without claiming the camera detected it.
- *
- * Stars come from the documented HYG v4.1 magnitude-limited subset. Figure
- * segments come from the separately documented BSD-licensed d3-celestial data.
- * Both are projected through Astronomy Engine for the same observer and UTC
- * instant as the target. Other markers are the production-ranked targets
- * supplied by Tracker, never a parallel catalogue. The 82° × 66° field is an
- * orientation aid because the browser cannot provide a calibrated lens model.
+ * Build truthful visual context without claiming that the camera detected it.
+ * Candidate culling uses an approximate centre only for performance; every
+ * retained coordinate is a fixed ENU direction and final placement uses the
+ * exact stabilized camera quaternion in the component.
  */
 export function expectedSkyContext(
   target: SkyFinderTarget,
@@ -150,132 +226,101 @@ export function expectedSkyContext(
   centre: PhonePointing,
   references: SkyFinderTarget[] = [],
 ): ExpectedSkyContext {
-  const equatorial = targetEquatorial(target, observer, at);
-  const constellation = equatorial
-    ? constellationAt(equatorial.raHours, equatorial.decDeg)
+  const targetCoordinate = targetEquatorial(target, observer, at);
+  const constellation = targetCoordinate
+    ? constellationAt(targetCoordinate.raHours, targetCoordinate.decDeg)
     : null;
-  const astronomyObserver = new Observer(observer.latitudeDeg, observer.longitudeDeg, 0);
-  const time = MakeTime(at);
+  const centreDirection = horizontalToEnu(centre);
+  const candidateCosine = Math.cos((68 * Math.PI) / 180);
+  const directions = directionFrameFor(observer, at);
+  const direction = (star: Bsc5pBrightStarRecord) => directions.get(star.id)!;
 
-  const stars = (brightStars as BrightStarRecord[])
+  const stars = STARS
+    .filter((star) => star.magnitude <= 6.5)
     .flatMap((star) => {
-      const horizontal = Horizon(time, astronomyObserver, star.raHours, star.decDeg, "normal");
-      const projected = projectSkyField(centre, {
-        azimuthDeg: horizontal.azimuth,
-        altitudeDeg: horizontal.altitude,
-      });
-      if (!projected.inField) return [];
+      const enu = direction(star);
+      if (enu.up < -0.18 || dot(enu, centreDirection) < candidateCosine) return [];
+      const luminance = Math.max(0.18, Math.min(1, Math.pow(2.512, -star.magnitude) * 0.95));
       return [{
         id: star.id,
         name: star.name,
-        label: friendlyStarLabel(star.name, star.magnitude),
-        xPercent: projected.xPercent,
-        yPercent: projected.yPercent,
-        radiusPx: Math.max(0.8, Math.min(3.2, 2.85 - (star.magnitude + 1.5) * 0.34)),
+        designation: star.designation,
+        label: friendlyStarLabel(star),
+        direction: enu,
+        radiusPx: Math.max(1.05, Math.min(5.2, 4.9 - (star.magnitude + 1.5) * 0.48)),
+        luminance,
+        color: starColorFromBv(star.colorIndexBv),
         magnitude: star.magnitude,
         inTargetConstellation: constellation?.symbol === star.constellation,
       }];
     })
-    .sort((a, b) => a.magnitude - b.magnitude)
-    .slice(0, 92);
+    .sort((left, right) => left.magnitude - right.magnitude)
+    .slice(0, 240);
 
-  const labelCandidates = new Map<
-    string,
-    { symbol: string; name: string; x: number; y: number; count: number; primary: boolean; rank: number }
-  >();
   const lines: ExpectedSkyLine[] = [];
-  for (const feature of (constellationFigures.features as ConstellationFigureFeature[])) {
-    const primary = feature.id === constellation?.symbol;
-    const rank = Number(feature.properties.rank);
-    if (!primary && rank > 2) continue;
+  const labelDirections = new Map<string, EnuDirection[]>();
+  for (const figure of FIGURES) {
+    const primary = figure.id === constellation?.symbol;
+    if (!primary && figure.rank > 2) continue;
     let segmentIndex = 0;
-    for (const line of feature.geometry.coordinates) {
-      const projected = line.map(([raDeg, decDeg]) => {
-        const horizontal = Horizon(
-          time,
-          astronomyObserver,
-          normalizeDegrees(raDeg) / 15,
-          decDeg,
-          "normal",
-        );
-        return projectSkyField(centre, {
-          azimuthDeg: horizontal.azimuth,
-          altitudeDeg: horizontal.altitude,
-        });
-      });
-      for (let index = 1; index < projected.length; index += 1) {
-        const start = projected[index - 1];
-        const end = projected[index];
-        const crossesField =
-          start.inField ||
-          end.inField ||
-          (Math.min(start.xPercent, end.xPercent) <= 100 &&
-            Math.max(start.xPercent, end.xPercent) >= 0 &&
-            Math.min(start.yPercent, end.yPercent) <= 100 &&
-            Math.max(start.yPercent, end.yPercent) >= 0);
-        if (!crossesField || Math.abs(start.xPercent - end.xPercent) > 180) continue;
-        const points = [start, end].map((point) => ({
-          xPercent: Math.max(-8, Math.min(108, point.xPercent)),
-          yPercent: Math.max(-8, Math.min(108, point.yPercent)),
-        }));
+    for (const line of figure.lines) {
+      for (let index = 1; index < line.length; index += 1) {
+        const startStar = STAR_BY_ID.get(line[index - 1]);
+        const endStar = STAR_BY_ID.get(line[index]);
+        if (!startStar || !endStar) continue;
+        const start = direction(startStar);
+        const end = direction(endStar);
+        if (dot(start, centreDirection) < candidateCosine && dot(end, centreDirection) < candidateCosine) {
+          continue;
+        }
         lines.push({
-          id: `${feature.id}-${segmentIndex}`,
-          constellation: feature.id,
-          points,
+          id: `${figure.id}-${segmentIndex}`,
+          constellation: figure.id,
+          startStarId: startStar.id,
+          endStarId: endStar.id,
+          start,
+          end,
           primary,
         });
         segmentIndex += 1;
-        const visible = [start, end].filter((point) => point.inField);
-        if (visible.length > 0) {
-          const representative = constellationAt(normalizeDegrees(line[index][0]) / 15, line[index][1]);
-          const current = labelCandidates.get(feature.id) ?? {
-            symbol: feature.id,
-            name: representative?.name ?? feature.id,
-            x: 0,
-            y: 0,
-            count: 0,
-            primary,
-            rank,
-          };
-          for (const point of visible) {
-            current.x += point.xPercent;
-            current.y += point.yPercent;
-            current.count += 1;
-          }
-          labelCandidates.set(feature.id, current);
-        }
+        const current = labelDirections.get(figure.id) ?? [];
+        current.push(start, end);
+        labelDirections.set(figure.id, current);
       }
     }
   }
 
-  const labels = [...labelCandidates.values()]
-    .filter((candidate) => candidate.count > 0)
-    .sort((a, b) => Number(b.primary) - Number(a.primary) || a.rank - b.rank || b.count - a.count)
-    .slice(0, 4)
-    .map((candidate) => ({
-      symbol: candidate.symbol,
-      name: candidate.name,
-      xPercent: candidate.x / candidate.count,
-      yPercent: candidate.y / candidate.count,
-      primary: candidate.primary,
-    }));
+  const labels = [...labelDirections.entries()]
+    .flatMap(([symbol, values]) => {
+      const representative = STAR_BY_ID.get(
+        FIGURES.find((figure) => figure.id === symbol)?.lines[0]?.[0] ?? -1,
+      );
+      const named = representative ? constellationAt(representative.raHours, representative.decDeg) : null;
+      return named ? [{
+        symbol,
+        name: named.name,
+        direction: averageDirection(values),
+        primary: symbol === constellation?.symbol,
+      }] : [];
+    })
+    .sort((left, right) => Number(right.primary) - Number(left.primary))
+    .slice(0, 5);
 
   const objects = references
     .filter((candidate) => candidate.id !== target.id)
     .flatMap((candidate) => {
       const position = positionForSkyFinderTarget(candidate, observer, at);
       if (!position || position.altitudeDeg <= 0) return [];
-      const projected = projectSkyField(centre, position);
-      if (!projected.inField) return [];
+      const enu = horizontalToEnu(position);
+      if (dot(enu, centreDirection) < candidateCosine) return [];
       return [{
         id: candidate.id,
         title: candidate.title,
         marker: skyMarkerKindForTarget(candidate),
-        xPercent: projected.xPercent,
-        yPercent: projected.yPercent,
+        direction: enu,
       }];
     })
-    .slice(0, 7);
+    .slice(0, 8);
 
   return { constellation, stars, lines, labels, objects };
 }

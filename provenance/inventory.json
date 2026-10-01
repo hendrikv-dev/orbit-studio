@@ -64,6 +64,7 @@
       "git-lfs.github.com",
       "github.com",
       "globalmeteornetwork.org",
+      "heasarc.gsfc.nasa.gov",
       "httpbin.org",
       "images-api.nasa.gov",
       "images-assets.nasa.gov",
@@ -819,6 +820,7 @@
       "category": "astronomical-reference-data",
       "repositoryPaths": [
         "src/data/constellations/constellationLines.d3Celestial.json",
+        "src/data/constellations/constellationFigureStars.bsc5p.json",
         "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt",
         "src/data/constellations/README.md"
       ],
@@ -836,13 +838,15 @@
       },
       "localSha256": {
         "src/data/constellations/constellationLines.d3Celestial.json": "97bcec91f0233c93a26d1da1f17a793276b38958adbb912b887eb4e29f11ad0f",
+        "src/data/constellations/constellationFigureStars.bsc5p.json": "3f10ef82946b55c9efd9b6f4ac8a34e634c2b75552ec806040b6dcd09f47b442",
         "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt": "221e8ff1505d1e70f60234e7d809c67a8729b78ac27ae8645e3e15abbb22b612",
-        "src/data/constellations/README.md": "12bab322f6ecf06d6d37c32591c9179cbdc2bcc2345c8c2d098c8e8f3cd156a5"
+        "src/data/constellations/README.md": "950f9674fdf3c12b8eb6fc39f1fd16b3b7867275e2f0a5ae51b5f21810bc64f4"
       },
       "processing": [
         "The upstream GeoJSON is retained byte-for-byte except for a final POSIX newline.",
-        "Coordinates remain J2000 right ascension and declination. Runtime code projects endpoints through Astronomy Engine for the selected observer and UTC instant, clips segments to the current approximate camera field, and derives labels only from visible segments.",
-        "These conventional line figures are orientation aids, not IAU constellation boundaries. HYG v4.1 remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority."
+        "The deterministic BSC5P generator maps all 893 coordinates to real HR stars; maximum endpoint separation is 0.008397 degrees and the mapping is checksummed.",
+        "Runtime code advances those same stars by their proper motion and projects fixed local ENU vectors through the stabilized device pose.",
+        "These conventional line figures are orientation aids, not IAU constellation boundaries. BSC5P remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority."
       ],
       "rights": {
         "verification": "verified",
@@ -863,56 +867,62 @@
       }
     },
     {
-      "id": "hyg-database-v4-1-bright-stars",
+      "id": "yale-bsc5p-bright-stars",
       "category": "astronomical-catalog-data",
       "repositoryPaths": [
-        "src/data/stars/hygBrightStars.v41.json",
-        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt"
+        "src/data/stars/bsc5pBrightStars.json",
+        "src/data/stars/README.md",
+        "src/data/stars/SOURCE-USE-NOTICE.txt",
+        "scripts/build-bsc5p-bright-stars.mjs"
       ],
       "productionBundlePaths": [
-        "assets/index-*.js"
+        "assets/index-*.js",
+        "assets/skyFinderContext-*.js"
       ],
       "originalSource": {
-        "title": "HYG Database v4.1",
-        "url": "https://raw.githubusercontent.com/astronexus/HYG-Database/3bf37f4b2d5460e1278286320d1d62fab9b493c1/hyg/CURRENT/hygdata_v41.csv",
-        "publicationUrl": "https://github.com/astronexus/HYG-Database",
-        "publisher": "David Nash / Astronomy Nexus",
-        "version": "v4.1 at commit 3bf37f4b2d5460e1278286320d1d62fab9b493c1 (2024-08-17)",
-        "retrievedAt": "2026-07-25",
-        "originalSha256": "d9f69fd8ed39072a9562d54c89ff0747728817dc2f1242c2062704ec52f4ad0a"
+        "title": "Bright Star Catalog, 5th Revised Edition (Preliminary), BSC5P",
+        "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html",
+        "publicationUrl": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html",
+        "publisher": "Dorrit Hoffleit and Wayne H. Warren Jr.; distributed by NASA/GSFC HEASARC",
+        "version": "V/50/catalog; HEASARC table last modified 2024-09-16",
+        "retrievedAt": "2026-09-30",
+        "originalSha256": "4b7e89fc0f18103683db2f8e66cd2de597b1912d7469f6d44f295c290f4fc1a0"
       },
       "localSha256": {
-        "src/data/stars/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
-        "src/data/stars/hygBrightStars.v41.json": "4e137a24ddc061e4a85bd922fc2d12f1d2a8e7e1e6f4ff35d29388806f63e937"
+        "src/data/stars/bsc5pBrightStars.json": "529702e4a4fdedce2c98c1974f9a35cfdee4a0b33ff83a9c3d1373e6c40ae384",
+        "src/data/stars/README.md": "a2771b5d1cb3437958cf0711c722713673acbb5fdb871e5ff454ee5d69112091",
+        "src/data/stars/SOURCE-USE-NOTICE.txt": "e59deae8483b7a8e11e24674f497d7bbad76faf3415e06d0b274a6e56c572cf9",
+        "scripts/build-bsc5p-bright-stars.mjs": "c2dd622c5f8bd23a1bff94bd6f647de04a3b4c49eb136cfbafa25e814f25b711"
       },
       "processing": [
-        "scripts/build-hyg-bright-stars.mjs selects nonzero HYG identifiers with apparent magnitude <= 5.1.",
-        "The generator preserves identifiers, names, coordinates, magnitudes, color index, Cartesian values, velocities, and constellation codes.",
-        "Records are sorted deterministically by magnitude and HYG identifier."
+        "The recorded HEASARC batch query requests name, J2000 RA/Dec, V magnitude, B-V, proper motion and alternate designation for all 9,110 BSC5P rows.",
+        "scripts/build-bsc5p-bright-stars.mjs retains the 8,404 rows with reported V <= 6.5, excluding 14 rows without V magnitude and 692 fainter rows.",
+        "The generator preserves HR identity and source values, adds a small IAU common-name crosswalk, computes the IAU constellation symbol, and sorts deterministically by magnitude then HR identifier."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "licenseOrBasis": "NASA/GSFC HEASARC official free-use data policy; the BSC5P table declares no additional commercial restriction, copyleft, or share-alike condition. No SPDX software license is asserted.",
         "evidenceUrls": [
-          "https://github.com/astronexus/HYG-Database/blob/3bf37f4b2d5460e1278286320d1d62fab9b493c1/LICENSE",
-          "https://creativecommons.org/licenses/by-sa/4.0/"
+          "https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html",
+          "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html"
         ],
-        "attribution": "HYG Database v4.1 by David Nash / Astronomy Nexus, licensed CC BY-SA 4.0; Orbit Studio magnitude-limited transformed subset.",
+        "attribution": "Bright Star Catalog, 5th Revised Edition (Hoffleit & Warren, 1991), acquired through NASA/GSFC HEASARC; HEASARC acknowledgement retained.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-share-alike"
+        "modification": "factual-catalog-transformation-under-free-use-policy"
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "The transformed subset remains under CC BY-SA 4.0; retain attribution, license link, and change description."
+        "restrictions": "Retain source/query/checksums and the HEASARC requested acknowledgement. Re-verify the source policy before replacing or expanding the catalogue."
       }
     },
     {
       "id": "jpl-horizons-usno-validation-fixture",
       "category": "scientific-reference-fixture",
       "repositoryPaths": [
-        "src/astronomy/reference/jplHorizonsUsnoReference.json"
+        "src/astronomy/reference/jplHorizonsUsnoReference.json",
+        "src/astronomy/reference/jplHorizonsTopocentricSky.json"
       ],
       "productionBundlePaths": [],
       "originalSource": {
@@ -923,10 +933,12 @@
         "retrievedAt": "2026-07-18"
       },
       "localSha256": {
-        "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7"
+        "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7",
+        "src/astronomy/reference/jplHorizonsTopocentricSky.json": "46cfebe1262eb20b689c9c81f9f657e21822a0e0b2c3cc68aa8242b74fa57b69"
       },
       "processing": [
         "scripts/fetch-celestial-reference.mjs records fixed-timestamp Horizons vectors and apparent coordinates plus USNO sidereal-time results.",
+        "The topocentric Sky fixture records refracted Sun, Moon and Saturn azimuth/elevation for one observer and UTC instant from independent Horizons observer tables.",
         "The fixture retains numeric API results and exact query semantics; it is test input and is not included in the production bundle."
       ],
       "rights": {
@@ -963,7 +975,7 @@
       "localSha256": {},
       "processing": [
         "The former derived TypeScript subset was removed before this checkpoint.",
-        "The production star layer uses the separately verified HYG v4.1 subset."
+        "The production star layer uses the separately verified BSC5P subset."
       ],
       "rights": {
         "verification": "unresolved",
@@ -1818,7 +1830,7 @@
       },
       "localSha256": {
         "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
-        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "5b84a26464f1829064a5f5695ce18e5372f03f07d1d46e3760f0a10e04f9004f",
+        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
         "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb",
         "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3"
       },

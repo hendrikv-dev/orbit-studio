@@ -1,0 +1,19 @@
+Yale Bright Star Catalog, 5th Revised Edition (Preliminary), BSC5P
+
+Authors: Dorrit Hoffleit and Wayne H. Warren Jr. (1991)
+Catalogue identifier: V/50/catalog
+Distribution used here: NASA/GSFC HEASARC bsc5p table
+Source URL: https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html
+Use policy: https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html
+Retrieved: 2026-09-30
+
+HEASARC states that its materials are available freely for use. The BSC5P table page supplies no
+additional commercial restriction, copyleft, or share-alike condition. HEASARC requests the
+following acknowledgement when use of the service makes a significant contribution:
+
+"This research has made use of data and/or software provided by the High Energy Astrophysics
+Science Archive Research Center (HEASARC), which is a service of the Astrophysics Science Division
+at NASA/GSFC."
+
+This notice records the repository's source and usage basis. It does not imply NASA endorsement and
+does not recast the catalogue as software under an SPDX license.

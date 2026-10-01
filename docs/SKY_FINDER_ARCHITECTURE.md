@@ -7,13 +7,24 @@ Sky Finder is a projection of Tracker’s existing observing opportunities. It d
 1. `TrackerApp` resolves the confirmed observer from the map pin and the selected date from URL-backed map state.
 2. The existing ranking creates `Opportunity` records for planets, the Moon, deep-sky showpieces, meteor radiants, conjunctions, and propagated satellite passes.
 3. `skyFinderTargetFor` admits only opportunities with meaningful locator geometry. Fixed bodies are recomputed with Astronomy Engine, catalogue targets use their source RA/Dec, and moving/radiant targets use their propagated sampled path.
-4. Astronomy is refreshed on a 15-second cadence. Device orientation is handled on its own high-frequency event stream and never reruns ephemeris work.
-5. `angularSeparation` compares the rear-camera pointing vector with the target’s local horizontal position. Alignment is withheld below the horizon or when orientation quality is poor.
-6. Manual calibration stores only an in-memory azimuth/altitude correction for the current Finder session. Closing Finder clears it.
+4. `topocentricSky.ts` is the single transformation owner: catalogue/apparent equatorial position → observer and UTC → local Alt/Az → fixed ENU direction → stabilized device quaternion → camera projection. Astronomy refreshes on a 15-second cadence; sensor events change only device pose.
+5. W3C device orientation, the rear-camera correction and screen rotation are composed once as a quaternion. Safari heading correction rotates the whole pose rather than overwriting target azimuth. An 0.18° deadband and time-based 85 ms quaternion slerp suppress stationary jitter without smoothing or recalibrating celestial targets.
+6. `angularSeparation` compares the stabilized rear-camera optical axis with the same fixed target direction. Alignment is withheld below the horizon or when orientation quality is poor. Below-horizon targets stop movement guidance and show the next upward horizon crossing when one can be found.
+7. Manual calibration stores only an in-memory yaw/pitch correction for the current Finder session and applies it to the whole camera pose. Closing Finder clears it.
 
 Historical or future selected dates do not expose Sky or **Find in Sky**. Planning remains in Tonight and Object Detail, so a physical phone is never guided using stale or future coordinates.
 
-Sky adds restrained expected-sky context without pretending to see through the camera. `skyFinderContext.ts` resolves the selected target's real coordinate source and projects the HYG v4.1 bright-star subset into an approximate 82° × 66° field for the current observer, UTC instant, and three-degree-bucketed pointing direction. The same projection transforms conventional J2000 constellation figure segments from the BSD-licensed d3-celestial dataset; constellation names are derived only from figures actually visible in that field. Selective common-star labels come from HYG, and notable-object markers are projections of Tracker's existing ranked `SkyFinderTarget` instances rather than a second catalogue. Both data files stay in Sky's lazy chunk. The field is orientation context, not a solved camera image, and never sets visual-verification state. Moving sampled targets such as satellites deliberately omit an invented target-constellation identity even though real figure context can remain visible around them.
+Sky adds restrained expected-sky context without pretending the browser solved an image. `skyFinderContext.ts` resolves the selected target and BSC5P bright-star catalogue into fixed local ENU vectors for the current observer and UTC instant. Magnitude controls size/luminance; B−V supplies restrained colour; only selected bright IAU names are labelled. A coarse pointing bucket selects candidates for performance but never sets their screen position. Final placement always projects each fixed vector through the exact stabilized quaternion, so the target, surrounding stars, figure lines, labels and noteworthy-object markers move as one scene.
+
+The complete star-direction frame is a one-entry derived cache keyed by observer latitude,
+longitude, and UTC instant. A location change or the 15-second astronomy tick replaces it; pointing
+changes only re-cull the cached fixed vectors. This prevents sensor movement from rerunning the full
+catalog transformation while making stale observer/time state impossible to retain as a second
+authority.
+
+Conventional figures use the BSD-licensed d3-celestial line dataset. The deterministic generator maps all 893 endpoints to BSC5P HR stars within 0.008397°, and figure geometry then follows those same catalogue stars through the same proper-motion and pose pipeline. These are conventional figure lines, not IAU boundaries. Noteworthy markers remain projections of Tracker's existing ranked targets and satellite pipeline rather than a second authority. Moving sampled targets deliberately omit an invented target-constellation identity.
+
+When camera permission succeeds, the live rear-camera `<video>` is the visual base and the celestial layers are overlays. The rendered night field is used only for fixtures, simulator work, camera-denied recovery, and explicit non-camera fallback. `data-visual-base` exposes that distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
 
 ## Device-class eligibility and permission boundary
 

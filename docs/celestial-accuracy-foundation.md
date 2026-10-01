@@ -45,7 +45,7 @@ At the evidence instant 2026-01-01T13:18:20Z, the former solar vector differs fr
 | Earth orientation | Astronomy Engine 2.1.19 GAST plus EQD/EQJ precession-nutation | ECEF -> EQD -> EQJ | UT1 approximated by UTC; TT for precession/nutation | 1600–2200 | USNO GAST comparisons <0.02 s; longitude also inherits UT1−UTC, bounded below 0.9 s | Implemented |
 | Sun | Astronomy Engine 2.1.19, VSOP87/NOVAS-derived geocentric apparent vector | EQJ/ICRS-compatible J2000 | TT derived from UTC/UT | 1600–2200 | Library documents approximately 1 arcminute; current JPL DE441 matrix is <0.03 arcminute | Implemented |
 | Moon | Astronomy Engine 2.1.19 geocentric vector and illumination | EQJ/ICRS-compatible J2000 | TT derived from UTC/UT | 1600–2200 | Current JPL DE441 matrix <0.09 arcminute direction, <50 km range, <0.00005 illuminated fraction | Implemented; display distance is scaled separately |
-| Stars | HYG Database v4.1, apparent magnitude <=5.1 | EQJ, epoch J2000.0 | UTC-derived Julian epoch for catalog space velocity | HYG proper-motion field quality is source-dependent | 1,839 authentic records; no synthetic filler; no parallax or radial perspective beyond HYG Cartesian velocity | Implemented |
+| Stars | Yale Bright Star Catalog BSC5P via NASA/GSFC HEASARC, reported apparent magnitude <=6.5 | FK5/J2000 catalogue coordinates, mapped into EQJ scene axes | UTC-derived Julian epoch for catalogue proper motion | BSC5P proper-motion field quality is source-dependent | 8,404 authentic magnitude-bearing records; no synthetic filler; no parallax or radial-velocity perspective | Implemented |
 | Earth-orbit catalog objects | Verified GCAT package membership with source-constrained, deterministic two-body educational reconstructions | Reconstructed inertial elements mapped through shared scene axes | Canonical UTC | Completed years use calendar-period end; the partial latest snapshot is 2026-06-27T22:13:02Z | Membership, lifecycle, orbit epoch, perigee, apogee, and inclination are source-backed. Generated node, apsis, and phase are not observed, live, or exact. The current package contains no exact historical source states | Canonical SQLite package and deterministic browser derivative implemented; CelesTrak and Space-Track authorities absent |
 | Historical Earth-orbit objects | Imported historical membership; source orbit records when available; `metadata-constrained-keplerian-v1` otherwise | Source-defined frame or deterministic reconstructed elements mapped through shared scene axes | Selected UTC | Source- and lifecycle-dependent | Source records produce model-derived positions; reconstruction preserves source perigee, apogee, and inclination but does not claim historical phase, longitude, node, or apsidal orientation; unconstrained records remain catalog-only | Implemented with provenance retained through resolver, renderer, UI, and review outputs |
 
@@ -57,7 +57,8 @@ The fixture is deliberately generated outside the implementation under test. Reg
 
 ## Star data and license
 
-The HYG source and selection details are in `src/data/stars/README.md`. The generated subset is an adaptation distributed under CC BY-SA 4.0, with attribution and license notice in `src/data/stars/LICENSE-CC-BY-SA-4.0.txt`. Astronomy Engine is MIT licensed.
+The BSC5P source, exact query, selection, checksums, transformation and HEASARC free-use basis are
+in `src/data/stars/README.md` and `SOURCE-USE-NOTICE.txt`. Astronomy Engine 2.1.19 is MIT licensed.
 
 ## Remaining limitations
 
@@ -65,7 +66,7 @@ The HYG source and selection details are in `src/data/stars/README.md`. The gene
 - Polar motion is not modeled.
 - Astronomy Engine’s documented approximate precision, not JPL DE441 precision, defines runtime claims.
 - Moon libration is not yet applied to the texture orientation; direction, physical distance, phase, and the Sun-relative illuminated side are physical.
-- The 1,839-star subset intentionally stops at visual magnitude 5.1. HYG source uncertainties and proper-motion completeness vary by record.
+- The 8,404-star runtime catalogue stops at reported visual magnitude 6.5 and excludes 14 BSC5P rows with no V magnitude. Source uncertainties and proper-motion completeness vary by record.
 - Historical membership is broader than source-record historical orbit coverage.
   Metadata-constrained reconstructions are rendered only when source perigee, apogee, and
   inclination are available and remain labeled reconstructed; unconstrained positions remain

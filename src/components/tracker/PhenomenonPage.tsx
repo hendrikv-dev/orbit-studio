@@ -4,6 +4,7 @@ import type { EventCategoryId } from "../../data/tracker/eventCategories";
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
 import { ConditionsRow } from "./ConditionsRow";
 import { EventHero, type HeroMedia } from "./EventHero";
+import type { TelescopeGuidance } from "../../data/tracker/viewingCapability";
 
 /**
  * The page. There is only one.
@@ -53,6 +54,7 @@ interface Props {
   /** An extra hero control, where the event has a second distinct tool. */
   tertiaryAction?: { label: string; onSelect: () => void } | null;
   finderAction?: { label: string; onSelect: () => void } | null;
+  telescopeGuidance?: TelescopeGuidance | null;
   safety: string | null;
   expectation: string | null;
   /** Distinguishes one plan from another for the review harness. */
@@ -74,6 +76,7 @@ export function PhenomenonPage({
   onReminder,
   tertiaryAction = null,
   finderAction = null,
+  telescopeGuidance = null,
   safety,
   expectation,
   planIdentity,
@@ -100,6 +103,7 @@ export function PhenomenonPage({
           conditions={conciseConditions}
           mapAction={mapAction}
           finder={finderAction}
+          telescopeGuidance={telescopeGuidance}
         />
       </div>
 

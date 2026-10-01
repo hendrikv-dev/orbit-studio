@@ -69,7 +69,7 @@ export function TrackerSpike() {
   // an observer page must not pay for anything it is not showing.
   const [stars, setStars] = useState<BrightStar[]>([]);
   useEffect(() => {
-    void import("../../data/stars/hygBrightStars.v41.json").then((module) => {
+    void import("../../data/stars/bsc5pBrightStars.json").then((module) => {
       const all = (module.default as BrightStar[]).filter((star) => star.magnitude <= 3.5);
       setStars(all);
     });

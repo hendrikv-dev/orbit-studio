@@ -98,8 +98,9 @@ SQLite package. **Review the script, not the output**, then run
 
 ## 5. Known-open, by decision rather than oversight
 
-- **HYG v4.1 is CC BY-SA 4.0** — the only ShareAlike dependency. Commercial use
-  permitted; adaptations inherit the licence. Tracker's PRD depends on it.
+- **BSC5P uses the HEASARC free-use policy** — exact source/query/checksums and the requested
+  acknowledgement are recorded in `src/data/stars/README.md`. The source declares no
+  commercial restriction, copyleft, or share-alike condition. Tracker's PRD depends on it.
 - Isp hardcoded at 320 s in `maneuvers.ts` (no UI currently uses it)
 - No TLE or element ingest anywhere
 - Population scatter's inclination axis is occluded by the inspector

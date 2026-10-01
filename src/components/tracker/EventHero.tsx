@@ -3,6 +3,7 @@ import type { ConditionCard } from "../../data/tracker/conditionCards";
 import type { EventPresentation } from "../../data/tracker/eventPresentation";
 import type { HeroImagery } from "../../data/tracker/imagery";
 import { TrackerScene, TrackerCredit } from "./TrackerScene";
+import type { TelescopeGuidance } from "../../data/tracker/viewingCapability";
 
 /**
  * The hero card. One shape, every phenomenon.
@@ -68,6 +69,7 @@ interface Props {
   mapAction?: { label: string; onSelect: () => void } | null;
   /** Live local-sky guidance, only for targets with real locator geometry. */
   finder?: { label: string; onSelect: () => void } | null;
+  telescopeGuidance?: TelescopeGuidance | null;
 }
 
 function Description({ children }: { children: string }) {
@@ -105,6 +107,7 @@ export function EventHero({
   conditions = [],
   mapAction = null,
   finder = null,
+  telescopeGuidance = null,
 }: Props) {
   return (
     <section
@@ -155,6 +158,16 @@ export function EventHero({
             </div>
           ))}
         </dl>
+
+        {telescopeGuidance ? (
+          <section className="tk-telescope-guidance" aria-label={telescopeGuidance.heading}>
+            <small>{telescopeGuidance.heading}</small>
+            {telescopeGuidance.eyepiece || telescopeGuidance.magnification ? (
+              <strong>{[telescopeGuidance.eyepiece, telescopeGuidance.magnification].filter(Boolean).join(" · ")}</strong>
+            ) : null}
+            <p>{telescopeGuidance.expectation}</p>
+          </section>
+        ) : null}
 
         {conditions.length > 0 ? (
           <ul className="tk-detail-key-conditions tk-hero-conditions" aria-label="Key observing conditions">
