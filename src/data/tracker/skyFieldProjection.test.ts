@@ -4,14 +4,20 @@ import { projectSkyField } from "./skyFieldProjection";
 
 describe("Sky field projection", () => {
   it("maps the documented horizontal and vertical half-fields to the display edges", () => {
-    expect(projectSkyField(
+    const horizontalEdge = projectSkyField(
       { azimuthDeg: 0, altitudeDeg: 0 },
       { azimuthDeg: 41, altitudeDeg: 0 },
-    )).toEqual(expect.objectContaining({ xPercent: 100, yPercent: 50, inField: true }));
-    expect(projectSkyField(
+    );
+    expect(horizontalEdge.inField).toBe(true);
+    expect(horizontalEdge.xPercent).toBeCloseTo(100, 10);
+    expect(horizontalEdge.yPercent).toBeCloseTo(50, 10);
+    const verticalEdge = projectSkyField(
       { azimuthDeg: 0, altitudeDeg: 0 },
       { azimuthDeg: 0, altitudeDeg: 33 },
-    )).toEqual(expect.objectContaining({ xPercent: 50, yPercent: 0, inField: true }));
+    );
+    expect(verticalEdge.inField).toBe(true);
+    expect(verticalEdge.xPercent).toBeCloseTo(50, 10);
+    expect(verticalEdge.yPercent).toBeCloseTo(0, 10);
   });
 
   it("uses perspective on the celestial sphere near the zenith and handles the north wrap", () => {

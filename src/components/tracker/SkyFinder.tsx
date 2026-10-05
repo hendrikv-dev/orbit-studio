@@ -17,15 +17,18 @@ import {
 import { formatClockTime, type PlaceClock } from "../../lib/localTime";
 import {
   calibratedDevicePose,
-  devicePoseFromOrientation,
+  devicePoseFromOrientationWithHeading,
   devicePoseLookingAt,
   DevicePoseStabilizer,
   edgeCueForProjection,
+  effectiveCameraProjection,
   horizontalToEnu,
   normalizeDegrees,
   pointingFromDevicePose,
-  poseWithAbsoluteHeading,
   projectEnuDirection,
+  SKY_HORIZONTAL_FOV_DEG,
+  SKY_VERTICAL_FOV_DEG,
+  type CameraProjectionModel,
   type DevicePose,
 } from "../../astronomy/topocentricSky";
 import {
@@ -37,6 +40,7 @@ import {
   guidanceForSkyTarget,
   nextRiseForSkyFinderTarget,
   positionForSkyFinderTarget,
+  solutionForSkyFinderTarget,
   skyFinderExperience,
   supportsLiveSkyFinder,
   type FinderCalibration,
@@ -66,6 +70,16 @@ interface Props {
 interface SafariOrientationEvent extends DeviceOrientationEvent {
   webkitCompassHeading?: number;
   webkitCompassAccuracy?: number;
+}
+
+interface OrientationTelemetry {
+  alphaDeg: number;
+  betaDeg: number;
+  gammaDeg: number;
+  screenOrientationDeg: number;
+  magneticHeadingDeg: number | null;
+  compassAccuracyDeg: number | null;
+  absolute: boolean;
 }
 
 interface PermissionConstructor {
@@ -190,9 +204,37 @@ function shapeLabel(target: SkyFinderTarget): string {
 }
 
 function SkyMarkerGlyph({ kind, label }: { kind: SkyMarkerKind; label?: string }) {
+  const art = (() => {
+    switch (kind) {
+      case "sun":
+        return <><circle cx="16" cy="16" r="6.3" /><path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.9 2.9M22.6 22.6l2.9 2.9M25.5 6.5l-2.9 2.9M9.4 22.6l-2.9 2.9" /></>;
+      case "moon":
+        return <><path d="M21.8 24.2A10.6 10.6 0 1 1 19 5.7c-4.2 2.2-6 7-4.2 11.1 1.2 2.9 3.8 5.5 7 7.4Z" /><circle cx="12" cy="11" r="1.1" /><circle cx="17" cy="20" r=".8" /></>;
+      case "saturn":
+        return <><circle cx="16" cy="16" r="6.2" /><path d="M4.2 19.1c2.2 3.2 9.8 3.1 17-.1 7.1-3.1 8.8-6.7 6.7-7.9-1.3-.8-4.1-.1-7.3 1.2M11.2 19.7c-4.2 1-7.2.9-7.8-.5-.8-1.8 2.7-5.2 8-7.6" /></>;
+      case "jupiter":
+        return <><circle cx="16" cy="16" r="9" /><path d="M8.1 12h15.8M7.2 16h17.6M8.1 20h15.8" /><ellipse cx="20" cy="17.8" rx="2.2" ry="1" /></>;
+      case "venus":
+        return <><circle cx="16" cy="13" r="7" /><path d="M16 20v9M11.8 25h8.4" /><path d="M19.7 7.1c-3.7 1-5.8 5-4.6 8.6.6 1.8 1.8 3.3 3.4 4.1" /></>;
+      case "mercury":
+        return <><circle cx="16" cy="14" r="6.5" /><path d="M10.5 4.1c1.1 2 3 3.1 5.5 3.1s4.4-1.1 5.5-3.1M16 20.5v8M12 25h8" /></>;
+      case "mars":
+        return <><circle cx="13" cy="18" r="7" /><path d="M18 13 27 4M20.5 4H27v6.5" /><path d="M9.3 15.7c2-1.8 5.2-1.8 7.2.1" /></>;
+      case "satellite":
+        return <><path d="m12 12 8 8M10 15l-4 4 7 7 4-4M15 10l4-4 7 7-4 4" /><circle cx="16" cy="16" r="3" /></>;
+      case "radiant":
+        return <><circle cx="16" cy="16" r="4" /><path d="M16 3v8M16 21v8M3 16h8M21 16h8M6.8 6.8l5.6 5.6M19.6 19.6l5.6 5.6M25.2 6.8l-5.6 5.6M12.4 19.6l-5.6 5.6" /></>;
+      case "cluster":
+        return <><circle cx="10" cy="17" r="2" /><circle cx="16" cy="10" r="2.4" /><circle cx="21" cy="18" r="2" /><circle cx="14" cy="23" r="1.5" /><circle cx="23" cy="9" r="1.2" /></>;
+      case "deep-sky":
+        return <><ellipse cx="16" cy="16" rx="11" ry="6" /><ellipse cx="16" cy="16" rx="5" ry="10" /><circle cx="16" cy="16" r="1.5" /></>;
+      default:
+        return <><circle cx="16" cy="16" r="8" /><path d="M8 16h16M16 8v16" /></>;
+    }
+  })();
   return (
     <span className="tk-sky-object-glyph" data-marker={kind} aria-label={label}>
-      <i aria-hidden />
+      <svg viewBox="0 0 32 32" aria-hidden>{art}</svg>
     </span>
   );
 }
@@ -224,16 +266,54 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const [rawPointing, setRawPointing] = useState<PhonePointing | null>(null);
   const [sensorQuality, setSensorQuality] = useState<PointingQuality>("unavailable");
   const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
+  const [orientationTelemetry, setOrientationTelemetry] = useState<OrientationTelemetry | null>(null);
   const [calibration, setCalibration] = useState<FinderCalibration | null>(null);
   const [calibrationOpen, setCalibrationOpen] = useState(false);
   const [referenceId, setReferenceId] = useState<string | null>(null);
   const [cameraPhase, setCameraPhase] = useState<CameraPhase>("idle");
   const [cameraMessage, setCameraMessage] = useState<string | null>(null);
   const [expectedContext, setExpectedContext] = useState<ExpectedSkyContext | null>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const stabilizer = useRef(new DevicePoseStabilizer());
   const lastAbsolute = useRef(0);
+  const diagnosticsEnabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const local = ["127.0.0.1", "localhost"].includes(window.location.hostname);
+    if (!local) return false;
+    if (new URLSearchParams(window.location.search).get("skyDiagnostics") === "1") return true;
+    try {
+      return window.sessionStorage.getItem("orbit.skyDiagnostics") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
+  const cameraFov = useMemo(() => {
+    if (typeof window === "undefined") {
+      return { horizontal: SKY_HORIZONTAL_FOV_DEG, vertical: SKY_VERTICAL_FOV_DEG };
+    }
+    const params = new URLSearchParams(window.location.search);
+    const requestedHorizontal = diagnosticsEnabled ? Number(params.get("skyHfov")) : Number.NaN;
+    const requestedVertical = diagnosticsEnabled ? Number(params.get("skyVfov")) : Number.NaN;
+    return {
+      horizontal: Number.isFinite(requestedHorizontal) && requestedHorizontal >= 30 && requestedHorizontal <= 130
+        ? requestedHorizontal
+        : SKY_HORIZONTAL_FOV_DEG,
+      vertical: Number.isFinite(requestedVertical) && requestedVertical >= 25 && requestedVertical <= 120
+        ? requestedVertical
+        : SKY_VERTICAL_FOV_DEG,
+    };
+  }, [diagnosticsEnabled]);
+  const [cameraProjection, setCameraProjection] = useState<CameraProjectionModel>(() => ({
+    horizontalFovDeg: cameraFov.horizontal,
+    verticalFovDeg: cameraFov.vertical,
+    sourceWidthPx: 0,
+    sourceHeightPx: 0,
+    viewportWidthPx: 0,
+    viewportHeightPx: 0,
+    fit: "cover",
+  }));
   const deviceExperience = skyFinderExperience(
     capabilities,
     sensorPermission === "denied" || sensorPermission === "unavailable"
@@ -248,15 +328,43 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     return () => window.clearInterval(timer);
   }, []);
 
-  const livePosition = useMemo(
-    () =>
-      liveDate
-        ? positionForSkyFinderTarget(target, observer, astronomyNow)
-        : null,
+  const targetSolution = useMemo(
+    () => (liveDate ? solutionForSkyFinderTarget(target, observer, astronomyNow) : null),
     [astronomyNow, liveDate, observer, target],
   );
-  const targetPosition = livePosition;
+  const targetPosition = targetSolution?.horizontal ?? null;
   const solutionAt = astronomyNow;
+
+  const refreshCameraProjection = useCallback(() => {
+    const media = video.current;
+    const viewport = stage.current;
+    const settings = stream.current?.getVideoTracks()[0]?.getSettings();
+    setCameraProjection({
+      horizontalFovDeg: cameraFov.horizontal,
+      verticalFovDeg: cameraFov.vertical,
+      sourceWidthPx: media?.videoWidth || settings?.width || 0,
+      sourceHeightPx: media?.videoHeight || settings?.height || 0,
+      viewportWidthPx: viewport?.clientWidth || 0,
+      viewportHeightPx: viewport?.clientHeight || 0,
+      fit: "cover",
+    });
+  }, [cameraFov.horizontal, cameraFov.vertical]);
+
+  useEffect(() => {
+    const media = video.current;
+    const viewport = stage.current;
+    if (!media || !viewport) return undefined;
+    const resize = new ResizeObserver(refreshCameraProjection);
+    resize.observe(viewport);
+    media.addEventListener("loadedmetadata", refreshCameraProjection);
+    window.addEventListener("orientationchange", refreshCameraProjection);
+    refreshCameraProjection();
+    return () => {
+      resize.disconnect();
+      media.removeEventListener("loadedmetadata", refreshCameraProjection);
+      window.removeEventListener("orientationchange", refreshCameraProjection);
+    };
+  }, [refreshCameraProjection]);
 
   const referenceOptions = useMemo(
     () =>
@@ -317,7 +425,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         stream.current = result.stream;
         if (video.current) {
           video.current.srcObject = result.stream;
-          void video.current.play().catch(() => undefined);
+          void video.current.play().then(refreshCameraProjection).catch(() => undefined);
         }
         setCameraPhase("active");
       });
@@ -325,7 +433,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
     return () => {
       cancelled = true;
     };
-  }, [launch, target.id]);
+  }, [launch, refreshCameraProjection, target.id]);
 
   const startCamera = useCallback(async () => {
     if (
@@ -351,7 +459,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       stream.current = media;
       if (video.current) {
         video.current.srcObject = media;
-        void video.current.play().catch(() => undefined);
+        void video.current.play().then(refreshCameraProjection).catch(() => undefined);
       }
       setCameraPhase("active");
     } catch (error) {
@@ -363,7 +471,7 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
           : "Camera unavailable — guidance continues with the night view.",
       );
     }
-  }, [capabilities, liveDate]);
+  }, [capabilities, liveDate, refreshCameraProjection]);
 
   useEffect(() => {
     if (
@@ -390,23 +498,31 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       if (!isAbsoluteEvent && Date.now() - lastAbsolute.current < 1_000) return;
       if (isAbsoluteEvent) lastAbsolute.current = Date.now();
 
-      let nextPose = devicePoseFromOrientation(
+      const safariHeading = event.webkitCompassHeading;
+      const validSafariHeading = typeof safariHeading === "number" && Number.isFinite(safariHeading) && safariHeading >= 0
+        ? safariHeading
+        : null;
+      const nextPose = devicePoseFromOrientationWithHeading(
         event.alpha,
         event.beta,
         event.gamma,
         screenAngle(),
+        validSafariHeading,
       );
-      const safariHeading = event.webkitCompassHeading;
-      if (typeof safariHeading === "number" && Number.isFinite(safariHeading)) {
-        // Safari's magnetic/true heading corrects the complete camera attitude.
-        // Replacing only azimuth would detach every other celestial overlay.
-        nextPose = poseWithAbsoluteHeading(nextPose, safariHeading);
-      }
       const filteredPose = stabilizer.current.update(nextPose, event.timeStamp || performance.now());
       setRawPose(filteredPose);
       setRawPointing(pointingFromDevicePose(filteredPose));
 
       const accuracy = event.webkitCompassAccuracy;
+      setOrientationTelemetry({
+        alphaDeg: event.alpha,
+        betaDeg: event.beta,
+        gammaDeg: event.gamma,
+        screenOrientationDeg: screenAngle(),
+        magneticHeadingDeg: validSafariHeading,
+        compassAccuracyDeg: typeof accuracy === "number" && accuracy >= 0 ? accuracy : null,
+        absolute: isAbsoluteEvent,
+      });
       setHeadingAccuracy(typeof accuracy === "number" && accuracy >= 0 ? accuracy : null);
       if (typeof accuracy === "number" && accuracy >= 0) {
         setSensorQuality(accuracy <= 15 ? "good" : accuracy <= 30 ? "fair" : "poor");
@@ -468,12 +584,12 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   const projectedContext = useMemo(() => {
     if (!expectedContext || !displayPose) return null;
     const stars = expectedContext.stars.flatMap((star) => {
-      const projected = projectEnuDirection(star.direction, displayPose);
+      const projected = projectEnuDirection(star.direction, displayPose, cameraProjection);
       return projected.inField ? [{ ...star, ...projected }] : [];
     });
     const lines = expectedContext.lines.flatMap((line) => {
-      const start = projectEnuDirection(line.start, displayPose);
-      const end = projectEnuDirection(line.end, displayPose);
+      const start = projectEnuDirection(line.start, displayPose, cameraProjection);
+      const end = projectEnuDirection(line.end, displayPose, cameraProjection);
       if (!start.inFront || !end.inFront) return [];
       const withinExtendedField = [start, end].some(
         (point) => point.xPercent >= -20 && point.xPercent <= 120 && point.yPercent >= -20 && point.yPercent <= 120,
@@ -481,17 +597,27 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       return withinExtendedField ? [{ ...line, start, end }] : [];
     });
     const labels = expectedContext.labels.flatMap((label) => {
-      const projected = projectEnuDirection(label.direction, displayPose);
+      const projected = projectEnuDirection(label.direction, displayPose, cameraProjection);
       return projected.inField ? [{ ...label, ...projected }] : [];
     });
     const objects = expectedContext.objects.flatMap((object) => {
-      const projected = projectEnuDirection(object.direction, displayPose);
+      const projected = projectEnuDirection(object.direction, displayPose, cameraProjection);
       return projected.inField ? [{ ...object, ...projected }] : [];
     });
     return { stars, lines, labels, objects };
-  }, [displayPose, expectedContext]);
+  }, [cameraProjection, displayPose, expectedContext]);
 
-  const effectiveQuality: PointingQuality = calibration && sensorQuality === "poor" ? "fair" : sensorQuality;
+  const usesUncorrectedMagneticHeading =
+    orientationTelemetry?.magneticHeadingDeg !== null &&
+    orientationTelemetry?.magneticHeadingDeg !== undefined &&
+    !calibration;
+  // Astronomy Engine's azimuth is true-north referenced, while Safari exposes
+  // only a magnetic heading. Without a declination source the browser cannot
+  // honestly claim a precise lock, even when the compass reports low sensor
+  // uncertainty. A user alignment supplies the missing whole-pose correction.
+  const effectiveQuality: PointingQuality = calibration
+    ? sensorQuality === "poor" ? "fair" : sensorQuality
+    : usesUncorrectedMagneticHeading ? "poor" : sensorQuality;
   const alignment = useMemo(
     () =>
       alignmentFor(pointing, targetPosition, target.alignmentToleranceDeg, effectiveQuality),
@@ -499,8 +625,12 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
   );
 
   const projectedTarget = displayPose && targetPosition
-    ? projectEnuDirection(horizontalToEnu(targetPosition), displayPose)
+    ? projectEnuDirection(horizontalToEnu(targetPosition), displayPose, cameraProjection)
     : null;
+  const effectiveProjection = useMemo(
+    () => effectiveCameraProjection(cameraProjection),
+    [cameraProjection],
+  );
   const targetEdgeCue = projectedTarget && !projectedTarget.inField
     ? edgeCueForProjection(projectedTarget)
     : null;
@@ -590,12 +720,15 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
       data-expected-lines={projectedContext?.lines.length ?? 0}
       data-expected-labels={projectedContext?.labels.length ?? 0}
       data-expected-objects={projectedContext?.objects.length ?? 0}
+      data-camera-horizontal-fov={effectiveProjection.horizontalFovDeg.toFixed(3)}
+      data-camera-vertical-fov={effectiveProjection.verticalFovDeg.toFixed(3)}
+      data-camera-crop-axis={effectiveProjection.cropAxis}
+      data-camera-crop-visible-fraction={effectiveProjection.visibleFraction.toFixed(4)}
+      data-heading-reference={typeof orientationTelemetry?.magneticHeadingDeg === "number"
+        ? calibration ? "magnetic-calibrated" : "magnetic-uncorrected"
+        : "event-alpha"}
       aria-label={`Find ${target.title} in the sky`}
     >
-      <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
-      <div className="tk-finder-sky" aria-hidden />
-      <div className="tk-finder-shade" aria-hidden />
-
       <header className="tk-finder-header">
         <button type="button" className="tk-finder-icon" onClick={onClose} aria-label="Close Sky">
           <X size={20} aria-hidden />
@@ -621,7 +754,10 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
         ) : <span aria-hidden />}
       </header>
 
-      <div className="tk-finder-stage" style={reticleStyle}>
+      <div ref={stage} className="tk-finder-stage" style={reticleStyle}>
+        <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
+        <div className="tk-finder-sky" aria-hidden />
+        <div className="tk-finder-shade" aria-hidden />
         {projectedContext ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -728,6 +864,34 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
             {alignment.aligned ? "On target" : !aboveHorizon ? "Below horizon" : equipmentLabel(target)}
           </b>
         </div>
+        {diagnosticsEnabled ? (
+          <aside className="tk-finder-developer" aria-label="AR projection diagnostics">
+            <header>
+              <strong>AR diagnostics</strong>
+              <span>Local developer view · not consumer UI</span>
+            </header>
+            <dl>
+              <div><dt>Target</dt><dd>{target.title}</dd></div>
+              <div><dt>UTC</dt><dd>{solutionAt.toISOString()}</dd></div>
+              <div><dt>Observer</dt><dd>{observer.latitudeDeg.toFixed(5)}, {observer.longitudeDeg.toFixed(5)}</dd></div>
+              <div><dt>RA / Dec</dt><dd>{targetSolution?.equatorial ? `${targetSolution.equatorial.raHours.toFixed(5)}h / ${targetSolution.equatorial.decDeg.toFixed(4)}°` : "Not applicable"}</dd></div>
+              <div><dt>Expected Az / Alt</dt><dd>{targetPosition ? `${targetPosition.azimuthDeg.toFixed(3)}° / ${targetPosition.altitudeDeg.toFixed(3)}°` : "Unavailable"}</dd></div>
+              <div><dt>Local ENU</dt><dd>{targetSolution ? `${targetSolution.enu.east.toFixed(5)}, ${targetSolution.enu.north.toFixed(5)}, ${targetSolution.enu.up.toFixed(5)}` : "Unavailable"}</dd></div>
+              <div><dt>Device heading</dt><dd>{pointing ? `${pointing.azimuthDeg.toFixed(2)}°` : "Waiting"}</dd></div>
+              <div><dt>Pitch / roll</dt><dd>{orientationTelemetry ? `${orientationTelemetry.betaDeg.toFixed(2)}° / ${orientationTelemetry.gammaDeg.toFixed(2)}°` : "Waiting"}</dd></div>
+              <div><dt>Quaternion</dt><dd>{pose ? `${pose.x.toFixed(5)}, ${pose.y.toFixed(5)}, ${pose.z.toFixed(5)}, ${pose.w.toFixed(5)}` : "Waiting"}</dd></div>
+              <div><dt>Magnetic heading</dt><dd>{orientationTelemetry?.magneticHeadingDeg !== null && orientationTelemetry?.magneticHeadingDeg !== undefined ? `${orientationTelemetry.magneticHeadingDeg.toFixed(2)}° ± ${orientationTelemetry.compassAccuracyDeg?.toFixed(1) ?? "?"}°` : "Unavailable"}</dd></div>
+              <div><dt>True-north correction</dt><dd>Unavailable in browser API</dd></div>
+              <div><dt>Screen orientation</dt><dd>{orientationTelemetry ? `${orientationTelemetry.screenOrientationDeg}°${orientationTelemetry.absolute ? " · absolute event" : " · relative event"}` : `${screenAngle()}°`}</dd></div>
+              <div><dt>Camera FOV</dt><dd>{`${effectiveProjection.horizontalFovDeg.toFixed(2)}° × ${effectiveProjection.verticalFovDeg.toFixed(2)}° effective`}</dd></div>
+              <div><dt>Video / viewport</dt><dd>{`${cameraProjection.sourceWidthPx}×${cameraProjection.sourceHeightPx} / ${cameraProjection.viewportWidthPx}×${cameraProjection.viewportHeightPx}`}</dd></div>
+              <div><dt>Aspect / crop</dt><dd>{`${effectiveProjection.sourceAspectRatio.toFixed(4)} / ${effectiveProjection.viewportAspectRatio.toFixed(4)} · ${effectiveProjection.cropAxis} ${(effectiveProjection.visibleFraction * 100).toFixed(1)}%`}</dd></div>
+              <div><dt>Projected X / Y</dt><dd>{projectedTarget ? `${projectedTarget.xPercent.toFixed(2)}% / ${projectedTarget.yPercent.toFixed(2)}%` : "Unavailable"}</dd></div>
+              <div><dt>Calibration offset</dt><dd>{calibration ? `${calibration.azimuthOffsetDeg.toFixed(2)}° az / ${calibration.altitudeOffsetDeg.toFixed(2)}° alt` : "None"}</dd></div>
+            </dl>
+            <p>Base FOV is estimated; browser media APIs do not expose camera intrinsics. Center crop is calculated from the live video and overlay viewport.</p>
+          </aside>
+        ) : null}
       </div>
 
       <div className="tk-finder-controls">
@@ -737,7 +901,9 @@ export function SkyFinder({ target, references, observer, clock, liveDate, launc
             Orientation access was denied. Sky will keep showing the target direction and altitude without live alignment.
           </p>
         ) : null}
-        {rawPointing && sensorQuality === "poor" && !calibration ? (
+        {rawPointing && usesUncorrectedMagneticHeading ? (
+          <p className="tk-finder-warning">Magnetic heading needs a sky reference for precise alignment.</p>
+        ) : rawPointing && sensorQuality === "poor" && !calibration ? (
           <p className="tk-finder-warning">Compass unreliable — calibrate for better guidance.</p>
         ) : null}
         <details className="tk-finder-details">

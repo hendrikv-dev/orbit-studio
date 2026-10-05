@@ -79,7 +79,45 @@ async function installCapabilityBoundary(context, capability) {
       value: {
         getUserMedia: async () => {
           attempts.push("camera");
-          return new MediaStream();
+          const canvas = document.createElement("canvas");
+          canvas.width = 1280;
+          canvas.height = 720;
+          const paint = canvas.getContext("2d");
+          if (paint) {
+            const sky = paint.createLinearGradient(0, 0, 0, canvas.height);
+            sky.addColorStop(0, "#202b3b");
+            sky.addColorStop(0.65, "#111821");
+            sky.addColorStop(1, "#080b0f");
+            paint.fillStyle = sky;
+            paint.fillRect(0, 0, canvas.width, canvas.height);
+            paint.fillStyle = "rgba(2, 4, 7, 0.82)";
+            paint.beginPath();
+            paint.moveTo(0, 610);
+            paint.lineTo(150, 535);
+            paint.lineTo(290, 592);
+            paint.lineTo(480, 500);
+            paint.lineTo(690, 575);
+            paint.lineTo(900, 520);
+            paint.lineTo(1100, 590);
+            paint.lineTo(1280, 548);
+            paint.lineTo(1280, 720);
+            paint.lineTo(0, 720);
+            paint.closePath();
+            paint.fill();
+            paint.fillStyle = "rgba(235, 241, 252, 0.58)";
+            paint.font = "500 18px system-ui, sans-serif";
+            paint.fillText("FIXTURE CAMERA · NOT PHYSICAL AR EVIDENCE", 28, 690);
+          }
+          const fixtureStream = canvas.captureStream(15);
+          Object.defineProperty(window, "__ORBIT_FIXTURE_CAMERA_CANVAS__", {
+            configurable: true,
+            value: canvas,
+          });
+          Object.defineProperty(window, "__ORBIT_FIXTURE_CAMERA_STREAM__", {
+            configurable: true,
+            value: fixtureStream,
+          });
+          return fixtureStream;
         },
       },
     });
@@ -194,6 +232,23 @@ async function productState(page) {
       targetSummary: document.querySelector(".tk-finder-target-card")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       viewing: document.querySelector(".tk-equipment-trigger")?.getAttribute("aria-label") ?? null,
       telescopeGuidance: document.querySelector(".tk-telescope-guidance")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      edgeCues: document.querySelectorAll(".tk-finder-edge-cue").length,
+      developerDiagnostics: document.querySelector(".tk-finder-developer")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      cameraHorizontalFov: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-camera-horizontal-fov") ?? 0),
+      cameraVerticalFov: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-camera-vertical-fov") ?? 0),
+      cameraCropAxis: document.querySelector(".tk-sky-finder")?.getAttribute("data-camera-crop-axis") ?? null,
+      headingReference: document.querySelector(".tk-sky-finder")?.getAttribute("data-heading-reference") ?? null,
+      mapToolbar: [...document.querySelectorAll(
+        ".tk-map-topbar .tracker-place-current, .tk-map-topbar .tk-date, .tk-map-topbar-projection .tk-projection",
+      )].map((node) => {
+        const rect = node.getBoundingClientRect();
+        return {
+          text: node.textContent?.replace(/\s+/g, " ").trim() ?? "",
+          top: Math.round(rect.top),
+          height: Math.round(rect.height),
+          width: Math.round(rect.width),
+        };
+      }),
       permissionAttempts: Array.isArray(window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__)
         ? [...window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__]
         : [],
@@ -226,6 +281,21 @@ export function ordinaryDetailProof(state, expectsFinder) {
     : state.finderEntries.length === 0;
   return state.mapState === "detail" && !state.detailMoreOpen && finderCorrect && !state.genericShowOnMap
     ? `collapsed detail; ${expectsFinder ? "Find in Sky present" : "no Find in Sky"}; no generic Show on Map`
+    : "";
+}
+
+/** The phone Map has one compact Location / Date / 2D–3D toolbar row. */
+export function mobileMapToolbarProof(state) {
+  if (!Array.isArray(state.mapToolbar) || state.mapToolbar.length !== 3) return "";
+  const [location, date, projection] = state.mapToolbar;
+  const sameRow = Math.max(...state.mapToolbar.map((item) => item.top)) -
+    Math.min(...state.mapToolbar.map((item) => item.top)) <= 2;
+  const matchedContent = /Portland/i.test(location.text) && /Tonight|Today/i.test(date.text) &&
+    /2D/.test(projection.text) && /3D/.test(projection.text);
+  const proportions = location.width > date.width && date.width > projection.width;
+  const compact = state.mapToolbar.every((item) => item.height >= 36 && item.height <= 44);
+  return sameRow && matchedContent && proportions && compact
+    ? `one ${Math.max(...state.mapToolbar.map((item) => item.height))}px row; location ${location.width}px, date ${date.width}px, projection ${projection.width}px`
     : "";
 }
 
@@ -263,9 +333,9 @@ async function openDetail(page) {
   await page.waitForTimeout(700);
 }
 
-async function openSaturnDetail(page, origin, equipment = "eyes") {
+async function openSaturnDetail(page, origin, equipment = "eyes", { diagnostics = false } = {}) {
   await page.goto(
-    `${origin}/?app=tracker&mode=tonight&at=${encodeURIComponent(REVIEW_PIN)}&z=8&pin=${encodeURIComponent(REVIEW_PIN)}&card=${DETAIL_CARD}&event=${DETAIL_CARD}&with=${equipment}`,
+    `${origin}/?app=tracker&mode=tonight&at=${encodeURIComponent(REVIEW_PIN)}&z=8&pin=${encodeURIComponent(REVIEW_PIN)}&card=${DETAIL_CARD}&event=${DETAIL_CARD}&with=${equipment}${diagnostics ? "&skyDiagnostics=1" : ""}`,
     { waitUntil: "domcontentloaded" },
   );
   await page.locator(".tk-map-detail .tracker-hero").waitFor({ timeout: 30_000 });
@@ -273,8 +343,8 @@ async function openSaturnDetail(page, origin, equipment = "eyes") {
   await page.waitForTimeout(700);
 }
 
-async function dispatchOrientation(page, alpha, beta, repeats = 1, compassAccuracy = null) {
-  await page.evaluate(({ alphaValue, betaValue, repeatCount, accuracy }) => {
+async function dispatchOrientation(page, alpha, beta, repeats = 1, compassAccuracy = null, compassHeading = null) {
+  await page.evaluate(({ alphaValue, betaValue, repeatCount, accuracy, heading }) => {
     for (let index = 0; index < repeatCount; index += 1) {
       const event = new Event("deviceorientationabsolute");
       Object.defineProperties(event, {
@@ -283,10 +353,23 @@ async function dispatchOrientation(page, alpha, beta, repeats = 1, compassAccura
         gamma: { value: 0 },
         absolute: { value: true },
         ...(accuracy === null ? {} : { webkitCompassAccuracy: { value: accuracy } }),
+        ...(heading === null ? {} : { webkitCompassHeading: { value: heading } }),
       });
       window.dispatchEvent(event);
     }
-  }, { alphaValue: alpha, betaValue: beta, repeatCount: repeats, accuracy: compassAccuracy });
+  }, { alphaValue: alpha, betaValue: beta, repeatCount: repeats, accuracy: compassAccuracy, heading: compassHeading });
+}
+
+async function dispatchPointing(page, azimuthDeg, altitudeDeg, repeats = 48) {
+  // W3C alpha runs opposite the compass heading in the flat reference case.
+  const alpha = ((360 - azimuthDeg) % 360 + 360) % 360;
+  await dispatchOrientation(page, alpha, 90 + altitudeDeg, repeats);
+}
+
+async function dispatchMagneticPointing(page, azimuthDeg, altitudeDeg, repeats = 48) {
+  // Safari alpha may be arbitrary; webkitCompassHeading is the magnetic yaw
+  // authority. This fixture deliberately leaves true-north correction absent.
+  await dispatchOrientation(page, 17, 90 + altitudeDeg, repeats, 5, azimuthDeg);
 }
 
 async function dispatchReviewPointing(page) {
@@ -296,7 +379,11 @@ async function dispatchReviewPointing(page) {
     null,
     { timeout: 10_000 },
   );
-  await dispatchOrientation(page, 90, 90);
+  const target = await page.locator(".tk-sky-finder").evaluate((node) => ({
+    azimuth: Number(node.getAttribute("data-target-azimuth")),
+    altitude: Number(node.getAttribute("data-target-altitude")),
+  }));
+  await dispatchPointing(page, target.azimuth + 11, target.altitude, 48);
   await page.waitForFunction(
     () => !/preparing/i.test(document.querySelector(".tk-finder-guidance strong")?.textContent ?? ""),
     null,
@@ -323,7 +410,7 @@ async function dispatchAlignedPointing(page) {
     azimuth: Number(node.getAttribute("data-target-azimuth")),
     altitude: Number(node.getAttribute("data-target-altitude")),
   }));
-  await dispatchOrientation(page, target.azimuth, 90 + target.altitude, 48, 5);
+  await dispatchPointing(page, target.azimuth, target.altitude, 64);
   await page.waitForFunction(
     () => document.querySelector(".tk-sky-finder")?.getAttribute("data-aligned") === "true",
     null,
@@ -336,9 +423,23 @@ async function dispatchAlmostPointing(page) {
     azimuth: Number(node.getAttribute("data-target-azimuth")),
     altitude: Number(node.getAttribute("data-target-altitude")),
   }));
-  await dispatchOrientation(page, target.azimuth + 1.8, 90 + target.altitude + 1.2, 48, 60);
+  await dispatchPointing(page, target.azimuth + 2.8, target.altitude + 2.8, 64);
   await page.waitForFunction(
     () => /almost there/i.test(document.querySelector(".tk-finder-guidance strong")?.textContent ?? ""),
+    null,
+    { timeout: 10_000 },
+  );
+}
+
+async function dispatchOffscreenPointing(page) {
+  const target = await page.locator(".tk-sky-finder").evaluate((node) => ({
+    azimuth: Number(node.getAttribute("data-target-azimuth")),
+    altitude: Number(node.getAttribute("data-target-altitude")),
+  }));
+  await dispatchPointing(page, target.azimuth + 65, target.altitude, 64);
+  await page.waitForFunction(
+    () => document.querySelectorAll(".tk-finder-edge-cue").length === 1 &&
+      document.querySelectorAll(".tk-finder-lock").length === 0,
     null,
     { timeout: 10_000 },
   );
@@ -414,6 +515,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     "07b-phone-tonight-telescope",
     "08-phone-object-detail-collapsed",
     "09-phone-sky-camera-granted",
+    "09a-phone-sky-target-offscreen",
     "10-phone-sky-guiding",
     "10a-phone-sky-almost-aligned",
     "11-phone-sky-aligned",
@@ -428,14 +530,17 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await gotoMap(page, origin);
     await capture(page, "05-phone-map-2d", "Supported phone Map in top-down 2D with Map · Tonight · Sky and direct Find in Sky.", async () => {
       const state = await productState(page);
-      return navigationCapabilityProof(state, true);
+      const capability = navigationCapabilityProof(state, true);
+      const toolbar = mobileMapToolbarProof(state);
+      return capability && toolbar ? `${capability}; ${toolbar}` : "";
     });
 
     await selectTerrain(page);
     await capture(page, "06-phone-map-3d", "Supported phone Map in close observer-centred DEM terrain at the documented fixed 1.35× relief display scale.", async () => {
       const state = await productState(page);
-      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 65 && state.zoom >= 11
-        ? `DEM terrain at zoom ${state.zoom}, ${state.pitch}° pitch; vertical scale 1.35×`
+      const toolbar = mobileMapToolbarProof(state);
+      return state.terrainSource === "tracker-terrain-3d-dem" && state.pitch >= 65 && state.zoom >= 11 && toolbar
+        ? `DEM terrain at zoom ${state.zoom}, ${state.pitch}° pitch; vertical scale 1.35×; ${toolbar}`
         : "";
     });
 
@@ -459,16 +564,16 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     });
     await page.getByRole("switch", { name: /^Telescope/ }).click();
     await page.getByRole("combobox", { name: "Saved telescope" }).selectOption("review-dobsonian");
-    await page.keyboard.press("Escape");
+    await page.locator(".tk-equipment-trigger").click();
     await page.waitForFunction(
-      () => document.querySelector(".tk-equipment-trigger")?.getAttribute("aria-label")?.includes("Telescope"),
+      () => /Dobsonian|Telescope/.test(document.querySelector(".tk-equipment-trigger")?.getAttribute("aria-label") ?? ""),
       null,
       { timeout: 10_000 },
     );
     await page.waitForTimeout(600);
     await capture(page, "07b-phone-tonight-telescope", "The same Tonight surface immediately recalculates for Telescope with the saved 8-inch Dobsonian active; no expert mode is introduced.", async () => {
       const state = await productState(page);
-      return state.mapState === "tonight" && /Telescope/.test(state.viewing ?? "")
+      return state.mapState === "tonight" && /Dobsonian|Telescope/.test(state.viewing ?? "")
         ? "Tonight; Telescope active; saved 8-inch Dobsonian retained device-locally"
         : "";
     });
@@ -492,8 +597,16 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await waitForPopulatedSky(page);
     await capture(page, "09-phone-sky-camera-granted", "Fixture-driven supported-phone state after camera and orientation permission are granted. This proves the active production camera path and immediate entry, but is not physical-device AR evidence.", async () => {
       const state = await productState(page);
-      return state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn"
-        ? `camera visual base; ${state.skyStars} real stars; ${state.skyLines} figure segments; ${state.skyLabels} constellation labels; Saturn marker; diagnostics collapsed`
+      return state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && state.cameraHorizontalFov > 0 && state.cameraVerticalFov > 0
+        ? `fixture camera visual base; ${state.skyStars} real stars; ${state.skyLines} figure segments; ${state.skyLabels} constellation labels; Saturn marker; effective FOV ${state.cameraHorizontalFov.toFixed(1)}° × ${state.cameraVerticalFov.toFixed(1)}°; ${state.cameraCropAxis} crop; diagnostics collapsed`
+        : "";
+    });
+    await dispatchOffscreenPointing(page);
+    await page.waitForTimeout(400);
+    await capture(page, "09a-phone-sky-target-offscreen", "Fixture-driven off-screen target state. Saturn remains at its astronomical projection while one compact edge cue gives direction; no target marker is pulled into the viewport.", async () => {
+      const state = await productState(page);
+      return state.cameraState === "active" && state.edgeCues === 1 && state.targetLocks === 0 && /move|raise|lower/i.test(state.guidance ?? "")
+        ? `camera active; one edge cue; no in-field target lock; cue "${state.guidance}"`
         : "";
     });
     await dispatchReviewPointing(page);
@@ -521,6 +634,44 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
       const state = await productState(page);
       return state.aligned && state.cameraState === "active" && state.targetLocks === 1 && state.selectedMarker === "saturn" && state.skyLines > 0 && /is here/i.test(state.guidance ?? "")
         ? `aligned; camera active; one Saturn target lock; populated real sky; cue "${state.guidance}"`
+        : "";
+    });
+    await context.close();
+  }
+
+  if (wantsAny("11b-phone-sky-ar-diagnostics")) {
+    console.log("\nSupported phone · developer AR diagnostics");
+    const { context, page } = await openDevice(browser, "phone", { width: 390, height: 844 });
+    await openSaturnDetail(page, origin, "eyes", { diagnostics: true });
+    await page.getByRole("button", { name: "Find in Sky", exact: true }).click();
+    await page.locator(".tk-sky-finder").waitFor({ timeout: 30_000 });
+    await page.waitForFunction(
+      () => document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") === "active",
+      null,
+      { timeout: 10_000 },
+    );
+    const diagnosticsTarget = await page.locator(".tk-sky-finder").evaluate((node) => ({
+      azimuth: Number(node.getAttribute("data-target-azimuth")),
+      altitude: Number(node.getAttribute("data-target-altitude")),
+    }));
+    await dispatchMagneticPointing(page, diagnosticsTarget.azimuth + 11, diagnosticsTarget.altitude, 64);
+    await page.locator(".tk-finder-developer").waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(500);
+    await capture(page, "11b-phone-sky-ar-diagnostics", "Localhost-only AR diagnostics from a deterministic browser session. It exposes each registration layer, the live fixture-video dimensions, effective FOV/crop, projected target coordinate, heading reference, and calibration state; it is not consumer UI or physical-device validation.", async () => {
+      const state = await productState(page);
+      const diagnostics = state.developerDiagnostics ?? "";
+      return state.cameraState === "active" &&
+        /RA \/ Dec/.test(diagnostics) &&
+        /Expected Az \/ Alt/.test(diagnostics) &&
+        /Local ENU/.test(diagnostics) &&
+        /Quaternion/.test(diagnostics) &&
+        /Camera FOV/.test(diagnostics) &&
+        /Projected X \/ Y/.test(diagnostics) &&
+        state.headingReference === "magnetic-uncorrected" &&
+        !state.aligned &&
+        state.cameraHorizontalFov > 0 &&
+        state.cameraVerticalFov > 0
+        ? `developer-only diagnostics; ${state.headingReference}; effective FOV ${state.cameraHorizontalFov.toFixed(1)}° × ${state.cameraVerticalFov.toFixed(1)}°; ${state.cameraCropAxis} crop`
         : "";
     });
     await context.close();

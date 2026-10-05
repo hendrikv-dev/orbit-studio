@@ -333,7 +333,7 @@ export function heroImageryFor(id: string, kind: string): HeroImagery {
         licence: HUBBLE_LICENCE,
         sourceUrl: "https://esahubble.org/images/heic1917a/",
         eyeExpectation:
-          "This is Hubble, above the atmosphere. To your eyes Saturn is a steady yellow point with no disc at all; through a garden telescope it is a small pale oval with the rings just separated from the planet — and most people still call it the best thing they have seen through one.",
+          "To your eyes Saturn is a steady yellow point. A small telescope separates its rings from the planet — a first view many observers never forget.",
       };
     }
     if (id.includes("jupiter")) {

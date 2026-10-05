@@ -8,8 +8,8 @@ Sky Finder is a projection of Tracker’s existing observing opportunities. It d
 2. The existing ranking creates `Opportunity` records for planets, the Moon, deep-sky showpieces, meteor radiants, conjunctions, and propagated satellite passes.
 3. `skyFinderTargetFor` admits only opportunities with meaningful locator geometry. Fixed bodies are recomputed with Astronomy Engine, catalogue targets use their source RA/Dec, and moving/radiant targets use their propagated sampled path.
 4. `topocentricSky.ts` is the single transformation owner: catalogue/apparent equatorial position → observer and UTC → local Alt/Az → fixed ENU direction → stabilized device quaternion → camera projection. Astronomy refreshes on a 15-second cadence; sensor events change only device pose.
-5. W3C device orientation, the rear-camera correction and screen rotation are composed once as a quaternion. Safari heading correction rotates the whole pose rather than overwriting target azimuth. An 0.18° deadband and time-based 85 ms quaternion slerp suppress stationary jitter without smoothing or recalibrating celestial targets.
-6. `angularSeparation` compares the stabilized rear-camera optical axis with the same fixed target direction. Alignment is withheld below the horizon or when orientation quality is poor. Below-horizon targets stop movement guidance and show the next upward horizon crossing when one can be found.
+5. W3C intrinsic Z-X'-Y'' orientation and the screen rotation are composed exactly once as a quaternion; camera-local -Z is the rear optical axis. Safari's magnetic heading replaces its arbitrary alpha yaw before quaternion construction instead of forcing a tilted optical axis toward a compass value. An 0.18° deadband and time-based 85 ms quaternion slerp suppress stationary jitter without smoothing or recalibrating celestial targets.
+6. Astronomy Engine azimuths use true north. Safari exposes magnetic heading but no declination correction, so an uncalibrated magnetic session may guide but cannot assert **On target**. A known-object calibration supplies a whole-pose correction and upgrades that evidence. `angularSeparation` then compares the stabilized rear-camera optical axis with the same fixed target direction. Alignment is also withheld below the horizon or when orientation quality is poor. Below-horizon targets stop movement guidance and show the next upward horizon crossing when one can be found.
 7. Manual calibration stores only an in-memory yaw/pitch correction for the current Finder session and applies it to the whole camera pose. Closing Finder clears it.
 
 Historical or future selected dates do not expose Sky or **Find in Sky**. Planning remains in Tonight and Object Detail, so a physical phone is never guided using stale or future coordinates.
@@ -24,7 +24,9 @@ authority.
 
 Conventional figures use the BSD-licensed d3-celestial line dataset. The deterministic generator maps all 893 endpoints to BSC5P HR stars within 0.008397°, and figure geometry then follows those same catalogue stars through the same proper-motion and pose pipeline. These are conventional figure lines, not IAU boundaries. Noteworthy markers remain projections of Tracker's existing ranked targets and satellite pipeline rather than a second authority. Moving sampled targets deliberately omit an invented target-constellation identity.
 
-When camera permission succeeds, the live rear-camera `<video>` is the visual base and the celestial layers are overlays. The rendered night field is used only for fixtures, simulator work, camera-denied recovery, and explicit non-camera fallback. `data-visual-base` exposes that distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
+When camera permission succeeds, the live rear-camera `<video>` is the visual base and the celestial layers are overlays in the same viewport. The renderer reads the video track or media dimensions and the overlay content box, then adjusts the estimated base FOV for the centred `object-fit: cover` crop before projecting any celestial vector. The rendered night field is used only for fixtures, simulator work, camera-denied recovery, and explicit non-camera fallback. `data-visual-base` exposes that distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
+
+Browser media APIs do not expose calibrated lens intrinsics. The current base estimate is **82° horizontal × 66° vertical**; localhost-only diagnostics may override those values for a measured device/session and display the effective crop-adjusted FOV. This is an explicit uncertainty, not a camera calibration claim.
 
 ## Device-class eligibility and permission boundary
 
@@ -47,14 +49,17 @@ The primary overlay has one target lock. Its position carries the pointing error
 
 Browser fixtures can prove capability gating, permission orchestration, state transitions, and deterministic movement calculations. They cannot prove rear-camera composition, magnetic-heading behavior, sensor jitter, operating-system permission presentation, or background/resume recovery. A release claim for the primary Sky experience therefore requires an attached physical phone or tablet and evidence from the production build.
 
-The device record must name hardware, operating system, browser, build hash, location/time, and whether compass calibration was performed. It must capture camera permission granted, a movement cue in at least two axes, the aligned state, rotation/orientation change, ten seconds of steady-hand jitter, permission denial and recovery, and background/resume. Screenshots or recording frames must show the live camera feed; a deterministic star field or empty `MediaStream` is fixture evidence only. Any angular-error note is a measured observation for that device/session, not a general accuracy claim.
+The device record must name hardware, operating system, browser, build hash, location/time, and whether compass or known-object calibration was performed. It must test the Moon, Sun, Venus, Mercury, one bright named star, and Saturn or Jupiter when available. For each target, centre the physical object, record angular/screen error, hold for at least 20 seconds, pan away, return, and record repeatability. It must also capture camera permission granted, a movement cue in at least two axes, rotation/orientation change, permission denial and recovery, and background/resume. Screenshots or recording frames must show the live camera feed; the deterministic fixture camera and rendered field are fixture evidence only. Any angular-error note is a measured observation for that device/session, not a general accuracy claim.
+
+The browser path is accepted only if centred physical targets land within the declared product tolerance on that device. If transform, crop, measured-FOV, and known-object calibration checks still leave the Moon or Sun off-screen or unreliable, the smallest next step is a native ARKit/Core Location camera-pose and intrinsics bridge feeding the existing web astronomy and UI layer. That decision cannot be made from browser fixtures alone.
 
 ## Capability degradation
 
 | Available capability | Behavior |
 | --- | --- |
-| Camera + absolute/fused orientation | Live camera background and sensor guidance |
-| Relative orientation only | Directional guidance; alignment is withheld until manual calibration |
+| Camera + true-north/fused orientation | Live camera background and sensor guidance; alignment may be asserted within tolerance |
+| Camera + magnetic heading only | Directional guidance; alignment is withheld until known-object calibration |
+| Relative orientation only | Directional guidance; alignment is withheld until known-object calibration |
 | Camera permission denied or stream fails after entry | Sensor guidance continues against the restrained night view; denial is stated |
 | Orientation permission denied after entry | The selected target’s live direction and altitude remain usable; alignment and diagnostics do not dominate the screen |
 | Camera API absent before entry | Sky tab and Find in Sky are absent |

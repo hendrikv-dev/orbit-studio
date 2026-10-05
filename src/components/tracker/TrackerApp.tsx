@@ -456,6 +456,22 @@ function TrackerSuiteMenu() {
   );
 }
 
+// Tracker's URL owner deliberately removes unknown query parameters as it
+// normalizes navigation state. Capture this localhost-only engineering flag
+// before that happens so it survives the transition from Object Detail into
+// the lazily mounted Sky surface. `skyDiagnostics=0` clears it for the tab.
+if (typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname)) {
+  const parameters = new URLSearchParams(window.location.search);
+  if (parameters.has("skyDiagnostics")) {
+    try {
+      if (parameters.get("skyDiagnostics") === "1") window.sessionStorage.setItem("orbit.skyDiagnostics", "1");
+      else window.sessionStorage.removeItem("orbit.skyDiagnostics");
+    } catch {
+      // Diagnostics must never make the product depend on storage access.
+    }
+  }
+}
+
 export function TrackerApp() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -3514,6 +3530,22 @@ function TrackerScreen() {
           />
         </div>
 
+        {location.mode === "map" && !detailOpen ? (
+          <div className="tk-map-topbar-projection">
+            <TrackerProjectionToggle
+              projection={location.projection}
+              onSelect={(projection) =>
+                settle({
+                  projection,
+                  ...(projection === "terrain" && location.pin
+                    ? { centre: location.pin, zoom: TERRAIN_CAMERA.zoom }
+                    : {}),
+                })
+              }
+            />
+          </div>
+        ) : null}
+
         <div className="tk-map-topbar-end">
           {/* Product actions only. Choosing what the map draws used to sit
               here too, which put a map control in the navigation cluster; it
@@ -3723,6 +3755,7 @@ function TrackerScreen() {
           canFindInSky={(card) => liveSkyAvailable && skyFinderTargets.has(card.id)}
           factsFor={railFactsFor}
           equipment={location.equipment}
+          telescopeSetup={activeTelescopeSetup(telescopeSetups)}
           recovery={recoveryBriefing}
           loading={!night}
           upcoming={{ triggerRef: upcomingTrigger, onOpen: openUpcoming }}

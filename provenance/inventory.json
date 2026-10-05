@@ -934,7 +934,7 @@
       },
       "localSha256": {
         "src/astronomy/reference/jplHorizonsUsnoReference.json": "e3e79f1f4f710d091aefb49124368467a2daf00738e59a4254ba726d2e5309c7",
-        "src/astronomy/reference/jplHorizonsTopocentricSky.json": "46cfebe1262eb20b689c9c81f9f657e21822a0e0b2c3cc68aa8242b74fa57b69"
+        "src/astronomy/reference/jplHorizonsTopocentricSky.json": "e800190f335a14aae7b7de81349a3d6f30019478e8ffe1d16546d0b076acaa6f"
       },
       "processing": [
         "scripts/fetch-celestial-reference.mjs records fixed-timestamp Horizons vectors and apparent coordinates plus USNO sidereal-time results.",
@@ -2057,7 +2057,7 @@
       },
       "localSha256": {
         "src/components/tracker/TrackerScene.tsx": "01a2198592af7eab3d64982c02d8ac8109c108ce92d615ab96908f122bf2d6e9",
-        "src/data/tracker/imagery.ts": "4d734dee376a4cb1c68ecf24a8f25f6ab6d05d932517fec37ebf765dc0ed5b07"
+        "src/data/tracker/imagery.ts": "48c492afb218cbaad83d4e368aee1924d0268059ef645bc74c698b6d580f737c"
       },
       "processing": [
         "Hero and card imagery is photographic and third-party; this entry covers the code that selects it, the classification vocabulary it is rendered with, and the one composite this project makes itself.",

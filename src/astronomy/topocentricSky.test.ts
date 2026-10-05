@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calibratedDevicePose,
   DevicePoseStabilizer,
   devicePoseFromOrientation,
+  devicePoseFromOrientationWithHeading,
   devicePoseLookingAt,
+  effectiveCameraProjection,
   horizontalToEnu,
   pointingFromDevicePose,
   projectEnuDirection,
@@ -55,5 +58,73 @@ describe("authoritative topocentric Sky projection", () => {
     const landscapeProjection = projectEnuDirection(offAxis, landscape);
     expect(portraitProjection.xPercent).not.toBeCloseTo(landscapeProjection.xPercent, 2);
     expect(portraitProjection.yPercent).not.toBeCloseTo(landscapeProjection.yPercent, 2);
+
+    // Screen Orientation defines +90° counter-clockwise from the natural
+    // portrait frame. A direction toward the device's natural top therefore
+    // moves from screen-up in portrait to screen-right in landscape-primary.
+    const portraitDown = devicePoseFromOrientation(0, 0, 0, 0);
+    const landscapeDown = devicePoseFromOrientation(0, 0, 0, 90);
+    const naturalTop = horizontalToEnu({ azimuthDeg: 0, altitudeDeg: -80 });
+    const portraitTop = projectEnuDirection(naturalTop, portraitDown);
+    const landscapeRight = projectEnuDirection(naturalTop, landscapeDown);
+    expect(portraitTop.xPercent).toBeCloseTo(50, 8);
+    expect(portraitTop.yPercent).toBeLessThan(50);
+    expect(landscapeRight.xPercent).toBeGreaterThan(50);
+    expect(landscapeRight.yPercent).toBeCloseTo(50, 8);
+  });
+
+  it("follows the W3C alpha sense and anchors Safari's magnetic heading before quaternion construction", () => {
+    // W3C's worked example gives heading = -alpha for beta=90, gamma=0.
+    const absoluteWest = pointingFromDevicePose(devicePoseFromOrientation(90, 90, 0, 0));
+    expect(absoluteWest.azimuthDeg).toBeCloseTo(270, 8);
+    expect(absoluteWest.altitudeDeg).toBeCloseTo(0, 8);
+
+    // Safari alpha is arbitrary. A 90° magnetic heading is alpha=270° in the
+    // W3C earth frame, and must point the rear camera east rather than forcing
+    // an already tilted optical axis to a second heading.
+    const safariEast = pointingFromDevicePose(
+      devicePoseFromOrientationWithHeading(17, 90, 0, 0, 90),
+    );
+    expect(safariEast.azimuthDeg).toBeCloseTo(90, 8);
+    expect(safariEast.altitudeDeg).toBeCloseTo(0, 8);
+  });
+
+  it("applies a reference calibration to the complete camera pose", () => {
+    const reported = devicePoseLookingAt({ azimuthDeg: 118, altitudeDeg: 27 });
+    const calibrated = calibratedDevicePose(reported, {
+      azimuthOffsetDeg: 5,
+      altitudeOffsetDeg: 4,
+    });
+    const pointing = pointingFromDevicePose(calibrated);
+    expect(pointing.azimuthDeg).toBeCloseTo(123, 8);
+    expect(pointing.altitudeDeg).toBeCloseTo(31, 8);
+  });
+
+  it("projects camera center and off-axis vectors into the expected screen quadrants", () => {
+    const pose = devicePoseLookingAt({ azimuthDeg: 180, altitudeDeg: 30 });
+    const center = projectEnuDirection(horizontalToEnu({ azimuthDeg: 180, altitudeDeg: 30 }), pose);
+    const right = projectEnuDirection(horizontalToEnu({ azimuthDeg: 190, altitudeDeg: 30 }), pose);
+    const up = projectEnuDirection(horizontalToEnu({ azimuthDeg: 180, altitudeDeg: 38 }), pose);
+    expect(center.inField).toBe(true);
+    expect(center.xPercent).toBeCloseTo(50, 10);
+    expect(center.yPercent).toBeCloseTo(50, 10);
+    expect(right.xPercent).toBeGreaterThan(50);
+    expect(up.yPercent).toBeLessThan(50);
+  });
+
+  it("matches a center-cropped camera preview instead of projecting against hidden video pixels", () => {
+    const effective = effectiveCameraProjection({
+      horizontalFovDeg: 82,
+      verticalFovDeg: 66,
+      sourceWidthPx: 1920,
+      sourceHeightPx: 1080,
+      viewportWidthPx: 390,
+      viewportHeightPx: 700,
+      fit: "cover",
+    });
+    expect(effective.cropAxis).toBe("horizontal");
+    expect(effective.visibleFraction).toBeCloseTo((390 / 700) / (1920 / 1080), 8);
+    expect(effective.horizontalFovDeg).toBeLessThan(35);
+    expect(effective.verticalFovDeg).toBe(66);
   });
 });

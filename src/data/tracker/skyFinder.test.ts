@@ -25,13 +25,13 @@ import {
 describe("Sky Finder pointing math", () => {
   it("converts portrait device orientation into the rear-camera pointing vector", () => {
     const north = pointingFromDeviceOrientation(0, 90, 0, 0);
-    const east = pointingFromDeviceOrientation(90, 90, 0, 0);
+    const west = pointingFromDeviceOrientation(90, 90, 0, 0);
     const down = pointingFromDeviceOrientation(0, 0, 0, 0);
 
     expect(north.azimuthDeg).toBeCloseTo(0, 6);
     expect(north.altitudeDeg).toBeCloseTo(0, 6);
-    expect(east.azimuthDeg).toBeCloseTo(90, 6);
-    expect(east.altitudeDeg).toBeCloseTo(0, 6);
+    expect(west.azimuthDeg).toBeCloseTo(270, 6);
+    expect(west.altitudeDeg).toBeCloseTo(0, 6);
     expect(down.altitudeDeg).toBeCloseTo(-90, 6);
   });
 

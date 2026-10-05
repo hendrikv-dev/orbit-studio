@@ -3,6 +3,7 @@ import { CalendarDays, CalendarRange, ChevronRight, Compass } from "lucide-react
 
 import type { RailCard } from "../../data/tracker/observingRail";
 import type { EquipmentRule } from "../../data/tracker/observingRules";
+import { telescopeGuidanceFor, type TelescopeSetup } from "../../data/tracker/viewingCapability";
 import { CardFigure } from "./media/CardFigures";
 import type { RailFacts } from "./map/TrackerObservingRail";
 
@@ -16,17 +17,22 @@ interface Props {
   canFindInSky: (card: RailCard) => boolean;
   factsFor: (card: RailCard) => RailFacts;
   equipment: EquipmentRule;
+  telescopeSetup: TelescopeSetup | null;
   recovery: ReactNode;
   loading: boolean;
   upcoming: { onOpen: () => void; triggerRef?: RefObject<HTMLButtonElement> };
 }
 
-function equipmentContext(card: RailCard, configured: EquipmentRule): string {
+function equipmentContext(card: RailCard, configured: EquipmentRule, telescopeSetup: TelescopeSetup | null): string {
   const needed = card.opportunity.guidance.equipment;
   if (needed === "telescope") return "Telescope recommended";
   if (needed === "binoculars") return "Binoculars recommended";
-  if (configured === "telescope") return "Easy to find · telescope adds detail";
-  if (configured === "binoculars") return "Easy to find · binoculars add detail";
+  if (configured === "telescope") {
+    const guidance = telescopeGuidanceFor(card.opportunity, telescopeSetup);
+    const optics = [guidance?.eyepiece?.replace(" eyepiece", ""), guidance?.magnification].filter(Boolean);
+    return optics.length > 0 ? optics.join(" · ") : "Telescope view";
+  }
+  if (configured === "binoculars") return "Brighter, steadier view";
   if (configured === "imaging") return "Well placed for imaging";
   return "Naked eye";
 }
@@ -40,6 +46,7 @@ function TonightRow({
   rank,
   featured,
   configured,
+  telescopeSetup,
   finderLabel,
   canFindInSky,
   onOpenDetail,
@@ -49,6 +56,7 @@ function TonightRow({
   rank: number;
   featured: boolean;
   configured: EquipmentRule;
+  telescopeSetup: TelescopeSetup | null;
   finderLabel: string;
   canFindInSky: boolean;
   onOpenDetail: () => void;
@@ -70,8 +78,11 @@ function TonightRow({
         <span>{when.value} · {where.value}</span>
         <small>
           {quality.tone !== "unknown" && usefulMetric(quality.value) ? `${quality.value} · ` : ""}
-          {featured ? card.presentation.recommendation : equipmentContext(card, configured)}
+          {featured ? card.presentation.recommendation : equipmentContext(card, configured, telescopeSetup)}
         </small>
+        {featured && configured !== "eyes" ? (
+          <em className="tk-tonight-capability">{equipmentContext(card, configured, telescopeSetup)}</em>
+        ) : null}
       </button>
       {quality.tone !== "unknown" && usefulMetric(quality.value) ? (
         <span className="tk-tonight-quality" data-tone={quality.tone}>
@@ -112,6 +123,7 @@ export function TrackerTonightBriefing({
   canFindInSky,
   factsFor,
   equipment,
+  telescopeSetup,
   recovery,
   loading,
   upcoming,
@@ -153,17 +165,18 @@ export function TrackerTonightBriefing({
           <>
             <section className="tk-tonight-next" aria-labelledby="tk-tonight-next-title">
               <div className="tk-tonight-section-heading">
-                <h2 id="tk-tonight-next-title">Tonight, in order</h2>
+                <h2 id="tk-tonight-next-title">Best tonight</h2>
                 <span>Ranked for this place and equipment</span>
               </div>
-              <ol>
-                {cards.slice(0, 5).map((card, index) => (
+              <ol className="tk-tonight-feature-list">
+                {cards.slice(0, 1).map((card) => (
                   <TonightRow
                     key={card.id}
                     card={card}
-                    rank={index + 1}
-                    featured={index === 0}
+                    rank={1}
+                    featured
                     configured={equipment}
+                    telescopeSetup={telescopeSetup}
                     finderLabel={finderLabel}
                     canFindInSky={canFindInSky(card)}
                     onOpenDetail={() => onOpenDetail(card.id)}
@@ -171,6 +184,27 @@ export function TrackerTonightBriefing({
                   />
                 ))}
               </ol>
+              {cards.length > 1 ? (
+                <section className="tk-tonight-secondary" aria-labelledby="tk-tonight-secondary-title">
+                  <h3 id="tk-tonight-secondary-title">Also worth seeing</h3>
+                  <ol start={2}>
+                    {cards.slice(1, 5).map((card, index) => (
+                      <TonightRow
+                        key={card.id}
+                        card={card}
+                        rank={index + 2}
+                        featured={false}
+                        configured={equipment}
+                        telescopeSetup={telescopeSetup}
+                        finderLabel={finderLabel}
+                        canFindInSky={canFindInSky(card)}
+                        onOpenDetail={() => onOpenDetail(card.id)}
+                        onFindInSky={() => onFindInSky(card.id)}
+                      />
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
             </section>
             {leadFacts?.cloud && leadFacts.cloud.warning ? (
               <p className="tk-tonight-cloud" data-go-anyway={leadFacts.cloud.goAnyway ? "true" : undefined}>

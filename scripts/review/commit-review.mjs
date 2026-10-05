@@ -247,10 +247,10 @@ function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
       surface: "Sky",
       reference: "03-sky.png",
       target: "Emotional live-guidance payoff: selected target, one elegant lock, immediate movement cue, sky context, and minimal diagnostics.",
-      ids: ["09-phone-sky-camera-granted", "10-phone-sky-guiding", "10a-phone-sky-almost-aligned", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "14-tablet-sky-guiding"],
+      ids: ["09-phone-sky-camera-granted", "09a-phone-sky-target-offscreen", "10-phone-sky-guiding", "10a-phone-sky-almost-aligned", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
       matched: "One target lock carries direction and alignment; real catalog stars, projected constellation figures and names populate the field; Saturn uses a ringed marker; below-horizon guidance stops; diagnostics remain collapsed.",
-      deviation: "The camera field uses an approximate 82° × 66° projection because browsers do not disclose a calibrated rear-lens FOV.",
-      limitation: "These are explicitly fixture-driven browser frames with an empty MediaStream, not physical-device camera or sensor evidence.",
+      deviation: "The camera field starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics; the visible FOV is then corrected for the live video/viewport cover crop.",
+      limitation: "These are explicitly fixture-driven browser frames with a deterministic 1280 × 720 MediaStream, not physical-device camera or sensor evidence.",
     },
     {
       surface: "Capability boundary",
@@ -342,10 +342,12 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
   ]);
   const sky = screenshotLinks(shots, [
     "09-phone-sky-camera-granted",
+    "09a-phone-sky-target-offscreen",
     "10-phone-sky-guiding",
     "10a-phone-sky-almost-aligned",
     "11-phone-sky-aligned",
     "11a-phone-sky-below-horizon",
+    "11b-phone-sky-ar-diagnostics",
     "14-tablet-sky-guiding",
   ]);
   return `# Terrain and Sky validation notes
@@ -370,10 +372,12 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 - All 893 conventional-figure endpoints are mapped to real BSC5P HR stars within 0.008397°. Constellation names derive from the projected figures; selective major-star labels use the documented IAU identity crosswalk.
 - Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path.
 - Coordinate pipeline: catalog or ephemeris position → apparent equatorial position → observer/UTC horizontal position → fixed local ENU direction → stabilized device quaternion → camera projection. Celestial directions never derive from device callbacks.
-- Pose stabilization: W3C orientation, rear-camera correction, screen rotation, heading correction and calibration compose into one quaternion; a 0.18° deadband and 85 ms time-based slerp stabilize the whole scene rather than any target.
+- Pose stabilization: W3C intrinsic Z-X'-Y'' orientation and the display rotation compose exactly once into one quaternion; camera-local -Z is the rear optical axis. Safari's magnetic heading replaces the arbitrary alpha yaw before quaternion construction. A 0.18° deadband and 85 ms time-based slerp stabilize the whole scene rather than any target.
+- Camera projection: the base **82° × 66°** field of view is an explicit estimate because browser media APIs expose stream dimensions but not calibrated optical intrinsics. The production projection reads the live video dimensions and overlay viewport, then applies the exact centred \`object-fit: cover\` crop to derive the visible horizontal or vertical FOV. Developer diagnostics can override the base FOV on localhost for measured-device sessions.
+- North reference: Astronomy Engine azimuths use true north, while Safari exposes magnetic heading and no browser declination correction. An uncalibrated magnetic session may guide but cannot assert **On target**; aligning to a known celestial reference upgrades the whole-pose solution. This limitation is a browser accuracy boundary, not hidden as sensor confidence.
 - Notable-object markers are visual classifications of Tracker's existing ranked \`SkyFinderTarget\` instances. Saturn, Jupiter, Mars, Venus, Moon, satellite, radiant, cluster and deep-sky treatments do not create another object catalogue.
 - The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths.
-- The fixture's \`MediaStream\` contains no camera frames. It does **not** validate live rear-camera composition, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
+- The fixture's \`MediaStream\` is a deterministic 1,280 × 720 canvas stream with no real camera image. It proves the production video layer, media metadata, centred cover-crop calculation and overlay viewport are exercised, but it does **not** validate live rear-camera composition, optical intrinsics, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
 - No compatible physical phone or tablet was connected for this package. Physical-device Sky validation is therefore **blocked, not passed**. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
 
 ## Observing capability

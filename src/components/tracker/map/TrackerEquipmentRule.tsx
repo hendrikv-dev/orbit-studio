@@ -64,6 +64,10 @@ export function TrackerEquipmentRule({ rule, onSelect, telescopeSetups, onTelesc
 
   const current = EQUIPMENT_RULES.find((entry) => entry.id === rule) ?? EQUIPMENT_RULES[0];
   const Icon = ICONS[current.id];
+  const activeTelescope = rule === "telescope"
+    ? telescopeSetups.setups.find((setup) => setup.id === telescopeSetups.activeId) ?? null
+    : null;
+  const viewingLabel = activeTelescope?.name ?? current.label;
 
   return (
     <div className="tk-equipment" ref={root}>
@@ -75,12 +79,12 @@ export function TrackerEquipmentRule({ rule, onSelect, telescopeSetups, onTelesc
         aria-expanded={open}
         // The label names the rule as well as the control, because "Naked eye"
         // alone reads as a fact about the sky rather than a setting.
-        aria-label={`Viewing: ${current.label}. Change`}
+        aria-label={`Viewing: ${viewingLabel}. Change`}
         onClick={() => setOpen((value) => !value)}
       >
         <Icon size={15} aria-hidden />
         <span className="tk-equipment-current" aria-hidden>
-          {current.label}
+          <small>Viewing:</small> {viewingLabel}
         </span>
       </button>
 

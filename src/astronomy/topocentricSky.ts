@@ -39,6 +39,28 @@ export interface SkyProjection {
   inFront: boolean;
 }
 
+export interface CameraProjectionModel {
+  /** Calibrated field of view for the full camera frame. */
+  horizontalFovDeg: number;
+  verticalFovDeg: number;
+  /** Intrinsic media-frame dimensions reported by the active video track. */
+  sourceWidthPx: number;
+  sourceHeightPx: number;
+  /** CSS content-box dimensions occupied by the center-cropped preview. */
+  viewportWidthPx: number;
+  viewportHeightPx: number;
+  fit: "cover" | "contain";
+}
+
+export interface EffectiveCameraProjection {
+  horizontalFovDeg: number;
+  verticalFovDeg: number;
+  sourceAspectRatio: number;
+  viewportAspectRatio: number;
+  cropAxis: "horizontal" | "vertical" | "none";
+  visibleFraction: number;
+}
+
 export const SKY_HORIZONTAL_FOV_DEG = 82;
 export const SKY_VERTICAL_FOV_DEG = 66;
 const J2000_UTC_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
@@ -146,7 +168,7 @@ function axisAnglePose(x: number, y: number, z: number, angleDeg: number): Devic
   return { x: x * sine, y: y * sine, z: z * sine, w: Math.cos(half) };
 }
 
-function rotateVector(
+export function rotateVectorByPose(
   vector: { x: number; y: number; z: number },
   pose: DevicePose,
 ): { x: number; y: number; z: number } {
@@ -162,6 +184,31 @@ function rotateVector(
   };
 }
 
+function quaternionFromW3cOrientation(
+  alphaDeg: number,
+  betaDeg: number,
+  gammaDeg: number,
+): DevicePose {
+  // Device Orientation defines an intrinsic Z-X'-Y'' sequence. These terms
+  // are the quaternion published in the W3C specification, with the world
+  // axes interpreted directly as ENU: X=east, Y=north, Z=up.
+  const halfAlpha = radians(alphaDeg) / 2;
+  const halfBeta = radians(betaDeg) / 2;
+  const halfGamma = radians(gammaDeg) / 2;
+  const cA = Math.cos(halfAlpha);
+  const cB = Math.cos(halfBeta);
+  const cG = Math.cos(halfGamma);
+  const sA = Math.sin(halfAlpha);
+  const sB = Math.sin(halfBeta);
+  const sG = Math.sin(halfGamma);
+  return normalizeQuaternion({
+    w: cB * cG * cA - sB * sG * sA,
+    x: sB * cG * cA - cB * sG * sA,
+    y: cB * sG * cA + sB * cG * sA,
+    z: cB * cG * sA + sB * sG * cA,
+  });
+}
+
 /**
  * Convert W3C alpha/beta/gamma to a rear-camera pose.
  * Screen orientation is composed exactly once in this function.
@@ -172,43 +219,112 @@ export function devicePoseFromOrientation(
   gammaDeg: number,
   screenOrientationDeg = 0,
 ): DevicePose {
-  const alpha = radians(alphaDeg);
-  const beta = radians(betaDeg);
-  const gamma = radians(-gammaDeg);
-  const c1 = Math.cos(beta / 2);
-  const c2 = Math.cos(alpha / 2);
-  const c3 = Math.cos(gamma / 2);
-  const s1 = Math.sin(beta / 2);
-  const s2 = Math.sin(alpha / 2);
-  const s3 = Math.sin(gamma / 2);
-  const device = normalizeQuaternion({
-    x: s1 * c2 * c3 + c1 * s2 * s3,
-    y: c1 * s2 * c3 - s1 * c2 * s3,
-    z: c1 * c2 * s3 - s1 * s2 * c3,
-    w: c1 * c2 * c3 + s1 * s2 * s3,
-  });
-  const rearCamera = axisAnglePose(1, 0, 0, -90);
-  const screen = axisAnglePose(0, 0, 1, -screenOrientationDeg);
-  return multiplyPoses(multiplyPoses(device, rearCamera), screen);
+  const device = quaternionFromW3cOrientation(alphaDeg, betaDeg, gammaDeg);
+  // The physical Device Orientation frame remains portrait-relative when the
+  // display rotates. Compose the display rotation once so camera-local X/Y
+  // remain screen-right/screen-up. Camera-local -Z is the rear optical axis.
+  const screen = axisAnglePose(0, 0, 1, screenOrientationDeg);
+  return multiplyPoses(device, screen);
+}
+
+/**
+ * Safari reports alpha relative to an arbitrary startup direction, while
+ * `webkitCompassHeading` supplies the earth reference in the opposite sense.
+ * Replace that one yaw input before constructing the W3C quaternion; never
+ * force the tilted camera optical axis to equal a compass heading.
+ */
+export function devicePoseFromOrientationWithHeading(
+  alphaDeg: number,
+  betaDeg: number,
+  gammaDeg: number,
+  screenOrientationDeg: number,
+  magneticHeadingDeg: number | null,
+): DevicePose {
+  const absoluteAlpha = magneticHeadingDeg === null
+    ? alphaDeg
+    : normalizeDegrees(360 - magneticHeadingDeg);
+  return devicePoseFromOrientation(
+    absoluteAlpha,
+    betaDeg,
+    gammaDeg,
+    screenOrientationDeg,
+  );
 }
 
 export function pointingFromDevicePose(pose: DevicePose): HorizontalCoordinate {
-  const forward = rotateVector({ x: 0, y: 0, z: -1 }, pose);
-  return enuToHorizontal({ east: -forward.x, north: -forward.z, up: forward.y });
+  const forward = rotateVectorByPose({ x: 0, y: 0, z: -1 }, pose);
+  return enuToHorizontal({ east: forward.x, north: forward.y, up: forward.z });
+}
+
+function poseFromBasis(
+  right: EnuDirection,
+  up: EnuDirection,
+  backward: EnuDirection,
+): DevicePose {
+  // Rotation matrix columns are the world directions of local X/Y/Z.
+  const m00 = right.east;
+  const m01 = up.east;
+  const m02 = backward.east;
+  const m10 = right.north;
+  const m11 = up.north;
+  const m12 = backward.north;
+  const m20 = right.up;
+  const m21 = up.up;
+  const m22 = backward.up;
+  const trace = m00 + m11 + m22;
+  if (trace > 0) {
+    const s = Math.sqrt(trace + 1) * 2;
+    return normalizeQuaternion({
+      w: s / 4,
+      x: (m21 - m12) / s,
+      y: (m02 - m20) / s,
+      z: (m10 - m01) / s,
+    });
+  }
+  if (m00 > m11 && m00 > m22) {
+    const s = Math.sqrt(1 + m00 - m11 - m22) * 2;
+    return normalizeQuaternion({
+      w: (m21 - m12) / s,
+      x: s / 4,
+      y: (m01 + m10) / s,
+      z: (m02 + m20) / s,
+    });
+  }
+  if (m11 > m22) {
+    const s = Math.sqrt(1 + m11 - m00 - m22) * 2;
+    return normalizeQuaternion({
+      w: (m02 - m20) / s,
+      x: (m01 + m10) / s,
+      y: s / 4,
+      z: (m12 + m21) / s,
+    });
+  }
+  const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
+  return normalizeQuaternion({
+    w: (m10 - m01) / s,
+    x: (m02 + m20) / s,
+    y: (m12 + m21) / s,
+    z: s / 4,
+  });
 }
 
 /** Deterministic no-roll pose used by fixtures and direction-only fallback views. */
 export function devicePoseLookingAt(pointing: HorizontalCoordinate): DevicePose {
-  const yaw = axisAnglePose(0, 1, 0, pointing.azimuthDeg);
-  const pitch = axisAnglePose(1, 0, 0, pointing.altitudeDeg);
-  return multiplyPoses(yaw, pitch);
-}
-
-/** Correct Safari's compass heading by rotating the entire camera pose. */
-export function poseWithAbsoluteHeading(pose: DevicePose, headingDeg: number): DevicePose {
-  const current = pointingFromDevicePose(pose);
-  const correction = signedAngleDifference(current.azimuthDeg, headingDeg);
-  return multiplyPoses(axisAnglePose(0, 1, 0, correction), pose);
+  const forward = horizontalToEnu(pointing);
+  const horizontalLength = Math.hypot(forward.east, forward.north);
+  const right = horizontalLength > 1e-6
+    ? normalizeVector({ east: forward.north, north: -forward.east, up: 0 })
+    : { east: 1, north: 0, up: 0 };
+  const up = normalizeVector({
+    east: right.north * forward.up,
+    north: -right.east * forward.up,
+    up: right.east * forward.north - right.north * forward.east,
+  });
+  return poseFromBasis(
+    right,
+    up,
+    { east: -forward.east, north: -forward.north, up: -forward.up },
+  );
 }
 
 /** Apply user calibration to the whole view, never to an individual target. */
@@ -217,7 +333,7 @@ export function calibratedDevicePose(
   calibration: { azimuthOffsetDeg: number; altitudeOffsetDeg: number } | null,
 ): DevicePose {
   if (!calibration) return pose;
-  const yaw = axisAnglePose(0, 1, 0, calibration.azimuthOffsetDeg);
+  const yaw = axisAnglePose(0, 0, 1, -calibration.azimuthOffsetDeg);
   const pitch = axisAnglePose(1, 0, 0, calibration.altitudeOffsetDeg);
   return multiplyPoses(multiplyPoses(yaw, pose), pitch);
 }
@@ -293,17 +409,16 @@ export class DevicePoseStabilizer {
 export function projectEnuDirection(
   direction: EnuDirection,
   pose: DevicePose,
-  horizontalFovDeg = SKY_HORIZONTAL_FOV_DEG,
-  verticalFovDeg = SKY_VERTICAL_FOV_DEG,
+  projection: Partial<CameraProjectionModel> = {},
 ): SkyProjection {
-  const world = { x: -direction.east, y: direction.up, z: -direction.north };
+  const effective = effectiveCameraProjection(projection);
+  const world = { x: direction.east, y: direction.north, z: direction.up };
   const inverse = { x: -pose.x, y: -pose.y, z: -pose.z, w: pose.w };
-  const camera = rotateVector(world, inverse);
+  const camera = rotateVectorByPose(world, inverse);
   const inFront = camera.z < -1e-6;
   const denominator = Math.max(1e-6, Math.abs(camera.z));
-  // The W3C rear-camera correction leaves camera-local -X on screen-right.
-  let xNdc = -camera.x / (denominator * Math.tan(radians(horizontalFovDeg) / 2));
-  let yNdc = camera.y / (denominator * Math.tan(radians(verticalFovDeg) / 2));
+  let xNdc = camera.x / (denominator * Math.tan(radians(effective.horizontalFovDeg) / 2));
+  let yNdc = camera.y / (denominator * Math.tan(radians(effective.verticalFovDeg) / 2));
   if (!inFront) {
     xNdc *= -1;
     yNdc *= -1;
@@ -314,7 +429,60 @@ export function projectEnuDirection(
     xPercent,
     yPercent,
     inFront,
-    inField: inFront && Math.abs(xNdc) <= 1 && Math.abs(yNdc) <= 1,
+    inField: inFront && Math.abs(xNdc) <= 1 + 1e-12 && Math.abs(yNdc) <= 1 + 1e-12,
+  };
+}
+
+/**
+ * Match the projection to the visible portion of a centered `object-fit`
+ * camera preview. Browser media APIs do not expose optical intrinsics, so the
+ * base FOV remains an explicitly documented estimate; crop math is exact for
+ * the reported media and viewport aspect ratios.
+ */
+export function effectiveCameraProjection(
+  projection: Partial<CameraProjectionModel> = {},
+): EffectiveCameraProjection {
+  const horizontalFovDeg = projection.horizontalFovDeg ?? SKY_HORIZONTAL_FOV_DEG;
+  const verticalFovDeg = projection.verticalFovDeg ?? SKY_VERTICAL_FOV_DEG;
+  const sourceWidth = projection.sourceWidthPx ?? 0;
+  const sourceHeight = projection.sourceHeightPx ?? 0;
+  const viewportWidth = projection.viewportWidthPx ?? 0;
+  const viewportHeight = projection.viewportHeightPx ?? 0;
+  const sourceAspectRatio = sourceWidth > 0 && sourceHeight > 0
+    ? sourceWidth / sourceHeight
+    : Math.tan(radians(horizontalFovDeg) / 2) / Math.tan(radians(verticalFovDeg) / 2);
+  const viewportAspectRatio = viewportWidth > 0 && viewportHeight > 0
+    ? viewportWidth / viewportHeight
+    : sourceAspectRatio;
+  if (projection.fit === "contain" || Math.abs(sourceAspectRatio - viewportAspectRatio) < 1e-6) {
+    return {
+      horizontalFovDeg,
+      verticalFovDeg,
+      sourceAspectRatio,
+      viewportAspectRatio,
+      cropAxis: "none",
+      visibleFraction: 1,
+    };
+  }
+  if (sourceAspectRatio > viewportAspectRatio) {
+    const visibleFraction = viewportAspectRatio / sourceAspectRatio;
+    return {
+      horizontalFovDeg: degrees(2 * Math.atan(Math.tan(radians(horizontalFovDeg) / 2) * visibleFraction)),
+      verticalFovDeg,
+      sourceAspectRatio,
+      viewportAspectRatio,
+      cropAxis: "horizontal",
+      visibleFraction,
+    };
+  }
+  const visibleFraction = sourceAspectRatio / viewportAspectRatio;
+  return {
+    horizontalFovDeg,
+    verticalFovDeg: degrees(2 * Math.atan(Math.tan(radians(verticalFovDeg) / 2) * visibleFraction)),
+    sourceAspectRatio,
+    viewportAspectRatio,
+    cropAxis: "vertical",
+    visibleFraction,
   };
 }
 

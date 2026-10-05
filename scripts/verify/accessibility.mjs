@@ -979,12 +979,25 @@ async function run() {
       await phone.locator(".tk-callout").waitFor({ state: "detached", timeout: 5_000 });
     }
 
+    await phone.getByRole("button", { name: "Tonight", exact: true }).click();
+    await phone.waitForSelector(".tk-tonight-surface", { timeout: 30_000 });
+    expect(
+      (await phone.locator(".tk-tonight-lead").count()) === 1,
+      "Tonight should expose one leading recommendation on a phone",
+    );
+    expect(
+      (await phone.locator(".tk-rail, .tk-rail-card").count()) === 0,
+      "Tonight should not retain the superseded horizontal rail",
+    );
+    await scan(phone, "Tonight briefing on a phone");
+
     /* --- viewing capability ---------------------------------------------
      *
      * The selector is optional, but it changes the recommendation authority.
-     * Its compact mobile trigger therefore has to be keyboard reachable, the
-     * four choices have to expose state, and closing it has to return focus to
-     * the trigger rather than dropping the reader at the document body.
+     * It lives with Tonight's recommendations rather than adding a fourth item
+     * to Map's exact Location / Date / 2D–3D toolbar. The compact trigger must
+     * still be keyboard reachable, the four choices expose state, and closing
+     * it returns focus instead of dropping the reader at the document body.
      */
     const viewingTrigger = phone.getByRole("button", { name: /Viewing: Naked eye/ });
     await viewingTrigger.focus();
@@ -1006,18 +1019,6 @@ async function run() {
       await viewingTrigger.evaluate((element) => element === document.activeElement),
       "closing the Viewing selector should restore focus to its trigger",
     );
-
-    await phone.getByRole("button", { name: "Tonight", exact: true }).click();
-    await phone.waitForSelector(".tk-tonight-surface", { timeout: 30_000 });
-    expect(
-      (await phone.locator(".tk-tonight-lead").count()) === 1,
-      "Tonight should expose one leading recommendation on a phone",
-    );
-    expect(
-      (await phone.locator(".tk-rail, .tk-rail-card").count()) === 0,
-      "Tonight should not retain the superseded horizontal rail",
-    );
-    await scan(phone, "Tonight briefing on a phone");
 
     await openDetail(phone);
     await scan(phone, "recommendation on a phone");

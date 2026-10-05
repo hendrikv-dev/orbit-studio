@@ -2,7 +2,9 @@ import { Body, Equator, Horizon, MakeTime, Observer } from "astronomy-engine";
 
 import {
   devicePoseFromOrientation,
+  horizontalToEnu,
   pointingFromDevicePose,
+  type EnuDirection,
 } from "../../astronomy/topocentricSky";
 
 import type { BestWindow } from "./conditions";
@@ -46,6 +48,12 @@ export interface HorizontalPosition {
   altitudeDeg: number;
   azimuthDeg: number;
   atUtc: string;
+}
+
+export interface SkyFinderCelestialSolution {
+  equatorial: { raHours: number; decDeg: number } | null;
+  horizontal: HorizontalPosition;
+  enu: EnuDirection;
 }
 
 export interface PhonePointing {
@@ -360,10 +368,9 @@ export function guidanceForSkyTarget(
 /**
  * Convert W3C alpha/beta/gamma into the rear-camera optical axis.
  *
- * This follows the same YXZ quaternion order used by DeviceOrientationControls.
- * The returned azimuth is clockwise from true/device north and altitude is
- * positive above the horizon. `screenOrientationDeg` compensates portrait and
- * landscape coordinates before the optical axis is read.
+ * `topocentricSky.ts` owns the intrinsic W3C Z-X'-Y'' quaternion and composes
+ * screen orientation once. The returned azimuth is clockwise from the event's
+ * north reference and altitude is positive above the horizon.
  */
 export function pointingFromDeviceOrientation(
   alphaDeg: number,
@@ -429,17 +436,26 @@ function interpolatePath(path: SkyPath, at: Date): HorizontalPosition | null {
   };
 }
 
-function bodyPosition(
+function bodySolution(
   body: string,
   observer: { latitudeDeg: number; longitudeDeg: number },
   at: Date,
-): HorizontalPosition | null {
+): SkyFinderCelestialSolution | null {
   try {
     const astronomyObserver = new Observer(observer.latitudeDeg, observer.longitudeDeg, 0);
     const time = MakeTime(at);
     const equator = Equator(body as Body, time, astronomyObserver, true, true);
     const horizon = Horizon(time, astronomyObserver, equator.ra, equator.dec, "normal");
-    return { altitudeDeg: horizon.altitude, azimuthDeg: horizon.azimuth, atUtc: at.toISOString() };
+    const horizontal = {
+      altitudeDeg: horizon.altitude,
+      azimuthDeg: horizon.azimuth,
+      atUtc: at.toISOString(),
+    };
+    return {
+      equatorial: { raHours: equator.ra, decDeg: equator.dec },
+      horizontal,
+      enu: horizontalToEnu(horizontal),
+    };
   } catch {
     return null;
   }
@@ -470,16 +486,27 @@ export function positionForSkyFinderTarget(
   observer: { latitudeDeg: number; longitudeDeg: number },
   at: Date,
 ): HorizontalPosition | null {
+  return solutionForSkyFinderTarget(target, observer, at)?.horizontal ?? null;
+}
+
+/** The single target solution consumed by guidance, diagnostics and rendering. */
+export function solutionForSkyFinderTarget(
+  target: SkyFinderTarget,
+  observer: { latitudeDeg: number; longitudeDeg: number },
+  at: Date,
+): SkyFinderCelestialSolution | null {
   switch (target.source.kind) {
     case "body":
-      return bodyPosition(target.source.body, observer, at);
-    case "body-region":
-      return centroid(
+      return bodySolution(target.source.body, observer, at);
+    case "body-region": {
+      const horizontal = centroid(
         target.source.bodies
-          .map((body) => bodyPosition(body, observer, at))
+          .map((body) => bodySolution(body, observer, at)?.horizontal ?? null)
           .filter((position): position is HorizontalPosition => position !== null),
         at,
       );
+      return horizontal ? { equatorial: null, horizontal, enu: horizontalToEnu(horizontal) } : null;
+    }
     case "equatorial": {
       const astronomyObserver = new Observer(observer.latitudeDeg, observer.longitudeDeg, 0);
       const time = MakeTime(at);
@@ -490,10 +517,24 @@ export function positionForSkyFinderTarget(
         target.source.declinationDeg,
         "normal",
       );
-      return { altitudeDeg: horizon.altitude, azimuthDeg: horizon.azimuth, atUtc: at.toISOString() };
+      const horizontal = {
+        altitudeDeg: horizon.altitude,
+        azimuthDeg: horizon.azimuth,
+        atUtc: at.toISOString(),
+      };
+      return {
+        equatorial: {
+          raHours: target.source.rightAscensionHours,
+          decDeg: target.source.declinationDeg,
+        },
+        horizontal,
+        enu: horizontalToEnu(horizontal),
+      };
     }
-    case "sampled":
-      return interpolatePath(target.source.path, at);
+    case "sampled": {
+      const horizontal = interpolatePath(target.source.path, at);
+      return horizontal ? { equatorial: null, horizontal, enu: horizontalToEnu(horizontal) } : null;
+    }
   }
 }
 
