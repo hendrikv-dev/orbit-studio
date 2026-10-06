@@ -180,6 +180,14 @@ function friendlyStarLabel(star: Bsc5pBrightStarRecord): string | null {
   return null;
 }
 
+function sameCelestialIdentity(left: SkyFinderTarget, right: SkyFinderTarget): boolean {
+  if (left.id === right.id) return true;
+  if (left.source.kind === "body" && right.source.kind === "body") {
+    return left.source.body.toLowerCase() === right.source.body.toLowerCase();
+  }
+  return left.title.trim().toLocaleLowerCase() === right.title.trim().toLocaleLowerCase();
+}
+
 /** IAU 1958/J2000 galactic frame rotation, transposed from equatorial→galactic. */
 function galacticPlaneCoordinate(longitudeDeg: number): { raHours: number; decDeg: number } {
   const longitude = longitudeDeg * Math.PI / 180;
@@ -372,7 +380,10 @@ export function expectedSkyContext(
   const objectCandidates = [...solarSystemTargets(at), ...references];
   const seenObjects = new Set<string>();
   const objects = objectCandidates
-    .filter((candidate) => candidate.id !== target?.id)
+    // A ranked recommendation and the browse catalogue can describe the same
+    // body with different IDs (for example `planet-saturn` and `body-saturn`).
+    // Keep the selected lock as the sole rendering authority for that object.
+    .filter((candidate) => !target || !sameCelestialIdentity(candidate, target))
     .flatMap((candidate) => {
       if (seenObjects.has(candidate.id)) return [];
       seenObjects.add(candidate.id);

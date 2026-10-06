@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { positionForSkyFinderTarget, type SkyFinderTarget } from "./skyFinder";
 import { expectedSkyContext } from "./skyFinderContext";
+import { solarSystemTargets } from "./skyExplorer";
 import { devicePoseLookingAt, projectEnuDirection } from "../../astronomy/topocentricSky";
 
 const ORION_NEBULA: SkyFinderTarget = {
@@ -75,5 +76,18 @@ describe("expected Sky Finder context", () => {
     expect(context.constellation).toBeNull();
     expect(context.stars.length).toBeGreaterThan(0);
     expect(context.lines.length).toBeGreaterThan(0);
+  });
+
+  it("does not render a browse-catalog body underneath the selected target lock", () => {
+    const observer = { latitudeDeg: 45.5152, longitudeDeg: -122.6784 };
+    const at = new Date("2026-09-03T05:00:00.000Z");
+    const catalogSaturn = solarSystemTargets(at).find((target) => target.title === "Saturn")!;
+    const selectedSaturn = { ...catalogSaturn, id: "planet-saturn" };
+    const centre = positionForSkyFinderTarget(selectedSaturn, observer, at)!;
+
+    const context = expectedSkyContext(selectedSaturn, observer, at, centre);
+
+    expect(context.objects.some((object) => object.title === "Saturn")).toBe(false);
+    expect(context.stars.length).toBeGreaterThan(0);
   });
 });
