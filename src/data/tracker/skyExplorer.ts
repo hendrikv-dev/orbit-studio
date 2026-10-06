@@ -205,10 +205,20 @@ function baseTarget(
 export function solarSystemTargets(at: Date): SkyFinderTarget[] {
   return SOLAR_SYSTEM_BODIES.map((body) => baseTarget(`body-${body.toLowerCase()}`, body, at, { kind: "body", body }, {
     angularRadiusDeg: body === Body.Sun || body === Body.Moon ? 0.27 : 0.12,
+    equipment: body === Body.Neptune || body === Body.Pluto
+      ? "telescope"
+      : body === Body.Uranus
+        ? "binoculars"
+        : "eyes",
     appearance: body === Body.Sun
       ? "Our star. Never look directly at it without certified solar equipment."
       : `${body} at its calculated apparent position.`,
   }));
+}
+
+export function skyTargetEquipmentLabel(target: SkyFinderTarget): string {
+  if (target.source.kind === "body" && target.source.body === Body.Sun) return "Certified solar filter";
+  return target.equipment === "telescope" ? "Telescope" : target.equipment === "binoculars" ? "Binoculars" : "Naked eye";
 }
 
 export function constellationTargets(at: Date): SkyFinderTarget[] {

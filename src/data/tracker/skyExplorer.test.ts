@@ -5,6 +5,7 @@ import { positionForSkyFinderTarget } from "./skyFinder";
 import {
   CONSTELLATIONS,
   filterSkySearch,
+  skyTargetEquipmentLabel,
   skySearchCatalog,
   solarSystemTargets,
   stationSearchEntries,
@@ -24,6 +25,14 @@ describe("Sky 2.0 browse catalogue", () => {
     expect(targets.map((item) => item.title)).toEqual([
       "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
     ]);
+    expect(Object.fromEntries(targets.map((item) => [item.title, item.equipment]))).toMatchObject({
+      Saturn: "eyes",
+      Uranus: "binoculars",
+      Neptune: "telescope",
+      Pluto: "telescope",
+    });
+    expect(skyTargetEquipmentLabel(targets.find((item) => item.title === "Sun")!)).toBe("Certified solar filter");
+    expect(skyTargetEquipmentLabel(targets.find((item) => item.title === "Neptune")!)).toBe("Telescope");
     const catalog = skySearchCatalog(at);
     expect(filterSkySearch(catalog, "Neptune")[0]?.target.source).toEqual({ kind: "body", body: "Neptune" });
     expect(filterSkySearch(catalog, "Orion")[0]?.kind).toBe("constellation");
