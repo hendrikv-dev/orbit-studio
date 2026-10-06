@@ -22,6 +22,267 @@
   --aurora: linear-gradient(135deg, rgba(94, 234, 212, 0.28), rgba(103, 232, 249, 0.18), rgba(167, 139, 250, 0.2));
 }
 
+/* =========================================================== Sky 2.0
+   The celestial field is the surface. Camera, search, orientation and layers
+   are controls over one projected sphere rather than separate modes. */
+.tk-map-shell[data-map-state="finder"] { background: #02050c; }
+.tk-map-shell[data-map-state="finder"] .tk-mode-nav {
+  top: max(9px, env(safe-area-inset-top));
+  z-index: 232;
+  border-color: rgba(198, 210, 238, 0.1);
+  background: rgba(4, 8, 17, 0.66);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
+}
+.tk-sky-explorer {
+  display: block;
+  min-height: 100dvh;
+  background: #02050c;
+}
+.tk-sky-explorer .tk-finder-stage {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background: #030711;
+}
+.tk-sky-explorer .tk-finder-stage:active { cursor: grabbing; }
+.tk-sky-explorer .tk-finder-camera { z-index: 0; object-fit: cover; opacity: 0; transition: opacity 240ms ease; }
+.tk-sky-explorer[data-camera="active"] .tk-finder-camera { opacity: 1; }
+.tk-sky-explorer .tk-finder-sky {
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 72% 22%, rgba(52, 63, 108, 0.2), transparent 42%),
+    radial-gradient(ellipse at 18% 55%, rgba(30, 48, 83, 0.16), transparent 52%),
+    linear-gradient(180deg, #050b18 0%, #07101f 56%, #111625 100%);
+  opacity: 1;
+  transition: opacity 240ms ease;
+}
+.tk-sky-explorer[data-camera="active"] .tk-finder-sky { opacity: 0.13; }
+.tk-sky-explorer[data-sky-phase="twilight"] .tk-finder-sky {
+  background: linear-gradient(180deg, #1a2440, #25314b 62%, #735b61 100%);
+}
+.tk-sky-explorer[data-sky-phase="civil"] .tk-finder-sky,
+.tk-sky-explorer[data-sky-phase="day"] .tk-finder-sky {
+  background: linear-gradient(180deg, #365b82, #6f8ead 62%, #b3a08f 100%);
+}
+.tk-sky-explorer .tk-finder-shade {
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(1, 3, 9, 0.42) 0%, transparent 22%, transparent 68%, rgba(1, 3, 8, 0.5) 100%),
+    radial-gradient(ellipse at center, transparent 48%, rgba(0, 1, 5, 0.32) 100%);
+  pointer-events: none;
+}
+.tk-sky-explorer[data-camera="active"] .tk-finder-shade { background: linear-gradient(180deg, rgba(2, 5, 11, 0.28), transparent 35%, rgba(2, 4, 9, 0.32)); }
+.tk-sky-explorer .tk-finder-expected-field { z-index: 3; opacity: 1; }
+.tk-sky-explorer[data-camera="active"] .tk-finder-expected-field { opacity: 0.78; }
+.tk-finder-milky-way line {
+  stroke: rgba(150, 166, 212, 0.16);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.tk-finder-constellation-figures polygon {
+  fill: rgba(125, 143, 198, 0.055);
+  stroke: rgba(159, 179, 230, 0.12);
+  stroke-width: 0.3;
+  vector-effect: non-scaling-stroke;
+}
+.tk-finder-constellation-figures polygon[data-primary="true"] {
+  fill: rgba(132, 154, 224, 0.13);
+  stroke: rgba(195, 211, 252, 0.34);
+  filter: drop-shadow(0 0 5px rgba(126, 151, 231, 0.2));
+}
+.tk-sky-explorer .tk-finder-constellation-lines line { stroke: rgba(120, 146, 207, 0.3); stroke-width: 0.42; }
+.tk-sky-explorer .tk-finder-constellation-lines line[data-primary="true"] { stroke: rgba(183, 203, 248, 0.68); stroke-width: 0.65; }
+.tk-sky-explorer .tk-finder-constellation-labels text {
+  fill: rgba(154, 171, 210, 0.68);
+  font: 500 2.1px/1 var(--tk-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: rgba(2, 5, 12, 0.75);
+  stroke-width: 0.4;
+}
+.tk-sky-explorer .tk-finder-constellation-labels text[data-primary="true"] { fill: rgba(224, 232, 255, 0.94); font-size: 2.5px; }
+.tk-sky-explorer .tk-finder-star > i { box-shadow: 0 0 calc(var(--star-size) * 2.6) color-mix(in srgb, var(--star-color) 50%, transparent); }
+.tk-sky-explorer .tk-finder-star > small { color: rgba(215, 225, 246, 0.74); text-shadow: 0 1px 4px #000; }
+.tk-sky-object-glyph svg { overflow: visible; }
+.tk-sky-object-glyph .corona { fill: none; stroke-width: 2.4; opacity: 0.26; filter: drop-shadow(0 0 4px #ffd788); }
+.tk-sky-object-glyph[data-marker="sun"] { color: #ffe4a7; filter: drop-shadow(0 0 9px rgba(255, 203, 100, 0.7)); }
+.tk-sky-object-glyph[data-marker="moon"] { color: #eef4ff; filter: drop-shadow(0 0 5px rgba(205, 220, 255, 0.45)); }
+.tk-sky-object-glyph[data-marker="mars"] { color: #ef987b; }
+.tk-sky-object-glyph[data-marker="jupiter"] { color: #e7c9a0; }
+.tk-sky-object-glyph[data-marker="saturn"] { color: #e5cf9b; }
+.tk-sky-object-glyph[data-marker="venus"] { color: #fff2cb; }
+.tk-sky-object-glyph[data-marker="uranus"] { color: #9ee2e5; }
+.tk-sky-object-glyph[data-marker="neptune"] { color: #83a7ff; }
+.tk-sky-object-glyph[data-marker="pluto"] { color: #c7b7a7; }
+.tk-sky-object-glyph .planet-disc,
+.tk-sky-object-glyph .moon-disc,
+.tk-sky-object-glyph .disc { fill: currentColor; stroke: currentColor; }
+.tk-sky-object-glyph .planet-band,
+.tk-sky-object-glyph .planet-detail { fill: none; stroke: rgba(20, 22, 30, 0.72); }
+.tk-sky-object-glyph .planet-shade,
+.tk-sky-object-glyph .moon-shadow { fill: rgba(5, 8, 15, 0.72); stroke: none; }
+.tk-sky-explorer .tk-finder-object { z-index: 4; gap: 3px; }
+.tk-sky-explorer .tk-finder-object > .tk-sky-object-glyph { width: 27px; height: 27px; }
+.tk-sky-explorer .tk-finder-object small { color: rgba(225, 232, 247, 0.76); font-size: 0.6rem; text-shadow: 0 2px 5px #000; }
+.tk-sky-floating-tools {
+  position: absolute;
+  z-index: 20;
+  top: max(58px, calc(env(safe-area-inset-top) + 54px));
+  right: 10px;
+  display: flex;
+  gap: 5px;
+}
+.tk-sky-floating-tools button,
+.tk-sky-zoom button,
+.tk-sky-popover header button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(191, 207, 240, 0.11);
+  border-radius: 50%;
+  background: rgba(4, 8, 17, 0.64);
+  color: #dce5f5;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(16px) saturate(120%);
+  cursor: pointer;
+}
+.tk-sky-floating-tools button[aria-pressed="true"] { background: rgba(105, 126, 229, 0.42); color: #fff; }
+.tk-sky-floating-tools button:focus-visible,
+.tk-sky-zoom button:focus-visible,
+.tk-sky-popover button:focus-visible,
+.tk-sky-popover input:focus-visible,
+.tk-sky-popover select:focus-visible { outline: 2px solid #aab7ff; outline-offset: 2px; }
+.tk-sky-popover {
+  position: absolute;
+  z-index: 30;
+  top: max(105px, calc(env(safe-area-inset-top) + 101px));
+  right: 10px;
+  width: min(370px, calc(100vw - 20px));
+  max-height: min(70dvh, 620px);
+  overflow: hidden auto;
+  border: 1px solid rgba(188, 203, 234, 0.12);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(4, 8, 17, 0.91);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(24px) saturate(120%);
+  color: #e8eef9;
+}
+.tk-sky-popover header { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.tk-sky-popover header > span { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.tk-sky-popover header input { flex: 1; min-width: 0; height: 40px; border: 0; background: transparent; color: white; font: 500 0.9rem/1 var(--tk-body); }
+.tk-sky-popover header input::placeholder { color: #7f8aa0; }
+.tk-sky-popover header button { width: 34px; height: 34px; box-shadow: none; }
+.tk-sky-search-results { display: grid; gap: 2px; margin-top: 8px; }
+.tk-sky-search-results > button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  padding: 6px 9px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-sky-search-results > button:hover { background: rgba(119, 137, 197, 0.1); }
+.tk-sky-search-results .tk-sky-object-glyph { width: 27px; height: 27px; }
+.tk-sky-search-results span { display: grid; gap: 3px; min-width: 0; }
+.tk-sky-search-results strong { font: 600 0.86rem/1.15 var(--tk-body); }
+.tk-sky-search-results small { overflow: hidden; color: #8e9bb0; font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
+.tk-sky-layer-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; margin-top: 6px; }
+.tk-sky-layer-list label,
+.tk-sky-alerts label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; color: #b9c5d8; font-size: 0.7rem; }
+.tk-sky-layer-list input,
+.tk-sky-alerts input { accent-color: #8294ed; }
+.tk-sky-alerts,
+.tk-sky-accuracy { margin-top: 9px; border-top: 1px solid rgba(167, 183, 216, 0.1); padding-top: 4px; }
+.tk-sky-alerts summary,
+.tk-sky-accuracy summary { display: flex; align-items: center; gap: 7px; min-height: 38px; color: #dce4f2; font-size: 0.75rem; cursor: pointer; }
+.tk-sky-alerts p,
+.tk-sky-accuracy p { margin: 5px 0 8px; color: #77859a; font-size: 0.62rem; line-height: 1.45; }
+.tk-sky-alerts select { min-height: 30px; border: 1px solid rgba(190, 203, 229, 0.14); border-radius: 8px; background: #0b1120; color: #dce4f2; }
+.tk-sky-accuracy button { min-height: 34px; border: 0; border-radius: 9px; padding: 0 10px; background: rgba(114, 134, 223, 0.16); color: #dbe3f4; }
+.tk-sky-zoom { position: absolute; z-index: 18; right: 10px; bottom: 132px; display: grid; gap: 5px; }
+.tk-finder-sky-context { top: max(60px, calc(env(safe-area-inset-top) + 56px)); left: 11px; z-index: 8; }
+.tk-sky-explorer .tk-finder-horizon { z-index: 6; }
+.tk-sky-explorer .tk-finder-guidance {
+  position: absolute;
+  z-index: 12;
+  top: max(106px, calc(env(safe-area-inset-top) + 102px));
+  left: 10px;
+  bottom: auto;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: min(380px, calc(100vw - 72px));
+  border: 1px solid rgba(191, 207, 238, 0.11);
+  border-radius: 15px;
+  padding: 8px 10px;
+  background: rgba(3, 7, 15, 0.68);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(18px);
+}
+.tk-sky-explorer .tk-finder-guidance .tk-sky-object-glyph { width: 29px; height: 29px; }
+.tk-sky-explorer .tk-finder-guidance span { display: grid; gap: 1px; min-width: 0; }
+.tk-sky-explorer .tk-finder-guidance small { color: #8f9cb1; font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.tk-sky-explorer .tk-finder-guidance strong { overflow: hidden; font: 560 0.88rem/1.15 var(--tk-body); text-overflow: ellipsis; white-space: nowrap; }
+.tk-sky-explorer .tk-finder-guidance em { color: #a9e5d0; font-size: 0.65rem; font-style: normal; }
+.tk-sky-browse-hint { position: absolute; z-index: 8; top: 112px; left: 12px; display: grid; gap: 3px; color: rgba(224, 232, 247, 0.86); pointer-events: none; }
+.tk-sky-browse-hint strong { font: 520 0.9rem/1.2 var(--tk-display); }
+.tk-sky-browse-hint span { color: #8592a7; font-size: 0.65rem; }
+.tk-sky-explorer .tk-finder-lock { z-index: 11; }
+.tk-sky-explorer .tk-finder-lock > .tk-sky-object-glyph { width: 50px; height: 50px; }
+.tk-sky-explorer .tk-finder-edge-cue { z-index: 14; }
+.tk-sky-explorer .tk-finder-target-card {
+  position: absolute;
+  z-index: 14;
+  right: 10px;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  left: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  width: auto;
+  border: 1px solid rgba(190, 205, 235, 0.1);
+  border-radius: 15px;
+  padding: 9px 11px;
+  background: rgba(3, 7, 15, 0.67);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(18px);
+}
+.tk-sky-explorer .tk-finder-target-card > span { display: grid; gap: 3px; min-width: 0; }
+.tk-sky-explorer .tk-finder-target-card small { color: #a6b2c6; font-size: 0.65rem; letter-spacing: 0; text-transform: none; }
+.tk-sky-explorer .tk-finder-target-card strong { overflow: hidden; color: #dbe3f1; font: 450 0.7rem/1.35 var(--tk-body); text-overflow: ellipsis; white-space: nowrap; }
+.tk-sky-explorer .tk-finder-target-card b { color: #d6c58f; font-size: 0.63rem; white-space: nowrap; }
+.tk-sky-toast { position: absolute; z-index: 40; right: 12px; bottom: 84px; left: 12px; margin: 0 auto; max-width: 420px; border-radius: 12px; padding: 9px 12px; background: rgba(15, 20, 31, 0.9); color: #cbd5e5; font-size: 0.7rem; text-align: center; box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+.tk-sky-explorer .tk-finder-developer { z-index: 50; inset: 104px 8px 8px; max-width: 460px; overflow: auto; }
+
+@media (max-width: 720px) {
+  .tk-map-shell[data-map-state="finder"] .tk-mode-nav button { min-height: 36px; padding-inline: 11px; }
+  .tk-sky-floating-tools { top: max(54px, calc(env(safe-area-inset-top) + 50px)); }
+  .tk-finder-sky-context { top: max(58px, calc(env(safe-area-inset-top) + 54px)); }
+  .tk-sky-explorer .tk-finder-guidance { top: max(100px, calc(env(safe-area-inset-top) + 96px)); width: calc(100vw - 70px); }
+  .tk-sky-popover { top: max(98px, calc(env(safe-area-inset-top) + 94px)); max-height: 68dvh; }
+  .tk-sky-explorer .tk-finder-target-card { bottom: max(8px, env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-sky-explorer .tk-finder-camera,
+  .tk-sky-explorer .tk-finder-sky { transition: none; }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -14619,6 +14880,7 @@ button.primary,
   font-size: 0.8rem;
   white-space: nowrap;
 }
+.tk-date-label-compact { display: none; }
 
 .tk-date-today {
   padding: 3px 10px;
@@ -20124,6 +20386,13 @@ button.primary,
   .tk-map-shell[data-map-state="map"] .tk-date-step { display: none; }
   .tk-map-shell[data-map-state="map"] .tk-date-field { min-width: 0; padding-inline: 5px; }
   .tk-map-shell[data-map-state="map"] .tk-date-field span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tk-map-shell .tk-date-field .tk-date-label { display: none; }
+  .tk-map-shell .tk-date-field .tk-date-label-compact {
+    display: block;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
   .tk-map-shell[data-map-state="map"] .tk-map-topbar-projection .tk-projection { padding: 3px; }
   .tk-map-shell[data-map-state="map"] .tk-map-topbar-projection .tk-projection-option {
     min-width: 34px;
@@ -20237,4 +20506,20 @@ button.primary,
   .tk-finder-controls .tk-finder-warning { font-size: 0.67rem; }
   .tk-finder-details > summary { min-height: 38px; font-size: 0.7rem; }
   .tk-finder-developer { inset: 6px 6px 72px; }
+}
+
+/* Sky 2.0 owns the viewport after all legacy responsive Finder rules. */
+.tk-sky-finder.tk-sky-explorer { display: block; min-height: 100dvh; }
+.tk-sky-explorer .tk-finder-stage { position: fixed; inset: 0; min-height: 100dvh; }
+.tk-sky-explorer .tk-finder-guidance { transform: none; }
+.tk-map-shell[data-map-state="finder"] .tk-mode-nav {
+  top: max(9px, env(safe-area-inset-top));
+  z-index: 232;
+  background: rgba(4, 8, 17, 0.66);
+}
+@media (max-width: 720px) {
+  .tk-map-shell[data-map-state="map"] .tk-map-topbar {
+    grid-template-columns: minmax(0, 1.12fr) minmax(108px, 0.94fr) auto;
+  }
+  .tk-map-shell[data-map-state="map"] .tk-date-field span { font-size: 0.64rem; }
 }

@@ -460,6 +460,9 @@ async function visibleBounds(page) {
       // what is worth measuring is the answer and the things floating on it.
       ".tk-map-recommendation",
       ".tk-tonight-surface",
+      ".tk-sky-finder",
+      ".tk-sky-guidance",
+      ".tk-sky-target-summary",
       ".tk-map-topbar",
       ".tk-map-controls-view",
       ".tk-callout",
@@ -941,6 +944,9 @@ async function run() {
       viewport: { width: 390, height: 844 },
       isMobile: true,
       hasTouch: true,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) " +
+        "AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
     });
     await stubProviders(mobile);
     const phone = await mobile.newPage();
@@ -1023,6 +1029,46 @@ async function run() {
     await openDetail(phone);
     await scan(phone, "recommendation on a phone");
     assertNoHorizontalClipping(await visibleBounds(phone), "390px Tonight");
+    await phone.getByRole("button", { name: /Back to Tonight/i }).click();
+    await phone.waitForSelector(".tk-tonight-surface", { timeout: 30_000 });
+
+    /* --- rendered Sky ----------------------------------------------------
+     *
+     * Sky is a real celestial browser before it is a camera experience. The
+     * normal indoor path therefore needs the same automated accessibility
+     * coverage as Map and Tonight, including its two compact disclosure
+     * surfaces. Camera permission is deliberately not part of this gate.
+     */
+    await phone.getByRole("button", { name: "Sky", exact: true }).click();
+    await phone.waitForSelector('.tk-sky-finder[data-visual-base="rendered-sky"]', {
+      timeout: 30_000,
+    });
+    expect(
+      (await phone.locator('.tk-sky-finder[data-mode="browse"]').count()) === 1,
+      "primary Sky navigation should open the untargeted rendered celestial browser",
+    );
+    expect(
+      (await phone.locator('.tk-sky-finder[data-camera="off"]').count()) === 1,
+      "Sky should not request or activate the camera on entry",
+    );
+    await scan(phone, "rendered Sky on a phone");
+    assertNoHorizontalClipping(await visibleBounds(phone), "390px Sky");
+
+    const skySearch = phone.getByRole("button", { name: "Search the sky" });
+    await skySearch.focus();
+    await phone.keyboard.press("Enter");
+    await phone.waitForSelector('.tk-sky-search[role="dialog"]');
+    await scan(phone, "Sky search on a phone");
+    await phone.keyboard.press("Escape");
+    await phone.locator('.tk-sky-search[role="dialog"]').waitFor({ state: "detached" });
+
+    const skyLayers = phone.getByRole("button", { name: "Sky layers" });
+    await skyLayers.focus();
+    await phone.keyboard.press("Enter");
+    await phone.waitForSelector('.tk-sky-layers[role="dialog"]');
+    await scan(phone, "Sky layers on a phone");
+    await phone.keyboard.press("Escape");
+    await phone.locator('.tk-sky-layers[role="dialog"]').waitFor({ state: "detached" });
 
     if (UPCOMING_IS_ROUTED) {
     await phone.getByRole("button", { name: "Upcoming" }).click();

@@ -146,11 +146,12 @@ stored with the captured state so a controlled cloud field cannot be mistaken fo
 
 The main Tracker scenario proves Map in north-up 2D, the same state on the real DEM with a 55–70°
 3D pitch, and Tonight with the full production ranking and Upcoming gateway. It captures object
-detail both collapsed and expanded. Desktop and unsupported handheld states prove that Sky, Find in
-Sky and generic object-map actions are absent and that no protected APIs are called. A 390 × 844
-phone and an iPadOS-style tablet at 820 × 1180 and 1180 × 820 prove that the original **Find in Sky**
-tap initiates camera/orientation work immediately, with no redundant Start/Guide/Lock control. The
-scenario does not synthesize sensor motion or claim a physical target lock.
+detail both collapsed and expanded. Desktop states prove that Sky, Find in Sky and generic
+object-map actions are absent. A 390 × 844 phone and an iPadOS-style tablet at 820 × 1180 and
+1180 × 820 prove that the original **Find in Sky** tap enters targeted rendered Sky and can request
+orientation without requesting camera access; a sensorless tablet proves the same rendered sphere,
+search and target entry remain available with no protected API call. Camera-active captures are
+separate, fixture-labelled evidence and do not claim a physical target lock.
 
 A scenario exports:
 

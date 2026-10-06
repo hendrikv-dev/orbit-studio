@@ -86,6 +86,30 @@ export function TrackerDate({ date, today, timeZone, onSelect }: Props) {
     return relative ? `${relative} · ${formatted}` : formatted;
   }, [date, today]);
 
+  /**
+   * The phone toolbar keeps Location / Date / 2D–3D in one row. Preserve the
+   * complete year in the accessible name and larger layouts, but use the
+   * familiar compact reading in the constrained visual label so it never
+   * degrades into an ellipsis.
+   */
+  const compactDate = useMemo(() => {
+    const [year, month, day] = date.split("-").map(Number);
+    const instant = new Date(year, month - 1, day);
+    const monthDay = new Intl.DateTimeFormat(undefined, {
+      day: "numeric",
+      month: "short",
+    }).format(instant);
+    const offset = daysBetween(today, date);
+    const relative =
+      offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : offset === -1 ? "Yesterday" : null;
+    if (relative) return `${relative} · ${monthDay}`;
+    return new Intl.DateTimeFormat(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "2-digit",
+    }).format(instant);
+  }, [date, today]);
+
   // The arrows stop at the edges of what the ephemeris is trusted for rather
   // than walking silently into numbers Tracker will not stand behind.
   const previous = shiftDate(date, -1);
@@ -117,6 +141,7 @@ export function TrackerDate({ date, today, timeZone, onSelect }: Props) {
         <CalendarDays size={14} aria-hidden />
         <span className="tk-visually-hidden">Choose a night — showing </span>
         <span className="tk-date-label">{shortDate}</span>
+        <span className="tk-date-label-compact" aria-hidden>{compactDate}</span>
       </button>
 
       <button

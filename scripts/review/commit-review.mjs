@@ -246,28 +246,28 @@ function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
     {
       surface: "Sky",
       reference: "03-sky.png",
-      target: "Emotional live-guidance payoff: selected target, one elegant lock, immediate movement cue, sky context, and minimal diagnostics.",
-      ids: ["09-phone-sky-camera-granted", "09a-phone-sky-target-offscreen", "10-phone-sky-guiding", "10a-phone-sky-almost-aligned", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
-      matched: "One target lock carries direction and alignment; real catalog stars, projected constellation figures and names populate the field; Saturn uses a ringed marker; below-horizon guidance stops; diagnostics remain collapsed.",
-      deviation: "The camera field starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics; the visible FOV is then corrected for the live video/viewport cover crop.",
-      limitation: "These are explicitly fixture-driven browser frames with a deterministic 1280 × 720 MediaStream, not physical-device camera or sensor evidence.",
+      target: "A sky-first rendered celestial sphere that works indoors, with optional orientation and camera registration over the identical astronomical scene.",
+      ids: ["09-phone-sky-untargeted", "09b-phone-sky-manually-panned", "09c-phone-sky-search", "09d-phone-sky-layers", "09e-phone-sky-orion-figure", "09f-phone-sky-sun", "09g-phone-sky-moon", "09h-phone-sky-venus", "09i-phone-sky-jupiter", "09j-phone-sky-neptune", "09k-phone-sky-iss", "09l-phone-sky-tiangong", "09m-phone-sky-starlink-train", "09-phone-sky-camera-granted", "09n-phone-sky-camera-denied", "10-phone-sky-guiding", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
+      matched: "The celestial field owns the viewport; real catalog stars, conventional constellation geometry, all 88 searchable identities, an astronomical Milky Way spine, bodies and station targets share one projection; controls and target context float compactly over it.",
+      deviation: "The optional figure layer is original geometry-derived apparition art instead of copied historical or proprietary illustrations. Camera mode starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics.",
+      limitation: "Camera and sensor frames are explicitly deterministic fixtures, not physical-device AR evidence. Station path geometry does not imply visibility where a measured brightness model is absent.",
     },
     {
       surface: "Capability boundary",
       reference: null,
-      target: "Sky and Find in Sky only on camera-and-orientation-capable phones/tablets, with no reserved gap elsewhere.",
+      target: "Rendered Sky on confirmed phones/tablets regardless of optional camera/orientation support, and no Sky destination or fake AR on desktop/laptop.",
       ids: ["03-desktop-tonight-no-sky", "04-desktop-object-detail", "15-unsupported-tablet-map", "17-unsupported-tablet-object-detail"],
-      matched: "Desktop and unsupported-tablet frames show Map · Tonight only; object detail contains neither live action nor generic Show on Map.",
-      deviation: "None; the capability rule is preserved as specified.",
-      limitation: "Browser capability fixtures validate gating logic; the operating-system permission UI still requires a physical-device run.",
+      matched: "Desktop remains Map · Tonight with no Find in Sky; the sensorless tablet retains rendered Sky and Find in Sky while camera/orientation controls are absent.",
+      deviation: "This is the rendered-first Sky 2.0 capability contract, which intentionally supersedes the earlier camera-required rule.",
+      limitation: "Browser capability fixtures validate application gating; operating-system form-factor and permission behavior still require physical-device coverage.",
     },
   ];
 
-  return `# Approved-reference comparison
+  return `# Requirement-to-render comparison
 
 - **Commit** \`${commit.full}\`
-- **Method** Direct reference-to-render comparison. See \`COMPARISON_SHEET.png\` for paired visual evidence.
-- **Evidence boundary** ${referencesIncluded ? "The four supplied source images are copied unchanged into `references/` inside this private package." : "No reference directory was supplied to the generator; visual pairing is unavailable and this package must not claim direct comparison."}
+- **Method** Per-surface comparison of the final production-build frames against the current request. ${referencesIncluded ? "`COMPARISON_SHEET.png` also contains direct supplied-reference pairs." : "The current request explicitly supplies no visual references, so this package makes no reference-parity claim."}
+- **Evidence boundary** ${referencesIncluded ? "The four explicitly supplied source images are copied unchanged into `references/` inside this private package." : "No reference directory was supplied or assumed."}
 
 | Surface | Reference | Reference target | Implemented screenshot | What matched | Intentional deviation | Remaining limitation |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -341,7 +341,21 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
     "12-tablet-map-3d",
   ]);
   const sky = screenshotLinks(shots, [
+    "09-phone-sky-untargeted",
+    "09b-phone-sky-manually-panned",
+    "09c-phone-sky-search",
+    "09d-phone-sky-layers",
+    "09e-phone-sky-orion-figure",
+    "09f-phone-sky-sun",
+    "09g-phone-sky-moon",
+    "09h-phone-sky-venus",
+    "09i-phone-sky-jupiter",
+    "09j-phone-sky-neptune",
+    "09k-phone-sky-iss",
+    "09l-phone-sky-tiangong",
+    "09m-phone-sky-starlink-train",
     "09-phone-sky-camera-granted",
+    "09n-phone-sky-camera-denied",
     "09a-phone-sky-target-offscreen",
     "10-phone-sky-guiding",
     "10a-phone-sky-almost-aligned",
@@ -364,21 +378,31 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 
 ## Sky / camera and sensors
 
-- Browser fixture evidence: ${sky || "_Not captured_"}.
+- Browser/runtime evidence: ${sky || "_Not captured_"}.
+- Rendered Sky is the product foundation. A confirmed handheld can browse, pan, zoom, search, select targets and change layers without camera or orientation permission. Camera is an explicit optional control and reuses the same projected ENU scene.
 - Solar-system authority: Astronomy Engine **2.1.19**, MIT, for Sun, Moon, planets and the applicable equatorial/horizon transforms. The independent regression fixture uses NASA/JPL Horizons topocentric values and records its own timestamp, observer, frame, refraction mode and tolerances.
 - Star population: Yale Bright Star Catalog BSC5P via NASA/GSFC HEASARC (8,404 records with reported apparent magnitude ≤ 6.5), projected through the shared topocentric ENU pipeline for the selected observer and UTC instant. No procedural astronomical stars are rendered. HEASARC's official policy makes its materials freely available for use and asks for acknowledgement; it does not assign BSC5P an SPDX license, so this package records that free-use basis rather than inventing one.
 - BSC5P source: \`https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html\`; raw query SHA-256 \`4b7e89fc0f18103683db2f8e66cd2de597b1912d7469f6d44f295c290f4fc1a0\`; deterministic local catalog SHA-256 \`529702e4a4fdedce2c98c1974f9a35cfdee4a0b33ff83a9c3d1373e6c40ae384\`.
-- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries.
+- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries. All 88 unique constellation identities are searchable. The optional translucent apparition is original runtime geometry derived from those projected endpoints; no external figure artwork was added.
 - All 893 conventional-figure endpoints are mapped to real BSC5P HR stars within 0.008397°. Constellation names derive from the projected figures; selective major-star labels use the documented IAU identity crosswalk.
-- Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path.
+- Milky Way: project-authored galactic-equator display geometry from the standard J2000 equatorial/galactic transform, projected through the same ENU path. No photographic texture or external asset was added.
+- Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path. ISS and Tiangong are one extensible crewed-station collection. Tiangong receives current position and geometric next-path calculation but no unsupported brightness/visibility claim. Starlink remains restricted to qualified post-deployment stacks; dispersed traffic is not rendered as a train.
+- Alerts: device-local, opt-in category and lead-time preferences plus a high-interest event filter. No push-delivery service exists, and the interface states that dependency rather than simulating notifications.
 - Coordinate pipeline: catalog or ephemeris position → apparent equatorial position → observer/UTC horizontal position → fixed local ENU direction → stabilized device quaternion → camera projection. Celestial directions never derive from device callbacks.
 - Pose stabilization: W3C intrinsic Z-X'-Y'' orientation and the display rotation compose exactly once into one quaternion; camera-local -Z is the rear optical axis. Safari's magnetic heading replaces the arbitrary alpha yaw before quaternion construction. A 0.18° deadband and 85 ms time-based slerp stabilize the whole scene rather than any target.
 - Camera projection: the base **82° × 66°** field of view is an explicit estimate because browser media APIs expose stream dimensions but not calibrated optical intrinsics. The production projection reads the live video dimensions and overlay viewport, then applies the exact centred \`object-fit: cover\` crop to derive the visible horizontal or vertical FOV. Developer diagnostics can override the base FOV on localhost for measured-device sessions.
 - North reference: Astronomy Engine azimuths use true north, while Safari exposes magnetic heading and no browser declination correction. An uncalibrated magnetic session may guide but cannot assert **On target**; aligning to a known celestial reference upgrades the whole-pose solution. This limitation is a browser accuracy boundary, not hidden as sensor confidence.
 - Notable-object markers are visual classifications of Tracker's existing ranked \`SkyFinderTarget\` instances. Saturn, Jupiter, Mars, Venus, Moon, satellite, radiant, cluster and deep-sky treatments do not create another object catalogue.
-- The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths.
+- The fixture independently supplies handheld form factor, camera API, orientation API, permission flow, movement samples, and an aligned sample. It exercises the production capability and guidance paths. Separate sensorless-tablet frames prove rendered Sky does not depend on either protected API.
 - The fixture's \`MediaStream\` is a deterministic 1,280 × 720 canvas stream with no real camera image. It proves the production video layer, media metadata, centred cover-crop calculation and overlay viewport are exercised, but it does **not** validate live rear-camera composition, optical intrinsics, magnetic-heading accuracy, sensor jitter, operating-system permission UI, physical rotation, or background/resume recovery.
-- No compatible physical phone or tablet was connected for this package. Physical-device Sky validation is therefore **blocked, not passed**. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
+- No compatible physical phone or tablet was connected for this package. Physical-device camera alignment is therefore **blocked, not passed**. Rendered-sky behavior is reviewed independently. The required device protocol is recorded in \`docs/SKY_FINDER_ARCHITECTURE.md\`.
+
+## Dependency and asset inventory
+
+- New npm dependencies: **none**.
+- New vendored third-party datasets: **none**.
+- New image/texture/illustration assets: **none**.
+- Reused authorities: Astronomy Engine 2.1.19 (MIT), satellite.js (MIT), BSC5P under the recorded HEASARC free-use basis, d3-celestial figures (BSD-3-Clause), existing deep-sky catalogue, and transient CelesTrak runtime responses under the already documented non-redistribution boundary.
 
 ## Observing capability
 

@@ -5,7 +5,7 @@ import { compassPoint } from "./meteorActivity";
 import type { SkyConditions } from "./nakedEye";
 import type { OpportunitySample } from "./conditions";
 import type { Opportunity } from "./opportunity";
-import type { Deployment, ElementSet, IssEphemeris } from "./satelliteSources";
+import type { CrewedStationEphemeris, Deployment, ElementSet, IssEphemeris } from "./satelliteSources";
 import { segmentFor } from "./satelliteSources";
 import { passesFor, stateAt, type Pass } from "./satelliteVisibility";
 
@@ -53,6 +53,59 @@ function satrecOf(set: ElementSet): satellite.SatRec | null {
     }
   }
   return satrecCache.get(key) ?? null;
+}
+
+export interface CrewedStationPassPrediction {
+  stationId: CrewedStationEphemeris["id"];
+  stationName: string;
+  /**
+   * Geometry only. A TLE can predict the path but cannot prove brightness;
+   * consumers must not relabel this as a visible pass without photometry.
+   */
+  pass: Pass;
+  visibility: "geometry-only";
+}
+
+/**
+ * Upcoming above-horizon station paths from the same TLE/SGP4 authority Sky
+ * uses for the current position. This deliberately supplies no photometry:
+ * ISS visibility remains owned by `issOpportunities`, while Tiangong can still
+ * be planned spatially without inventing a brightness claim.
+ */
+export function crewedStationPassPredictions(
+  latitudeDeg: number,
+  longitudeDeg: number,
+  stations: readonly CrewedStationEphemeris[],
+  startUtc: string,
+  endUtc: string,
+): CrewedStationPassPrediction[] {
+  return stations.flatMap((station) => passesFor(
+    (when) => {
+      const segment = segmentFor(station.segments, when);
+      return segment ? satrecOf(segment) : null;
+    },
+    null,
+    { latitudeDeg, longitudeDeg },
+    {
+      startUtc,
+      endUtc,
+      stepSeconds: 30,
+      minimumAltitudeDeg: 10,
+      // Brightness is intentionally absent, so these values cannot turn a
+      // geometric pass into a visibility claim inside `passesFor`.
+      skyAt: () => ({
+        sunAltitudeDeg: -20,
+        moonAltitudeDeg: -20,
+        moonIlluminatedFraction: 0,
+        artificialLightRadiance: null,
+      }),
+    },
+  ).map((pass) => ({
+    stationId: station.id,
+    stationName: station.name,
+    pass,
+    visibility: "geometry-only" as const,
+  })));
 }
 
 function profileOf(pass: Pass): OpportunitySample[] {

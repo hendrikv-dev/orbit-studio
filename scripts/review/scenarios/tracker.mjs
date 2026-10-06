@@ -280,8 +280,14 @@ export async function readTrackerMapState(page) {
       ),
       finderDeviceClass:
         document.querySelector(".tk-sky-finder")?.getAttribute("data-device-class") ?? null,
-      finderExperience:
-        document.querySelector(".tk-sky-finder")?.getAttribute("data-device-experience") ?? null,
+      finderMode:
+        document.querySelector(".tk-sky-finder")?.getAttribute("data-mode") ?? null,
+      finderCameraState:
+        document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") ?? null,
+      finderVisualBase:
+        document.querySelector(".tk-sky-finder")?.getAttribute("data-visual-base") ?? null,
+      finderStarCount:
+        Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-stars") ?? 0),
       finderCameraControlPresent: Boolean(
         document.querySelector('.tk-sky-finder button[aria-label="Turn camera on"]'),
       ),
@@ -768,11 +774,11 @@ export const trackerReviewScenario = {
   readySelector: ".tracker-shell",
   notes: {
     featuresImplemented: [
-      "Two universal state-preserving modes—Map and Tonight—with live Sky added only on capable phones and tablets",
+      "Two universal state-preserving modes—Map and Tonight—with rendered Sky available on handhelds independently of camera access",
       "Map-first Tracker keeps the default top-down canvas, with location, night, equipment and layers chosen over it and one compact recommendation kept secondary",
       "The 3D map presentation reuses the production DEM as real oblique terrain, with pitch and rotation, instead of switching to a globe",
       "Tonight is a dedicated vertical briefing built from the production recommendation, recovery and Upcoming pipelines",
-      "Sky starts live handheld guidance directly from the original Find in Sky tap; desktop and unsupported handhelds expose no Sky destination or preview",
+      "Sky opens the real rendered celestial sphere on handhelds, starts targeted guidance from Find in Sky, and treats camera and orientation as optional enhancements",
       "Object detail is concise by default, with the visualization and full evidence available under More details",
       "Place selection through the map's own picker, with the search revealed by the trigger rather than always present",
       "Production-ranked observing opportunities presented as one compact Map answer and a dedicated Tonight briefing",
@@ -796,7 +802,7 @@ export const trackerReviewScenario = {
       "Verify Map, Tonight and Sky preserve one observer/date/target context while giving each task a distinct hierarchy.",
       "Verify Map is top-down by default and the 3D toggle produces pitched, rotatable DEM terrain without losing target state.",
       "Verify Map keeps the recommendation compact while Tonight exposes the full production briefing and Upcoming gateway.",
-      "Verify one phone tap starts live Sky orchestration, tablets remain usable in both orientations, and desktop or unsupported handhelds reserve no Sky entry.",
+      "Verify one phone tap starts targeted rendered-Sky guidance, tablets remain usable in both orientations, camera is not requested implicitly, and sensorless handhelds retain the rendered celestial browser.",
       "Verify object detail is concise until More details is expanded.",
       "Verify the place search does not exist until the location trigger is opened.",
       "Verify Back from full detail restores the exact prior mode, place, night and selected target.",
@@ -1425,9 +1431,13 @@ export const trackerReviewScenario = {
     const phoneFinder = await read();
     if (
       phoneFinder.finderDeviceClass !== "handheld" ||
-      phoneFinder.finderExperience !== "live" ||
+      phoneFinder.finderMode !== "targeted" ||
+      phoneFinder.finderCameraState !== "off" ||
+      phoneFinder.finderVisualBase !== "rendered-sky" ||
+      phoneFinder.finderStarCount < 8 ||
       phoneFinder.finderGuidanceControlPresent ||
-      !phoneFinder.finderPermissionAttempts.includes("camera")
+      !phoneFinder.finderPermissionAttempts.includes("orientation") ||
+      phoneFinder.finderPermissionAttempts.includes("camera")
     ) {
       throw new Error(`Phone automatic Finder launch failed: ${JSON.stringify(phoneFinder)}`);
     }
@@ -1483,10 +1493,14 @@ export const trackerReviewScenario = {
     const tabletPortrait = await read();
     if (
       tabletPortrait.finderDeviceClass !== "handheld" ||
-      tabletPortrait.finderExperience !== "live" ||
+      tabletPortrait.finderMode !== "targeted" ||
+      tabletPortrait.finderCameraState !== "off" ||
+      tabletPortrait.finderVisualBase !== "rendered-sky" ||
+      tabletPortrait.finderStarCount < 8 ||
       !tabletPortrait.finderCameraControlPresent ||
       tabletPortrait.finderGuidanceControlPresent ||
-      !tabletPortrait.finderPermissionAttempts.includes("orientation")
+      !tabletPortrait.finderPermissionAttempts.includes("orientation") ||
+      tabletPortrait.finderPermissionAttempts.includes("camera")
     ) {
       throw new Error(`Tablet portrait Finder capability failed: ${JSON.stringify(tabletPortrait)}`);
     }
@@ -1497,15 +1511,16 @@ export const trackerReviewScenario = {
     const tabletLandscape = await read();
     if (
       tabletLandscape.finderDeviceClass !== "handheld" ||
-      tabletLandscape.finderExperience !== "live" ||
-      !tabletLandscape.finderPermissionAttempts.includes("orientation")
+      tabletLandscape.finderMode !== "targeted" ||
+      tabletLandscape.finderCameraState !== "off" ||
+      tabletLandscape.finderVisualBase !== "rendered-sky"
     ) {
       throw new Error(`Tablet landscape Finder policy failed: ${JSON.stringify(tabletLandscape)}`);
     }
     await captureSurface("tracker-tablet-landscape-live-finder", tabletLandscape);
 
-    // 13. A touch-first tablet without the required live capabilities has the
-    // same two-mode product as desktop. Later init scripts deliberately
+    // 13. A touch-first tablet without camera or orientation capabilities still
+    // owns the rendered celestial browser. Later init scripts deliberately
     // replace the earlier review capabilities before the next navigation.
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {} });
@@ -1522,12 +1537,27 @@ export const trackerReviewScenario = {
     await settle(900);
     const unsupportedTablet = await read();
     if (
-      unsupportedTablet.skyTabPresent ||
-      unsupportedTablet.liveFinderEntryPresent ||
+      !unsupportedTablet.skyTabPresent ||
+      !unsupportedTablet.liveFinderEntryPresent ||
       unsupportedTablet.finderPermissionAttempts.length > 0
     ) {
-      throw new Error(`Unsupported tablet exposed Sky: ${JSON.stringify(unsupportedTablet)}`);
+      throw new Error(`Sensorless tablet lost rendered Sky: ${JSON.stringify(unsupportedTablet)}`);
     }
-    await captureSurface("tracker-unsupported-tablet-no-sky", unsupportedTablet);
+    await page.getByRole("button", { name: "Sky", exact: true }).click();
+    await page.locator(".tk-sky-finder").waitFor({ timeout: 20_000 });
+    await settle(500);
+    const sensorlessSky = await read();
+    if (
+      sensorlessSky.finderDeviceClass !== "handheld" ||
+      sensorlessSky.finderMode !== "browse" ||
+      sensorlessSky.finderCameraControlPresent ||
+      sensorlessSky.finderCameraState !== "off" ||
+      sensorlessSky.finderVisualBase !== "rendered-sky" ||
+      sensorlessSky.finderStarCount < 8 ||
+      sensorlessSky.finderPermissionAttempts.length > 0
+    ) {
+      throw new Error(`Sensorless tablet rendered Sky failed: ${JSON.stringify(sensorlessSky)}`);
+    }
+    await captureSurface("tracker-sensorless-tablet-rendered-sky", sensorlessSky);
   },
 };

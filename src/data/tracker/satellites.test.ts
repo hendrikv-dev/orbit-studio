@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { SkyConditions } from "./nakedEye";
 import { parseElementSets } from "./satelliteSources";
-import type { Deployment, IssEphemeris } from "./satelliteSources";
-import { issOpportunities, satelliteOpportunities, trainVerdict } from "./satellites";
+import type { CrewedStationEphemeris, Deployment, IssEphemeris } from "./satelliteSources";
+import { crewedStationPassPredictions, issOpportunities, satelliteOpportunities, trainVerdict } from "./satellites";
 
 const PORTLAND = { latitudeDeg: 45.5152, longitudeDeg: -122.6784 };
 
@@ -26,6 +26,19 @@ const ISS_GP: IssEphemeris = {
 };
 
 const ISS_SUPGP: IssEphemeris = { source: "supgp", segments: ISS_GP.segments };
+
+const TIANGONG: CrewedStationEphemeris = {
+  id: "tiangong",
+  name: "Tiangong",
+  catalogNumber: "48274",
+  source: "gp",
+  // Project-authored deterministic orbit fixture; it is not redistributed
+  // catalogue data and makes the generic station path independently testable.
+  segments: parseElementSets(`TIANGONG
+1 48274U 21035A   26245.50000000  .00000000  00000+0  00000+0 0  9998
+2 48274  41.4700  30.0000 0005000  80.0000 220.0000 15.60000000000016
+`),
+};
 
 /**
  * A deployment-stack orbit, constructed to the shape a real one has.
@@ -140,6 +153,23 @@ describe("the Space Station", () => {
     expect(
       issOpportunities(PORTLAND.latitudeDeg, PORTLAND.longitudeDeg, inputs({ skyAt: daylit })),
     ).toEqual([]);
+  });
+});
+
+describe("generic crewed-station planning", () => {
+  it("predicts a Tiangong path without inventing a visible-pass claim", () => {
+    const predictions = crewedStationPassPredictions(
+      PORTLAND.latitudeDeg,
+      PORTLAND.longitudeDeg,
+      [TIANGONG],
+      "2026-09-03T00:00:00Z",
+      "2026-09-05T00:00:00Z",
+    );
+    expect(predictions.length).toBeGreaterThan(0);
+    expect(predictions.every((prediction) => prediction.stationId === "tiangong")).toBe(true);
+    expect(predictions.every((prediction) => prediction.visibility === "geometry-only")).toBe(true);
+    expect(predictions.every((prediction) => prediction.pass.peakAltitudeDeg >= 10)).toBe(true);
+    expect(predictions.every((prediction) => prediction.pass.visible === false)).toBe(true);
   });
 });
 

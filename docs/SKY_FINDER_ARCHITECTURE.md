@@ -1,20 +1,26 @@
-# Sky Finder architecture
+# Sky architecture
 
-Sky Finder is a projection of Tracker’s existing observing opportunities. It does not own a target catalogue, observer, clock, or recommendation rank.
+Sky is Tracker's rendered celestial explorer. The rendered sphere is the
+foundation; device orientation and the rear camera are optional ways to move or
+register the same sphere. Sky does not own the observer, selected date, or
+recommendation rank. Its searchable browse registry is a view over Astronomy
+Engine bodies, the retained BSC5P star catalogue, the 88 identities derived
+from the retained constellation figures, retained deep-sky showpieces, and the
+existing runtime satellite feeds.
 
-## Phase 1 and 2 data flow
+## Authoritative data flow
 
 1. `TrackerApp` resolves the confirmed observer from the map pin and the selected date from URL-backed map state.
-2. The existing ranking creates `Opportunity` records for planets, the Moon, deep-sky showpieces, meteor radiants, conjunctions, and propagated satellite passes.
-3. `skyFinderTargetFor` admits only opportunities with meaningful locator geometry. Fixed bodies are recomputed with Astronomy Engine, catalogue targets use their source RA/Dec, and moving/radiant targets use their propagated sampled path.
+2. The existing ranking creates `Opportunity` records for recommended planets, the Moon, deep-sky showpieces, meteor radiants, conjunctions, and propagated satellite passes. `skyFinderTargetFor` admits only recommendations with meaningful locator geometry.
+3. `skyExplorer.ts` adds browse/search identities without creating a second position authority: fixed bodies are recomputed with Astronomy Engine, catalogue targets use source RA/Dec, constellations use the centre of their real figure stars, and moving targets use the existing sampled-path or TLE authority.
 4. `topocentricSky.ts` is the single transformation owner: catalogue/apparent equatorial position → observer and UTC → local Alt/Az → fixed ENU direction → stabilized device quaternion → camera projection. Astronomy refreshes on a 15-second cadence; sensor events change only device pose.
 5. W3C intrinsic Z-X'-Y'' orientation and the screen rotation are composed exactly once as a quaternion; camera-local -Z is the rear optical axis. Safari's magnetic heading replaces its arbitrary alpha yaw before quaternion construction instead of forcing a tilted optical axis toward a compass value. An 0.18° deadband and time-based 85 ms quaternion slerp suppress stationary jitter without smoothing or recalibrating celestial targets.
 6. Astronomy Engine azimuths use true north. Safari exposes magnetic heading but no declination correction, so an uncalibrated magnetic session may guide but cannot assert **On target**. A known-object calibration supplies a whole-pose correction and upgrades that evidence. `angularSeparation` then compares the stabilized rear-camera optical axis with the same fixed target direction. Alignment is also withheld below the horizon or when orientation quality is poor. Below-horizon targets stop movement guidance and show the next upward horizon crossing when one can be found.
-7. Manual calibration stores only an in-memory yaw/pitch correction for the current Finder session and applies it to the whole camera pose. Closing Finder clears it.
+7. Manual calibration stores only an in-memory yaw/pitch correction for the current Sky session and applies it to the whole pose. Closing Sky clears it.
 
-Historical or future selected dates do not expose Sky or **Find in Sky**. Planning remains in Tonight and Object Detail, so a physical phone is never guided using stale or future coordinates.
+Selected historical or future dates remain useful in rendered/manual Sky. Protected camera and orientation controls are withheld for a non-live date, so planning never presents a future camera pose as live guidance.
 
-Sky adds restrained expected-sky context without pretending the browser solved an image. `skyFinderContext.ts` resolves the selected target and BSC5P bright-star catalogue into fixed local ENU vectors for the current observer and UTC instant. Magnitude controls size/luminance; B−V supplies restrained colour; only selected bright IAU names are labelled. A coarse pointing bucket selects candidates for performance but never sets their screen position. Final placement always projects each fixed vector through the exact stabilized quaternion, so the target, surrounding stars, figure lines, labels and noteworthy-object markers move as one scene.
+`skyFinderContext.ts` resolves the selected target and BSC5P bright-star catalogue into fixed local ENU vectors for the current observer and UTC instant. Magnitude controls size/luminance; B−V supplies restrained colour; only selected bright IAU names are labelled. A coarse pointing bucket selects candidates for performance but never sets screen position. Final placement always projects each fixed vector through the same display pose, so manual pan, optional sensor motion, camera overlays, targets, stars, figure lines, labels and noteworthy markers move as one scene.
 
 The complete star-direction frame is a one-entry derived cache keyed by observer latitude,
 longitude, and UTC instant. A location change or the 15-second astronomy tick replaces it; pointing
@@ -22,26 +28,21 @@ changes only re-cull the cached fixed vectors. This prevents sensor movement fro
 catalog transformation while making stale observer/time state impossible to retain as a second
 authority.
 
-Conventional figures use the BSD-licensed d3-celestial line dataset. The deterministic generator maps all 893 endpoints to BSC5P HR stars within 0.008397°, and figure geometry then follows those same catalogue stars through the same proper-motion and pose pipeline. These are conventional figure lines, not IAU boundaries. Noteworthy markers remain projections of Tracker's existing ranked targets and satellite pipeline rather than a second authority. Moving sampled targets deliberately omit an invented target-constellation identity.
+Conventional figures use the BSD-licensed d3-celestial line dataset. The deterministic generator maps all 893 endpoints to BSC5P HR stars within 0.008397°, and figure geometry then follows those same catalogue stars through the same proper-motion and pose pipeline. These are conventional figure lines, not IAU boundaries. The optional figure apparition is original project-authored display geometry derived from the projected real endpoints; no historical or proprietary art asset is included. The Milky Way display spine is the J2000 galactic equator transformed into the same ENU frame; it is not a static photograph or a claim of photometric surface brightness.
 
-When camera permission succeeds, the live rear-camera `<video>` is the visual base and the celestial layers are overlays in the same viewport. The renderer reads the video track or media dimensions and the overlay content box, then adjusts the estimated base FOV for the centred `object-fit: cover` crop before projecting any celestial vector. The rendered night field is used only for fixtures, simulator work, camera-denied recovery, and explicit non-camera fallback. `data-visual-base` exposes that distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
+Solar-system context contains Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto through Astronomy Engine. Runtime crewed-station context is an extensible collection: the ISS retains its segmented SupGP/GP path and Tiangong is selected from the existing CelesTrak stations response. Station path predictions use the same SGP4 authority and are labelled geometry-only unless independent photometry supports visibility. Starlink search/events retain the existing post-deployment stack classifier; the ordinary Starlink population is not loaded into Sky.
+
+Rendered Sky is the normal visual base and supports direct drag, zoom, search, layers and target selection without camera or sensor permission. When camera permission succeeds, the live rear-camera `<video>` replaces that base and the identical celestial layers remain overlays in the same viewport. The renderer reads the video track or media dimensions and the overlay content box, then adjusts the estimated base FOV for the centred `object-fit: cover` crop before projecting any celestial vector. `data-visual-base` exposes the distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
 
 Browser media APIs do not expose calibrated lens intrinsics. The current base estimate is **82° horizontal × 66° vertical**; localhost-only diagnostics may override those values for a measured device/session and display the effective crop-adjusted FOV. This is an explicit uncertainty, not a camera calibration claim.
 
-## Device-class eligibility and permission boundary
+## Device-class and permission boundary
 
-Live point-and-look guidance is a handheld feature. `classifySkyFinderDevice` requires phone/tablet identity evidence to agree with an actual touch or coarse-pointer capability; user-agent or client hints alone never qualify a device. Viewport width is deliberately excluded: a landscape tablet remains eligible, while a narrow desktop window and a desktop webcam do not become Sky.
+Sky is a handheld feature. `classifySkyFinderDevice` requires phone/tablet identity evidence to agree with an actual touch or coarse-pointer capability; user-agent or client hints alone never qualify a device. Viewport width is deliberately excluded: a landscape tablet remains eligible, while a narrow desktop window and a desktop webcam do not become Sky.
 
-The device-class decision is applied before individual capability checks. Sky is exposed only when every pre-permission capability is present:
+The device-class decision is applied before optional capability checks. A confirmed phone or tablet receives rendered Sky even when it has no camera or orientation API. Desktop, laptop and unknown devices receive Map, Tonight and Object Detail only, with no reserved navigation space and no fake desktop AR mode.
 
-- phone or tablet form factor confirmed by capability evidence;
-- a secure camera API;
-- device-orientation support consumed by the live guidance loop;
-- the current observing date.
-
-Desktop, laptop, unknown, sensorless and camera-less devices receive Map, Tonight and Object Detail only. No navigation space is reserved for Sky and no sensor-free preview is substituted. Direction, altitude, coordinates, charts and equipment information remain available through Object Detail where relevant.
-
-Camera, orientation, and motion access is requested only from an eligible handheld and only from the reader’s original **Find in Sky** action. `beginSkyFinderLaunch` starts protected calls synchronously inside that user-activation task, then the mounted Sky surface consumes the resulting permission/stream promises. There is no second Start/Guide/Lock control. Ordinary Map, Tonight, planning and detail use does not call protected APIs. Camera frames remain local and Phase 1/2 does not claim visual verification.
+**Find in Sky** selects the target and enters rendered Sky immediately. `beginSkyFinderLaunch` may request protected orientation/motion access synchronously inside that user action, but camera access belongs only to the explicit Camera control. Direct Sky browsing requests no protected API. There is no second Start/Guide/Lock control. Camera frames remain local and no browser path claims visual verification.
 
 The primary overlay has one target lock. Its position carries the pointing error, the compact instruction strip states the correction, and the same lock changes to the aligned treatment when the sensor solution reaches tolerance. The selected target's object-specific marker sits inside that lock, so Saturn remains recognizable without becoming a second indicator. A second crosshair, detached arrow, or diagnostic reticle would create competing instructions and is deliberately absent.
 
@@ -57,15 +58,17 @@ The browser path is accepted only if centred physical targets land within the de
 
 | Available capability | Behavior |
 | --- | --- |
+| Handheld, no camera or orientation | Full rendered Sky with manual pan/zoom, search, layers and target context |
+| Orientation, camera off | Rendered Sky follows the stabilized device pose |
 | Camera + true-north/fused orientation | Live camera background and sensor guidance; alignment may be asserted within tolerance |
 | Camera + magnetic heading only | Directional guidance; alignment is withheld until known-object calibration |
 | Relative orientation only | Directional guidance; alignment is withheld until known-object calibration |
-| Camera permission denied or stream fails after entry | Sensor guidance continues against the restrained night view; denial is stated |
-| Orientation permission denied after entry | The selected target’s live direction and altitude remain usable; alignment and diagnostics do not dominate the screen |
-| Camera API absent before entry | Sky tab and Find in Sky are absent |
-| Orientation API absent before entry | Sky tab and Find in Sky are absent |
+| Camera permission denied or stream fails after entry | Rendered Sky continues; denial is stated briefly |
+| Orientation permission denied after entry | Manual pan/zoom and the target’s true direction/altitude remain usable |
+| Camera API absent | Rendered Sky remains available; Camera control is absent |
+| Orientation API absent | Manual rendered Sky remains available; orientation control is absent |
 | Desktop/laptop, including a webcam-equipped desktop | Sky tab and Find in Sky are absent; protected APIs are not requested |
-| Historical/future date | Sky tab and Find in Sky are absent |
+| Historical/future date | Rendered Sky is available; live camera/orientation controls are withheld |
 
 Browser access to camera, geolocation, and several sensor APIs requires HTTPS or localhost. iOS browsers may require a user gesture and `requestPermission()` for orientation/motion. Android browsers more commonly emit orientation directly. Magnetic accuracy is not consistently reported, so missing accuracy is described as usable or low confidence rather than invented as a number.
 

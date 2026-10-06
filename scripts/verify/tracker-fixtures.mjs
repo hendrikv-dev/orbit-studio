@@ -42,6 +42,12 @@ export const ISS_TLE = `STATION
 2 99001  51.6400   6.0000 0005000  90.0000 298.0000 15.49000000000016
 `;
 
+/** Constructed Tiangong-shaped fixture; format/identity coverage, not acquired orbit data. */
+export const TIANGONG_TLE = `TIANGONG
+1 48274U 21035A   26245.50000000  .00000000  00000+0  00000+0 0  9998
+2 48274  41.4700  30.0000 0005000  80.0000 220.0000 15.60000000000016
+`;
+
 export const STACK_TLE = `STARLINK-G15-23 STACK
 1 99002U 26901A   26245.40000000  .00000000  00000+0  00000+0 0  9999
 2 99002  70.0000  28.0000 0010000 275.0000 156.0000 16.06000000000010
@@ -156,6 +162,7 @@ export async function stubTracker(
     }
     const text = (body) => route.fulfill({ status: 200, contentType: "text/plain", body });
     if (url.includes("FILE=iss")) return text(ISS_TLE);
+    if (url.includes("GROUP=stations")) return text(`${ISS_TLE}${TIANGONG_TLE}`);
     if (url.includes("FILE=starlink-g15-23")) {
       return satellites === "iss-only"
         ? route.fulfill({ status: 404, contentType: "text/plain", body: "" })

@@ -39,7 +39,7 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Rights basis: CelesTrak's usage policy permits documented consumer acquisition subject to stated rate limits and error handling. It grants nothing about redistribution, which is why nothing is redistributed.
 - Rights evidence: https://celestrak.org/usage-policy.php
 - Rights evidence: https://celestrak.org/NORAD/documentation/sup-gp-queries.php
-- Attribution: Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory and a Starlink stack vector from SpaceX's published state vector.
+- Attribution: Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory, Tiangong uses the stations GP response, and a Starlink stack vector uses SpaceX's published state vector.
 - Public source redistribution: not-applicable-external-service
 - Public deployment redistribution: not-bundled
 - Modification status: not-applicable-external-service

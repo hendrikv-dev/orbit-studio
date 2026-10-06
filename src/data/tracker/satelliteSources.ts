@@ -145,6 +145,14 @@ export interface IssEphemeris {
   source: "supgp" | "gp";
 }
 
+export interface CrewedStationEphemeris {
+  id: "iss" | "tiangong";
+  name: string;
+  catalogNumber: string;
+  segments: ElementSet[];
+  source: "supgp" | "gp";
+}
+
 /**
  * The ISS's orbit, from NASA's own trajectory where it can be had.
  *
@@ -163,6 +171,35 @@ export async function fetchIssEphemeris(signal?: AbortSignal): Promise<IssEpheme
   const gp = await text(`${CELESTRAK}/gp.php?CATNR=25544&FORMAT=tle`, signal);
   const single = gp ? parseElementSets(gp) : [];
   return single.length > 0 ? { segments: single, source: "gp" } : null;
+}
+
+/**
+ * Current crewed stations exposed through one extensible station collection.
+ * ISS keeps its operator-derived SupGP authority; Tiangong uses CelesTrak GP.
+ * No element records are vendored or redistributed by the repository.
+ */
+export async function fetchCrewedStations(signal?: AbortSignal): Promise<CrewedStationEphemeris[]> {
+  const iss = await fetchIssEphemeris(signal);
+  if (signal?.aborted) return [];
+  const stationFeed = await text(`${CELESTRAK}/gp.php?GROUP=stations&FORMAT=tle`, signal);
+  const sets = stationFeed ? parseElementSets(stationFeed) : [];
+  const tiangong = sets.find((set) => set.catalogNumber === "48274") ?? null;
+  return [
+    ...(iss ? [{
+      id: "iss" as const,
+      name: "International Space Station",
+      catalogNumber: "25544",
+      segments: iss.segments,
+      source: iss.source,
+    }] : []),
+    ...(tiangong ? [{
+      id: "tiangong" as const,
+      name: "Tiangong",
+      catalogNumber: "48274",
+      segments: [tiangong],
+      source: "gp" as const,
+    }] : []),
+  ];
 }
 
 export interface Deployment {

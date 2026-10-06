@@ -7,6 +7,9 @@ export type SkyMarkerKind =
   | "mars"
   | "venus"
   | "mercury"
+  | "uranus"
+  | "neptune"
+  | "pluto"
   | "moon"
   | "satellite"
   | "radiant"
@@ -28,6 +31,9 @@ export function skyMarkerKindForTarget(target: SkyFinderTarget): SkyMarkerKind {
   if (body === "mars" || title === "mars") return "mars";
   if (body === "venus" || title === "venus") return "venus";
   if (body === "mercury" || title === "mercury") return "mercury";
+  if (body === "uranus" || title === "uranus") return "uranus";
+  if (body === "neptune" || title === "neptune") return "neptune";
+  if (body === "pluto" || title === "pluto") return "pluto";
   if (body === "moon" || title === "moon") return "moon";
   if (target.source.kind === "sampled" || /\biss\b|satellite/.test(identity)) return "satellite";
   if (target.shape === "radiant") return "radiant";

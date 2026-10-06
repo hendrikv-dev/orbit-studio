@@ -1,12 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   deploymentFiles,
   epochOf,
+  fetchCrewedStations,
   parseElementSets,
   segmentFor,
   stackOf,
 } from "./satelliteSources";
+
+afterEach(() => vi.unstubAllGlobals());
 
 /**
  * A two-segment ephemeris in the shape CelesTrak publishes one, six hours apart.
@@ -76,6 +79,25 @@ describe("choosing a segment", () => {
   it("still answers outside the span it covers", () => {
     expect(segmentFor(sets, new Date("2026-09-04T00:00:00Z"))?.name).toBe("STATION [Segment 02]");
     expect(segmentFor([], new Date())).toBeNull();
+  });
+});
+
+describe("crewed-station acquisition", () => {
+  it("keeps ISS and Tiangong in one extensible runtime collection", async () => {
+    const tiangong = `TIANGONG
+1 48274U 21035A   26245.50000000  .00000000  00000+0  00000+0 0  9998
+2 48274  41.4700  30.0000 0005000  80.0000 220.0000 15.60000000000016
+`;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => ({
+      ok: true,
+      text: async () => String(input).includes("GROUP=stations") ? tiangong : ISS_EPHEMERIS,
+    })));
+    const stations = await fetchCrewedStations();
+    expect(stations.map((station) => station.id)).toEqual(["iss", "tiangong"]);
+    expect(stations.find((station) => station.id === "tiangong")).toMatchObject({
+      catalogNumber: "48274",
+      source: "gp",
+    });
   });
 });
 

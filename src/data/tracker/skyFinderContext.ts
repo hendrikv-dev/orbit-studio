@@ -13,6 +13,7 @@ import {
   type PhonePointing,
   type SkyFinderTarget,
 } from "./skyFinder";
+import { solarSystemTargets } from "./skyExplorer";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "./skyMarker";
 
 export interface Bsc5pBrightStarRecord {
@@ -64,6 +65,19 @@ export interface ExpectedSkyLabel {
   primary: boolean;
 }
 
+export interface ExpectedSkyFigure {
+  symbol: string;
+  name: string;
+  directions: EnuDirection[];
+  primary: boolean;
+}
+
+export interface ExpectedSkyBandSegment {
+  id: string;
+  start: EnuDirection;
+  end: EnuDirection;
+}
+
 export interface ExpectedSkyObject {
   id: string;
   title: string;
@@ -80,8 +94,14 @@ export interface ExpectedSkyContext {
   lines: ExpectedSkyLine[];
   /** Names for the actual visible figure candidates, never decorative placement. */
   labels: ExpectedSkyLabel[];
+  /** Original display apparitions derived from, and anchored to, real figure stars. */
+  figures: ExpectedSkyFigure[];
+  /** The true J2000 galactic equator, used as the Milky Way display spine. */
+  milkyWay: ExpectedSkyBandSegment[];
   /** Other production-ranked objects fixed in the same local ENU frame. */
   objects: ExpectedSkyObject[];
+  /** True apparent Sun altitude, used only for daylight/twilight presentation. */
+  sunAltitudeDeg: number | null;
 }
 
 const STARS = brightStars as Bsc5pBrightStarRecord[];
@@ -160,6 +180,20 @@ function friendlyStarLabel(star: Bsc5pBrightStarRecord): string | null {
   return null;
 }
 
+/** IAU 1958/J2000 galactic frame rotation, transposed from equatorial→galactic. */
+function galacticPlaneCoordinate(longitudeDeg: number): { raHours: number; decDeg: number } {
+  const longitude = longitudeDeg * Math.PI / 180;
+  const xg = Math.cos(longitude);
+  const yg = Math.sin(longitude);
+  const x = -0.0548755604 * xg + 0.4941094279 * yg;
+  const y = -0.8734370902 * xg - 0.4448296300 * yg;
+  const z = -0.4838350155 * xg + 0.7469822445 * yg;
+  return {
+    raHours: normalizeDegrees(Math.atan2(y, x) * 180 / Math.PI) / 15,
+    decDeg: Math.asin(z) * 180 / Math.PI,
+  };
+}
+
 export function starColorFromBv(colorIndexBv: number | null): string {
   if (colorIndexBv === null) return "rgb(236 241 255)";
   const t = Math.max(0, Math.min(1, (colorIndexBv + 0.3) / 1.9));
@@ -220,16 +254,21 @@ function directionFrameFor(
  * exact stabilized camera quaternion in the component.
  */
 export function expectedSkyContext(
-  target: SkyFinderTarget,
+  target: SkyFinderTarget | null,
   observer: { latitudeDeg: number; longitudeDeg: number },
   at: Date,
   centre: PhonePointing,
   references: SkyFinderTarget[] = [],
 ): ExpectedSkyContext {
-  const targetCoordinate = targetEquatorial(target, observer, at);
-  const constellation = targetCoordinate
-    ? constellationAt(targetCoordinate.raHours, targetCoordinate.decDeg)
+  const targetCoordinate = target ? targetEquatorial(target, observer, at) : null;
+  const selectedConstellationSymbol = target?.id.startsWith("constellation-")
+    ? FIGURES.find((figure) => figure.id.toLowerCase() === target.id.slice("constellation-".length))?.id ?? null
     : null;
+  const constellation = selectedConstellationSymbol
+    ? { symbol: selectedConstellationSymbol, name: target?.title ?? selectedConstellationSymbol }
+    : targetCoordinate
+      ? constellationAt(targetCoordinate.raHours, targetCoordinate.decDeg)
+      : null;
   const centreDirection = horizontalToEnu(centre);
   const candidateCosine = Math.cos((68 * Math.PI) / 180);
   const directions = directionFrameFor(observer, at);
@@ -260,7 +299,7 @@ export function expectedSkyContext(
   const lines: ExpectedSkyLine[] = [];
   const labelDirections = new Map<string, EnuDirection[]>();
   for (const figure of FIGURES) {
-    const primary = figure.id === constellation?.symbol;
+    const primary = figure.id === (selectedConstellationSymbol ?? constellation?.symbol);
     if (!primary && figure.rank > 2) continue;
     let segmentIndex = 0;
     for (const line of figure.lines) {
@@ -306,9 +345,37 @@ export function expectedSkyContext(
     .sort((left, right) => Number(right.primary) - Number(left.primary))
     .slice(0, 5);
 
-  const objects = references
-    .filter((candidate) => candidate.id !== target.id)
+  const figures = labels.flatMap((label) => {
+    const directionsForFigure = labelDirections.get(label.symbol) ?? [];
+    const unique = [...new Map(directionsForFigure.map((value) => [
+      `${value.east.toFixed(7)}:${value.north.toFixed(7)}:${value.up.toFixed(7)}`,
+      value,
+    ])).values()];
+    return unique.length >= 3 ? [{
+      symbol: label.symbol,
+      name: label.name,
+      directions: unique,
+      primary: label.primary,
+    }] : [];
+  });
+
+  const galacticDirections = Array.from({ length: 73 }, (_, index) => {
+    const coordinate = galacticPlaneCoordinate(index * 5);
+    return catalogDirectionForObserver(coordinate, observer, at).enu;
+  });
+  const milkyWay: ExpectedSkyBandSegment[] = galacticDirections.flatMap((start, index) => {
+    const end = galacticDirections[index + 1];
+    if (!end || (dot(start, centreDirection) < candidateCosine && dot(end, centreDirection) < candidateCosine)) return [];
+    return [{ id: `milky-${index}`, start, end }];
+  });
+
+  const objectCandidates = [...solarSystemTargets(at), ...references];
+  const seenObjects = new Set<string>();
+  const objects = objectCandidates
+    .filter((candidate) => candidate.id !== target?.id)
     .flatMap((candidate) => {
+      if (seenObjects.has(candidate.id)) return [];
+      seenObjects.add(candidate.id);
       const position = positionForSkyFinderTarget(candidate, observer, at);
       if (!position || position.altitudeDeg <= 0) return [];
       const enu = horizontalToEnu(position);
@@ -320,7 +387,10 @@ export function expectedSkyContext(
         direction: enu,
       }];
     })
-    .slice(0, 8);
+    .slice(0, 18);
 
-  return { constellation, stars, lines, labels, objects };
+  const sun = solarSystemTargets(at).find((candidate) => candidate.title === "Sun") ?? null;
+  const sunAltitudeDeg = sun ? positionForSkyFinderTarget(sun, observer, at)?.altitudeDeg ?? null : null;
+
+  return { constellation, stars, lines, labels, figures, milkyWay, objects, sunAltitudeDeg };
 }

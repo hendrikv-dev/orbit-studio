@@ -13,11 +13,14 @@ primary modes:
   opportunity output, recovery planner and Upcoming pipeline; it does not own
   parallel rankings or observer state. Upcoming is planning inside Tonight,
   not a fourth mode.
-- **Sky** is live selected-target guidance on phones and tablets that expose a
-  camera, touch-first form factor and device orientation. Desktop, laptops and
-  unsupported handhelds keep Map and Tonight with no reserved Sky destination
-  or sensor-free preview. The original **Find in Sky** action begins required
-  permissions; there is no intermediate Start/Guide/Lock action.
+- **Sky** is a rendered celestial explorer on confirmed touch-first phones and
+  tablets. It remains fully useful with manual pan/zoom, search and layers when
+  camera or orientation is absent or denied. Device orientation can move the
+  same sphere and Camera can place it over the rear-camera view for a live date;
+  neither is a second astronomy model. Desktop and laptops keep Map and Tonight
+  with no reserved Sky destination or fake AR mode. **Find in Sky** selects the
+  target and enters Sky immediately; camera permission belongs only to the
+  explicit Camera control and there is no intermediate Start/Guide/Lock action.
 
 Object detail opens with the target, recommendation, best time, direction,
 key conditions, expectation and capability-appropriate actions. Geographic

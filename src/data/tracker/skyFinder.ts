@@ -1,4 +1,5 @@
 import { Body, Equator, Horizon, MakeTime, Observer } from "astronomy-engine";
+import * as satellite from "satellite.js";
 
 import {
   devicePoseFromOrientation,
@@ -9,6 +10,7 @@ import {
 
 import type { BestWindow } from "./conditions";
 import type { Opportunity } from "./opportunity";
+import { stateAt } from "./satelliteVisibility";
 import { skyPathFor, type SkyPath, type SkyPoint } from "./skyPath";
 
 /**
@@ -26,6 +28,7 @@ export type SkyFinderSource =
   | { kind: "body"; body: string }
   | { kind: "body-region"; bodies: readonly string[] }
   | { kind: "equatorial"; rightAscensionHours: number; declinationDeg: number }
+  | { kind: "tle"; line1: string; line2: string }
   | { kind: "sampled"; path: SkyPath };
 
 export interface SkyFinderTarget {
@@ -181,14 +184,9 @@ export function classifySkyFinderDevice(
 }
 
 /**
- * Whether this device may expose the Sky destination before any permission is
- * requested.
- *
- * Sky is not a responsive layout or a preview. It is a live pointing
- * capability, so all three parts must already be present: handheld form
- * factor, a secure camera API, and the orientation stream the guidance loop
- * actually consumes. Permission denial is handled after entry without
- * withdrawing the screen the reader is already using.
+ * Whether this device can add the protected live camera/orientation enhancement
+ * to rendered Sky. This is deliberately stricter than `supportsRenderedSky`:
+ * it must never decide whether the celestial browser itself exists.
  */
 export function supportsLiveSkyFinder(capabilities: FinderCapabilities): boolean {
   return (
@@ -197,6 +195,15 @@ export function supportsLiveSkyFinder(capabilities: FinderCapabilities): boolean
     capabilities.camera &&
     capabilities.orientation
   );
+}
+
+/**
+ * Rendered Sky is a handheld celestial browser, not a camera permission.
+ * Camera and orientation enrich it when present but never decide whether the
+ * destination exists.
+ */
+export function supportsRenderedSky(capabilities: FinderCapabilities): boolean {
+  return capabilities.handheldEligible;
 }
 
 /** Runtime feature detection only; permission is a separate user decision. */
@@ -530,6 +537,21 @@ export function solutionForSkyFinderTarget(
         horizontal,
         enu: horizontalToEnu(horizontal),
       };
+    }
+    case "tle": {
+      try {
+        const satrec = satellite.twoline2satrec(target.source.line1, target.source.line2);
+        const state = stateAt(satrec, observer, at);
+        if (!state) return null;
+        const horizontal = {
+          altitudeDeg: state.altitudeDeg,
+          azimuthDeg: state.azimuthDeg,
+          atUtc: at.toISOString(),
+        };
+        return { equatorial: null, horizontal, enu: horizontalToEnu(horizontal) };
+      } catch {
+        return null;
+      }
     }
     case "sampled": {
       const horizontal = interpolatePath(target.source.path, at);

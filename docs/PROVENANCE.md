@@ -54,8 +54,11 @@ The inventory cites the authoritative publisher or upstream license for each ret
 
 CelesTrak's official usage policy does not establish a public snapshot or derived-record
 redistribution grant. The release decision remains evidence-conservative: rights are unresolved,
-so no CelesTrak data, acquisition script, runtime override, fixture, or generated record is included.
-This is not a claim that redistribution is prohibited.
+so no acquired CelesTrak response, runtime override, fixture copied from that service, or generated
+record is included. Tracker's pre-existing runtime adapter may request transient ISS, station, and
+post-deployment-stack responses under the documented provider policy; those bytes are not committed,
+archived, or redistributed. Deterministic tests use project-authored element-format fixtures. This is
+not a claim that redistribution is prohibited.
 
 Space-Track data is similarly local-only unless an explicit grant covering the intended artifact
 and publication mode is supplied. No account terms, credentials, source archives, or generated
@@ -82,10 +85,17 @@ metadata records zero live/current GP records and separately reports six project
 reference markers. The interface does not imply live tracking, operational status, exhaustive
 real-world membership, or exact measured positions.
 
-The former bounded GCAT sample, empty CelesTrak guard, CelesTrak acquisition path, optional local
+The former Explorer bounded GCAT sample, empty CelesTrak guard, catalogue acquisition path, optional local
 Vite override, and generic Space-Track/GCAT historical import authority are removed. Ignored
 developer acquisitions may still exist in a private working directory, but production code cannot
 load them and they are excluded from tracked source, archives, and bundles.
+
+Tracker's rendered Sky adds no acquired image, texture, historical constellation plate, or new
+dependency. Its optional constellation apparition is project-authored runtime geometry anchored to
+the already-inventoried BSD-3-Clause d3-celestial figure endpoints. Its Milky Way spine is a
+project-authored mathematical display derived from the standard J2000 galactic transformation. The
+existing BSC5P, Astronomy Engine, satellite.js, deep-sky, and constellation provenance entries remain
+the applicable authorities.
 
 ## Automated Safeguards
 

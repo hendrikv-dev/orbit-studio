@@ -19,6 +19,7 @@ import {
   skyFinderExperience,
   skyFinderTargetFor,
   supportsLiveSkyFinder,
+  supportsRenderedSky,
   type SkyFinderTarget,
 } from "./skyFinder";
 
@@ -339,6 +340,7 @@ describe("Sky Finder capability detection", () => {
     expect(capabilities.geolocation).toBe(true);
     expect(skyFinderExperience(capabilities)).toBe("live");
     expect(supportsLiveSkyFinder(capabilities)).toBe(false);
+    expect(supportsRenderedSky(capabilities)).toBe(true);
   });
 
   it("does not advertise protected APIs on an insecure page", () => {
@@ -424,6 +426,7 @@ describe("Sky Finder capability detection", () => {
     expect(capabilities.handheldEligible).toBe(true);
     expect(skyFinderExperience(capabilities)).toBe("direction-only");
     expect(supportsLiveSkyFinder(capabilities)).toBe(false);
+    expect(supportsRenderedSky(capabilities)).toBe(true);
   });
 
   it("keeps sensor guidance when a phone camera is unavailable or denied", () => {

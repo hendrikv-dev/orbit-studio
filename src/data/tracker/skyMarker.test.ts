@@ -28,6 +28,9 @@ describe("Sky noteworthy-object marker classification", () => {
     ["Mars", "mars"],
     ["Jupiter", "jupiter"],
     ["Saturn", "saturn"],
+    ["Uranus", "uranus"],
+    ["Neptune", "neptune"],
+    ["Pluto", "pluto"],
   ] as const)("gives %s a specific recognizable marker", (body, marker) => {
     expect(skyMarkerKindForTarget(bodyTarget(body))).toBe(marker);
   });

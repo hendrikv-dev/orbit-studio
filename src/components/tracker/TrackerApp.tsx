@@ -12,7 +12,7 @@ import {
 import { placeAtPin, trackerObserverKey } from "../../data/tracker/observerContext";
 import { planNight, type NightPlan } from "../../data/tracker/schedule";
 import {
-  fetchIssEphemeris,
+  fetchCrewedStations,
   fetchLatestDeployment,
 } from "../../data/tracker/satelliteSources";
 import {
@@ -201,7 +201,7 @@ import { TrackerTonightBriefing } from "./TrackerTonightBriefing";
 import {
   detectSkyFinderCapabilities,
   skyFinderTargetFor,
-  supportsLiveSkyFinder,
+  supportsRenderedSky,
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 
@@ -765,12 +765,12 @@ function TrackerScreen() {
   /** The date on screen: the reader's choice, or today. */
   const selectedDate = location.date ?? today;
   const isToday = selectedDate === today;
-  const liveSkyAvailable =
-    isToday && supportsLiveSkyFinder(skyFinderCapabilities);
+  const liveSkyAvailable = supportsRenderedSky(skyFinderCapabilities);
 
-  // A hand-edited or old Finder URL cannot manufacture a desktop preview or a
-  // sensor-free mobile mode. Withdraw only the unsupported destination; the
-  // observer, date, selection and originating Map/Tonight mode remain intact.
+  // A hand-edited or old Finder URL cannot manufacture a desktop Sky
+  // destination. Sensor-free handhelds are supported by the rendered sphere;
+  // only a non-handheld destination is withdrawn, while observer, date,
+  // selection and the originating Map/Tonight mode remain intact.
   useEffect(() => {
     if (!location.finder || liveSkyAvailable) return;
     setFinderLaunch(null);
@@ -878,10 +878,15 @@ function TrackerScreen() {
     staleTime: 2 * 60 * 60_000,
     gcTime: 3 * 60 * 60_000,
     retry: false,
-    queryFn: async ({ signal }) => ({
-      iss: await fetchIssEphemeris(signal),
-      deployment: await fetchLatestDeployment(signal),
-    }),
+    queryFn: async ({ signal }) => {
+      const stations = await fetchCrewedStations(signal);
+      const iss = stations.find((station) => station.id === "iss") ?? null;
+      return {
+        stations,
+        iss: iss ? { segments: iss.segments, source: iss.source } : null,
+        deployment: await fetchLatestDeployment(signal),
+      };
+    },
   });
 
   const night = useMemo(
@@ -3380,8 +3385,8 @@ function TrackerScreen() {
       >
         <TrackerModeNav
           current="sky"
-          skyAvailable={Boolean(activeSkyFinderTarget)}
-          skyLabel="Sky live guidance"
+          skyAvailable
+          skyLabel="Sky"
           onMap={() => {
             setFinderLaunch(null);
             returnTo({ ...location, mode: "map", finder: null });
@@ -3392,16 +3397,18 @@ function TrackerScreen() {
           }}
           onSky={() => undefined}
         />
-        {activeSkyFinderTarget && place ? (
+        {place ? (
           <SkyFinder
             target={activeSkyFinderTarget}
             references={[...skyFinderTargets.values()]}
+            stations={orbits.data?.stations ?? []}
             observer={{
               latitudeDeg: place.latitude,
               longitudeDeg: place.longitude,
               label: shortPlaceName(place),
             }}
             clock={clock}
+            at={isToday ? now : planAnchor}
             liveDate={selectedDate === today}
             launch={finderLaunch}
             onClose={closeSkyFinder}
@@ -3409,9 +3416,9 @@ function TrackerScreen() {
         ) : (
           <section className="tk-finder-unavailable" aria-labelledby="finder-unavailable-title">
             <p>Sky</p>
-            <h1 id="finder-unavailable-title">Target position unavailable</h1>
+            <h1 id="finder-unavailable-title">Choose an observing location</h1>
             <p>
-              This object is not in the current recommendations for this place and date, so Tracker withdrew the old pointing solution instead of reusing stale coordinates.
+              Sky needs an observer location to place the celestial sphere above the correct horizon.
             </p>
             <button type="button" onClick={closeSkyFinder}>Back to Tracker</button>
           </section>
@@ -3578,12 +3585,12 @@ function TrackerScreen() {
       {!detailOpen ? (
         <TrackerModeNav
           current={location.mode}
-          skyAvailable={liveSkyAvailable && preferredSkyTargetId !== null}
-          skyLabel="Sky live guidance"
+          skyAvailable={liveSkyAvailable}
+          skyLabel="Sky"
           onMap={() => navigate({ mode: "map" })}
           onTonight={() => navigate({ mode: "tonight" })}
           onSky={() => {
-            if (preferredSkyTargetId) openSkyFinder(preferredSkyTargetId);
+            if (liveSkyAvailable) navigate({ finder: "sky" });
           }}
         />
       ) : null}

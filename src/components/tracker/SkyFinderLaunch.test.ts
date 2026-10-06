@@ -22,7 +22,7 @@ const phone: FinderCapabilities = {
 describe("Sky Finder launch gesture", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("starts camera, orientation and motion from the original target action", async () => {
+  it("starts orientation and motion but leaves camera to the explicit toggle", async () => {
     const attempts: string[] = [];
     class Orientation {}
     Object.assign(Orientation, {
@@ -51,11 +51,11 @@ describe("Sky Finder launch gesture", () => {
 
     const launch = beginSkyFinderLaunch("planet-saturn", phone, true);
     expect(launch).not.toBeNull();
-    // All protected calls happen before any promise settles: still inside the
-    // action's user-activation task.
-    expect(attempts).toEqual(["orientation", "motion", "camera"]);
+    // Sensor calls happen inside the target action. Camera is deliberately not
+    // requested by navigation: rendered Sky is the base and Camera is a toggle.
+    expect(attempts).toEqual(["orientation", "motion"]);
     await expect(launch!.sensor).resolves.toBe("granted");
-    await expect(launch!.camera).resolves.toMatchObject({ phase: "active", stream });
+    expect(launch!.camera).toBeNull();
   });
 
   it("does not touch protected APIs for unsupported devices or selected dates", () => {
@@ -63,9 +63,11 @@ describe("Sky Finder launch gesture", () => {
     vi.stubGlobal("window", { DeviceOrientationEvent: { requestPermission: request } });
     vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: request } });
     expect(beginSkyFinderLaunch("planet-saturn", { ...phone, deviceClass: "desktop", handheldEligible: false }, true)).toBeNull();
-    expect(beginSkyFinderLaunch("planet-saturn", { ...phone, camera: false }, true)).toBeNull();
+    expect(beginSkyFinderLaunch("planet-saturn", { ...phone, camera: false }, true)).not.toBeNull();
     expect(beginSkyFinderLaunch("planet-saturn", { ...phone, orientation: false }, true)).toBeNull();
     expect(beginSkyFinderLaunch("planet-saturn", phone, false)).toBeNull();
-    expect(request).not.toHaveBeenCalled();
+    // The camera-less handheld is still a valid rendered Sky device, so its
+    // one call is the orientation request. No call came from the other cases.
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });

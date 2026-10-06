@@ -44,8 +44,10 @@ describe("Tracker responsive review preconditions", () => {
       { text: "Tonight · Oct 4", top: 52, height: 40, width: 112 },
       { text: "2D 3D", top: 52, height: 40, width: 77 },
     ];
-    expect(mobileMapToolbarProof({ mapToolbar: toolbar })).toContain("one 40px row");
-    expect(mobileMapToolbarProof({ mapToolbar: [...toolbar].reverse() })).toBe("");
-    expect(mobileMapToolbarProof({ mapToolbar: toolbar.map((item, index) => ({ ...item, top: item.top + index * 45 })) })).toBe("");
+    const state = { mapToolbar: toolbar, visibleDateLabel: "Today · Oct 4", dateLabelOverflow: false };
+    expect(mobileMapToolbarProof(state)).toContain("readable date “Today · Oct 4”");
+    expect(mobileMapToolbarProof({ ...state, mapToolbar: [...toolbar].reverse() })).toBe("");
+    expect(mobileMapToolbarProof({ ...state, dateLabelOverflow: true })).toBe("");
+    expect(mobileMapToolbarProof({ ...state, mapToolbar: toolbar.map((item, index) => ({ ...item, top: item.top + index * 45 })) })).toBe("");
   });
 });

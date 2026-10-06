@@ -55,6 +55,17 @@ Its single satellite authority is the verified Orbit Studio Satellite Source of 
 package under `data/satellite-source-of-truth/`, built from Jonathan McDowell's GCAT `satcat`
 snapshot dated 2026-06-27 and licensed CC BY 4.0.
 
+Tracker separately retrieves short-lived orbital data at runtime for observing
+predictions. It does not redistribute those responses. The ISS first uses the
+existing CelesTrak SupGP/NASA trajectory route and falls back to GP; Tiangong is
+selected by catalogue identity 48274 from the CelesTrak `stations` group. Both
+enter one `CrewedStationEphemeris` collection and the same satellite.js/SGP4
+propagator. A TLE supports current position and geometric pass paths; Tracker
+does not call a Tiangong pass *visible* without an independently supported
+brightness model. The Starlink event path remains limited to CelesTrak's
+post-deployment `STACK` product and never treats the ordinary dispersed
+Starlink catalogue as a train.
+
 The canonical query database is
 `data/satellite-source-of-truth/data/orbit-studio-satellites.sqlite`. The immutable upstream
 evidence is `data/satellite-source-of-truth/raw/gcat-satcat-2026-06-27.tsv`. The package also
@@ -108,3 +119,17 @@ include J2000 coordinates, magnitude, B−V colour index, proper motion, designa
 - Local generation and field documentation: `src/data/stars/README.md`
 - Generation script: `scripts/build-bsc5p-bright-stars.mjs`
 - Local source/use notice: `src/data/stars/SOURCE-USE-NOTICE.txt`
+
+## Sky figures and Milky Way
+
+Sky's conventional constellation lines come from the existing d3-celestial
+BSD-3-Clause dataset recorded in `src/data/constellations/README.md`. All 893
+line endpoints are mapped to real BSC5P HR stars. The optional translucent
+figure apparition is project-authored geometry derived at runtime from those
+projected endpoints; this pass adds no historical-atlas or proprietary artwork.
+
+The Milky Way layer adds no photographic texture or external asset. Its display
+spine is computed from the standard J2000 equatorial/galactic rotation matrix,
+sampled along galactic latitude 0°, and projected through the same observer,
+UTC, ENU and display-pose path as the stars. It is an orientation aid rather
+than a calibrated brightness map.

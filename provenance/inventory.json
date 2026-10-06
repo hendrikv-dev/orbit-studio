@@ -356,10 +356,10 @@
         "retrievedAt": null
       },
       "localSha256": {
-        "src/data/tracker/satelliteSources.ts": "308d6c1ffd12cc72001c46a2fe61765bbc7474dc597035b958ea9a948647cca1"
+        "src/data/tracker/satelliteSources.ts": "bbbfca0667ddba642ae1c3acbaad1f5bbf3decf9fa297d9e981b82062a139ce7"
       },
       "processing": [
-        "Tracker fetches two documents at runtime, in the reader's own browser, and commits neither: the ISS supplemental ephemeris, which is derived from NASA's published trajectory, and whichever Starlink post-deployment stack vector CelesTrak is currently listing. Both are cached for two hours, which is the publisher's own stated update cadence.",
+        "Tracker makes bounded runtime requests in the reader's own browser and commits none of the responses: the ISS supplemental ephemeris derived from NASA's published trajectory, the stations group used to select Tiangong by catalogue identity, and whichever Starlink post-deployment stack vector CelesTrak is currently listing. Responses are cached for two hours, which is the publisher's own stated update cadence.",
         "SupGP is preferred over GP wherever it exists, because it is derived from the operator's own data. GP is the fallback for the ISS and is recorded as such on the page, so a prediction can always say which of the two it came from.",
         "The usage policy asks machine-to-machine consumers to stop querying on any non-200 response rather than retrying. The query is configured with no retries and the deployment fetch stops at the first refusal; a failure produces no pass rather than more requests.",
         "No element set is committed to this repository. The fixtures in the unit tests and in scripts/verify/tracker-refinement.mjs are Orbit Studio's own constructed elements — the shape of a station and of a deployment stack — because no authoritative grant was found for redistributing CelesTrak's own data."
@@ -371,7 +371,7 @@
           "https://celestrak.org/usage-policy.php",
           "https://celestrak.org/NORAD/documentation/sup-gp-queries.php"
         ],
-        "attribution": "Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory and a Starlink stack vector from SpaceX's published state vector.",
+        "attribution": "Orbital element sets from CelesTrak (Dr. T.S. Kelso); the ISS ephemeris is derived from NASA's published trajectory, Tiangong uses the stations GP response, and a Starlink stack vector uses SpaceX's published state vector.",
         "sourceRedistribution": "not-applicable-external-service",
         "deployedRedistribution": "not-bundled",
         "modification": "not-applicable-external-service"
@@ -840,13 +840,14 @@
         "src/data/constellations/constellationLines.d3Celestial.json": "97bcec91f0233c93a26d1da1f17a793276b38958adbb912b887eb4e29f11ad0f",
         "src/data/constellations/constellationFigureStars.bsc5p.json": "3f10ef82946b55c9efd9b6f4ac8a34e634c2b75552ec806040b6dcd09f47b442",
         "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt": "221e8ff1505d1e70f60234e7d809c67a8729b78ac27ae8645e3e15abbb22b612",
-        "src/data/constellations/README.md": "950f9674fdf3c12b8eb6fc39f1fd16b3b7867275e2f0a5ae51b5f21810bc64f4"
+        "src/data/constellations/README.md": "d75d50dae4ff5596ae83d27bc951675d41247feaa17bcf6205850aebbb98cb0f"
       },
       "processing": [
         "The upstream GeoJSON is retained byte-for-byte except for a final POSIX newline.",
         "The deterministic BSC5P generator maps all 893 coordinates to real HR stars; maximum endpoint separation is 0.008397 degrees and the mapping is checksummed.",
         "Runtime code advances those same stars by their proper motion and projects fixed local ENU vectors through the stabilized device pose.",
-        "These conventional line figures are orientation aids, not IAU constellation boundaries. BSC5P remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority."
+        "These conventional line figures are orientation aids, not IAU constellation boundaries. BSC5P remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority.",
+        "Sky's optional translucent apparition is original project-authored runtime geometry derived from the projected endpoint stars; no historical or third-party illustration asset is included."
       ],
       "rights": {
         "verification": "verified",
@@ -2016,11 +2017,12 @@
       },
       "localSha256": {
         "src/data/tracker/satelliteVisibility.ts": "53ac4da9cfadcc754ba09c32ba648f0f971e5151cf3c007fe30edfd222dec467",
-        "src/data/tracker/satellites.ts": "325789e367e2ca8f577963657415c159a71fcf236dfd2692beadcdac2aa1e740"
+        "src/data/tracker/satellites.ts": "58b675f403840d7e5878ddb1c0e7753e68c1b81938f78d5be7698f1c47a8557f"
       },
       "processing": [
         "Propagation is SGP4 by way of satellite.js. Everything else here is Orbit Studio's: the conical umbra and penumbra test with a 90 km atmospheric allowance, the phase geometry, the reduction of a published standard magnitude to the slant range and phase of a particular pass, and the screening of the result against the same limiting-magnitude model the rest of Tracker ranks with.",
-        "No brightness is derived from orbital geometry. Geometry only scales a published measurement, and an object with no published measurement is not offered."
+        "No brightness is derived from orbital geometry. Geometry only scales a published measurement, and an object with no published measurement is not offered as a visible recommendation.",
+        "The generic crewed-station path helper may expose an above-horizon geometric path for ISS or Tiangong, but labels it geometry-only and leaves visibility false when no photometry was supplied."
       ],
       "rights": {
         "verification": "verified",

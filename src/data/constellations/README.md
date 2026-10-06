@@ -19,3 +19,10 @@ constellation boundaries and not astronomical object positions.
 The production star population remains the separately documented BSC5P
 subset. This file contributes only conventional figure segments and never
 replaces the star catalogue, the target catalogue, or the application clock.
+
+Sky's optional translucent constellation apparition is original project-owned
+display geometry computed from these projected endpoints at runtime. It is not
+an extracted historical plate, a copied illustration, or an additional
+third-party asset. The generated polygon is an atmospheric learning aid; the
+real endpoint stars and conventional line segments remain the positional
+authority.

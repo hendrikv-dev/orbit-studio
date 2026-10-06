@@ -74,6 +74,7 @@ async function main() {
   await mkdir(shotsDir, { recursive: true });
 
   const origin = option("origin", "http://127.0.0.1:4182");
+  const only = option("states") ? option("states").split(",").filter(Boolean) : null;
   let server = null;
   if (!(await fetch(origin).then(() => true).catch(() => false))) {
     server = await preview({
@@ -82,7 +83,7 @@ async function main() {
     });
   }
   const browser = await chromium.launch();
-  const { shots, problems } = await captureStates({ browser, origin, shotsDir });
+  const { shots, problems } = await captureStates({ browser, origin, shotsDir, only });
   await writeContactSheet({
     browser,
     shotsDir,

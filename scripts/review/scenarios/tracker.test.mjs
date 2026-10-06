@@ -628,7 +628,7 @@ describe("Tracker capability-aware production review coverage", () => {
     "tracker-tablet-tonight",
     "tracker-tablet-sky",
     "tracker-tablet-landscape-live-finder",
-    "tracker-unsupported-tablet-no-sky",
+    "tracker-sensorless-tablet-rendered-sky",
   ])("captures %s", (name) => {
     expect(scenarioSource).toContain(`captureSurface("${name}"`);
   });
@@ -637,6 +637,8 @@ describe("Tracker capability-aware production review coverage", () => {
     expect(scenarioSource).not.toMatch(/getByRole\("button", \{ name: "Start live guidance"/);
     expect(scenarioSource).toMatch(/finderGuidanceControlPresent/);
     expect(scenarioSource).toMatch(/finderPermissionAttempts\.includes\("orientation"\)/);
+    expect(scenarioSource).toMatch(/finderPermissionAttempts\.includes\("camera"\)/);
+    expect(scenarioSource).toMatch(/Sensorless tablet rendered Sky failed/);
   });
 
   it("proves real terrain rather than certifying a renamed globe", () => {
