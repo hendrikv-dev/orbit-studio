@@ -1,4 +1,4 @@
-import { BellRing, Camera, CameraOff, Compass, Layers3, Search, X, ZoomIn, ZoomOut } from "lucide-react";
+import { BellRing, Camera, CameraOff, Compass, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Body, Illumination } from "astronomy-engine";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 
@@ -17,9 +17,15 @@ import {
   type SkyFinderTarget,
 } from "../../data/tracker/skyFinder";
 import {
-  DEFAULT_SKY_LAYERS, filterSkySearch, SKY_LAYER_IDS, SKY_LAYER_LABELS, skySearchCatalog,
-  skyTargetEquipmentLabel, stationSearchEntries, type SkyLayerId, type SkySearchEntry,
+  filterSkySearch, skySearchCatalog, skyTargetEquipmentLabel, stationSearchEntries,
+  type SkySearchEntry,
 } from "../../data/tracker/skyExplorer";
+import {
+  initialSkyNavigationMode,
+  selectNonCollidingSkyLabels,
+  skyDensityForView,
+  type SkyNavigationMode,
+} from "../../data/tracker/skyPresentation";
 import type { CrewedStationEphemeris } from "../../data/tracker/satelliteSources";
 import {
   loadSatelliteAlertPreferences, saveSatelliteAlertPreferences,
@@ -68,7 +74,7 @@ const INITIAL_SKY_DIAGNOSTICS_REQUESTED = typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).get("skyDiagnostics") === "1";
 
 export interface SkyFinderLaunchAttempt {
-  targetId: string;
+  targetId: string | null;
   sensor: Promise<LaunchSensorResult>;
   camera: null;
 }
@@ -78,7 +84,7 @@ function permissionConstructor(name: "DeviceOrientationEvent" | "DeviceMotionEve
 }
 
 /** Camera permission belongs only to the explicit Camera toggle. */
-export function beginSkyFinderLaunch(targetId: string, capabilities: FinderCapabilities, liveDate: boolean): SkyFinderLaunchAttempt | null {
+export function beginSkyFinderLaunch(targetId: string | null, capabilities: FinderCapabilities, liveDate: boolean): SkyFinderLaunchAttempt | null {
   if (!supportsRenderedSky(capabilities) || !liveDate || !capabilities.orientation) return null;
   let request: Promise<"granted" | "denied">;
   try {
@@ -154,9 +160,10 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
   const [selectedTarget, setSelectedTarget] = useState<SkyFinderTarget | null>(target);
   const [manualCentre, setManualCentre] = useState<PhonePointing>({ altitudeDeg: 35, azimuthDeg: 180 });
   const [zoom, setZoom] = useState(1);
-  const [layers, setLayers] = useState<Set<SkyLayerId>>(() => new Set(DEFAULT_SKY_LAYERS));
+  const [navigationMode, setNavigationMode] = useState<SkyNavigationMode>(() => initialSkyNavigationMode(capabilities, liveDate));
   const [searchOpen, setSearchOpen] = useState(false);
-  const [layersOpen, setLayersOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [qualityOpen, setQualityOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [sensorsEnabled, setSensorsEnabled] = useState(false);
   const [sensorPermission, setSensorPermission] = useState<PermissionPhase>("idle");
@@ -173,9 +180,12 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
   const stage = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const searchTrigger = useRef<HTMLButtonElement>(null);
-  const layersTrigger = useRef<HTMLButtonElement>(null);
-  const layersClose = useRef<HTMLButtonElement>(null);
+  const alertsTrigger = useRef<HTMLButtonElement>(null);
+  const alertsClose = useRef<HTMLButtonElement>(null);
+  const qualityTrigger = useRef<HTMLButtonElement>(null);
+  const qualityClose = useRef<HTMLButtonElement>(null);
   const stream = useRef<MediaStream | null>(null);
+  const consumedLaunch = useRef<SkyFinderLaunchAttempt | null>(null);
   const stabilizer = useRef(new DevicePoseStabilizer());
   const lastAbsolute = useRef(0);
   const drag = useRef<{ id: number; x: number; y: number; centre: PhonePointing } | null>(null);
@@ -193,17 +203,22 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
   useEffect(() => { saveSatelliteAlertPreferences(typeof window === "undefined" ? null : window.localStorage, alertPreferences); }, [alertPreferences]);
   useEffect(() => { if (!message) return; const timer = window.setTimeout(() => setMessage(null), 5_000); return () => window.clearTimeout(timer); }, [message]);
   useEffect(() => {
-    if (!layersOpen) return;
-    const frame = window.requestAnimationFrame(() => layersClose.current?.focus());
+    if (!alertsOpen) return;
+    const frame = window.requestAnimationFrame(() => alertsClose.current?.focus());
     return () => window.cancelAnimationFrame(frame);
-  }, [layersOpen]);
+  }, [alertsOpen]);
+  useEffect(() => {
+    if (!qualityOpen) return;
+    const frame = window.requestAnimationFrame(() => qualityClose.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [qualityOpen]);
 
   const targetSolution = useMemo(() => selectedTarget ? solutionForSkyFinderTarget(selectedTarget, observer, astronomyNow) : null, [astronomyNow, observer, selectedTarget]);
   const targetPosition = targetSolution?.horizontal ?? null;
   useEffect(() => {
-    if (!targetPosition || sensorsEnabled) return;
+    if (!targetPosition || navigationMode === "point") return;
     setManualCentre({ altitudeDeg: Math.max(-10, targetPosition.altitudeDeg), azimuthDeg: targetPosition.azimuthDeg });
-  }, [selectedTarget?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTarget?.id, navigationMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [cameraProjection, setCameraProjection] = useState<CameraProjectionModel>({ horizontalFovDeg: SKY_HORIZONTAL_FOV_DEG, verticalFovDeg: SKY_VERTICAL_FOV_DEG, sourceWidthPx: 0, sourceHeightPx: 0, viewportWidthPx: 0, viewportHeightPx: 0, fit: "cover" });
   const refreshCameraProjection = useCallback(() => {
@@ -233,24 +248,51 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
     } catch { setCameraPhase("denied"); setMessage("Camera permission wasn’t granted. Rendered Sky is still ready."); }
   }, [capabilities, liveDate, refreshCameraProjection]);
 
-  const requestOrientation = useCallback(async () => {
-    if (!capabilities.orientation || !liveDate) { setMessage("Orientation isn’t available. Drag the sky to explore."); return; }
+  const requestOrientation = useCallback(async (): Promise<boolean> => {
+    setNavigationMode("point");
+    if (!capabilities.orientation || !liveDate) {
+      setNavigationMode("explore");
+      setMessage("Orientation isn’t available. Explore the sky manually.");
+      return false;
+    }
     setSensorPermission("requesting");
     try {
       const orientation = permissionConstructor("DeviceOrientationEvent");
       const result = orientation?.requestPermission ? await orientation.requestPermission() : "granted";
       setSensorPermission(result); setSensorsEnabled(result === "granted");
-      if (result !== "granted") setMessage("Orientation wasn’t granted. Drag the sky to explore.");
-    } catch { setSensorPermission("denied"); setMessage("Orientation wasn’t granted. Drag the sky to explore."); }
+      if (result !== "granted") {
+        setNavigationMode("explore");
+        setMessage("Orientation wasn’t granted. Explore the sky manually.");
+      }
+      return result === "granted";
+    } catch {
+      setSensorPermission("denied");
+      setSensorsEnabled(false);
+      setNavigationMode("explore");
+      setMessage("Orientation wasn’t granted. Explore the sky manually.");
+      return false;
+    }
   }, [capabilities.orientation, liveDate]);
   useEffect(() => {
-    if (!launch || !selectedTarget || launch.targetId !== selectedTarget.id) return;
+    if (!launch || consumedLaunch.current === launch || (launch.targetId !== null && launch.targetId !== selectedTarget?.id)) return;
+    consumedLaunch.current = launch;
+    setNavigationMode("point");
     setSensorPermission("requesting");
-    void launch.sensor.then((result) => { setSensorPermission(result); setSensorsEnabled(result === "granted"); });
+    void launch.sensor.then((result) => {
+      setSensorPermission(result);
+      setSensorsEnabled(result === "granted");
+      if (result !== "granted") {
+        setNavigationMode("explore");
+        setMessage("Orientation wasn’t granted. Explore the sky manually.");
+      }
+    });
   }, [launch, selectedTarget]);
   useEffect(() => {
-    if (capabilities.handheldEligible && capabilities.orientation && !capabilities.orientationPermissionRequest) { setSensorPermission("granted"); setSensorsEnabled(true); }
-  }, [capabilities]);
+    if (navigationMode === "point" && capabilities.handheldEligible && capabilities.orientation && !capabilities.orientationPermissionRequest) {
+      setSensorPermission("granted");
+      setSensorsEnabled(true);
+    }
+  }, [capabilities, navigationMode]);
   useEffect(() => {
     if (!sensorsEnabled) return;
     const update = (incoming: Event) => {
@@ -272,9 +314,18 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
 
   const pose = useMemo(() => rawPose ? calibratedDevicePose(rawPose, calibration) : null, [calibration, rawPose]);
   const pointing = useMemo(() => pose ? pointingFromDevicePose(pose) : null, [pose]);
-  const viewCentre = sensorsEnabled && pointing ? pointing : manualCentre;
-  const displayPose = useMemo(() => sensorsEnabled && pose ? pose : devicePoseLookingAt(viewCentre), [pose, sensorsEnabled, viewCentre]);
+  const pointActive = navigationMode === "point" && sensorsEnabled && pointing !== null;
+  const viewCentre = pointActive && pointing ? pointing : manualCentre;
+  const displayPose = useMemo(() => pointActive && pose ? pose : devicePoseLookingAt(viewCentre), [pointActive, pose, viewCentre]);
   const displayProjection = useMemo<CameraProjectionModel>(() => cameraPhase === "active" ? cameraProjection : { ...cameraProjection, horizontalFovDeg: SKY_HORIZONTAL_FOV_DEG / zoom, verticalFovDeg: SKY_VERTICAL_FOV_DEG / zoom, sourceWidthPx: stage.current?.clientWidth || cameraProjection.viewportWidthPx, sourceHeightPx: stage.current?.clientHeight || cameraProjection.viewportHeightPx, fit: "contain" }, [cameraPhase, cameraProjection, zoom]);
+  const selectedConstellation = selectedTarget?.id.startsWith("constellation-") === true;
+  const density = useMemo(
+    () => skyDensityForView({
+      horizontalFovDeg: effectiveCameraProjection(displayProjection).horizontalFovDeg,
+      selectedConstellation,
+    }),
+    [displayProjection, selectedConstellation],
+  );
 
   const stationPassAnchor = Math.floor(astronomyNow.getTime() / (15 * 60_000)) * 15 * 60_000;
   const stationEntries = useMemo(
@@ -307,16 +358,57 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
     return { stars, lines, labels, objects, figures, milkyWay };
   }, [displayPose, displayProjection, expectedContext]);
 
+  const displayedContext = useMemo(() => {
+    if (!projectedContext) return null;
+    const stars = projectedContext.stars.filter((star) => star.magnitude <= density.magnitudeLimit);
+    const constellationLabels = projectedContext.labels.map((label) => ({
+      key: `constellation-${label.symbol}`,
+      xPercent: label.xPercent,
+      yPercent: label.yPercent,
+      priority: label.primary ? 100 : 40,
+    }));
+    const starLabels = stars
+      .filter((star) => star.label && star.magnitude <= density.namedStarMagnitudeLimit)
+      .map((star) => ({
+        key: `star-${star.id}`,
+        xPercent: star.xPercent,
+        yPercent: star.yPercent,
+        priority: star.inTargetConstellation ? 35 : 20 - star.magnitude,
+      }));
+    const visibleLabelKeys = selectNonCollidingSkyLabels(
+      [...constellationLabels, ...starLabels],
+      density.maxLabels,
+    );
+    let retainedDeepSky = 0;
+    const objects = projectedContext.objects.filter((object) => {
+      if (object.marker !== "deep-sky" && object.marker !== "cluster") return true;
+      retainedDeepSky += 1;
+      return retainedDeepSky <= density.maxDeepSkyObjects;
+    });
+    return {
+      ...projectedContext,
+      stars: stars.map((star) => ({ ...star, showLabel: visibleLabelKeys.has(`star-${star.id}`) })),
+      labels: projectedContext.labels.filter((label) => visibleLabelKeys.has(`constellation-${label.symbol}`)),
+      figures: density.showSelectedFigure ? projectedContext.figures.filter((figure) => figure.primary) : [],
+      milkyWay: density.showMilkyWay ? projectedContext.milkyWay : [],
+      objects,
+    };
+  }, [density, projectedContext]);
+
   const usesMagnetic = orientationTelemetry?.magneticHeadingDeg != null && !calibration;
   const quality: PointingQuality = calibration ? sensorQuality === "poor" ? "fair" : sensorQuality : usesMagnetic ? "poor" : sensorQuality;
-  const targetPointing = sensorsEnabled ? pointing : viewCentre;
-  const alignment = alignmentFor(targetPointing, targetPosition, selectedTarget?.alignmentToleranceDeg ?? 3, sensorsEnabled ? quality : "fair");
+  const targetPointing = pointActive ? pointing : null;
+  const alignment = alignmentFor(targetPointing, targetPosition, selectedTarget?.alignmentToleranceDeg ?? 3, pointActive ? quality : "unavailable");
   const projectedTarget = targetPosition ? projectEnuDirection(horizontalToEnu(targetPosition), displayPose, displayProjection) : null;
   const edgeCue = projectedTarget && !projectedTarget.inField ? edgeCueForProjection(projectedTarget) : null;
   const aboveHorizon = targetPosition !== null && targetPosition.altitudeDeg > 0;
   const nextRiseUtc = useMemo(() => selectedTarget && targetPosition && targetPosition.altitudeDeg < 0 ? nextRiseForSkyFinderTarget(selectedTarget, observer, astronomyNow) : null, [astronomyNow, observer, selectedTarget, targetPosition]);
-  const guidance = selectedTarget ? guidanceForSkyTarget(selectedTarget.title, targetPointing, targetPosition, selectedTarget.alignmentToleranceDeg, sensorsEnabled ? quality : "fair") : null;
-  const guidanceTitle = guidance?.kind === "direction" && !sensorsEnabled && targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : guidance?.instruction ?? "Explore the sky";
+  const guidance = selectedTarget ? guidanceForSkyTarget(selectedTarget.title, targetPointing, targetPosition, selectedTarget.alignmentToleranceDeg, pointActive ? quality : "unavailable") : null;
+  const guidanceTitle = navigationMode === "explore" && targetPosition
+    ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}`
+    : navigationMode === "point" && !pointActive
+      ? "Enable pointing to follow your phone"
+      : guidance?.instruction ?? "Point your phone to explore";
   const targetMarker = selectedTarget ? skyMarkerKindForTarget(selectedTarget) : null;
   const moonPhase = useMemo(() => { try { return Illumination(Body.Moon, astronomyNow).phase_fraction; } catch { return 0.5; } }, [astronomyNow]);
   const phase = skyPhase(expectedContext?.sunAltitudeDeg ?? null);
@@ -325,45 +417,165 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
     setSearchOpen(false);
     window.requestAnimationFrame(() => searchTrigger.current?.focus());
   }, []);
-  const closeLayers = useCallback(() => {
-    setLayersOpen(false);
-    window.requestAnimationFrame(() => layersTrigger.current?.focus());
+  const closeAlerts = useCallback(() => {
+    setAlertsOpen(false);
+    window.requestAnimationFrame(() => alertsTrigger.current?.focus());
+  }, []);
+  const closeQuality = useCallback(() => {
+    setQualityOpen(false);
+    window.requestAnimationFrame(() => qualityTrigger.current?.focus());
   }, []);
 
   const chooseTarget = (entry: SkySearchEntry) => {
     setSelectedTarget(entry.target);
     const position = positionForSkyFinderTarget(entry.target, observer, astronomyNow);
-    if (position) setManualCentre({ altitudeDeg: Math.max(-12, position.altitudeDeg), azimuthDeg: position.azimuthDeg });
+    if (position && navigationMode === "explore") setManualCentre({ altitudeDeg: Math.max(-12, position.altitudeDeg), azimuthDeg: position.azimuthDeg });
     closeSearch(); setQuery("");
   };
-  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (sensorsEnabled) return; drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, centre: manualCentre }; event.currentTarget.setPointerCapture(event.pointerId); };
-  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (!drag.current || drag.current.id !== event.pointerId || sensorsEnabled) return; const s = 0.14 / zoom; setManualCentre({ azimuthDeg: normalizeDegrees(drag.current.centre.azimuthDeg - (event.clientX - drag.current.x) * s), altitudeDeg: Math.max(-30, Math.min(89, drag.current.centre.altitudeDeg + (event.clientY - drag.current.y) * s)) }); };
+  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (navigationMode !== "explore") return; drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, centre: manualCentre }; event.currentTarget.setPointerCapture(event.pointerId); };
+  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (!drag.current || drag.current.id !== event.pointerId || navigationMode !== "explore") return; const s = 0.14 / zoom; setManualCentre({ azimuthDeg: normalizeDegrees(drag.current.centre.azimuthDeg - (event.clientX - drag.current.x) * s), altitudeDeg: Math.max(-30, Math.min(89, drag.current.centre.altitudeDeg + (event.clientY - drag.current.y) * s)) }); };
   const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (drag.current?.id === event.pointerId) drag.current = null; };
-  const toggleLayer = (id: SkyLayerId) => setLayers((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const enterExplore = () => {
+    if (pointing) setManualCentre(pointing);
+    setNavigationMode("explore");
+    setSearchOpen(false);
+    setAlertsOpen(false);
+    setQualityOpen(false);
+  };
+  const recenterToPhone = () => {
+    setSearchOpen(false);
+    setAlertsOpen(false);
+    setQualityOpen(false);
+    if (sensorsEnabled) {
+      setNavigationMode("point");
+      return;
+    }
+    void requestOrientation();
+  };
   const updateAlertCategory = (category: SatelliteAlertCategory) => setAlertPreferences((current) => ({ ...current, categories: { ...current.categories, [category]: !current.categories[category] } }));
   const targetStyle = { "--finder-x": `${(projectedTarget?.xPercent ?? 50) - 50}%`, "--finder-y": `${(projectedTarget?.yPercent ?? 50) - 50}%` } as CSSProperties;
 
-  return <section className="tk-sky-finder tk-sky-explorer" data-camera={cameraPhase === "active" ? "active" : "off"} data-visual-base={cameraPhase === "active" ? "camera" : "rendered-sky"} data-aligned={alignment.aligned ? "true" : "false"} data-mode={selectedTarget ? "targeted" : "browse"} data-sky-phase={phase} data-device-class={capabilities.deviceClass} data-target-altitude={targetPosition?.altitudeDeg.toFixed(3)} data-target-azimuth={targetPosition?.azimuthDeg.toFixed(3)} data-expected-stars={projectedContext?.stars.length ?? 0} data-expected-lines={projectedContext?.lines.length ?? 0} data-expected-labels={projectedContext?.labels.length ?? 0} data-expected-objects={projectedContext?.objects.length ?? 0} data-constellation-identities="88" data-camera-horizontal-fov={effectiveProjection.horizontalFovDeg.toFixed(3)} data-camera-vertical-fov={effectiveProjection.verticalFovDeg.toFixed(3)} data-camera-crop-axis={effectiveProjection.cropAxis} data-heading-reference={orientationTelemetry?.magneticHeadingDeg != null ? calibration ? "magnetic-calibrated" : "magnetic-uncorrected" : "event-alpha"} aria-label="Sky">
-    <div ref={stage} className="tk-finder-stage" style={targetStyle} onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onWheel={(event) => { if (cameraPhase === "active") return; event.preventDefault(); setZoom((value) => Math.max(0.72, Math.min(2.8, value * (event.deltaY > 0 ? 0.9 : 1.1)))); }}>
-      <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
-      <div className="tk-finder-sky" aria-hidden /><div className="tk-finder-shade" aria-hidden />
-      {projectedContext ? <div className="tk-finder-expected-field" aria-hidden><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><filter id="sky-milky-blur"><feGaussianBlur stdDeviation="2.6" /></filter></defs>{layers.has("milky-way") ? <g className="tk-finder-milky-way" filter="url(#sky-milky-blur)">{projectedContext.milkyWay.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} />)}</g> : null}{layers.has("constellation-figures") ? <g className="tk-finder-constellation-figures">{projectedContext.figures.map((figure) => <polygon key={figure.symbol} points={figure.points.map((p) => `${p.xPercent},${p.yPercent}`).join(" ")} data-primary={figure.primary ? "true" : undefined} />)}</g> : null}{layers.has("constellation-lines") ? <g className="tk-finder-constellation-lines">{projectedContext.lines.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} data-primary={line.primary ? "true" : undefined} data-constellation={line.constellation} data-start-star={line.startStarId} data-end-star={line.endStarId} />)}</g> : null}{layers.has("constellation-names") ? <g className="tk-finder-constellation-labels">{projectedContext.labels.map((label) => <text key={label.symbol} x={label.xPercent} y={label.yPercent} data-primary={label.primary ? "true" : undefined}>{label.name}</text>)}</g> : null}</svg>
-        {layers.has("stars") ? projectedContext.stars.map((star) => <span key={star.id} className="tk-finder-star" data-target-constellation={star.inTargetConstellation ? "true" : undefined} style={{ left: `${star.xPercent}%`, top: `${star.yPercent}%`, "--star-size": `${star.radiusPx}px`, "--star-color": star.color, "--star-opacity": Math.max(0.08, (0.28 + star.luminance * 0.72) * Math.max(0.24, Math.min(1, (star.direction.up + 0.18) / 0.7))) } as CSSProperties}><i />{layers.has("star-names") && star.label ? <small>{star.label}</small> : null}</span>) : null}
-        {projectedContext.objects.map((object) => { const body = !["satellite", "deep-sky", "cluster"].includes(object.marker); if (body && !layers.has("solar-system")) return null; if (object.marker === "satellite" && !layers.has("space-stations") && !layers.has("notable-satellites")) return null; if ((object.marker === "deep-sky" || object.marker === "cluster") && !layers.has("deep-sky")) return null; return <span key={object.id} className="tk-finder-object" style={{ left: `${object.xPercent}%`, top: `${object.yPercent}%` }}><SkyMarkerGlyph kind={object.marker} phase={moonPhase} /><small>{object.title}</small></span>; })}</div> : null}
+  const pointControlLabel = navigationMode === "explore"
+    ? "Recenter"
+    : pointActive
+      ? "Explore"
+      : "Enable pointing";
+  const pointControlAria = navigationMode === "explore"
+    ? "Recenter to phone"
+    : pointActive
+      ? "Explore sky manually"
+      : "Enable device pointing";
 
-      <div className="tk-sky-floating-tools" onPointerDown={(event) => event.stopPropagation()}><button ref={searchTrigger} type="button" onClick={() => { if (searchOpen) closeSearch(); else { setSearchOpen(true); setLayersOpen(false); } }} aria-label="Search the sky" aria-expanded={searchOpen}><Search size={18} aria-hidden /></button>{capabilities.camera && liveDate ? <button type="button" onClick={cameraPhase === "active" ? stopCamera : startCamera} aria-label={cameraPhase === "active" ? "Turn camera off" : "Turn camera on"} aria-pressed={cameraPhase === "active"} disabled={cameraPhase === "requesting"}>{cameraPhase === "active" ? <Camera size={18} aria-hidden /> : <CameraOff size={18} aria-hidden />}</button> : null}{capabilities.orientation && liveDate ? <button type="button" onClick={sensorsEnabled ? () => setSensorsEnabled(false) : requestOrientation} aria-label={sensorsEnabled ? "Use manual sky navigation" : "Use device orientation"} aria-pressed={sensorsEnabled}><Compass size={18} aria-hidden /></button> : null}<button ref={layersTrigger} type="button" onClick={() => { if (layersOpen) closeLayers(); else { setLayersOpen(true); setSearchOpen(false); } }} aria-label="Sky layers" aria-expanded={layersOpen}><Layers3 size={18} aria-hidden /></button></div>
+  return (
+    <section
+      className="tk-sky-finder tk-sky-explorer"
+      data-camera={cameraPhase === "active" ? "active" : "off"}
+      data-visual-base={cameraPhase === "active" ? "camera" : "rendered-sky"}
+      data-aligned={alignment.aligned ? "true" : "false"}
+      data-mode={selectedTarget ? "targeted" : "browse"}
+      data-navigation-mode={navigationMode}
+      data-pointing-active={pointActive ? "true" : "false"}
+      data-orientation-permission={sensorPermission}
+      data-sky-density={density.tier}
+      data-sky-phase={phase}
+      data-device-class={capabilities.deviceClass}
+      data-observer-latitude={observer.latitudeDeg.toFixed(7)}
+      data-observer-longitude={observer.longitudeDeg.toFixed(7)}
+      data-astronomy-utc={astronomyNow.toISOString()}
+      data-selected-target={selectedTarget?.id}
+      data-target-altitude={targetPosition?.altitudeDeg.toFixed(3)}
+      data-target-azimuth={targetPosition?.azimuthDeg.toFixed(3)}
+      data-expected-stars={displayedContext?.stars.length ?? 0}
+      data-expected-lines={displayedContext?.lines.length ?? 0}
+      data-expected-labels={displayedContext?.labels.length ?? 0}
+      data-expected-objects={displayedContext?.objects.length ?? 0}
+      data-magnitude-limit={density.magnitudeLimit.toFixed(2)}
+      data-constellation-identities="88"
+      data-camera-horizontal-fov={effectiveProjection.horizontalFovDeg.toFixed(3)}
+      data-camera-vertical-fov={effectiveProjection.verticalFovDeg.toFixed(3)}
+      data-camera-crop-axis={effectiveProjection.cropAxis}
+      data-heading-reference={orientationTelemetry?.magneticHeadingDeg != null ? calibration ? "magnetic-calibrated" : "magnetic-uncorrected" : "event-alpha"}
+      aria-label="Sky"
+    >
+      <div
+        ref={stage}
+        className="tk-finder-stage"
+        style={targetStyle}
+        onPointerDown={beginDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onWheel={(event) => {
+          if (cameraPhase === "active" || navigationMode !== "explore") return;
+          event.preventDefault();
+          setZoom((value) => Math.max(0.72, Math.min(2.8, value * (event.deltaY > 0 ? 0.9 : 1.1))));
+        }}
+      >
+        <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
+        <div className="tk-finder-sky" aria-hidden />
+        <div className="tk-finder-shade" aria-hidden />
 
-      {searchOpen ? <section className="tk-sky-popover tk-sky-search" role="dialog" aria-label="Search the sky" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); closeSearch(); } }} onPointerDown={(event) => event.stopPropagation()}><header><Search size={16} aria-hidden /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Planet, star, constellation…" aria-label="Search celestial objects" /><button type="button" onClick={closeSearch} aria-label="Close search"><X size={17} aria-hidden /></button></header><div className="tk-sky-search-results">{searchResults.map((entry) => <button type="button" key={`${entry.kind}-${entry.id}`} onClick={() => chooseTarget(entry)}><SkyMarkerGlyph kind={skyMarkerKindForTarget(entry.target)} /><span><strong>{entry.title}</strong><small>{entry.subtitle}</small></span></button>)}</div></section> : null}
+        {displayedContext ? (
+          <div className="tk-finder-expected-field" aria-hidden>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              <defs><filter id="sky-milky-blur"><feGaussianBlur stdDeviation="2.6" /></filter></defs>
+              <g className="tk-finder-milky-way" filter="url(#sky-milky-blur)">
+                {displayedContext.milkyWay.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} />)}
+              </g>
+              <g className="tk-finder-constellation-figures">
+                {displayedContext.figures.map((figure) => <polygon key={figure.symbol} points={figure.points.map((point) => `${point.xPercent},${point.yPercent}`).join(" ")} data-primary="true" />)}
+              </g>
+              <g className="tk-finder-constellation-lines">
+                {displayedContext.lines.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} data-primary={line.primary ? "true" : undefined} data-constellation={line.constellation} data-start-star={line.startStarId} data-end-star={line.endStarId} />)}
+              </g>
+              <g className="tk-finder-constellation-labels">
+                {displayedContext.labels.map((label) => <text key={label.symbol} x={label.xPercent} y={label.yPercent} data-primary={label.primary ? "true" : undefined}>{label.name}</text>)}
+              </g>
+            </svg>
+            {displayedContext.stars.map((star) => (
+              <span
+                key={star.id}
+                className="tk-finder-star"
+                data-target-constellation={star.inTargetConstellation ? "true" : undefined}
+                style={{ left: `${star.xPercent}%`, top: `${star.yPercent}%`, "--star-size": `${star.radiusPx}px`, "--star-color": star.color, "--star-opacity": Math.max(0.08, (0.28 + star.luminance * 0.72) * Math.max(0.24, Math.min(1, (star.direction.up + 0.18) / 0.7))) } as CSSProperties}
+              >
+                <i />
+                {star.showLabel && star.label ? <small>{star.label}</small> : null}
+              </span>
+            ))}
+            {displayedContext.objects.map((object) => (
+              <span key={object.id} className="tk-finder-object" style={{ left: `${object.xPercent}%`, top: `${object.yPercent}%` }}>
+                <SkyMarkerGlyph kind={object.marker} phase={moonPhase} />
+                <small>{object.title}</small>
+              </span>
+            ))}
+          </div>
+        ) : null}
 
-      {layersOpen ? <section className="tk-sky-popover tk-sky-layers" role="dialog" aria-label="Sky layers" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); closeLayers(); } }} onPointerDown={(event) => event.stopPropagation()}><header><span><Layers3 size={16} aria-hidden /> Layers</span><button ref={layersClose} type="button" onClick={closeLayers} aria-label="Close layers"><X size={17} aria-hidden /></button></header><div className="tk-sky-layer-list">{SKY_LAYER_IDS.map((id) => <label key={id}><span>{SKY_LAYER_LABELS[id]}</span><input type="checkbox" checked={layers.has(id)} onChange={() => toggleLayer(id)} /></label>)}</div><details className="tk-sky-alerts"><summary><BellRing size={15} aria-hidden /> Satellite alerts</summary><label className="tk-sky-alert-master"><span>Alert me to worthwhile passes</span><input type="checkbox" checked={alertPreferences.enabled} onChange={() => setAlertPreferences((current) => ({ ...current, enabled: !current.enabled }))} /></label>{(["space-stations", "starlink-trains", "bright-satellites"] as SatelliteAlertCategory[]).map((category) => <label key={category}><span>{alertCategoryLabel(category)}</span><input type="checkbox" checked={alertPreferences.categories[category]} disabled={!alertPreferences.enabled} onChange={() => updateAlertCategory(category)} /></label>)}<label><span>Lead time</span><select value={alertPreferences.leadMinutes} disabled={!alertPreferences.enabled} onChange={(event) => setAlertPreferences((current) => ({ ...current, leadMinutes: Number(event.target.value) as SatelliteAlertLeadMinutes }))}><option value={10}>10 minutes</option><option value={30}>30 minutes</option><option value={60}>1 hour</option><option value={360}>Same day</option></select></label><p>Saved on this device. Push delivery still needs a notification service.</p></details><details className="tk-sky-accuracy"><summary>Accuracy and calibration</summary><p>{sensorsEnabled ? `Orientation ${quality}${headingAccuracy !== null ? ` · ±${Math.round(headingAccuracy)}°` : ""}` : "Manual sky navigation"}</p>{rawPointing && selectedTarget && targetPosition ? <button type="button" onClick={() => setCalibration(calibrationFromAlignment(rawPointing, targetPosition, selectedTarget.id, new Date().toISOString()))}>Align selected target here</button> : null}{calibration ? <button type="button" onClick={() => setCalibration(null)}>Clear calibration</button> : null}</details></section> : null}
+        <div className="tk-sky-floating-tools" onPointerDown={(event) => event.stopPropagation()}>
+          <button ref={searchTrigger} type="button" onClick={() => { if (searchOpen) closeSearch(); else { setSearchOpen(true); setAlertsOpen(false); setQualityOpen(false); } }} aria-label="Search the sky" aria-expanded={searchOpen}><Search size={18} aria-hidden /></button>
+          {capabilities.camera && liveDate ? <button type="button" onClick={cameraPhase === "active" ? stopCamera : startCamera} aria-label={cameraPhase === "active" ? "Turn camera off" : "Turn camera on"} aria-pressed={cameraPhase === "active"} disabled={cameraPhase === "requesting"}>{cameraPhase === "active" ? <Camera size={18} aria-hidden /> : <CameraOff size={18} aria-hidden />}</button> : null}
+          {capabilities.orientation && liveDate ? <button className="tk-sky-mode-control" type="button" onClick={navigationMode === "explore" ? recenterToPhone : pointActive ? enterExplore : recenterToPhone} aria-label={pointControlAria} aria-pressed={navigationMode === "point"}><Compass size={16} aria-hidden /><span>{pointControlLabel}</span></button> : null}
+          <button ref={alertsTrigger} type="button" onClick={() => { if (alertsOpen) closeAlerts(); else { setAlertsOpen(true); setSearchOpen(false); setQualityOpen(false); } }} aria-label="Satellite alerts" aria-expanded={alertsOpen}><BellRing size={17} aria-hidden /></button>
+        </div>
 
-      {!sensorsEnabled && cameraPhase !== "active" ? <div className="tk-sky-zoom" onPointerDown={(event) => event.stopPropagation()}><button type="button" onClick={() => setZoom((value) => Math.min(2.8, value * 1.22))} aria-label="Zoom in"><ZoomIn size={18} aria-hidden /></button><button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.22))} aria-label="Zoom out"><ZoomOut size={18} aria-hidden /></button></div> : null}
-      <div className="tk-finder-sky-context" aria-hidden><span>{expectedContext?.constellation?.name ?? "Current sky"}</span><strong>{cardinal(viewCentre.azimuthDeg)} · {Math.round(viewCentre.altitudeDeg)}°</strong></div>{layers.has("horizon") ? <div className="tk-finder-horizon" aria-hidden><span>{Math.round(viewCentre.azimuthDeg)}°</span><strong>{cardinal(viewCentre.azimuthDeg)}</strong></div> : null}
-      {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : `${selectedTarget.title} is below the horizon`}</strong></span>{aboveHorizon && alignment.aligned ? <em>On target</em> : nextRiseUtc ? <em>Rises {formatClockTime(nextRiseUtc, clock)}</em> : null}</div> : <div className="tk-sky-browse-hint"><strong>Explore tonight’s sky</strong><span>Drag to look around · use zoom controls</span></div>}
-      {aboveHorizon && projectedTarget?.inField && selectedTarget ? <div className="tk-finder-lock" data-shape={selectedTarget.shape} data-marker={targetMarker} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><em>{alignment.aligned ? `${selectedTarget.title} is here` : selectedTarget.title}</em></div> : null}{aboveHorizon && edgeCue && selectedTarget ? <div className="tk-finder-edge-cue" style={{ left: `${edgeCue.xPercent}%`, top: `${edgeCue.yPercent}%` }} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span>{guidanceTitle}</span></div> : null}
-      {selectedTarget ? <div className="tk-finder-target-card"><span><small>{targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : "Position unavailable"}</small><strong>{selectedTarget.appearance}</strong></span><b>{aboveHorizon ? skyTargetEquipmentLabel(selectedTarget) : nextRiseUtc ? `Rises ${formatClockTime(nextRiseUtc, clock)}` : "Below horizon"}</b></div> : null}
-      {message ? <p className="tk-sky-toast" role="status">{message}</p> : null}
-      {diagnosticsEnabled ? <aside className="tk-finder-developer" aria-label="AR projection diagnostics"><header><strong>AR diagnostics</strong><span>Local developer view · not consumer UI</span></header><dl><div><dt>Target</dt><dd>{selectedTarget?.title ?? "None"}</dd></div><div><dt>UTC</dt><dd>{astronomyNow.toISOString()}</dd></div><div><dt>Observer</dt><dd>{observer.latitudeDeg.toFixed(5)}, {observer.longitudeDeg.toFixed(5)}</dd></div><div><dt>RA / Dec</dt><dd>{targetSolution?.equatorial ? `${targetSolution.equatorial.raHours.toFixed(5)}h / ${targetSolution.equatorial.decDeg.toFixed(4)}°` : "Not applicable"}</dd></div><div><dt>Expected Az / Alt</dt><dd>{targetPosition ? `${targetPosition.azimuthDeg.toFixed(3)}° / ${targetPosition.altitudeDeg.toFixed(3)}°` : "Unavailable"}</dd></div><div><dt>Local ENU</dt><dd>{targetSolution ? `${targetSolution.enu.east.toFixed(5)}, ${targetSolution.enu.north.toFixed(5)}, ${targetSolution.enu.up.toFixed(5)}` : "Unavailable"}</dd></div><div><dt>Device heading</dt><dd>{pointing ? `${pointing.azimuthDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Pitch / roll</dt><dd>{orientationTelemetry ? `${orientationTelemetry.betaDeg.toFixed(2)}° / ${orientationTelemetry.gammaDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Quaternion</dt><dd>{pose ? `${pose.x.toFixed(5)}, ${pose.y.toFixed(5)}, ${pose.z.toFixed(5)}, ${pose.w.toFixed(5)}` : "Manual view pose"}</dd></div><div><dt>Magnetic heading</dt><dd>{orientationTelemetry?.magneticHeadingDeg != null ? `${orientationTelemetry.magneticHeadingDeg.toFixed(2)}°` : "Unavailable"}</dd></div><div><dt>True-north correction</dt><dd>{calibration ? `${calibration.azimuthOffsetDeg.toFixed(2)}°` : "Unavailable in browser API"}</dd></div><div><dt>Screen orientation</dt><dd>{screenAngle()}°</dd></div><div><dt>Camera FOV</dt><dd>{effectiveProjection.horizontalFovDeg.toFixed(2)}° × {effectiveProjection.verticalFovDeg.toFixed(2)}°</dd></div><div><dt>Video / viewport</dt><dd>{cameraProjection.sourceWidthPx}×{cameraProjection.sourceHeightPx} / {cameraProjection.viewportWidthPx}×{cameraProjection.viewportHeightPx}</dd></div><div><dt>Crop</dt><dd>{effectiveProjection.cropAxis} · {(effectiveProjection.visibleFraction * 100).toFixed(1)}%</dd></div><div><dt>Projected X / Y</dt><dd>{projectedTarget ? `${projectedTarget.xPercent.toFixed(2)}% / ${projectedTarget.yPercent.toFixed(2)}%` : "Unavailable"}</dd></div></dl></aside> : null}
-    </div>
-  </section>;
+        {searchOpen ? <section className="tk-sky-popover tk-sky-search" role="dialog" aria-label="Search the sky" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); closeSearch(); } }} onPointerDown={(event) => event.stopPropagation()}><header><Search size={16} aria-hidden /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Planet, star, constellation…" aria-label="Search celestial objects" /><button type="button" onClick={closeSearch} aria-label="Close search"><X size={17} aria-hidden /></button></header><div className="tk-sky-search-results">{searchResults.map((entry) => <button type="button" key={`${entry.kind}-${entry.id}`} onClick={() => chooseTarget(entry)}><SkyMarkerGlyph kind={skyMarkerKindForTarget(entry.target)} /><span><strong>{entry.title}</strong><small>{entry.subtitle}</small></span></button>)}</div></section> : null}
+
+        {alertsOpen ? <section className="tk-sky-popover tk-sky-alert-settings" role="dialog" aria-label="Satellite alerts" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); closeAlerts(); } }} onPointerDown={(event) => event.stopPropagation()}><header><span><BellRing size={15} aria-hidden /> Satellite alerts</span><button ref={alertsClose} type="button" onClick={closeAlerts} aria-label="Close satellite alerts"><X size={17} aria-hidden /></button></header><div className="tk-sky-alerts"><label className="tk-sky-alert-master"><span>Alert me to worthwhile passes</span><input type="checkbox" checked={alertPreferences.enabled} onChange={() => setAlertPreferences((current) => ({ ...current, enabled: !current.enabled }))} /></label>{(["space-stations", "starlink-trains", "bright-satellites"] as SatelliteAlertCategory[]).map((category) => <label key={category}><span>{alertCategoryLabel(category)}</span><input type="checkbox" checked={alertPreferences.categories[category]} disabled={!alertPreferences.enabled} onChange={() => updateAlertCategory(category)} /></label>)}<label><span>Lead time</span><select value={alertPreferences.leadMinutes} disabled={!alertPreferences.enabled} onChange={(event) => setAlertPreferences((current) => ({ ...current, leadMinutes: Number(event.target.value) as SatelliteAlertLeadMinutes }))}><option value={10}>10 minutes</option><option value={30}>30 minutes</option><option value={60}>1 hour</option><option value={360}>Same day</option></select></label><p>Saved on this device. Push delivery still needs a notification service.</p></div></section> : null}
+
+        {pointActive && quality === "poor" ? <button ref={qualityTrigger} type="button" className="tk-sky-quality" onClick={() => { setQualityOpen(true); setSearchOpen(false); setAlertsOpen(false); }} aria-expanded={qualityOpen}>Heading accuracy is limited</button> : null}
+        {qualityOpen ? <section className="tk-sky-popover tk-sky-quality-panel" role="dialog" aria-label="Pointing accuracy" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); closeQuality(); } }} onPointerDown={(event) => event.stopPropagation()}><header><span>Pointing accuracy</span><button ref={qualityClose} type="button" onClick={closeQuality} aria-label="Close pointing accuracy"><X size={17} aria-hidden /></button></header><p>{headingAccuracy !== null ? `Compass reports about ±${Math.round(headingAccuracy)}°.` : "This browser cannot provide a reliable true-north accuracy estimate."}</p>{rawPointing && selectedTarget && targetPosition ? <button type="button" onClick={() => setCalibration(calibrationFromAlignment(rawPointing, targetPosition, selectedTarget.id, new Date().toISOString()))}>Align selected target here</button> : null}{calibration ? <button type="button" onClick={() => setCalibration(null)}>Clear calibration</button> : null}</section> : null}
+
+        {navigationMode === "explore" && cameraPhase !== "active" ? <div className="tk-sky-zoom" onPointerDown={(event) => event.stopPropagation()}><button type="button" onClick={() => setZoom((value) => Math.min(2.8, value * 1.22))} aria-label="Zoom in"><ZoomIn size={18} aria-hidden /></button><button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.22))} aria-label="Zoom out"><ZoomOut size={18} aria-hidden /></button></div> : null}
+        <div className="tk-finder-sky-context" aria-hidden><span>{navigationMode === "point" ? "Point" : "Explore"} · {expectedContext?.constellation?.name ?? "Current sky"}</span><strong>{cardinal(viewCentre.azimuthDeg)} · {Math.round(viewCentre.altitudeDeg)}°</strong></div>
+        <div className="tk-finder-horizon" aria-hidden><span>{Math.round(viewCentre.azimuthDeg)}°</span><strong>{cardinal(viewCentre.azimuthDeg)}</strong></div>
+        {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : `${selectedTarget.title} is below the horizon`}</strong></span>{aboveHorizon && alignment.aligned ? <em>On target</em> : nextRiseUtc ? <em>Rises {formatClockTime(nextRiseUtc, clock)}</em> : null}</div> : <div className="tk-sky-browse-hint"><strong>{navigationMode === "point" ? "Point your phone around you" : "Explore the sky"}</strong><span>{navigationMode === "point" ? "Rendered Sky · Camera optional" : "Drag to look around · pinch or use zoom"}</span></div>}
+        {aboveHorizon && projectedTarget?.inField && selectedTarget ? <div className="tk-finder-lock" data-shape={selectedTarget.shape} data-marker={targetMarker} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><em>{alignment.aligned ? `${selectedTarget.title} is here` : selectedTarget.title}</em></div> : null}
+        {aboveHorizon && edgeCue && selectedTarget ? <div className="tk-finder-edge-cue" style={{ left: `${edgeCue.xPercent}%`, top: `${edgeCue.yPercent}%` }} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span>{guidanceTitle}</span></div> : null}
+        {selectedTarget ? <div className="tk-finder-target-card"><span><small>{targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : "Position unavailable"}</small><strong>{selectedTarget.appearance}</strong></span><b>{aboveHorizon ? skyTargetEquipmentLabel(selectedTarget) : nextRiseUtc ? `Rises ${formatClockTime(nextRiseUtc, clock)}` : "Below horizon"}</b></div> : null}
+        {message ? <p className="tk-sky-toast" role="status">{message}</p> : null}
+        {diagnosticsEnabled ? <aside className="tk-finder-developer" aria-label="AR projection diagnostics"><header><strong>AR diagnostics</strong><span>Local developer view · not consumer UI</span></header><dl><div><dt>Target</dt><dd>{selectedTarget?.title ?? "None"}</dd></div><div><dt>UTC</dt><dd>{astronomyNow.toISOString()}</dd></div><div><dt>Observer</dt><dd>{observer.latitudeDeg.toFixed(5)}, {observer.longitudeDeg.toFixed(5)}</dd></div><div><dt>RA / Dec</dt><dd>{targetSolution?.equatorial ? `${targetSolution.equatorial.raHours.toFixed(5)}h / ${targetSolution.equatorial.decDeg.toFixed(4)}°` : "Not applicable"}</dd></div><div><dt>Expected Az / Alt</dt><dd>{targetPosition ? `${targetPosition.azimuthDeg.toFixed(3)}° / ${targetPosition.altitudeDeg.toFixed(3)}°` : "Unavailable"}</dd></div><div><dt>Local ENU</dt><dd>{targetSolution ? `${targetSolution.enu.east.toFixed(5)}, ${targetSolution.enu.north.toFixed(5)}, ${targetSolution.enu.up.toFixed(5)}` : "Unavailable"}</dd></div><div><dt>Device heading</dt><dd>{pointing ? `${pointing.azimuthDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Pitch / roll</dt><dd>{orientationTelemetry ? `${orientationTelemetry.betaDeg.toFixed(2)}° / ${orientationTelemetry.gammaDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Quaternion</dt><dd>{pose ? `${pose.x.toFixed(5)}, ${pose.y.toFixed(5)}, ${pose.z.toFixed(5)}, ${pose.w.toFixed(5)}` : "Manual view pose"}</dd></div><div><dt>Magnetic heading</dt><dd>{orientationTelemetry?.magneticHeadingDeg != null ? `${orientationTelemetry.magneticHeadingDeg.toFixed(2)}°` : "Unavailable"}</dd></div><div><dt>True-north correction</dt><dd>{calibration ? `${calibration.azimuthOffsetDeg.toFixed(2)}°` : "Unavailable in browser API"}</dd></div><div><dt>Screen orientation</dt><dd>{screenAngle()}°</dd></div><div><dt>Camera FOV</dt><dd>{effectiveProjection.horizontalFovDeg.toFixed(2)}° × {effectiveProjection.verticalFovDeg.toFixed(2)}°</dd></div><div><dt>Video / viewport</dt><dd>{cameraProjection.sourceWidthPx}×{cameraProjection.sourceHeightPx} / {cameraProjection.viewportWidthPx}×{cameraProjection.viewportHeightPx}</dd></div><div><dt>Crop</dt><dd>{effectiveProjection.cropAxis} · {(effectiveProjection.visibleFraction * 100).toFixed(1)}%</dd></div><div><dt>Projected X / Y</dt><dd>{projectedTarget ? `${projectedTarget.xPercent.toFixed(2)}% / ${projectedTarget.yPercent.toFixed(2)}%` : "Unavailable"}</dd></div><div><dt>Navigation</dt><dd>{navigationMode} · {pointActive ? "pose active" : "manual pose"}</dd></div><div><dt>Density</dt><dd>{density.tier} · mag ≤ {density.magnitudeLimit.toFixed(2)}</dd></div></dl></aside> : null}
+      </div>
+    </section>
+  );
 }

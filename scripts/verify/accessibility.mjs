@@ -949,6 +949,24 @@ async function run() {
         "AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
     });
     await stubProviders(mobile);
+    await mobile.addInitScript(() => {
+      class AccessibilityOrientationEvent extends Event {}
+      Object.assign(AccessibilityOrientationEvent, {
+        requestPermission: async () => "granted",
+      });
+      class AccessibilityMotionEvent extends Event {}
+      Object.assign(AccessibilityMotionEvent, {
+        requestPermission: async () => "granted",
+      });
+      Object.defineProperty(window, "DeviceOrientationEvent", {
+        configurable: true,
+        value: AccessibilityOrientationEvent,
+      });
+      Object.defineProperty(window, "DeviceMotionEvent", {
+        configurable: true,
+        value: AccessibilityMotionEvent,
+      });
+    });
     const phone = await mobile.newPage();
     await phone.clock.setFixedTime(RUN_AT);
     await phone.goto(TRACKER, { waitUntil: "domcontentloaded" });
@@ -1036,8 +1054,8 @@ async function run() {
      *
      * Sky is a real celestial browser before it is a camera experience. The
      * normal indoor path therefore needs the same automated accessibility
-     * coverage as Map and Tonight, including its two compact disclosure
-     * surfaces. Camera permission is deliberately not part of this gate.
+     * coverage as Map and Tonight. Camera permission is deliberately not part
+     * of this gate; Point is the default and Explore is explicit.
      */
     await phone.getByRole("button", { name: "Sky", exact: true }).click();
     await phone.waitForSelector('.tk-sky-finder[data-visual-base="rendered-sky"]', {
@@ -1051,6 +1069,25 @@ async function run() {
       (await phone.locator('.tk-sky-finder[data-camera="off"]').count()) === 1,
       "Sky should not request or activate the camera on entry",
     );
+    expect(
+      (await phone.locator('.tk-sky-finder[data-navigation-mode="point"]').count()) === 1,
+      "supported mobile Sky should enter Point mode on direct navigation",
+    );
+    expect(
+      (await phone.getByRole("button", { name: "Sky layers" }).count()) === 0,
+      "Sky should not expose a user-selectable Layers control",
+    );
+    await phone.evaluate(() => {
+      const event = new Event("deviceorientationabsolute");
+      Object.defineProperties(event, {
+        alpha: { value: 180 },
+        beta: { value: 35 },
+        gamma: { value: 0 },
+        absolute: { value: true },
+      });
+      window.dispatchEvent(event);
+    });
+    await phone.waitForSelector('.tk-sky-finder[data-pointing-active="true"]');
     await scan(phone, "rendered Sky on a phone");
     assertNoHorizontalClipping(await visibleBounds(phone), "390px Sky");
 
@@ -1062,13 +1099,28 @@ async function run() {
     await phone.keyboard.press("Escape");
     await phone.locator('.tk-sky-search[role="dialog"]').waitFor({ state: "detached" });
 
-    const skyLayers = phone.getByRole("button", { name: "Sky layers" });
-    await skyLayers.focus();
+    const exploreSky = phone.getByRole("button", { name: "Explore sky manually" });
+    await exploreSky.focus();
     await phone.keyboard.press("Enter");
-    await phone.waitForSelector('.tk-sky-layers[role="dialog"]');
-    await scan(phone, "Sky layers on a phone");
+    await phone.waitForSelector('.tk-sky-finder[data-navigation-mode="explore"]');
+    await scan(phone, "Sky Explore mode on a phone");
+    const recenterSky = phone.getByRole("button", { name: "Recenter to phone" });
+    expect(await recenterSky.isVisible(), "Explore should expose an obvious Recenter to phone action");
+
+    const alerts = phone.getByRole("button", { name: "Satellite alerts" });
+    await alerts.focus();
+    await phone.keyboard.press("Enter");
+    await phone.waitForSelector('.tk-sky-alert-settings[role="dialog"]');
+    await scan(phone, "Sky satellite alerts on a phone");
     await phone.keyboard.press("Escape");
-    await phone.locator('.tk-sky-layers[role="dialog"]').waitFor({ state: "detached" });
+    await phone.locator('.tk-sky-alert-settings[role="dialog"]').waitFor({ state: "detached" });
+    await phone.waitForFunction(
+      () => document.activeElement?.getAttribute("aria-label") === "Satellite alerts",
+    );
+    expect(
+      await alerts.evaluate((element) => element === document.activeElement),
+      "closing Satellite alerts should restore focus to its trigger",
+    );
 
     if (UPCOMING_IS_ROUTED) {
     await phone.getByRole("button", { name: "Upcoming" }).click();

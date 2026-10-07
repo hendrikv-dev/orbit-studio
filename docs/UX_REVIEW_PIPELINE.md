@@ -148,10 +148,12 @@ The main Tracker scenario proves Map in north-up 2D, the same state on the real 
 3D pitch, and Tonight with the full production ranking and Upcoming gateway. It captures object
 detail both collapsed and expanded. Desktop states prove that Sky, Find in Sky and generic
 object-map actions are absent. A 390 × 844 phone and an iPadOS-style tablet at 820 × 1180 and
-1180 × 820 prove that the original **Find in Sky** tap enters targeted rendered Sky and can request
-orientation without requesting camera access; a sensorless tablet proves the same rendered sphere,
-search and target entry remain available with no protected API call. Camera-active captures are
-separate, fixture-labelled evidence and do not claim a physical target lock.
+1180 × 820 prove that direct Sky navigation and the original **Find in Sky** tap enter Point on an
+orientation-capable handheld without requesting camera access. Separate frames prove explicit
+Explore, Recenter, camera-off Point, automatic wide/normal density and the absence of a celestial
+Layers control. A sensorless tablet proves the same rendered sphere, search, target entry and manual
+Explore remain available with no protected API call. Camera-active captures are separate,
+fixture-labelled evidence and do not claim a physical target lock.
 
 A scenario exports:
 

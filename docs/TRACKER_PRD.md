@@ -14,13 +14,18 @@ primary modes:
   parallel rankings or observer state. Upcoming is planning inside Tonight,
   not a fourth mode.
 - **Sky** is a rendered celestial explorer on confirmed touch-first phones and
-  tablets. It remains fully useful with manual pan/zoom, search and layers when
-  camera or orientation is absent or denied. Device orientation can move the
-  same sphere and Camera can place it over the rear-camera view for a live date;
-  neither is a second astronomy model. Desktop and laptops keep Map and Tonight
-  with no reserved Sky destination or fake AR mode. **Find in Sky** selects the
-  target and enters Sky immediately; camera permission belongs only to the
-  explicit Camera control and there is no intermediate Start/Guide/Lock action.
+  tablets. A live orientation-capable handheld opens in **Point** mode: rotating
+  or raising the device moves the same real celestial sphere even while Camera
+  is off. **Explore** is the explicit manual pan/zoom mode, with **Recenter**
+  returning to the phone pose. Devices without orientation retain Explore,
+  search and target selection. Sky composes stars, constellation context,
+  bodies and relevant events automatically from field of view, significance and
+  selection; it has no user-selectable celestial Layers menu. Camera is an
+  optional visual base for the same position and pose model. Desktop and laptops
+  keep Map and Tonight with no reserved Sky destination or fake AR mode. **Find
+  in Sky** selects the target and enters Sky immediately; camera permission
+  belongs only to the explicit Camera control and there is no intermediate
+  Start/Guide/Lock action.
 
 Object detail opens with the target, recommendation, best time, direction,
 key conditions, expectation and capability-appropriate actions. Geographic

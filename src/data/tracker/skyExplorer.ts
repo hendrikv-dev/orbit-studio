@@ -48,49 +48,6 @@ export interface SkySearchEntry {
   target: SkyFinderTarget;
 }
 
-export const SKY_LAYER_IDS = [
-  "stars",
-  "star-names",
-  "constellation-names",
-  "constellation-lines",
-  "constellation-figures",
-  "solar-system",
-  "deep-sky",
-  "space-stations",
-  "notable-satellites",
-  "milky-way",
-  "horizon",
-] as const;
-
-export type SkyLayerId = (typeof SKY_LAYER_IDS)[number];
-
-export const DEFAULT_SKY_LAYERS: ReadonlySet<SkyLayerId> = new Set([
-  "stars",
-  "star-names",
-  "constellation-names",
-  "constellation-lines",
-  "solar-system",
-  "deep-sky",
-  "space-stations",
-  "notable-satellites",
-  "milky-way",
-  "horizon",
-]);
-
-export const SKY_LAYER_LABELS: Record<SkyLayerId, string> = {
-  stars: "Stars",
-  "star-names": "Star names",
-  "constellation-names": "Constellation names",
-  "constellation-lines": "Constellation lines",
-  "constellation-figures": "Constellation figures",
-  "solar-system": "Solar system",
-  "deep-sky": "Deep sky",
-  "space-stations": "Space stations",
-  "notable-satellites": "Notable satellites",
-  "milky-way": "Milky Way",
-  horizon: "Horizon",
-};
-
 export const SOLAR_SYSTEM_BODIES = [
   Body.Sun,
   Body.Moon,

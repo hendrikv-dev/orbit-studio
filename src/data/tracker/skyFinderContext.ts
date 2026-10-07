@@ -176,8 +176,7 @@ function averageDirection(directions: EnuDirection[]): EnuDirection {
 }
 
 function friendlyStarLabel(star: Bsc5pBrightStarRecord): string | null {
-  if (star.name && star.magnitude <= 1.8) return star.name;
-  return null;
+  return star.name;
 }
 
 function sameCelestialIdentity(left: SkyFinderTarget, right: SkyFinderTarget): boolean {

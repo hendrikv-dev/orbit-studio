@@ -3590,7 +3590,11 @@ function TrackerScreen() {
           onMap={() => navigate({ mode: "map" })}
           onTonight={() => navigate({ mode: "tonight" })}
           onSky={() => {
-            if (liveSkyAvailable) navigate({ finder: "sky" });
+            if (!liveSkyAvailable) return;
+            setFinderLaunch(
+              beginSkyFinderLaunch(null, skyFinderCapabilities, selectedDate === today),
+            );
+            navigate({ finder: "sky" });
           }}
         />
       ) : null}

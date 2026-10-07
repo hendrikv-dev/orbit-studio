@@ -58,6 +58,30 @@ describe("Sky Finder launch gesture", () => {
     expect(launch!.camera).toBeNull();
   });
 
+  it("starts orientation from direct Sky navigation without inventing a target", async () => {
+    const attempts: string[] = [];
+    class Orientation {}
+    Object.assign(Orientation, {
+      requestPermission: () => {
+        attempts.push("orientation");
+        return Promise.resolve("granted");
+      },
+    });
+    class Motion {}
+    Object.assign(Motion, {
+      requestPermission: () => {
+        attempts.push("motion");
+        return Promise.resolve("granted");
+      },
+    });
+    vi.stubGlobal("window", { DeviceOrientationEvent: Orientation, DeviceMotionEvent: Motion });
+
+    const launch = beginSkyFinderLaunch(null, phone, true);
+    expect(launch?.targetId).toBeNull();
+    expect(attempts).toEqual(["orientation", "motion"]);
+    await expect(launch!.sensor).resolves.toBe("granted");
+  });
+
   it("does not touch protected APIs for unsupported devices or selected dates", () => {
     const request = vi.fn();
     vi.stubGlobal("window", { DeviceOrientationEvent: { requestPermission: request } });

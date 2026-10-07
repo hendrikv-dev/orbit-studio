@@ -700,9 +700,9 @@ async function main() {
     check(rows <= 2, `the top controls occupy at most two rows (${rows})`);
 
     const targets = await page.evaluate(() =>
-      [...document.querySelectorAll(".tk-map-control, .tk-map-layer-chip, .tk-date-step")].every(
-        (el) => el.getBoundingClientRect().height >= 32,
-      ),
+      [...document.querySelectorAll(".tk-map-control, .tk-map-layer-chip, .tk-date-step")]
+        .filter((element) => element.getClientRects().length > 0)
+        .every((element) => element.getBoundingClientRect().height >= 32),
     );
     check(targets, "no touch target was shrunk below 32px to make room");
 
@@ -1050,8 +1050,8 @@ async function main() {
       `binoculars add their own (${binoculars.join(", ")})`,
     );
     check(
-      /binoculars add detail/i.test(binocularState.text) &&
-        /telescope adds detail/i.test(telescopeState.text),
+      /brighter, steadier view/i.test(binocularState.text) &&
+        /telescope view|telescope recommended/i.test(telescopeState.text),
       "and each aided rule enriches the same briefing with its own practical context",
     );
 
@@ -1169,7 +1169,8 @@ async function main() {
         const map = window.__trackerMap;
         const style = map.getStyle();
         const params = new URLSearchParams(location.search);
-        const toggle = document.querySelector(".tk-projection");
+        const toggle = [...document.querySelectorAll(".tk-projection")]
+          .find((element) => element.getClientRects().length > 0) ?? null;
         const topbar = document.querySelector(".tk-map-topbar");
         return {
           projection: (map.getProjection?.() ?? style.projection ?? { type: "mercator" }).type,
@@ -1207,8 +1208,8 @@ async function main() {
               }
             : null,
           selected:
-            document.querySelector('.tk-projection-option[aria-checked="true"]')?.getAttribute("aria-label") ?? null,
-          tabStops: [...document.querySelectorAll(".tk-projection-option")].map((b) => b.tabIndex),
+            toggle?.querySelector('.tk-projection-option[aria-checked="true"]')?.getAttribute("aria-label") ?? null,
+          tabStops: toggle ? [...toggle.querySelectorAll(".tk-projection-option")].map((button) => button.tabIndex) : [],
         };
       });
 
@@ -1234,7 +1235,7 @@ async function main() {
     );
 
     // The arrow keys move and select, which is what the radio role promises.
-    await page.locator('.tk-projection-option[aria-checked="true"]').focus();
+    await page.locator('.tk-projection:visible .tk-projection-option[aria-checked="true"]').focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(4000);
     const terrain = await state();
@@ -1277,7 +1278,7 @@ async function main() {
       `terrain recenter restores the designed oblique camera (${resetTerrain.pitch}° / ${resetTerrain.bearing}°)`,
     );
 
-    await page.locator('.tk-projection-option[aria-checked="true"]').focus();
+    await page.locator('.tk-projection:visible .tk-projection-option[aria-checked="true"]').focus();
     await page.keyboard.press("ArrowLeft");
     await page.waitForTimeout(3500);
     const back = await state();
@@ -1544,7 +1545,8 @@ async function main() {
 
     const covered = async (label, panelSelector) => {
       const seen = await page.evaluate((selector) => {
-        const toggle = document.querySelector(".tk-projection");
+        const toggle = [...document.querySelectorAll(".tk-projection")]
+          .find((element) => element.getClientRects().length > 0) ?? null;
         const panel = document.querySelector(selector);
         if (!toggle || !panel) return null;
         const t = toggle.getBoundingClientRect();

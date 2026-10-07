@@ -219,7 +219,21 @@ async function main() {
     await settled(page, 1400);
     await dismissTour(page);
 
-    for (const surface of SURFACES) {
+    const surfaces = size.mobile
+      ? SURFACES.filter((surface) => surface.name !== "the equipment menu" && surface.name !== "the event finder")
+      : SURFACES;
+    if (size.mobile) {
+      check(
+        !(await page.locator(".tk-equipment-trigger").isVisible()),
+        `the phone Map keeps Viewing off its three-control context row at ${size.width}px`,
+      );
+      check(
+        !(await page.locator(".tk-eventfinder-trigger").isVisible()),
+        `the phone Map keeps event discovery out of its compact context row at ${size.width}px`,
+      );
+    }
+
+    for (const surface of surfaces) {
       await page.keyboard.press("Escape");
       await page.waitForTimeout(220);
       const trigger = page.locator(surface.trigger).first();
@@ -293,7 +307,7 @@ async function main() {
 
     /* --- the search a reader actually performs --------------------------- */
     const finder = page.locator(".tk-eventfinder-trigger").first();
-    if (await finder.count()) {
+    if (await finder.isVisible()) {
       await finder.click({ timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(400);
       const field = page.locator(".tk-eventfinder-field input");

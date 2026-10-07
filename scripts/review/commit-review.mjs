@@ -246,16 +246,16 @@ function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
     {
       surface: "Sky",
       reference: "03-sky.png",
-      target: "A sky-first rendered celestial sphere that works indoors, with optional orientation and camera registration over the identical astronomical scene.",
-      ids: ["09-phone-sky-untargeted", "09b-phone-sky-manually-panned", "09c-phone-sky-search", "09d-phone-sky-layers", "09e-phone-sky-orion-figure", "09f-phone-sky-sun", "09g-phone-sky-moon", "09h-phone-sky-venus", "09i-phone-sky-jupiter", "09j-phone-sky-neptune", "09k-phone-sky-iss", "09l-phone-sky-tiangong", "09m-phone-sky-starlink-train", "09-phone-sky-camera-granted", "09n-phone-sky-camera-denied", "10-phone-sky-guiding", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
-      matched: "The celestial field owns the viewport; real catalog stars, conventional constellation geometry, all 88 searchable identities, an astronomical Milky Way spine, bodies and station targets share one projection; controls and target context float compactly over it.",
-      deviation: "The optional figure layer is original geometry-derived apparition art instead of copied historical or proprietary illustrations. Camera mode starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics.",
+      target: "A sky-first rendered celestial sphere that defaults to physical Point navigation indoors, offers explicit Explore/Recenter, composes density automatically, and uses optional camera registration over the identical astronomical scene.",
+      ids: ["09-phone-sky-point-default", "09a-phone-sky-camera-off-point", "09b-phone-sky-explore", "09o-phone-sky-recenter", "09c-phone-sky-search", "09d-phone-sky-wide-density", "09p-phone-sky-normal-density", "09e-phone-sky-orion-figure", "09f-phone-sky-sun", "09g-phone-sky-moon", "09h-phone-sky-venus", "09i-phone-sky-jupiter", "09j-phone-sky-neptune", "09k-phone-sky-iss", "09l-phone-sky-tiangong", "09m-phone-sky-starlink-train", "09-phone-sky-camera-granted", "09q-phone-sky-degraded-heading", "09n-phone-sky-camera-denied", "10-phone-sky-guiding", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
+      matched: "The celestial field owns the viewport; Point works with Camera off; Explore and Recenter are explicit; real catalog stars, conventional constellation geometry, all 88 searchable identities, an astronomical Milky Way spine, bodies and station targets share one projection; density changes with field of view and no Layers control exists.",
+      deviation: "Selected-constellation artwork is original geometry-derived apparition art instead of copied historical or proprietary illustrations. Camera mode starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics.",
       limitation: "Camera and sensor frames are explicitly deterministic fixtures, not physical-device AR evidence. Station path geometry does not imply visibility where a measured brightness model is absent.",
     },
     {
       surface: "Capability boundary",
       reference: null,
-      target: "Rendered Sky on confirmed phones/tablets regardless of optional camera/orientation support, and no Sky destination or fake AR on desktop/laptop.",
+      target: "Rendered Sky on confirmed phones/tablets regardless of optional camera/orientation support, Point by default where orientation exists, and no Sky destination or fake AR on desktop/laptop.",
       ids: ["03-desktop-tonight-no-sky", "04-desktop-object-detail", "15-unsupported-tablet-map", "17-unsupported-tablet-object-detail"],
       matched: "Desktop remains Map · Tonight with no Find in Sky; the sensorless tablet retains rendered Sky and Find in Sky while camera/orientation controls are absent.",
       deviation: "This is the rendered-first Sky 2.0 capability contract, which intentionally supersedes the earlier camera-required rule.",
@@ -341,10 +341,13 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
     "12-tablet-map-3d",
   ]);
   const sky = screenshotLinks(shots, [
-    "09-phone-sky-untargeted",
-    "09b-phone-sky-manually-panned",
+    "09-phone-sky-point-default",
+    "09a-phone-sky-camera-off-point",
+    "09b-phone-sky-explore",
+    "09o-phone-sky-recenter",
     "09c-phone-sky-search",
-    "09d-phone-sky-layers",
+    "09d-phone-sky-wide-density",
+    "09p-phone-sky-normal-density",
     "09e-phone-sky-orion-figure",
     "09f-phone-sky-sun",
     "09g-phone-sky-moon",
@@ -355,6 +358,7 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
     "09l-phone-sky-tiangong",
     "09m-phone-sky-starlink-train",
     "09-phone-sky-camera-granted",
+    "09q-phone-sky-degraded-heading",
     "09n-phone-sky-camera-denied",
     "09a-phone-sky-target-offscreen",
     "10-phone-sky-guiding",
@@ -379,11 +383,12 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 ## Sky / camera and sensors
 
 - Browser/runtime evidence: ${sky || "_Not captured_"}.
-- Rendered Sky is the product foundation. A confirmed handheld can browse, pan, zoom, search, select targets and change layers without camera or orientation permission. Camera is an explicit optional control and reuses the same projected ENU scene.
+- Rendered Sky is the product foundation. A live orientation-capable handheld defaults to **Point** even with Camera off. **Explore** enables deliberate manual pan/zoom and **Recenter** returns to the phone pose without changing observer, UTC, target or Alt/Az. A sensorless handheld retains rendered Explore, search and target selection. Camera is an explicit optional visual base and reuses the same projected ENU scene.
+- Sky has no user-selectable celestial Layers control. One automatic policy uses effective field of view, catalogue magnitude, target selection, object relevance and screen-space collision suppression: wide fields retain bright orientation context, normal fields add richer real-star/constellation/deep-sky context, and close fields admit fainter stars and more local labels. Selecting a constellation automatically strengthens only its anchored figure when legible.
 - Solar-system authority: Astronomy Engine **2.1.19**, MIT, for Sun, Moon, planets and the applicable equatorial/horizon transforms. The independent regression fixture uses NASA/JPL Horizons topocentric values and records its own timestamp, observer, frame, refraction mode and tolerances.
 - Star population: Yale Bright Star Catalog BSC5P via NASA/GSFC HEASARC (8,404 records with reported apparent magnitude ≤ 6.5), projected through the shared topocentric ENU pipeline for the selected observer and UTC instant. No procedural astronomical stars are rendered. HEASARC's official policy makes its materials freely available for use and asks for acknowledgement; it does not assign BSC5P an SPDX license, so this package records that free-use basis rather than inventing one.
 - BSC5P source: \`https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html\`; raw query SHA-256 \`4b7e89fc0f18103683db2f8e66cd2de597b1912d7469f6d44f295c290f4fc1a0\`; deterministic local catalog SHA-256 \`529702e4a4fdedce2c98c1974f9a35cfdee4a0b33ff83a9c3d1373e6c40ae384\`.
-- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries. All 88 unique constellation identities are searchable. The optional translucent apparition is original runtime geometry derived from those projected endpoints; no external figure artwork was added.
+- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries. All 88 unique constellation identities are searchable. The automatically contextual translucent apparition is original runtime geometry derived from those projected endpoints; no external figure artwork was added.
 - All 893 conventional-figure endpoints are mapped to real BSC5P HR stars within 0.008397°. Constellation names derive from the projected figures; selective major-star labels use the documented IAU identity crosswalk.
 - Milky Way: project-authored galactic-equator display geometry from the standard J2000 equatorial/galactic transform, projected through the same ENU path. No photographic texture or external asset was added.
 - Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path. ISS and Tiangong are one extensible crewed-station collection. Tiangong receives current position and geometric next-path calculation but no unsupported brightness/visibility claim. Starlink remains restricted to qualified post-deployment stacks; dispersed traffic is not rendered as a train.

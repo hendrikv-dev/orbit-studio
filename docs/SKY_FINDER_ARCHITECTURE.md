@@ -1,8 +1,9 @@
 # Sky architecture
 
 Sky is Tracker's rendered celestial explorer. The rendered sphere is the
-foundation; device orientation and the rear camera are optional ways to move or
-register the same sphere. Sky does not own the observer, selected date, or
+foundation; device orientation is its default live handheld navigation and the
+rear camera is an optional way to register that same sphere over the physical
+view. Sky does not own the observer, selected date, or
 recommendation rank. Its searchable browse registry is a view over Astronomy
 Engine bodies, the retained BSC5P star catalogue, the 88 identities derived
 from the retained constellation figures, retained deep-sky showpieces, and the
@@ -32,7 +33,7 @@ Conventional figures use the BSD-licensed d3-celestial line dataset. The determi
 
 Solar-system context contains Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto through Astronomy Engine. Runtime crewed-station context is an extensible collection: the ISS retains its segmented SupGP/GP path and Tiangong is selected from the existing CelesTrak stations response. Station path predictions use the same SGP4 authority and are labelled geometry-only unless independent photometry supports visibility. Starlink search/events retain the existing post-deployment stack classifier; the ordinary Starlink population is not loaded into Sky.
 
-Rendered Sky is the normal visual base and supports direct drag, zoom, search, layers and target selection without camera or sensor permission. When camera permission succeeds, the live rear-camera `<video>` replaces that base and the identical celestial layers remain overlays in the same viewport. The renderer reads the video track or media dimensions and the overlay content box, then adjusts the estimated base FOV for the centred `object-fit: cover` crop before projecting any celestial vector. `data-visual-base` exposes the distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
+Rendered Sky is the normal visual base. A live orientation-capable handheld enters **Point** immediately, so the sphere follows physical device direction without camera access. **Explore** is the explicit manual pan/zoom mode, and **Recenter** restores Point without changing observer, UTC, target, or target coordinates. Search and target selection work in either mode. Field of view, magnitude, selection, relevance and collision rules automatically compose supporting stars, constellation geometry, labels, deep-sky objects and Milky Way context; there is no user-selectable celestial Layers menu. When camera permission succeeds, the live rear-camera `<video>` replaces the rendered background and the identical celestial context remains overlaid in the same viewport. The renderer reads the video track or media dimensions and the overlay content box, then adjusts the estimated base FOV for the centred `object-fit: cover` crop before projecting any celestial vector. `data-visual-base` exposes the distinction to review tooling. Browser overlays are expected positions, not camera-frame detections, and never set visual-verification state.
 
 Browser media APIs do not expose calibrated lens intrinsics. The current base estimate is **82° horizontal × 66° vertical**; localhost-only diagnostics may override those values for a measured device/session and display the effective crop-adjusted FOV. This is an explicit uncertainty, not a camera calibration claim.
 
@@ -42,7 +43,7 @@ Sky is a handheld feature. `classifySkyFinderDevice` requires phone/tablet ident
 
 The device-class decision is applied before optional capability checks. A confirmed phone or tablet receives rendered Sky even when it has no camera or orientation API. Desktop, laptop and unknown devices receive Map, Tonight and Object Detail only, with no reserved navigation space and no fake desktop AR mode.
 
-**Find in Sky** selects the target and enters rendered Sky immediately. `beginSkyFinderLaunch` may request protected orientation/motion access synchronously inside that user action, but camera access belongs only to the explicit Camera control. Direct Sky browsing requests no protected API. There is no second Start/Guide/Lock control. Camera frames remain local and no browser path claims visual verification.
+**Find in Sky** selects the target and enters rendered Sky immediately. Direct Sky navigation and **Find in Sky** both call `beginSkyFinderLaunch` synchronously from the user's gesture so iOS may grant orientation/motion access without an intermediate action. The launch target may be absent for untargeted browsing; that changes neither permission ownership nor the celestial state. Camera access belongs only to the explicit Camera control. There is no second Start/Guide/Lock control. Camera frames remain local and no browser path claims visual verification.
 
 The primary overlay has one target lock. Its position carries the pointing error, the compact instruction strip states the correction, and the same lock changes to the aligned treatment when the sensor solution reaches tolerance. The selected target's object-specific marker sits inside that lock, so Saturn remains recognizable without becoming a second indicator. A second crosshair, detached arrow, or diagnostic reticle would create competing instructions and is deliberately absent.
 
@@ -58,13 +59,13 @@ The browser path is accepted only if centred physical targets land within the de
 
 | Available capability | Behavior |
 | --- | --- |
-| Handheld, no camera or orientation | Full rendered Sky with manual pan/zoom, search, layers and target context |
-| Orientation, camera off | Rendered Sky follows the stabilized device pose |
+| Handheld, no camera or orientation | Full rendered Explore with manual pan/zoom, search and target context; no Layers menu |
+| Orientation, camera off | Point is the default; rendered Sky follows the stabilized device pose |
 | Camera + true-north/fused orientation | Live camera background and sensor guidance; alignment may be asserted within tolerance |
 | Camera + magnetic heading only | Directional guidance; alignment is withheld until known-object calibration |
 | Relative orientation only | Directional guidance; alignment is withheld until known-object calibration |
 | Camera permission denied or stream fails after entry | Rendered Sky continues; denial is stated briefly |
-| Orientation permission denied after entry | Manual pan/zoom and the target’s true direction/altitude remain usable |
+| Orientation permission denied after entry | Sky enters Explore; manual pan/zoom and the target’s true direction/altitude remain usable |
 | Camera API absent | Rendered Sky remains available; Camera control is absent |
 | Orientation API absent | Manual rendered Sky remains available; orientation control is absent |
 | Desktop/laptop, including a webcam-equipped desktop | Sky tab and Find in Sky are absent; protected APIs are not requested |

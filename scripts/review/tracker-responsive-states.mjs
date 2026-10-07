@@ -222,6 +222,11 @@ async function productState(page) {
       zoom: Number((map?.getZoom?.() ?? 0).toFixed(2)),
       finderDeviceClass: document.querySelector(".tk-sky-finder")?.getAttribute("data-device-class") ?? null,
       finderMode: document.querySelector(".tk-sky-finder")?.getAttribute("data-mode") ?? null,
+      navigationMode: document.querySelector(".tk-sky-finder")?.getAttribute("data-navigation-mode") ?? null,
+      pointingActive: document.querySelector(".tk-sky-finder")?.getAttribute("data-pointing-active") === "true",
+      orientationPermission: document.querySelector(".tk-sky-finder")?.getAttribute("data-orientation-permission") ?? null,
+      skyDensity: document.querySelector(".tk-sky-finder")?.getAttribute("data-sky-density") ?? null,
+      magnitudeLimit: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-magnitude-limit") ?? 0),
       cameraState: document.querySelector(".tk-sky-finder")?.getAttribute("data-camera") ?? null,
       visualBase: document.querySelector(".tk-sky-finder")?.getAttribute("data-visual-base") ?? null,
       aligned: document.querySelector(".tk-sky-finder")?.getAttribute("data-aligned") === "true",
@@ -232,14 +237,21 @@ async function productState(page) {
       skyObjects: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-objects") ?? 0),
       constellationIdentities: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-constellation-identities") ?? 0),
       skyFigures: document.querySelectorAll(".tk-finder-constellation-figures polygon").length,
+      skyStarLabels: document.querySelectorAll(".tk-finder-star small").length,
       searchOpen: Boolean(document.querySelector(".tk-sky-search")),
-      layersOpen: Boolean(document.querySelector(".tk-sky-layers")),
+      alertsOpen: Boolean(document.querySelector(".tk-sky-alert-settings")),
+      qualityOpen: Boolean(document.querySelector(".tk-sky-quality-panel")),
+      hasSkyLayersControl: Boolean(document.querySelector('[aria-label="Sky layers"], .tk-sky-layers, .tk-sky-layer-list')),
       selectedMarker: document.querySelector(".tk-finder-lock .tk-sky-object-glyph")?.getAttribute("data-marker") ?? null,
-      diagnosticsOpen: Boolean(document.querySelector(".tk-finder-details[open]")),
+      diagnosticsOpen: Boolean(document.querySelector(".tk-finder-developer")),
       guidance: document.querySelector(".tk-finder-guidance strong")?.textContent?.trim() ?? null,
       targetSummary: document.querySelector(".tk-finder-target-card")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       targetAltitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-altitude") ?? null,
       targetAzimuth: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-azimuth") ?? null,
+      selectedTarget: document.querySelector(".tk-sky-finder")?.getAttribute("data-selected-target") ?? null,
+      observerLatitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-observer-latitude") ?? null,
+      observerLongitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-observer-longitude") ?? null,
+      astronomyUtc: document.querySelector(".tk-sky-finder")?.getAttribute("data-astronomy-utc") ?? null,
       viewing: document.querySelector(".tk-equipment-trigger")?.getAttribute("aria-label") ?? null,
       telescopeGuidance: document.querySelector(".tk-telescope-guidance")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       edgeCues: document.querySelectorAll(".tk-finder-edge-cue").length,
@@ -542,10 +554,13 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     "07a-phone-viewing-capability-selector",
     "07b-phone-tonight-telescope",
     "08-phone-object-detail-collapsed",
-    "09-phone-sky-untargeted",
-    "09b-phone-sky-manually-panned",
+    "09-phone-sky-point-default",
+    "09a-phone-sky-camera-off-point",
+    "09b-phone-sky-explore",
     "09c-phone-sky-search",
-    "09d-phone-sky-layers",
+    "09d-phone-sky-wide-density",
+    "09p-phone-sky-normal-density",
+    "09o-phone-sky-recenter",
     "09e-phone-sky-orion-figure",
     "09f-phone-sky-sun",
     "09g-phone-sky-moon",
@@ -556,6 +571,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     "09l-phone-sky-tiangong",
     "09m-phone-sky-starlink-train",
     "09-phone-sky-camera-granted",
+    "09q-phone-sky-degraded-heading",
     "09a-phone-sky-target-offscreen",
     "10-phone-sky-guiding",
     "10a-phone-sky-almost-aligned",
@@ -630,24 +646,62 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
 
     await page.goto(`${origin}/?app=tracker&mode=tonight&at=${encodeURIComponent(REVIEW_PIN)}&z=8&pin=${encodeURIComponent(REVIEW_PIN)}`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Sky", exact: true }).click();
-    await page.locator('.tk-sky-finder[data-mode="browse"][data-visual-base="rendered-sky"]').waitFor({ timeout: 30_000 });
-    await page.waitForFunction(() => Number(document.querySelector('.tk-sky-finder')?.getAttribute('data-expected-stars') ?? 0) >= 8, null, { timeout: 20_000 });
-    await capture(page, "09-phone-sky-untargeted", "Normal untargeted Sky opens directly into the real rendered celestial sphere with no camera request, no selected-target card, and all 88 constellation identities available to search.", async () => {
+    await page.locator('.tk-sky-finder[data-mode="browse"][data-visual-base="rendered-sky"][data-navigation-mode="point"]').waitFor({ timeout: 30_000 });
+    await page.waitForFunction(() => window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__?.includes("orientation"), null, { timeout: 10_000 });
+    await dispatchPointing(page, 180, 35, 64);
+    await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-pointing-active') === 'true' && Number(document.querySelector('.tk-sky-finder')?.getAttribute('data-expected-stars') ?? 0) >= 8, null, { timeout: 20_000 });
+    await capture(page, "09-phone-sky-point-default", "Supported-mobile Sky immediately opens in orientation-driven Point mode over the real rendered celestial sphere; Camera remains optional and all 88 constellation identities remain searchable.", async () => {
       const state = await productState(page);
-      return state.finderMode === "browse" && state.visualBase === "rendered-sky" && state.cameraState === "off" && state.constellationIdentities === 88 && state.permissionAttempts.length === 0 && state.skyStars >= 8
-        ? `rendered browse; ${state.skyStars} catalog stars; 88 constellations; no permission request`
+      return state.finderMode === "browse" && state.navigationMode === "point" && state.pointingActive && state.visualBase === "rendered-sky" && state.cameraState === "off" && state.constellationIdentities === 88 && state.permissionAttempts.includes("orientation") && !state.permissionAttempts.includes("camera") && !state.hasSkyLayersControl && state.skyStars >= 8
+        ? `Point active; rendered Sky; Camera off; ${state.skyStars} catalog stars; 88 constellations; no Layers control`
         : "";
     });
 
+    const firstPoint = await page.locator('.tk-finder-sky-context strong').textContent();
+    await dispatchPointing(page, 225, 48, 64);
+    await page.waitForFunction((before) => document.querySelector('.tk-finder-sky-context strong')?.textContent !== before, firstPoint, { timeout: 10_000 });
+    await capture(page, "09a-phone-sky-camera-off-point", "Camera-off Point mode follows a second physical orientation fixture without changing navigation systems or requiring camera access.", async () => {
+      const state = await productState(page);
+      const secondPoint = await page.locator('.tk-finder-sky-context strong').textContent();
+      return state.navigationMode === "point" && state.pointingActive && state.cameraState === "off" && firstPoint !== secondPoint && !state.permissionAttempts.includes("camera")
+        ? `Camera off; Point moved coherently from ${firstPoint} to ${secondPoint}`
+        : "";
+    });
+
+    await page.getByRole("button", { name: "Explore sky manually" }).click();
+    await page.locator('.tk-sky-finder[data-navigation-mode="explore"]').waitFor({ timeout: 10_000 });
     const beforePan = await page.locator('.tk-finder-sky-context strong').textContent();
     await page.locator('.tk-finder-stage').dispatchEvent('pointerdown', { pointerId: 7, clientX: 280, clientY: 420 });
     await page.locator('.tk-finder-stage').dispatchEvent('pointermove', { pointerId: 7, clientX: 120, clientY: 360 });
     await page.locator('.tk-finder-stage').dispatchEvent('pointerup', { pointerId: 7, clientX: 120, clientY: 360 });
     await page.waitForTimeout(500);
-    await capture(page, "09b-phone-sky-manually-panned", "Indoor rendered Sky after a manual pan. The view changes without changing observer, date, target coordinates, or requesting protected APIs.", async () => {
+    await capture(page, "09b-phone-sky-explore", "Explicit Explore mode enables manual pan and zoom while keeping the same observer, UTC, catalogue, and rendered celestial sphere.", async () => {
       const afterPan = await page.locator('.tk-finder-sky-context strong').textContent();
-      return beforePan !== afterPan ? `manual centre moved from ${beforePan} to ${afterPan}` : "";
+      const state = await productState(page);
+      return state.navigationMode === "explore" && !state.pointingActive && beforePan !== afterPan && !state.hasSkyLayersControl
+        ? `Explore centre moved from ${beforePan} to ${afterPan}; Point pose remains available for recenter`
+        : "";
     });
+
+    const normalDensity = await productState(page);
+    await capture(page, "09p-phone-sky-normal-density", "Normal field automatically balances real catalog stars, constellation geometry, selective labels, solar-system context, and relevant deep-sky objects.", async () => {
+      const state = await productState(page);
+      return state.skyDensity === "normal" && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && !state.hasSkyLayersControl
+        ? `normal density; mag ≤ ${state.magnitudeLimit}; ${state.skyStars} stars; ${state.skyLabels + state.skyStarLabels} labels`
+        : "";
+    });
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-sky-density') === 'wide', null, { timeout: 10_000 });
+    await capture(page, "09d-phone-sky-wide-density", "Wide field automatically quiets faint stars, labels, deep-sky detail, and constellation art while retaining bright orientation context.", async () => {
+      const state = await productState(page);
+      return state.skyDensity === "wide" && state.magnitudeLimit < normalDensity.magnitudeLimit && state.skyFigures === 0 && !state.hasSkyLayersControl
+        ? `wide density; mag limit reduced ${normalDensity.magnitudeLimit} → ${state.magnitudeLimit}; rendered labels ${state.skyLabels + state.skyStarLabels}; figure art suppressed; no Layers control`
+        : "";
+    });
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-sky-density') === 'normal', null, { timeout: 10_000 });
 
     await page.getByRole("button", { name: "Search the sky" }).click();
     await page.getByRole("textbox", { name: "Search celestial objects" }).fill("Orion");
@@ -657,19 +711,23 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
       return state.searchOpen && /Orion/i.test(text) ? "compact search; Orion constellation result present" : "";
     });
     await page.locator('.tk-sky-search-results > button').filter({ hasText: "Orion" }).first().click();
-    await page.getByRole("button", { name: "Sky layers" }).click();
-    await capture(page, "09d-phone-sky-layers", "A compact Layers sheet controls catalog, constellation, Milky Way, horizon, station, and alert presentation without occupying the permanent Sky canvas.", async () => {
-      const state = await productState(page);
-      const labels = await page.locator('.tk-sky-layer-list').innerText();
-      return state.layersOpen && /Milky Way/.test(labels) && /Space stations/.test(labels) && /Constellation figures/.test(labels) ? "compact layer sheet; celestial and station layers present" : "";
-    });
-    await page.getByText("Constellation figures", { exact: true }).locator('..').getByRole('checkbox').check();
-    await page.getByRole("button", { name: "Close layers" }).click();
     await page.waitForTimeout(500);
     await capture(page, "09e-phone-sky-orion-figure", "Selected Orion uses real BSC5P stars and licensed figure lines, plus an original geometry-derived apparition anchored to the same projected endpoints.", async () => {
       const state = await productState(page);
-      return state.finderMode === "targeted" && state.skyLines > 0 && state.skyLabels > 0 && state.skyFigures > 0 ? `${state.skyStars} real stars; ${state.skyLines} real-star line segments; ${state.skyFigures} anchored figure apparition(s)` : "";
+      return state.finderMode === "targeted" && state.skyDensity === "normal" && state.skyLines > 0 && state.skyLabels > 0 && state.skyFigures === 1 && !state.hasSkyLayersControl ? `${state.skyStars} real stars; ${state.skyLines} real-star line segments; one automatically selected anchored figure apparition` : "";
     });
+
+    const orionBeforeRecenter = await productState(page);
+    await page.getByRole("button", { name: "Recenter to phone" }).click();
+    await dispatchPointing(page, 225, 48, 64);
+    await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-pointing-active') === 'true', null, { timeout: 10_000 });
+    await capture(page, "09o-phone-sky-recenter", "Recenter to phone returns immediately from Explore to Point while preserving the selected constellation, observer, UTC, and authoritative target coordinates.", async () => {
+      const state = await productState(page);
+      return state.navigationMode === "point" && state.pointingActive && state.selectedTarget === orionBeforeRecenter.selectedTarget && state.targetAltitude === orionBeforeRecenter.targetAltitude && state.targetAzimuth === orionBeforeRecenter.targetAzimuth && state.observerLatitude === orionBeforeRecenter.observerLatitude && state.observerLongitude === orionBeforeRecenter.observerLongitude
+        ? `Point restored; ${state.selectedTarget} and Alt/Az preserved; observer unchanged`
+        : "";
+    });
+    await page.getByRole("button", { name: "Explore sky manually" }).click();
 
     const captureSelectedSearchTarget = async (id, query, resultName, caption, expectedMarker) => {
       await searchSky(page, query, resultName);
@@ -703,11 +761,20 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
       null,
       { timeout: 10_000 },
     );
+    await dispatchReviewPointing(page);
     await waitForPopulatedSky(page);
     await capture(page, "09-phone-sky-camera-granted", "Fixture-driven supported-phone state after camera and orientation permission are granted. This proves the active production camera path and immediate entry, but is not physical-device AR evidence.", async () => {
       const state = await productState(page);
-      return state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && state.cameraHorizontalFov > 0 && state.cameraVerticalFov > 0 && state.targetAltitude === renderedTarget.targetAltitude && state.targetAzimuth === renderedTarget.targetAzimuth
-        ? `fixture camera visual base; target Alt/Az unchanged from rendered mode; ${state.skyStars} real stars; ${state.skyLines} figure segments; ${state.skyLabels} constellation labels; Saturn marker; effective FOV ${state.cameraHorizontalFov.toFixed(1)}° × ${state.cameraVerticalFov.toFixed(1)}°; ${state.cameraCropAxis} crop; diagnostics collapsed`
+      return state.navigationMode === "point" && state.pointingActive && state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && state.cameraHorizontalFov > 0 && state.cameraVerticalFov > 0 && state.targetAltitude === renderedTarget.targetAltitude && state.targetAzimuth === renderedTarget.targetAzimuth && state.selectedTarget === renderedTarget.selectedTarget && state.observerLatitude === renderedTarget.observerLatitude && state.observerLongitude === renderedTarget.observerLongitude
+        ? `fixture camera visual base; Point retained; target, observer and Alt/Az unchanged; ${state.skyStars} real stars; effective FOV ${state.cameraHorizontalFov.toFixed(1)}° × ${state.cameraVerticalFov.toFixed(1)}°; ${state.cameraCropAxis} crop`
+        : "";
+    });
+    await dispatchMagneticPointing(page, Number(renderedTarget.targetAzimuth) + 8, Number(renderedTarget.targetAltitude), 64);
+    await page.getByRole("button", { name: "Heading accuracy is limited" }).waitFor({ timeout: 10_000 });
+    await capture(page, "09q-phone-sky-degraded-heading", "A low-confidence magnetic-heading session keeps the celestial field usable and surfaces one small contextual accuracy indicator instead of permanent calibration chrome.", async () => {
+      const state = await productState(page);
+      return state.navigationMode === "point" && state.pointingActive && state.headingReference === "magnetic-uncorrected" && !state.aligned && !state.qualityOpen && !state.hasSkyLayersControl
+        ? "Point remains active; magnetic heading is honestly uncalibrated; compact quality indicator; no permanent diagnostic panel"
         : "";
     });
     await dispatchOffscreenPointing(page);
@@ -754,13 +821,14 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await openSaturnDetail(page, origin, "eyes");
     await page.getByRole("button", { name: "Find in Sky", exact: true }).click();
     await page.locator('.tk-sky-finder[data-visual-base="rendered-sky"]').waitFor({ timeout: 30_000 });
+    await dispatchPointing(page, 180, 35, 64);
     const before = await productState(page);
     await page.getByRole("button", { name: "Turn camera on" }).click();
     await page.getByRole("status").filter({ hasText: /Rendered Sky is still ready/i }).waitFor({ timeout: 10_000 });
     await capture(page, "09n-phone-sky-camera-denied", "A denied camera request leaves the selected Saturn target and authoritative rendered celestial field fully usable; the limitation is a brief status message rather than a blocking panel.", async () => {
       const state = await productState(page);
-      return state.cameraState === "off" && state.visualBase === "rendered-sky" && state.permissionAttempts.includes("camera") && state.skyStars >= 8 && state.targetAltitude === before.targetAltitude && state.targetAzimuth === before.targetAzimuth
-        ? `camera denied; rendered field retained; ${state.skyStars} catalog stars; target Alt/Az unchanged`
+      return state.navigationMode === "point" && state.pointingActive && state.cameraState === "off" && state.visualBase === "rendered-sky" && state.permissionAttempts.includes("camera") && state.skyStars >= 8 && state.targetAltitude === before.targetAltitude && state.targetAzimuth === before.targetAzimuth
+        ? `camera denied; Point and rendered field retained; ${state.skyStars} catalog stars; target Alt/Az unchanged`
         : "";
     });
     await context.close();
