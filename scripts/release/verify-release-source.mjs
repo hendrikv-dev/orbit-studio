@@ -3,10 +3,10 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { readSourceIdentity, validateReleaseSource } from "./source-identity.mjs";
+import { resolveReleaseReviewRun } from "./review-evidence.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, "../..");
-const reviewRoot = path.join(projectRoot, "review");
 
 async function fileExists(filePath) {
   try {
@@ -34,11 +34,12 @@ async function hasWebpScreenshot(directory) {
 }
 
 async function main() {
-  const [packageJson, reviewDocument, identity] = await Promise.all([
+  const [packageJson, identity] = await Promise.all([
     readFile(path.join(projectRoot, "package.json"), "utf8").then(JSON.parse),
-    readFile(path.join(reviewRoot, "review.json"), "utf8").then(JSON.parse),
     readSourceIdentity(projectRoot),
   ]);
+  const reviewRoot = await resolveReleaseReviewRun({ env: process.env, projectRoot });
+  const reviewDocument = await readFile(path.join(reviewRoot, "review.json"), "utf8").then(JSON.parse);
   const artifacts = {
     "review.json": true,
     "REVIEW_NOTES.md": await fileExists(path.join(reviewRoot, "REVIEW_NOTES.md")),
@@ -72,6 +73,7 @@ async function main() {
     return;
   }
 
+  console.log(`[release:verify] Evidence ${reviewRoot}`);
   console.log(
     `[release:verify] PASS ${identity.gitCommit} ${identity.sourceTreeHash} ` +
       `(${identity.trackedFileCount} tracked files)`,

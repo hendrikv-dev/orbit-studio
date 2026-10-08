@@ -2627,6 +2627,11 @@ async function main() {
     await stub(context);
     await seed(context);
     const page = await context.newPage();
+    // This is a relationship check, not a test of whatever happens to lead on
+    // the wall-clock night when the suite reaches this late section. Use the
+    // repository's shared fixture instant so the selected target remains
+    // directional and the card/wedge comparison is reproducible.
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
     await page.goto(`${TRACKER}&at=45.5,-122.7&z=9`, { waitUntil: "domcontentloaded" });
     await settled(page, 1500);
 

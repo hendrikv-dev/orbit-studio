@@ -24,53 +24,38 @@ The command builds the production application, launches an isolated Vite preview
 registered scenario in headless Chromium, writes the review package, closes Chromium and the preview
 server, and exits. It does not require an existing development server or human input.
 
-The runner holds an exclusive `.orbit-review.lock/` while it owns the shared `review/` output.
-A concurrent invocation fails before cleanup so it cannot remove or mix another run's evidence. If
-a terminated process leaves the ignored lock behind, first verify that no review process is active,
-then remove only `.orbit-review.lock/` before retrying.
+The runner holds an exclusive `.orbit-review.lock/` while it creates one append-only external run.
+A concurrent invocation fails before capture so it cannot mix evidence. If a terminated process
+leaves the ignored lock behind, first verify that no review process is active, then remove only
+`.orbit-review.lock/` before retrying.
 
 ## Review package
 
-The generated `review/` directory is intentionally ignored by Git and contains:
+Review evidence never lives in the repository. By default the runner writes to the
+`orbit-studio-reviews` sibling of the checkout; `ORBIT_REVIEW_OUTPUT_DIR` selects another external
+root. Each invocation creates a new timestamped directory rather than overwriting history:
 
 ```text
-review/
-  ATTRIBUTION.md
-  THIRD_PARTY_NOTICES.md
-  review.json
-  REVIEW_NOTES.md
-  timeline.mp4
-  timeline.csv
-  provenance/
-    inventory.json
-  screenshots/
-    startup.webp
-    explore-featured.webp
-    explore-constellations.webp
-    selected-starlink-overview.webp
-    selected-starlink-data.webp
-    display-settings.webp
-    search-jwst.webp
-    selected-jwst-overview.webp
-    selected-jwst-data.webp
-    1957.webp
-    1965.webp
-    1980.webp
-    1990.webp
-    2000.webp
-    2015.webp
-    current.webp
-    leo.webp
-    geo.webp
-    milestone-1957.webp
-    milestone-1961.webp
-    milestone-1969.webp
-    milestone-1978.webp
-    milestone-1990.webp
-    milestone-1998.webp
-    milestone-2015.webp
-    milestone-2019.webp
+../orbit-studio-reviews/
+  runs/
+    review-<UTC timestamp>/
+      ATTRIBUTION.md
+      THIRD_PARTY_NOTICES.md
+      review.json
+      REVIEW_NOTES.md
+      timeline.mp4
+      timeline.csv
+      provenance/inventory.json
+      screenshots/*.webp
 ```
+
+`npm run release:verify` uses `ORBIT_REVIEW_RUN_DIR` when it names an exact external run. Otherwise
+it deterministically selects the newest timestamped run under the same configured external root.
+The selected directory is resolved through the filesystem and rejected if it is the repository, a
+repository descendant, or a symlink back into source. Discovery does not certify the evidence: the
+existing release validator still requires the exact clean commit and source-tree digest, build and
+schema identity, complete artifacts, release-safe catalog state, passed milestone/determinism/
+population validations, matching provenance/notices, and an empty browser-diagnostics list.
 
 `review.json` is populated through the opt-in application review bridge, not OCR. Each captured state
 records the canonical simulation UTC, selected timeline UTC and year, alignment status, complete
@@ -213,7 +198,9 @@ and agree with visible runtime and renderer state. Any changed reviewed workflow
 by an updated or new deterministic scenario. A package generated before the final material change is
 stale and must not be used as completion evidence.
 
-For a release candidate, run `npm run release:verify` after `npm run review`. It rejects a repository
+For a release candidate, run `npm run release:verify` after `npm run review`, preserving the same
+`ORBIT_REVIEW_OUTPUT_DIR` when a non-default root is used, or set `ORBIT_REVIEW_RUN_DIR` to the exact
+generated run. It rejects a repository
 boundary other than the dedicated Orbit Studio root, dirty or untracked source, an unavailable or
 mismatched revision, source-digest drift, missing review artifacts, failed milestone or determinism
 validations, missing scenarios or states, browser warnings or errors, missing provenance artifacts,

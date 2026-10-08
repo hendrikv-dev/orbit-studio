@@ -122,15 +122,6 @@ function skyPhase(sunAltitudeDeg: number | null): "day" | "civil" | "twilight" |
   return "day";
 }
 
-function compactSkyTargetAppearance(target: SkyFinderTarget, marker: SkyMarkerKind): string {
-  if (marker === "sun") return "Never look directly at the Sun without certified solar equipment.";
-  if (marker === "space-station" || marker === "tiangong") return `${target.title} at its propagated position.`;
-  if (marker === "starlink-train") return "Multiple satellites following the same tracked path.";
-  if (marker === "constellation") return "Figure anchored to real catalogue stars.";
-  if (target.source.kind === "body") return `${target.title} at its current apparent position.`;
-  return target.appearance;
-}
-
 function lunarLightPath(fraction: number, waxing: boolean): string {
   const k = Math.max(-1, Math.min(1, fraction * 2 - 1));
   const control = waxing ? 16 - k * 12 : 16 + k * 12;
@@ -485,6 +476,21 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
       ? "Enable pointing to follow your phone"
       : guidance?.instruction ?? "Point your phone to explore";
   const targetMarker = selectedTarget ? skyMarkerKindForTarget(selectedTarget) : null;
+  const targetPositionLabel = targetPosition
+    ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}`
+    : "Position unavailable";
+  const targetSecondaryLabel = !aboveHorizon
+    ? nextRiseUtc
+      ? `Rises ${formatClockTime(nextRiseUtc, clock)}`
+      : "Below horizon"
+    : navigationMode === "explore"
+      ? skyTargetEquipmentLabel(selectedTarget!)
+      : targetPositionLabel;
+  const browseHint = navigationMode === "explore"
+    ? { title: "Explore the sky", detail: "Drag to look around · pinch or use zoom" }
+    : !pointActive
+      ? { title: "Point your phone around you", detail: "Rendered Sky · Camera optional" }
+      : null;
   const moonPhase = useMemo(() => lunarPhaseAt(astronomyNow), [astronomyNow]);
   const phase = skyPhase(expectedContext?.sunAltitudeDeg ?? null);
   const effectiveProjection = effectiveCameraProjection(displayProjection);
@@ -680,10 +686,9 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
         {navigationMode === "explore" && cameraPhase !== "active" ? <div className="tk-sky-zoom" onPointerDown={(event) => event.stopPropagation()}><button type="button" onClick={() => setZoom((value) => Math.min(2.8, value * 1.22))} aria-label="Zoom in"><ZoomIn size={18} aria-hidden /></button><button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.22))} aria-label="Zoom out"><ZoomOut size={18} aria-hidden /></button></div> : null}
         <div className="tk-finder-sky-context" aria-hidden><span>{navigationMode === "point" ? "Point" : "Explore"} · {expectedContext?.constellation?.name ?? "Current sky"}</span><strong>{cardinal(viewCentre.azimuthDeg)} · {Math.round(viewCentre.altitudeDeg)}°</strong></div>
         <div className="tk-finder-horizon" aria-hidden><span>{Math.round(viewCentre.azimuthDeg)}°</span><strong>{cardinal(viewCentre.azimuthDeg)}</strong></div>
-        {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : `${selectedTarget.title} is below the horizon`}</strong></span>{aboveHorizon && alignment.aligned ? <em>On target</em> : nextRiseUtc ? <em>Rises {formatClockTime(nextRiseUtc, clock)}</em> : null}</div> : <div className="tk-sky-browse-hint"><strong>{navigationMode === "point" ? "Point your phone around you" : "Explore the sky"}</strong><span>{navigationMode === "point" ? "Rendered Sky · Camera optional" : "Drag to look around · pinch or use zoom"}</span></div>}
+        {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : "Below horizon"}</strong></span><em>{targetSecondaryLabel}</em></div> : browseHint ? <div className="tk-sky-browse-hint"><strong>{browseHint.title}</strong><span>{browseHint.detail}</span></div> : null}
         {aboveHorizon && projectedTarget?.inField && selectedTarget ? <div className="tk-finder-lock" data-shape={selectedTarget.shape} data-marker={targetMarker} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><em>{alignment.aligned ? `${selectedTarget.title} is here` : selectedTarget.title}</em></div> : null}
         {aboveHorizon && edgeCue && selectedTarget ? <div className="tk-finder-edge-cue" style={{ left: `${edgeCue.xPercent}%`, top: `${edgeCue.yPercent}%` }} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><span>{guidanceTitle}</span></div> : null}
-        {selectedTarget ? <div className="tk-finder-target-card"><span><small>{targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : "Position unavailable"}</small><strong>{compactSkyTargetAppearance(selectedTarget, targetMarker!)}</strong></span><b>{aboveHorizon ? skyTargetEquipmentLabel(selectedTarget) : nextRiseUtc ? `Rises ${formatClockTime(nextRiseUtc, clock)}` : "Below horizon"}</b></div> : null}
         {message ? <p className="tk-sky-toast" role="status">{message}</p> : null}
         {diagnosticsEnabled ? <aside className="tk-finder-developer" aria-label="AR projection diagnostics"><header><strong>AR diagnostics</strong><span>Local developer view · not consumer UI</span></header><dl><div><dt>Target</dt><dd>{selectedTarget?.title ?? "None"}</dd></div><div><dt>UTC</dt><dd>{astronomyNow.toISOString()}</dd></div><div><dt>Observer</dt><dd>{observer.latitudeDeg.toFixed(5)}, {observer.longitudeDeg.toFixed(5)}</dd></div><div><dt>RA / Dec</dt><dd>{targetSolution?.equatorial ? `${targetSolution.equatorial.raHours.toFixed(5)}h / ${targetSolution.equatorial.decDeg.toFixed(4)}°` : "Not applicable"}</dd></div><div><dt>Expected Az / Alt</dt><dd>{targetPosition ? `${targetPosition.azimuthDeg.toFixed(3)}° / ${targetPosition.altitudeDeg.toFixed(3)}°` : "Unavailable"}</dd></div><div><dt>Local ENU</dt><dd>{targetSolution ? `${targetSolution.enu.east.toFixed(5)}, ${targetSolution.enu.north.toFixed(5)}, ${targetSolution.enu.up.toFixed(5)}` : "Unavailable"}</dd></div><div><dt>Device heading</dt><dd>{pointing ? `${pointing.azimuthDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Pitch / roll</dt><dd>{orientationTelemetry ? `${orientationTelemetry.betaDeg.toFixed(2)}° / ${orientationTelemetry.gammaDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Quaternion</dt><dd>{pose ? `${pose.x.toFixed(5)}, ${pose.y.toFixed(5)}, ${pose.z.toFixed(5)}, ${pose.w.toFixed(5)}` : "Manual view pose"}</dd></div><div><dt>Magnetic heading</dt><dd>{orientationTelemetry?.magneticHeadingDeg != null ? `${orientationTelemetry.magneticHeadingDeg.toFixed(2)}°` : "Unavailable"}</dd></div><div><dt>True-north correction</dt><dd>{calibration ? `${calibration.azimuthOffsetDeg.toFixed(2)}°` : "Unavailable in browser API"}</dd></div><div><dt>Screen orientation</dt><dd>{screenAngle()}°</dd></div><div><dt>Camera FOV</dt><dd>{effectiveProjection.horizontalFovDeg.toFixed(2)}° × {effectiveProjection.verticalFovDeg.toFixed(2)}°</dd></div><div><dt>Video / viewport</dt><dd>{cameraProjection.sourceWidthPx}×{cameraProjection.sourceHeightPx} / {cameraProjection.viewportWidthPx}×{cameraProjection.viewportHeightPx}</dd></div><div><dt>Crop</dt><dd>{effectiveProjection.cropAxis} · {(effectiveProjection.visibleFraction * 100).toFixed(1)}%</dd></div><div><dt>Projected X / Y</dt><dd>{projectedTarget ? `${projectedTarget.xPercent.toFixed(2)}% / ${projectedTarget.yPercent.toFixed(2)}%` : "Unavailable"}</dd></div><div><dt>Navigation</dt><dd>{navigationMode} · {pointActive ? "pose active" : "manual pose"}</dd></div><div><dt>Density</dt><dd>{density.tier} · mag ≤ {density.magnitudeLimit.toFixed(2)}</dd></div></dl></aside> : null}
       </div>

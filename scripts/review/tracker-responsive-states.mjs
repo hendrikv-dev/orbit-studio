@@ -249,7 +249,9 @@ async function productState(page) {
       selectedMarker: document.querySelector(".tk-finder-lock .tk-sky-object-glyph")?.getAttribute("data-marker") ?? null,
       diagnosticsOpen: Boolean(document.querySelector(".tk-finder-developer")),
       guidance: document.querySelector(".tk-finder-guidance strong")?.textContent?.trim() ?? null,
-      targetSummary: document.querySelector(".tk-finder-target-card")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      targetSummary: document.querySelector(".tk-finder-guidance")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      targetTreatments: document.querySelectorAll(".tk-finder-guidance, .tk-finder-target-card").length,
+      browseHint: Boolean(document.querySelector(".tk-sky-browse-hint")),
       targetAltitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-altitude") ?? null,
       targetAzimuth: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-azimuth") ?? null,
       selectedTarget: document.querySelector(".tk-sky-finder")?.getAttribute("data-selected-target") ?? null,
@@ -691,8 +693,8 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-pointing-active') === 'true' && Number(document.querySelector('.tk-sky-finder')?.getAttribute('data-expected-stars') ?? 0) >= 8, null, { timeout: 20_000 });
     await capture(page, "09-phone-sky-point-default", "Supported-mobile Sky immediately opens in orientation-driven Point mode over the real rendered celestial sphere; Camera remains optional and all 88 constellation identities remain searchable.", async () => {
       const state = await productState(page);
-      return state.finderMode === "browse" && state.navigationMode === "point" && state.pointingActive && state.visualBase === "rendered-sky" && state.cameraState === "off" && state.constellationIdentities === 88 && state.permissionAttempts.includes("orientation") && !state.permissionAttempts.includes("camera") && !state.hasSkyLayersControl && state.skyStars >= 8
-        ? `Point active; rendered Sky; Camera off; ${state.skyStars} catalog stars; 88 constellations; no Layers control`
+      return state.finderMode === "browse" && state.navigationMode === "point" && state.pointingActive && state.visualBase === "rendered-sky" && state.cameraState === "off" && state.constellationIdentities === 88 && state.permissionAttempts.includes("orientation") && !state.permissionAttempts.includes("camera") && !state.hasSkyLayersControl && !state.browseHint && state.skyStars >= 8
+        ? `Point active; rendered Sky; Camera off; ${state.skyStars} catalog stars; 88 constellations; no Layers control; settled Point tutorial hidden`
         : "";
     });
 
@@ -717,8 +719,8 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await capture(page, "09b-phone-sky-explore", "Explicit Explore mode enables manual pan and zoom while keeping the same observer, UTC, catalogue, and rendered celestial sphere.", async () => {
       const afterPan = await page.locator('.tk-finder-sky-context strong').textContent();
       const state = await productState(page);
-      return state.navigationMode === "explore" && !state.pointingActive && beforePan !== afterPan && !state.hasSkyLayersControl
-        ? `Explore centre moved from ${beforePan} to ${afterPan}; Point pose remains available for recenter`
+      return state.navigationMode === "explore" && !state.pointingActive && beforePan !== afterPan && !state.hasSkyLayersControl && state.browseHint
+        ? `Explore centre moved from ${beforePan} to ${afterPan}; compact manual hint visible; Point pose remains available for recenter`
         : "";
     });
 
@@ -801,10 +803,12 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     };
     await captureSelectedSearchTarget("09j-phone-sky-neptune", "Neptune", "Neptune", "The selected Neptune proves the shared outer-planet path used for Uranus, Neptune, and Pluto.", "neptune");
     await captureSelectedSearchTarget("09j2-phone-sky-saturn", "Saturn", "Saturn", "The selected Saturn is a compact rendered sphere with an unmistakable ring silhouette, not a generic planet glyph.", "saturn");
-    await capture(page, "09r-phone-sky-selected-compact", "Selected-object context remains a compact lower-corner treatment so the celestial field retains most of the phone viewport.", async () => {
+    await capture(page, "09r-phone-sky-selected-compact", "Selected-object identity, guidance, direction and capability share one compact treatment; the redundant lower target panel is absent.", async () => {
       const state = await productState(page);
-      const ratio = await page.locator(".tk-finder-target-card").evaluate((node) => node.getBoundingClientRect().width / window.innerWidth);
-      return state.selectedMarker === "saturn" && ratio <= 0.75 ? `Saturn selected; target summary uses ${(ratio * 100).toFixed(1)}% of viewport width` : "";
+      const ratio = await page.locator(".tk-finder-guidance").evaluate((node) => node.getBoundingClientRect().width / window.innerWidth);
+      return state.selectedMarker === "saturn" && state.targetTreatments === 1 && ratio <= 0.8 && !await page.locator(".tk-finder-target-card").count()
+        ? `Saturn selected; one target treatment uses ${(ratio * 100).toFixed(1)}% of viewport width; no duplicate lower panel`
+        : "";
     });
     for (const station of [
       { id: "09k-phone-sky-iss", query: "ISS", name: "ISS", marker: "space-station", caption: "The selected ISS comes from the current station ephemeris pipeline and uses a crewed-station silhouette distinct from ordinary satellites." },

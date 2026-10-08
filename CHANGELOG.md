@@ -6,6 +6,23 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Pre-split baseline cleanup
+- **Release verification now follows the external evidence boundary.** The production review already
+  wrote append-only runs outside the repository, but the final verifier still looked for a retired
+  `review/review.json` inside source. It now accepts an exact external run through
+  `ORBIT_REVIEW_RUN_DIR`, or deterministically selects the newest run beneath the configured external
+  review root, then applies the unchanged source, artifact, catalog, determinism, population,
+  provenance, and diagnostics checks. Repository-local paths and symlinks back into source fail.
+- **Sky gives the celestial field more room without changing behavior.** The selected target now has
+  one compact identity/guidance/direction treatment instead of a second lower summary panel, the
+  Point tutorial recedes after orientation is active, and the existing navigation and tool controls
+  are slightly smaller. Point remains the supported-mobile default, Explore/Recenter and optional
+  Camera are unchanged, and no celestial Layers control was added.
+- **The browser baseline no longer changes with the executor's wall clock.** The Map card/bearing
+  agreement scenario now uses the repository's shared fixed fixture instant, so it continues to test
+  that one direction authority drives both visible surfaces without depending on which target leads
+  the real night when a long suite reaches that section.
+
 ### Tracker: any date, and where to go to see an eclipse
 - **Tracker shows any night, through the same page.** `planNight` always took a
   `Date` and never cared which one — only the interface was locked to tonight.

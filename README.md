@@ -61,12 +61,15 @@ npm run review
 ```
 
 This builds and launches the production app, executes the standardized Explorer walkthrough, and
-writes machine-readable state, WebP screenshots, review notes, a synchronized timeline CSV, and a short timeline MP4 to
-`review/`. See [`docs/UX_REVIEW_PIPELINE.md`](docs/UX_REVIEW_PIPELINE.md) for prerequisites, the
-artifact contract, and scenario extension guidance.
+writes machine-readable state, WebP screenshots, review notes, a synchronized timeline CSV, and a
+short timeline MP4 to a new append-only run outside the repository. See
+[`docs/UX_REVIEW_PIPELINE.md`](docs/UX_REVIEW_PIPELINE.md) for the external output location,
+prerequisites, artifact contract, and scenario extension guidance.
 
-For a committed release candidate, verify that the review package was generated from the clean
-authoritative source revision:
+For a committed release candidate, verify that an external review package was generated from the
+clean authoritative source revision. Set `ORBIT_REVIEW_RUN_DIR` to an exact run when the evidence
+must be pinned; otherwise the verifier selects the newest run beneath the configured external review
+root:
 
 ```sh
 npm run release:verify
