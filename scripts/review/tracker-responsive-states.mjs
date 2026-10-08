@@ -236,7 +236,11 @@ async function productState(page) {
       skyLabels: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-labels") ?? 0),
       skyObjects: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-expected-objects") ?? 0),
       constellationIdentities: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-constellation-identities") ?? 0),
-      skyFigures: document.querySelectorAll(".tk-finder-constellation-figures polygon").length,
+      skyFigures: document.querySelectorAll(".tk-finder-constellation-figures path[data-primary='true']").length,
+      skyFigureConstellations: [...new Set([...document.querySelectorAll(".tk-finder-constellation-figures path[data-constellation]")].map((node) => node.getAttribute("data-constellation")))],
+      milkyWaySamples: Number(document.querySelector(".tk-finder-milky-way-texture")?.getAttribute("data-sample-count") ?? 0),
+      milkyWayDrawnCells: Number(document.querySelector(".tk-finder-milky-way-texture")?.getAttribute("data-drawn-cells") ?? 0),
+      milkyWayRenderMs: Number(document.querySelector(".tk-finder-milky-way-texture")?.getAttribute("data-render-ms") ?? 0),
       skyStarLabels: document.querySelectorAll(".tk-finder-star small").length,
       searchOpen: Boolean(document.querySelector(".tk-sky-search")),
       alertsOpen: Boolean(document.querySelector(".tk-sky-alert-settings")),
@@ -249,12 +253,14 @@ async function productState(page) {
       targetAltitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-altitude") ?? null,
       targetAzimuth: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-azimuth") ?? null,
       selectedTarget: document.querySelector(".tk-sky-finder")?.getAttribute("data-selected-target") ?? null,
+      targetRecommendedAt: document.querySelector(".tk-sky-finder")?.getAttribute("data-target-recommended-at") ?? null,
       observerLatitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-observer-latitude") ?? null,
       observerLongitude: document.querySelector(".tk-sky-finder")?.getAttribute("data-observer-longitude") ?? null,
       astronomyUtc: document.querySelector(".tk-sky-finder")?.getAttribute("data-astronomy-utc") ?? null,
       viewing: document.querySelector(".tk-equipment-trigger")?.getAttribute("aria-label") ?? null,
       telescopeGuidance: document.querySelector(".tk-telescope-guidance")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       edgeCues: document.querySelectorAll(".tk-finder-edge-cue").length,
+      starlinkTrailNodes: document.querySelectorAll(".tk-finder-starlink-trail circle").length,
       developerDiagnostics: document.querySelector(".tk-finder-developer")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       cameraHorizontalFov: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-camera-horizontal-fov") ?? 0),
       cameraVerticalFov: Number(document.querySelector(".tk-sky-finder")?.getAttribute("data-camera-vertical-fov") ?? 0),
@@ -429,7 +435,7 @@ async function waitForPopulatedSky(page) {
       const finder = document.querySelector(".tk-sky-finder");
       return Number(finder?.getAttribute("data-expected-stars") ?? 0) >= 8 &&
         Number(finder?.getAttribute("data-expected-lines") ?? 0) > 0 &&
-        Number(finder?.getAttribute("data-expected-labels") ?? 0) > 0 &&
+        (Number(finder?.getAttribute("data-expected-labels") ?? 0) + finder?.querySelectorAll(".tk-finder-star small").length) > 0 &&
         finder?.querySelector(".tk-finder-lock .tk-sky-object-glyph[data-marker='saturn']");
     },
     null,
@@ -443,6 +449,17 @@ async function searchSky(page, query, resultName = query) {
   await field.fill(query);
   await page.locator(".tk-sky-search-results > button").filter({ hasText: resultName }).first().click();
   await page.waitForTimeout(500);
+}
+
+async function openExploreSkyAtCurrentClock(page, origin) {
+  await page.goto(`${origin}/?app=tracker&mode=tonight&at=${encodeURIComponent(REVIEW_PIN)}&z=8&pin=${encodeURIComponent(REVIEW_PIN)}`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Sky", exact: true }).click();
+  await page.locator('.tk-sky-finder[data-mode="browse"][data-navigation-mode="point"]').waitFor({ timeout: 30_000 });
+  await page.waitForFunction(() => window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__?.includes("orientation"), null, { timeout: 10_000 });
+  await dispatchPointing(page, 180, 35, 64);
+  await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-pointing-active') === 'true', null, { timeout: 10_000 });
+  await page.getByRole("button", { name: "Explore sky manually" }).click();
+  await page.locator('.tk-sky-finder[data-navigation-mode="explore"]').waitFor({ timeout: 10_000 });
 }
 
 async function dispatchAlignedPointing(page) {
@@ -513,6 +530,29 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
   const capture = makeCapture({ shots, problems, wanted, shotsDir });
   const wantsAny = (...ids) => !wanted || ids.some((id) => wanted.has(id));
 
+  const captureRenderedBodyGroup = async (clock, entries) => {
+    const { context, page } = await openDevice(browser, "phone", { width: 390, height: 844 }, { clock });
+    await gotoMap(page, origin);
+    await page.getByRole("button", { name: "Sky", exact: true }).click();
+    await page.locator('.tk-sky-finder[data-mode="browse"][data-navigation-mode="point"]').waitFor({ timeout: 30_000 });
+    await page.waitForFunction(() => window.__ORBIT_FINDER_PERMISSION_ATTEMPTS__?.includes("orientation"), null, { timeout: 10_000 });
+    await dispatchPointing(page, 180, 35, 64);
+    await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-pointing-active') === 'true', null, { timeout: 10_000 });
+    await page.getByRole("button", { name: "Explore sky manually" }).click();
+    for (const entry of entries) {
+      await searchSky(page, entry.query, entry.name);
+      await page.waitForFunction((marker) => document.querySelector(".tk-finder-lock .tk-sky-object-glyph")?.getAttribute("data-marker") === marker, entry.marker, { timeout: 10_000 });
+      await page.waitForTimeout(350);
+      await capture(page, entry.id, entry.caption, async () => {
+        const state = await productState(page);
+        return state.selectedMarker === entry.marker && state.targetLocks === 1 && state.milkyWaySamples > 100
+          ? `${entry.name} rendered at its real above-horizon ephemeris position; ${state.milkyWaySamples} celestial background samples; one target lock`
+          : "";
+      });
+    }
+    await context.close();
+  };
+
   if (wantsAny("01-desktop-map-2d", "02-desktop-map-3d", "03-desktop-tonight-no-sky", "04-desktop-object-detail")) {
     console.log("\nDesktop capability boundary");
     const { context, page } = await openDevice(browser, "desktop", { width: 1440, height: 900 });
@@ -562,14 +602,13 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     "09p-phone-sky-normal-density",
     "09o-phone-sky-recenter",
     "09e-phone-sky-orion-figure",
-    "09f-phone-sky-sun",
-    "09g-phone-sky-moon",
-    "09h-phone-sky-venus",
-    "09i-phone-sky-jupiter",
+    "09e2-phone-sky-aquarius-figure",
     "09j-phone-sky-neptune",
+    "09j2-phone-sky-saturn",
     "09k-phone-sky-iss",
     "09l-phone-sky-tiangong",
     "09m-phone-sky-starlink-train",
+    "09r-phone-sky-selected-compact",
     "09-phone-sky-camera-granted",
     "09q-phone-sky-degraded-heading",
     "09a-phone-sky-target-offscreen",
@@ -686,7 +725,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     const normalDensity = await productState(page);
     await capture(page, "09p-phone-sky-normal-density", "Normal field automatically balances real catalog stars, constellation geometry, selective labels, solar-system context, and relevant deep-sky objects.", async () => {
       const state = await productState(page);
-      return state.skyDensity === "normal" && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && !state.hasSkyLayersControl
+      return state.skyDensity === "normal" && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels + state.skyStarLabels > 0 && !state.hasSkyLayersControl
         ? `normal density; mag ≤ ${state.magnitudeLimit}; ${state.skyStars} stars; ${state.skyLabels + state.skyStarLabels} labels`
         : "";
     });
@@ -695,14 +734,19 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-sky-density') === 'wide', null, { timeout: 10_000 });
     await capture(page, "09d-phone-sky-wide-density", "Wide field automatically quiets faint stars, labels, deep-sky detail, and constellation art while retaining bright orientation context.", async () => {
       const state = await productState(page);
-      return state.skyDensity === "wide" && state.magnitudeLimit < normalDensity.magnitudeLimit && state.skyFigures === 0 && !state.hasSkyLayersControl
-        ? `wide density; mag limit reduced ${normalDensity.magnitudeLimit} → ${state.magnitudeLimit}; rendered labels ${state.skyLabels + state.skyStarLabels}; figure art suppressed; no Layers control`
+      return state.skyDensity === "wide" && state.magnitudeLimit < normalDensity.magnitudeLimit && state.skyFigures === 0 && state.milkyWaySamples > 100 && state.milkyWayDrawnCells > 0 && state.milkyWayRenderMs > 0 && !state.hasSkyLayersControl
+        ? `wide density; ${state.milkyWaySamples} NASA SVS samples, ${state.milkyWayDrawnCells} visible cells drawn in ${state.milkyWayRenderMs.toFixed(2)} ms; mag limit reduced ${normalDensity.magnitudeLimit} → ${state.magnitudeLimit}; figure art suppressed; no Layers control`
         : "";
     });
     await page.getByRole("button", { name: "Zoom in" }).click();
     await page.getByRole("button", { name: "Zoom in" }).click();
     await page.waitForFunction(() => document.querySelector('.tk-sky-finder')?.getAttribute('data-sky-density') === 'normal', null, { timeout: 10_000 });
 
+    // Use a real instant when the full hunter and water-bearer figures are
+    // above Portland's horizon. The artwork still resolves from the same
+    // BSC5P anchors; the clock only makes the requested visual evidence honest.
+    await page.clock.setFixedTime(new Date("2026-12-15T06:00:00.000Z"));
+    await openExploreSkyAtCurrentClock(page, origin);
     await page.getByRole("button", { name: "Search the sky" }).click();
     await page.getByRole("textbox", { name: "Search celestial objects" }).fill("Orion");
     await capture(page, "09c-phone-sky-search", "Sky search reaches planets, named stars, all 88 constellations, deep-sky showpieces, and current station/event entries from one compact overlay.", async () => {
@@ -714,7 +758,18 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.waitForTimeout(500);
     await capture(page, "09e-phone-sky-orion-figure", "Selected Orion uses real BSC5P stars and licensed figure lines, plus an original geometry-derived apparition anchored to the same projected endpoints.", async () => {
       const state = await productState(page);
-      return state.finderMode === "targeted" && state.skyDensity === "normal" && state.skyLines > 0 && state.skyLabels > 0 && state.skyFigures === 1 && !state.hasSkyLayersControl ? `${state.skyStars} real stars; ${state.skyLines} real-star line segments; one automatically selected anchored figure apparition` : "";
+      return state.finderMode === "targeted" && state.skyDensity === "normal" && state.skyLines > 0 && state.skyLabels + state.skyStarLabels > 0 && state.skyFigures >= 4 && state.skyFigureConstellations.includes("Ori") && !state.hasSkyLayersControl ? `${state.skyStars} real stars; ${state.skyLines} real-star line segments; ${state.skyFigures} original Orion paths on real BSC5P anchors` : "";
+    });
+
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await openExploreSkyAtCurrentClock(page, origin);
+    await searchSky(page, "Aquarius", "Aquarius");
+    await page.waitForTimeout(500);
+    await capture(page, "09e2-phone-sky-aquarius-figure", "Selected Aquarius proves the original constellation-art system is reusable: its water bearer and stream use a second reviewed public-domain visual reference while remaining attached to real BSC5P geometry.", async () => {
+      const state = await productState(page);
+      return state.finderMode === "targeted" && state.skyDensity === "normal" && state.skyFigures >= 4 && state.skyFigureConstellations.includes("Aqr") && !state.hasSkyLayersControl
+        ? `${state.skyFigures} original Aquarius paths on real BSC5P anchors; automatic density; no Layers control`
+        : "";
     });
 
     const orionBeforeRecenter = await productState(page);
@@ -729,6 +784,9 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     });
     await page.getByRole("button", { name: "Explore sky manually" }).click();
 
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await openExploreSkyAtCurrentClock(page, origin);
+
     const captureSelectedSearchTarget = async (id, query, resultName, caption, expectedMarker) => {
       await searchSky(page, query, resultName);
       await capture(page, id, caption, async () => {
@@ -741,18 +799,64 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
           : "";
       });
     };
-    await captureSelectedSearchTarget("09f-phone-sky-sun", "Sun", "Sun", "The selected Sun is presented as a dedicated solar disc at its ephemeris position, not a generic marker; safety copy remains attached to the target.", "sun");
-    await captureSelectedSearchTarget("09g-phone-sky-moon", "Moon", "Moon", "The selected Moon uses a phase-aware lunar marker backed by current Astronomy Engine illumination.", "moon");
-    await captureSelectedSearchTarget("09h-phone-sky-venus", "Venus", "Venus", "The selected Venus is shown in the real celestial field with a distinct bright-planet treatment.", "venus");
-    await captureSelectedSearchTarget("09i-phone-sky-jupiter", "Jupiter", "Jupiter", "The selected Jupiter uses a compact banded marker distinct from catalog stars.", "jupiter");
     await captureSelectedSearchTarget("09j-phone-sky-neptune", "Neptune", "Neptune", "The selected Neptune proves the shared outer-planet path used for Uranus, Neptune, and Pluto.", "neptune");
-    await captureSelectedSearchTarget("09k-phone-sky-iss", "ISS", "ISS", "The selected ISS comes from the current station ephemeris pipeline and remains visually distinct from ordinary stars.", "satellite");
-    await captureSelectedSearchTarget("09l-phone-sky-tiangong", "Tiangong", "Tiangong", "The selected Tiangong is propagated through the extensible crewed-station collection rather than a decorative or hard-coded screen position.", "satellite");
-    await captureSelectedSearchTarget("09m-phone-sky-starlink-train", "Starlink train", "Starlink train", "The selected qualified post-deployment Starlink train fixture is a discrete event; dispersed routine Starlink objects are not loaded into the normal Sky field.", "satellite");
+    await captureSelectedSearchTarget("09j2-phone-sky-saturn", "Saturn", "Saturn", "The selected Saturn is a compact rendered sphere with an unmistakable ring silhouette, not a generic planet glyph.", "saturn");
+    await capture(page, "09r-phone-sky-selected-compact", "Selected-object context remains a compact lower-corner treatment so the celestial field retains most of the phone viewport.", async () => {
+      const state = await productState(page);
+      const ratio = await page.locator(".tk-finder-target-card").evaluate((node) => node.getBoundingClientRect().width / window.innerWidth);
+      return state.selectedMarker === "saturn" && ratio <= 0.75 ? `Saturn selected; target summary uses ${(ratio * 100).toFixed(1)}% of viewport width` : "";
+    });
+    for (const station of [
+      { id: "09k-phone-sky-iss", query: "ISS", name: "ISS", marker: "space-station", caption: "The selected ISS comes from the current station ephemeris pipeline and uses a crewed-station silhouette distinct from ordinary satellites." },
+      { id: "09l-phone-sky-tiangong", query: "Tiangong", name: "Tiangong", marker: "tiangong", caption: "The selected Tiangong is propagated through the extensible crewed-station collection and uses its own modular-station silhouette." },
+    ]) {
+      await searchSky(page, station.query, station.name);
+      const recommended = await page.locator(".tk-sky-finder").getAttribute("data-target-recommended-at");
+      if (recommended) {
+        await page.clock.setFixedTime(new Date(recommended));
+        // Reload at the production pipeline's own next-pass instant. Starting
+        // the app at that clock is both faster and more faithful than forcing
+        // an internal React timer to observe an out-of-band clock mutation.
+        await openExploreSkyAtCurrentClock(page, origin);
+        await searchSky(page, station.query, station.name);
+      }
+      await page.waitForFunction((marker) => document.querySelector(".tk-finder-lock .tk-sky-object-glyph")?.getAttribute("data-marker") === marker, station.marker, { timeout: 10_000 });
+      await capture(page, station.id, station.caption, async () => {
+        const state = await productState(page);
+        return state.selectedMarker === station.marker && state.targetLocks === 1
+          ? `${station.name} at its propagated pass instant; ${station.marker} silhouette; one target lock`
+          : "";
+      });
+    }
+    await page.clock.setFixedTime(SATELLITE_CLOCK);
+    await openExploreSkyAtCurrentClock(page, origin);
+    await searchSky(page, "Starlink train", "Starlink train");
+    const trainRecommended = await page.locator(".tk-sky-finder").getAttribute("data-target-recommended-at");
+    if (trainRecommended) {
+      await page.clock.setFixedTime(new Date(trainRecommended));
+      await openExploreSkyAtCurrentClock(page, origin);
+      await searchSky(page, "Starlink train", "Starlink train");
+    }
+    await page.waitForTimeout(500);
+    await capture(page, "09m-phone-sky-starlink-train", "The selected qualified Starlink-train event uses its real sampled path to render a clustered sequence and direction; dispersed routine traffic remains absent.", async () => {
+      const state = await productState(page);
+      return state.starlinkTrailNodes >= 3 && state.navigationMode === "explore"
+        ? `${state.starlinkTrailNodes} nodes from the event's real sampled path; clustered direction visible; ordinary traffic absent`
+        : "";
+    });
 
-    await openSaturnDetail(page, origin, "telescope");
+    if (wantsAny(
+      "09-phone-sky-camera-granted",
+      "09q-phone-sky-degraded-heading",
+      "09a-phone-sky-target-offscreen",
+      "10-phone-sky-guiding",
+      "10a-phone-sky-almost-aligned",
+      "11-phone-sky-aligned",
+    )) {
+      await page.clock.setFixedTime(SATELLITE_CLOCK);
+      await openSaturnDetail(page, origin, "telescope");
 
-    await page.getByRole("button", { name: "Find in Sky", exact: true }).click();
+      await page.getByRole("button", { name: "Find in Sky", exact: true }).click();
     await page.locator(".tk-sky-finder").waitFor({ timeout: 30_000 });
     const renderedTarget = await productState(page);
     await page.getByRole("button", { name: "Turn camera on" }).click();
@@ -765,7 +869,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await waitForPopulatedSky(page);
     await capture(page, "09-phone-sky-camera-granted", "Fixture-driven supported-phone state after camera and orientation permission are granted. This proves the active production camera path and immediate entry, but is not physical-device AR evidence.", async () => {
       const state = await productState(page);
-      return state.navigationMode === "point" && state.pointingActive && state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && state.cameraHorizontalFov > 0 && state.cameraVerticalFov > 0 && state.targetAltitude === renderedTarget.targetAltitude && state.targetAzimuth === renderedTarget.targetAzimuth && state.selectedTarget === renderedTarget.selectedTarget && state.observerLatitude === renderedTarget.observerLatitude && state.observerLongitude === renderedTarget.observerLongitude
+      return state.navigationMode === "point" && state.pointingActive && state.cameraState === "active" && state.visualBase === "camera" && state.permissionAttempts.includes("camera") && state.permissionAttempts.includes("orientation") && !state.diagnosticsOpen && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels + state.skyStarLabels > 0 && state.selectedMarker === "saturn" && state.cameraHorizontalFov > 0 && state.cameraVerticalFov > 0 && state.targetAltitude === renderedTarget.targetAltitude && state.targetAzimuth === renderedTarget.targetAzimuth && state.selectedTarget === renderedTarget.selectedTarget && state.observerLatitude === renderedTarget.observerLatitude && state.observerLongitude === renderedTarget.observerLongitude
         ? `fixture camera visual base; Point retained; target, observer and Alt/Az unchanged; ${state.skyStars} real stars; effective FOV ${state.cameraHorizontalFov.toFixed(1)}° × ${state.cameraVerticalFov.toFixed(1)}°; ${state.cameraCropAxis} crop`
         : "";
     });
@@ -790,7 +894,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.waitForTimeout(500);
     await capture(page, "10-phone-sky-guiding", "Fixture-driven supported-phone Sky actively guiding with one coherent target lock and the production movement cue. This is deterministic interaction evidence, not physical sensor validation.", async () => {
       const state = await productState(page);
-      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && !state.diagnosticsOpen && state.targetLocks === 1 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && /move|raise|lower|almost/i.test(state.guidance ?? "")
+      return state.mapState === "finder" && state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && !state.diagnosticsOpen && state.targetLocks === 1 && state.skyLines > 0 && state.skyLabels + state.skyStarLabels > 0 && state.selectedMarker === "saturn" && /move|raise|lower|almost/i.test(state.guidance ?? "")
         ? `live ${state.finderMode}; camera active; ${state.skyStars} real stars; constellation figures labelled; one Saturn target lock; cue "${state.guidance}"`
         : "";
     });
@@ -806,13 +910,30 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await dispatchAlignedPointing(page);
     await waitForPopulatedSky(page);
     await page.waitForTimeout(500);
-    await capture(page, "11-phone-sky-aligned", "Fixture-driven supported-phone Sky aligned on target with the same single target lock transitioned into its on-target state.", async () => {
+      await capture(page, "11-phone-sky-aligned", "Fixture-driven supported-phone Sky aligned on target with the same single target lock transitioned into its on-target state.", async () => {
       const state = await productState(page);
       return state.aligned && state.cameraState === "active" && state.targetLocks === 1 && state.selectedMarker === "saturn" && state.skyLines > 0 && /is here/i.test(state.guidance ?? "")
         ? `aligned; camera active; one Saturn target lock; populated real sky; cue "${state.guidance}"`
         : "";
-    });
+      });
+    }
     await context.close();
+  }
+
+  if (wantsAny("09f-phone-sky-sun", "09h-phone-sky-venus")) {
+    console.log("\nSupported phone · daylight bodies at real above-horizon positions");
+    await captureRenderedBodyGroup(new Date("2026-10-05T21:00:00Z"), [
+      { id: "09f-phone-sky-sun", query: "Sun", name: "Sun", marker: "sun", caption: "The Sun is a localized luminous solar body at its real projected position; the target summary retains certified-filter safety guidance." },
+      { id: "09h-phone-sky-venus", query: "Venus", name: "Venus", marker: "venus", caption: "Venus is a compact cloud-textured bright body at its real above-horizon ephemeris position, not a placeholder glyph." },
+    ]);
+  }
+
+  if (wantsAny("09g-phone-sky-moon", "09i-phone-sky-jupiter")) {
+    console.log("\nSupported phone · Moon and Jupiter at real above-horizon positions");
+    await captureRenderedBodyGroup(new Date("2026-10-05T17:00:00Z"), [
+      { id: "09g-phone-sky-moon", query: "Moon", name: "Moon", marker: "moon", caption: "The Moon uses the inventoried NASA LRO surface texture, current illumination fraction, and correct waxing/waning light side at its real ephemeris position." },
+      { id: "09i-phone-sky-jupiter", query: "Jupiter", name: "Jupiter", marker: "jupiter", caption: "Jupiter is a compact rendered disc with belts and a restrained Great Red Spot treatment at its real ephemeris position." },
+    ]);
   }
 
   if (wantsAny("09n-phone-sky-camera-denied")) {
@@ -941,7 +1062,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
     await page.waitForTimeout(500);
     await capture(page, "14-tablet-sky-guiding", "Fixture-driven supported-tablet Sky is live guidance, not a desktop-style preview; camera permission is granted and one target lock carries the deterministic movement cue.", async () => {
       const state = await productState(page);
-      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && state.targetLocks === 1 && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels > 0 && state.selectedMarker === "saturn" && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
+      return state.finderDeviceClass === "handheld" && state.finderMode !== "preview" && state.cameraState === "active" && state.targetLocks === 1 && state.skyStars >= 8 && state.skyLines > 0 && state.skyLabels + state.skyStarLabels > 0 && state.selectedMarker === "saturn" && !state.diagnosticsOpen && /move|raise|lower|almost|on target/i.test(state.guidance ?? "")
         ? `live ${state.finderMode}; camera active; populated and labelled real sky; one Saturn target lock; cue "${state.guidance}"`
         : "";
     });

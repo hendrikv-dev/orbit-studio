@@ -20545,3 +20545,221 @@ button.primary,
   }
   .tk-map-shell[data-map-state="map"] .tk-date-field span { font-size: 0.64rem; }
 }
+
+/* ================================================= Celestial rendering 2026-10
+   One real celestial field: NASA surface brightness below BSC5P stars, original
+   figure art on catalogue anchors, and compact rendered bodies above both. */
+.tk-finder-milky-way-texture {
+  position: absolute;
+  inset: -5px;
+  z-index: 3;
+  width: calc(100% + 10px);
+  height: calc(100% + 10px);
+  opacity: 0.48;
+  filter: blur(1.2px) brightness(1.22) saturate(0.76) contrast(1.08);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.tk-sky-explorer[data-camera="active"] .tk-finder-milky-way-texture { opacity: 0.28; }
+.tk-sky-explorer[data-sky-phase="twilight"] .tk-finder-milky-way-texture { opacity: 0.34; }
+.tk-sky-explorer[data-sky-phase="civil"] .tk-finder-milky-way-texture,
+.tk-sky-explorer[data-sky-phase="day"] .tk-finder-milky-way-texture { opacity: 0.1; }
+.tk-sky-explorer .tk-finder-expected-field { z-index: 4; }
+
+.tk-finder-constellation-figures path {
+  fill: none;
+  stroke: rgba(191, 208, 249, 0.34);
+  stroke-width: 0.34;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.tk-finder-constellation-figures path[data-role="wash"] {
+  fill: rgba(117, 139, 201, 0.14);
+  stroke: rgba(170, 192, 241, 0.22);
+  stroke-width: 0.25;
+}
+.tk-finder-constellation-figures path[data-role="outline"] {
+  stroke: rgba(218, 226, 248, 0.58);
+  stroke-width: 0.52;
+  filter: drop-shadow(0 0 3px rgba(137, 166, 234, 0.32));
+}
+.tk-finder-constellation-figures path[data-role="detail"] { stroke: rgba(174, 195, 239, 0.33); stroke-width: 0.31; }
+.tk-finder-constellation-figures path[data-role="accent"] { stroke: rgba(224, 230, 247, 0.62); stroke-width: 0.48; }
+.tk-sky-explorer .tk-finder-constellation-lines line { stroke: rgba(114, 143, 205, 0.22); stroke-width: 0.34; }
+.tk-sky-explorer .tk-finder-constellation-lines line[data-primary="true"] { stroke: rgba(169, 193, 241, 0.6); stroke-width: 0.5; }
+.tk-sky-explorer .tk-finder-constellation-labels text {
+  fill: rgba(160, 179, 219, 0.7);
+  font: 480 1.55px/1 var(--tk-body);
+  letter-spacing: 0.08em;
+  text-transform: none;
+  stroke: rgba(2, 5, 12, 0.92);
+  stroke-width: 0.34;
+}
+.tk-sky-explorer .tk-finder-constellation-labels text[data-primary="true"] {
+  fill: rgba(230, 235, 249, 0.95);
+  font-size: 1.9px;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+}
+.tk-sky-explorer .tk-finder-constellation-label {
+  position: absolute;
+  z-index: 2;
+  color: rgba(160, 179, 219, 0.72);
+  font: 520 0.62rem/1 var(--tk-body);
+  letter-spacing: 0.07em;
+  text-shadow: 0 1px 5px rgba(2, 5, 12, 0.98), 0 0 10px rgba(2, 5, 12, 0.9);
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tk-sky-explorer .tk-finder-star > i {
+  position: relative;
+  background: radial-gradient(circle, #fff 0 18%, var(--star-color) 38% 67%, transparent 72%);
+  box-shadow: 0 0 calc(var(--star-size) * 1.7) color-mix(in srgb, var(--star-color) 58%, transparent);
+  opacity: var(--star-opacity);
+}
+.tk-sky-explorer .tk-finder-star[data-brightness="bright"] > i,
+.tk-sky-explorer .tk-finder-star[data-brightness="beacon"] > i {
+  box-shadow:
+    0 0 calc(var(--star-size) * 1.1) #fff,
+    0 0 calc(var(--star-size) * 3.6) color-mix(in srgb, var(--star-color) 68%, transparent);
+}
+.tk-sky-explorer .tk-finder-star[data-brightness="beacon"] > i::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: calc(var(--star-size) * 4.2);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--star-color) 72%, transparent), transparent);
+  transform: translate(-50%, -50%) rotate(-18deg);
+  opacity: 0.48;
+}
+.tk-sky-explorer .tk-finder-star > small {
+  left: calc(100% + 5px);
+  top: -6px;
+  color: rgba(219, 228, 245, 0.78);
+  font: 470 0.56rem/1 var(--tk-body);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 5px #02050b, 0 0 8px #02050b;
+}
+
+.tk-sky-object-glyph svg { fill: none; stroke-width: 1.15; }
+.tk-sky-object-glyph .solar-atmosphere { fill: rgba(255, 190, 70, 0.09); stroke: rgba(255, 207, 114, 0.08); }
+.tk-sky-object-glyph .solar-corona { fill: rgba(255, 194, 73, 0.18); stroke: rgba(255, 219, 138, 0.2); stroke-width: 2.2; }
+.tk-sky-object-glyph .solar-disc { fill: #ffd36f; stroke: #fff1bd; stroke-width: 0.7; }
+.tk-sky-object-glyph .solar-faculae { fill: rgba(144, 73, 13, 0.28); stroke: rgba(255, 245, 191, 0.18); stroke-width: 0.18; }
+.tk-sky-object-glyph[data-marker="sun"] { filter: drop-shadow(0 0 5px #ffd36f) drop-shadow(0 0 13px rgba(255, 185, 63, 0.66)); }
+.tk-sky-object-glyph .moon-night { fill: #06080d; stroke: rgba(220, 229, 247, 0.35); stroke-width: 0.6; }
+.tk-sky-object-glyph .moon-texture { opacity: 1; filter: grayscale(0.28) contrast(1.08) brightness(1.08); }
+.tk-sky-object-glyph .moon-texture-muted { opacity: 0.18; filter: grayscale(1) brightness(0.44); }
+.tk-sky-object-glyph .moon-lit-base { fill: #e8e7dc; stroke: none; }
+.tk-sky-object-glyph .moon-rim { fill: none; stroke: rgba(247, 248, 240, 0.75); stroke-width: 0.6; }
+.tk-sky-object-glyph[data-marker="moon"] { filter: drop-shadow(0 0 6px rgba(216, 228, 255, 0.52)); }
+
+.tk-sky-object-glyph .saturn-ring-back { fill: rgba(205, 181, 126, 0.18); stroke: #cdbb8f; stroke-width: 1.8; }
+.tk-sky-object-glyph .saturn-disc { fill: #d8c28f; stroke: #f0dfb6; stroke-width: 0.65; }
+.tk-sky-object-glyph .saturn-band { fill: none; stroke: rgba(75, 58, 34, 0.55); stroke-width: 0.7; }
+.tk-sky-object-glyph .saturn-ring-front { fill: none; stroke: #ead9ac; stroke-width: 1.55; }
+.tk-sky-object-glyph .jupiter-disc { fill: #cba47c; stroke: #f0d8b7; stroke-width: 0.6; }
+.tk-sky-object-glyph .jupiter-zone { fill: none; stroke: #795548; stroke-width: 1.45; }
+.tk-sky-object-glyph .jupiter-zone-two { stroke: #efe0c7; stroke-width: 1.1; }
+.tk-sky-object-glyph .jupiter-spot { fill: #a9644d; stroke: rgba(255, 225, 195, 0.45); stroke-width: 0.45; }
+.tk-sky-object-glyph .venus-disc { fill: #efe4bd; stroke: #fff6d9; stroke-width: 0.75; }
+.tk-sky-object-glyph .venus-cloud { fill: none; stroke: rgba(183, 151, 89, 0.5); stroke-width: 0.65; }
+.tk-sky-object-glyph .mercury-disc { fill: #aaa49b; stroke: #dedbd3; stroke-width: 0.7; }
+.tk-sky-object-glyph .mercury-crater { fill: rgba(67, 61, 56, 0.58); stroke: rgba(223, 217, 205, 0.36); stroke-width: 0.35; }
+.tk-sky-object-glyph .mars-disc { fill: #c86545; stroke: #efb090; stroke-width: 0.7; }
+.tk-sky-object-glyph .mars-terrain { fill: none; stroke: rgba(83, 38, 28, 0.72); stroke-width: 0.8; }
+.tk-sky-object-glyph .mars-cap { fill: none; stroke: rgba(245, 228, 210, 0.85); stroke-width: 1.2; }
+.tk-sky-object-glyph .uranus-disc { fill: #91ced1; stroke: #d8f1ef; stroke-width: 0.65; }
+.tk-sky-object-glyph .uranus-band { fill: none; stroke: rgba(56, 130, 141, 0.42); stroke-width: 0.55; }
+.tk-sky-object-glyph .neptune-disc { fill: #4e72c7; stroke: #aabcf0; stroke-width: 0.65; }
+.tk-sky-object-glyph .neptune-band { fill: none; stroke: rgba(213, 224, 255, 0.43); stroke-width: 0.55; }
+.tk-sky-object-glyph .neptune-storm { fill: rgba(22, 35, 85, 0.72); stroke: none; }
+.tk-sky-object-glyph .pluto-disc { fill: #a99482; stroke: #d7c4b2; }
+.tk-sky-object-glyph .pluto-detail { fill: none; stroke: rgba(67, 52, 46, 0.64); stroke-width: 0.55; }
+.tk-sky-object-glyph .planet-shade { fill: rgba(5, 8, 15, 0.58); stroke: none; }
+
+.tk-sky-object-glyph[data-marker="space-station"] { color: #dbe7ff; filter: drop-shadow(0 0 7px rgba(165, 196, 255, 0.52)); }
+.tk-sky-object-glyph[data-marker="tiangong"] { color: #d8e5f4; filter: drop-shadow(0 0 7px rgba(135, 194, 231, 0.46)); }
+.tk-sky-object-glyph .station-array { fill: rgba(94, 133, 197, 0.28); stroke: currentColor; }
+.tk-sky-object-glyph .station-core { fill: rgba(224, 233, 245, 0.22); }
+.tk-sky-object-glyph[data-marker="starlink-train"] { color: #c7dcff; }
+.tk-sky-object-glyph[data-marker="starlink-train"] rect { fill: currentColor; stroke: rgba(4, 8, 15, 0.75); stroke-width: 0.4; }
+.tk-sky-object-glyph .train-path { stroke: rgba(178, 207, 255, 0.55); stroke-dasharray: 2 2; }
+.tk-sky-object-glyph .cluster-halo,
+.tk-sky-object-glyph .galaxy-halo,
+.tk-sky-object-glyph .nebula-cloud { fill: rgba(143, 171, 232, 0.09); }
+.tk-sky-object-glyph .named-star { fill: #eef5ff; stroke: #fff; filter: drop-shadow(0 0 4px #c8dcff); }
+.tk-sky-object-glyph .constellation-focus { fill: rgba(121, 151, 218, 0.08); stroke: rgba(213, 225, 252, 0.82); }
+.tk-sky-object-glyph .constellation-focus-stars { stroke: rgba(213, 225, 252, 0.7); stroke-width: 0.75; }
+
+.tk-finder-starlink-trail polyline {
+  fill: none;
+  stroke: rgba(166, 201, 255, 0.5);
+  stroke-width: 0.38;
+  stroke-dasharray: 1.3 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.tk-finder-starlink-trail circle {
+  fill: #dbe9ff;
+  stroke: rgba(97, 136, 204, 0.9);
+  stroke-width: 0.2;
+  filter: drop-shadow(0 0 2px rgba(155, 194, 255, 0.75));
+}
+
+.tk-sky-explorer .tk-finder-object { gap: 2px; }
+.tk-sky-explorer .tk-finder-object > .tk-sky-object-glyph { width: 30px; height: 30px; }
+.tk-sky-explorer .tk-finder-object small {
+  padding: 0;
+  background: none;
+  color: rgba(225, 232, 246, 0.74);
+  font: 480 0.56rem/1 var(--tk-body);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 5px #02050b, 0 0 8px #02050b;
+}
+.tk-sky-floating-tools { opacity: 0.84; transition: opacity 180ms ease; }
+.tk-sky-floating-tools:focus-within,
+.tk-sky-floating-tools:hover { opacity: 1; }
+.tk-sky-explorer .tk-finder-guidance {
+  width: min(320px, calc(100vw - 70px));
+  border-color: rgba(191, 207, 238, 0.08);
+  background: rgba(3, 7, 15, 0.5);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+.tk-sky-explorer .tk-finder-lock[data-marker="sun"] {
+  background: radial-gradient(circle, rgba(255, 199, 76, 0.22), rgba(255, 175, 48, 0.06) 46%, transparent 72%);
+  box-shadow: 0 0 34px rgba(255, 184, 55, 0.4), 0 0 86px rgba(255, 166, 42, 0.18);
+}
+.tk-sky-explorer .tk-finder-lock[data-marker="moon"] { box-shadow: 0 0 28px rgba(193, 213, 255, 0.32); }
+.tk-sky-explorer .tk-finder-target-card {
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  width: min(240px, calc(100% - 24px));
+  border-color: rgba(187, 203, 233, 0.08);
+  padding: 8px 10px;
+  background: rgba(3, 7, 15, 0.56);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+.tk-sky-explorer .tk-finder-target-card small { color: #9ba8bc; font-size: 0.6rem; }
+.tk-sky-explorer .tk-finder-target-card strong { font-size: 0.66rem; white-space: normal; }
+.tk-sky-explorer .tk-finder-target-card b { max-width: 92px; font-size: 0.6rem; }
+
+@media (max-width: 720px) {
+  .tk-sky-explorer .tk-finder-target-card {
+    right: 10px;
+    bottom: max(9px, env(safe-area-inset-bottom));
+    left: auto;
+    width: min(240px, calc(100% - 20px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-sky-floating-tools { transition: none; }
+}

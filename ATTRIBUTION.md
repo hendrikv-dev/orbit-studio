@@ -201,6 +201,73 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/skyFinderContext-*.js`
 - Restrictions and notes: Retain the BSD 3-Clause copyright notice and disclaimer. Do not describe the figures as IAU boundaries or as visually detected camera features.
 
+## Deep Star Maps 2020: Milky Way background in celestial coordinates
+
+- Inventory ID: `nasa-svs-deep-star-maps-milky-way-2020`
+- Category: image-texture
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: NASA/Goddard Space Flight Center Scientific Visualization Studio
+- Version or snapshot: SVS visualization 4851, milkyway_2020_4k_print.jpg, released 2020-09-09; page updated 2022-08-12
+- Retrieval date: 2026-10-07
+- Authoritative source: https://svs.gsfc.nasa.gov/4851/
+- Authoritative source: https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k_print.jpg
+- Rights basis: NASA SVS states that all SVS content is public domain unless otherwise noted and may be downloaded, used, and redistributed for any purpose; this item carries no contrary note. NASA Images and Media Usage Guidelines also apply.
+- Rights evidence: https://svs.gsfc.nasa.gov/4851/
+- Rights evidence: https://svs.gsfc.nasa.gov/help/
+- Rights evidence: https://www.nasa.gov/nasa-brand-center/images-and-media/
+- Attribution: NASA/Goddard Space Flight Center Scientific Visualization Studio. Visualization by Ernie Wright (USRA). Gaia DR2: ESA/Gaia/DPAC.
+- Public source redistribution: source-safe
+- Public deployment redistribution: deployment-safe
+- Modification status: unmodified-asset-celestial-mesh-runtime-projection
+- Repository paths: `public/sky/nasa-svs-milkyway-2020-celestial.jpg`
+- Production paths: `sky/nasa-svs-milkyway-2020-celestial.jpg`
+- Restrictions and notes: Retain the requested NASA/Gaia credit, do not imply NASA endorsement, do not present the texture as a live sky image, and keep authoritative bright catalog stars separate.
+
+## A Celestial Atlas
+
+- Inventory ID: `jamieson-celestial-atlas-1822-visual-reference`
+- Category: historical-visual-reference
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Alexander Jamieson; digitized by the Internet Archive and described by Wikimedia Commons
+- Version or snapshot: 1822 work; Wikimedia Commons file revision 2026-09-21, oldid 1279001923
+- Retrieval date: 2026-10-07
+- Authoritative source: https://commons.wikimedia.org/wiki/File:Celestial_Atlas-_Alexander_Jamieson_(1822)_(IA_celestial-atlas).pdf
+- Authoritative source: https://archive.org/download/celestial-atlas/Celestial%20Atlas.pdf
+- Rights basis: The source-description page marks the 1822 work public domain in its country of origin and the United States and identifies it with Creative Commons Public Domain Mark 1.0.
+- Rights evidence: https://commons.wikimedia.org/wiki/File:Celestial_Atlas-_Alexander_Jamieson_(1822)_(IA_celestial-atlas).pdf
+- Rights evidence: https://creativecommons.org/publicdomain/mark/1.0/
+- Attribution: Visual reference: Alexander Jamieson, A Celestial Atlas (1822), public domain; scan source Internet Archive via Wikimedia Commons.
+- Public source redistribution: source-safe-reference-only
+- Public deployment redistribution: not-in-production-bundle
+- Modification status: visual-reference-only-no-reproduction
+- Repository paths: none
+- Production paths: none
+- Restrictions and notes: The downloaded scan remains outside the repository and deployment. Replacing the original project vector with scan-derived pixels requires a new asset review.
+
+## Aquarius card from Urania's Mirror
+
+- Inventory ID: `uranias-mirror-aquarius-visual-reference`
+- Category: historical-visual-reference
+- Release status: retained
+- Release 1.0 included: yes
+- Publisher or rights holder: Urania's Mirror, published by Samuel Leigh c. 1825; author identified by the Royal Astronomical Society as probably Richard Rouse Bloxam
+- Version or snapshot: c. 1825 work; Wikimedia Commons file revision 2010-08-21, description oldid 1016919196
+- Retrieval date: 2026-10-07
+- Authoritative source: https://commons.wikimedia.org/wiki/File:Aquariusurania.jpg
+- Authoritative source: https://upload.wikimedia.org/wikipedia/commons/7/7b/Aquariusurania.jpg
+- Rights basis: The source-description page marks the c. 1825 work public domain and identifies it with Creative Commons Public Domain Mark 1.0.
+- Rights evidence: https://commons.wikimedia.org/wiki/File:Aquariusurania.jpg
+- Rights evidence: https://creativecommons.org/publicdomain/mark/1.0/
+- Attribution: Visual reference: Urania's Mirror, Aquarius card (c. 1825), public domain; source Wikimedia Commons.
+- Public source redistribution: source-safe-reference-only
+- Public deployment redistribution: not-in-production-bundle
+- Modification status: visual-reference-only-no-reproduction
+- Repository paths: none
+- Production paths: none
+- Restrictions and notes: The downloaded scan remains outside the repository and deployment. Replacing the original project vector with scan-derived pixels requires a new asset review.
+
 ## Bright Star Catalog, 5th Revised Edition (Preliminary), BSC5P
 
 - Inventory ID: `yale-bsc5p-bright-stars`

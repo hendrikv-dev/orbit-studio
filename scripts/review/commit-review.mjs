@@ -246,11 +246,11 @@ function referenceComparisonMarkdown(commit, shots, referencesIncluded) {
     {
       surface: "Sky",
       reference: "03-sky.png",
-      target: "A sky-first rendered celestial sphere that defaults to physical Point navigation indoors, offers explicit Explore/Recenter, composes density automatically, and uses optional camera registration over the identical astronomical scene.",
-      ids: ["09-phone-sky-point-default", "09a-phone-sky-camera-off-point", "09b-phone-sky-explore", "09o-phone-sky-recenter", "09c-phone-sky-search", "09d-phone-sky-wide-density", "09p-phone-sky-normal-density", "09e-phone-sky-orion-figure", "09f-phone-sky-sun", "09g-phone-sky-moon", "09h-phone-sky-venus", "09i-phone-sky-jupiter", "09j-phone-sky-neptune", "09k-phone-sky-iss", "09l-phone-sky-tiangong", "09m-phone-sky-starlink-train", "09-phone-sky-camera-granted", "09q-phone-sky-degraded-heading", "09n-phone-sky-camera-denied", "10-phone-sky-guiding", "11-phone-sky-aligned", "11a-phone-sky-below-horizon", "11b-phone-sky-ar-diagnostics", "14-tablet-sky-guiding"],
-      matched: "The celestial field owns the viewport; Point works with Camera off; Explore and Recenter are explicit; real catalog stars, conventional constellation geometry, all 88 searchable identities, an astronomical Milky Way spine, bodies and station targets share one projection; density changes with field of view and no Layers control exists.",
-      deviation: "Selected-constellation artwork is original geometry-derived apparition art instead of copied historical or proprietary illustrations. Camera mode starts from an approximate 82° × 66° lens model because browsers do not disclose calibrated rear-lens intrinsics.",
-      limitation: "Camera and sensor frames are explicitly deterministic fixtures, not physical-device AR evidence. Station path geometry does not imply visibility where a measured brightness model is absent.",
+      target: "A majestic but calm celestial field: real magnitude and colour hierarchy, a celestial-coordinate Milky Way, recognizable selected constellations, rendered astronomical bodies, distinct stations, and compact UI without changing Point/Explore/Camera behavior.",
+      ids: ["09d-phone-sky-wide-density", "09e-phone-sky-orion-figure", "09e2-phone-sky-aquarius-figure", "09g-phone-sky-moon", "09f-phone-sky-sun", "09h-phone-sky-venus", "09i-phone-sky-jupiter", "09j2-phone-sky-saturn", "09k-phone-sky-iss", "09l-phone-sky-tiangong", "09m-phone-sky-starlink-train", "09r-phone-sky-selected-compact", "09-phone-sky-point-default"],
+      matched: "The NASA SVS Milky Way is projected through the celestial sphere beneath BSC5P stars; brightness and restrained B−V colour separate bright stars from faint ones; selected Orion and Aquarius use original vectors attached to real-star anchors; the Sun, phase-textured Moon, planets, crewed stations, and real sampled Starlink train each have a coherent rendered treatment. Point remains the default, Camera remains optional, and no Layers control exists.",
+      deviation: "Historical public-domain atlases are posture references only; production constellation vectors are original and only Orion and Aquarius receive reviewed art in this pass. The 1K Milky Way JPEG is the source's compact web rendition rather than a larger EXR so handheld rendering remains bounded.",
+      limitation: "Camera and sensor frames remain deterministic fixtures, not physical-device AR evidence. Faint Milky Way texture fidelity is constrained by the 1024 × 512 source; station path geometry does not imply visibility without independent photometry.",
     },
     {
       surface: "Capability boundary",
@@ -349,14 +349,17 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
     "09d-phone-sky-wide-density",
     "09p-phone-sky-normal-density",
     "09e-phone-sky-orion-figure",
+    "09e2-phone-sky-aquarius-figure",
     "09f-phone-sky-sun",
     "09g-phone-sky-moon",
     "09h-phone-sky-venus",
     "09i-phone-sky-jupiter",
     "09j-phone-sky-neptune",
+    "09j2-phone-sky-saturn",
     "09k-phone-sky-iss",
     "09l-phone-sky-tiangong",
     "09m-phone-sky-starlink-train",
+    "09r-phone-sky-selected-compact",
     "09-phone-sky-camera-granted",
     "09q-phone-sky-degraded-heading",
     "09n-phone-sky-camera-denied",
@@ -384,14 +387,15 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 
 - Browser/runtime evidence: ${sky || "_Not captured_"}.
 - Rendered Sky is the product foundation. A live orientation-capable handheld defaults to **Point** even with Camera off. **Explore** enables deliberate manual pan/zoom and **Recenter** returns to the phone pose without changing observer, UTC, target or Alt/Az. A sensorless handheld retains rendered Explore, search and target selection. Camera is an explicit optional visual base and reuses the same projected ENU scene.
-- Sky has no user-selectable celestial Layers control. One automatic policy uses effective field of view, catalogue magnitude, target selection, object relevance and screen-space collision suppression: wide fields retain bright orientation context, normal fields add richer real-star/constellation/deep-sky context, and close fields admit fainter stars and more local labels. Selecting a constellation automatically strengthens only its anchored figure when legible.
+- Sky has no user-selectable celestial Layers control. One automatic policy uses effective field of view, catalogue magnitude, target selection, object relevance and screen-space collision suppression: wide fields retain bright orientation context, normal fields add richer real-star/constellation/deep-sky context, and close fields admit fainter stars and more local labels. Selecting a constellation automatically strengthens only its reviewed anchored figure when legible.
 - Solar-system authority: Astronomy Engine **2.1.19**, MIT, for Sun, Moon, planets and the applicable equatorial/horizon transforms. The independent regression fixture uses NASA/JPL Horizons topocentric values and records its own timestamp, observer, frame, refraction mode and tolerances.
 - Star population: Yale Bright Star Catalog BSC5P via NASA/GSFC HEASARC (8,404 records with reported apparent magnitude ≤ 6.5), projected through the shared topocentric ENU pipeline for the selected observer and UTC instant. No procedural astronomical stars are rendered. HEASARC's official policy makes its materials freely available for use and asks for acknowledgement; it does not assign BSC5P an SPDX license, so this package records that free-use basis rather than inventing one.
 - BSC5P source: \`https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html\`; raw query SHA-256 \`4b7e89fc0f18103683db2f8e66cd2de597b1912d7469f6d44f295c290f4fc1a0\`; deterministic local catalog SHA-256 \`529702e4a4fdedce2c98c1974f9a35cfdee4a0b33ff83a9c3d1373e6c40ae384\`.
-- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries. All 88 unique constellation identities are searchable. The automatically contextual translucent apparition is original runtime geometry derived from those projected endpoints; no external figure artwork was added.
+- Constellation figures: d3-celestial conventional line figures at immutable commit \`7e720a3de062059d4c5400a379146a601d9010e0\`, BSD 3-Clause. They are orientation aids, not IAU boundaries. All 88 unique constellation identities are searchable. Orion and Aquarius add original line/wash vector families whose control points are weighted blends of the corresponding real BSC5P figure stars. Jamieson's 1822 atlas and the c. 1825 *Urania's Mirror* Aquarius card were reviewed under their source-specific Public Domain Mark 1.0 statements; no scan pixels or tracing are shipped.
 - All 893 conventional-figure endpoints are mapped to real BSC5P HR stars within 0.008397°. Constellation names derive from the projected figures; selective major-star labels use the documented IAU identity crosswalk.
-- Milky Way: project-authored galactic-equator display geometry from the standard J2000 equatorial/galactic transform, projected through the same ENU path. No photographic texture or external asset was added.
-- Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path. ISS and Tiangong are one extensible crewed-station collection. Tiangong receives current position and geometric next-path calculation but no unsupported brightness/visibility claim. Starlink remains restricted to qualified post-deployment stacks; dispersed traffic is not rendered as a train.
+- Milky Way: NASA SVS Deep Star Maps 2020 \`milkyway_2020_4k_print.jpg\`, SHA-256 \`1ebe95804f5f0e6e23f77488aaa33fdb4aaef3fd336821fb41b261ddeaee2df0\`. The source omits bright Hipparcos/Tycho stars. Runtime code samples it as a 72 × 36 celestial mesh, converting every J2000 RA/Dec vertex through the same observer ENU and display pose; BSC5P remains the foreground-star authority.
+- Moon: the already-inventoried NASA SVS/LROC 1K mosaic, SHA-256 \`b246064f217f8d479df78c49c7c8595a8f5fbda008a72fd539978d2e121e0109\`, clipped to a rendered disc and shaded by the current Astronomy Engine phase. Sun and planets use project-authored SVG/procedural bodies; no third-party icon pack or planetary texture was added.
+- Satellite objects: Tracker's existing production TLE/catalog authority; Sky does not add a second satellite catalog or propagation path. ISS and Tiangong use distinct project-authored silhouettes. Starlink remains restricted to qualified post-deployment stacks and renders the event's real sampled sequence/path; dispersed traffic is not rendered as a train.
 - Alerts: device-local, opt-in category and lead-time preferences plus a high-interest event filter. No push-delivery service exists, and the interface states that dependency rather than simulating notifications.
 - Coordinate pipeline: catalog or ephemeris position → apparent equatorial position → observer/UTC horizontal position → fixed local ENU direction → stabilized device quaternion → camera projection. Celestial directions never derive from device callbacks.
 - Pose stabilization: W3C intrinsic Z-X'-Y'' orientation and the display rotation compose exactly once into one quaternion; camera-local -Z is the rear optical axis. Safari's magnetic heading replaces the arbitrary alpha yaw before quaternion construction. A 0.18° deadband and 85 ms time-based slerp stabilize the whole scene rather than any target.
@@ -406,8 +410,9 @@ function terrainAndSkyValidationMarkdown(commit, shots) {
 
 - New npm dependencies: **none**.
 - New vendored third-party datasets: **none**.
-- New image/texture/illustration assets: **none**.
-- Reused authorities: Astronomy Engine 2.1.19 (MIT), satellite.js (MIT), BSC5P under the recorded HEASARC free-use basis, d3-celestial figures (BSD-3-Clause), existing deep-sky catalogue, and transient CelesTrak runtime responses under the already documented non-redistribution boundary.
+- New production image asset: \`public/sky/nasa-svs-milkyway-2020-celestial.jpg\` from \`https://svs.gsfc.nasa.gov/4851/\`; exact asset \`https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k_print.jpg\`; NASA SVS public-domain statement, NASA media guidelines, requested NASA/GSFC SVS and ESA/Gaia/DPAC credit; unmodified bytes, celestial-mesh runtime projection.
+- Historical visual references, not shipped: Alexander Jamieson, *A Celestial Atlas* (1822), \`https://commons.wikimedia.org/wiki/File:Celestial_Atlas-_Alexander_Jamieson_(1822)_(IA_celestial-atlas).pdf\`, research checksum \`493008dbe1014485bbb29a089c4e09c7a215f168b6c3c4f7af5b0c941b5c7235\`; and *Urania's Mirror*, Aquarius (c. 1825), \`https://commons.wikimedia.org/wiki/File:Aquariusurania.jpg\`, research checksum \`5c549c0cfe9d2a6e245407b3e1156ce567b634d9da959147bc178082b984bb06\`. Both source pages identify the works with Public Domain Mark 1.0. Only original, real-star-anchored project vectors ship.
+- Reused authorities: Astronomy Engine 2.1.19 (MIT), satellite.js (MIT), BSC5P under the recorded HEASARC free-use basis, d3-celestial figures (BSD-3-Clause), NASA SVS/LROC Moon mosaic, existing deep-sky catalogue, and transient CelesTrak runtime responses under the already documented non-redistribution boundary.
 
 ## Observing capability
 

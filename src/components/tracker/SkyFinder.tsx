@@ -1,6 +1,5 @@
 import { BellRing, Camera, CameraOff, Compass, Search, X, ZoomIn, ZoomOut } from "lucide-react";
-import { Body, Illumination } from "astronomy-engine";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 
 import { formatClockTime, type PlaceClock } from "../../lib/localTime";
 import {
@@ -33,6 +32,8 @@ import {
 } from "../../data/tracker/satelliteAlerts";
 import type { ExpectedSkyContext } from "../../data/tracker/skyFinderContext";
 import { skyMarkerKindForTarget, type SkyMarkerKind } from "../../data/tracker/skyMarker";
+import { lunarPhaseAt } from "../../data/tracker/lunarPhase";
+import { CelestialMilkyWay } from "./CelestialMilkyWay";
 
 type PermissionPhase = "idle" | "requesting" | "granted" | "denied" | "unavailable";
 type CameraPhase = "idle" | "requesting" | "active" | "denied" | "unavailable";
@@ -121,23 +122,82 @@ function skyPhase(sunAltitudeDeg: number | null): "day" | "civil" | "twilight" |
   return "day";
 }
 
-function SkyMarkerGlyph({ kind, label, phase = 0.5 }: { kind: SkyMarkerKind; label?: string; phase?: number }) {
+function compactSkyTargetAppearance(target: SkyFinderTarget, marker: SkyMarkerKind): string {
+  if (marker === "sun") return "Never look directly at the Sun without certified solar equipment.";
+  if (marker === "space-station" || marker === "tiangong") return `${target.title} at its propagated position.`;
+  if (marker === "starlink-train") return "Multiple satellites following the same tracked path.";
+  if (marker === "constellation") return "Figure anchored to real catalogue stars.";
+  if (target.source.kind === "body") return `${target.title} at its current apparent position.`;
+  return target.appearance;
+}
+
+function lunarLightPath(fraction: number, waxing: boolean): string {
+  const k = Math.max(-1, Math.min(1, fraction * 2 - 1));
+  const control = waxing ? 16 - k * 12 : 16 + k * 12;
+  const limbSweep = waxing ? 1 : 0;
+  return `M16 7 A9 9 0 0 ${limbSweep} 16 25 C${control} 25 ${control} 7 16 7 Z`;
+}
+
+/**
+ * A Catmull-Rom-to-cubic display transform keeps the original artwork family
+ * organic while every curve still passes through its real-star-derived
+ * anchors. This changes only the line between authoritative anchor points.
+ */
+function skyFigurePathData(
+  points: readonly { xPercent: number; yPercent: number }[],
+  closed: boolean,
+): string {
+  if (points.length === 0) return "";
+  if (points.length < 3) {
+    return [`M ${points[0].xPercent} ${points[0].yPercent}`, ...points.slice(1).map((point) => `L ${point.xPercent} ${point.yPercent}`)].join(" ");
+  }
+  const get = (index: number) => {
+    if (closed) return points[(index + points.length) % points.length];
+    return points[Math.max(0, Math.min(points.length - 1, index))];
+  };
+  const commands = [`M ${points[0].xPercent} ${points[0].yPercent}`];
+  const segmentCount = closed ? points.length : points.length - 1;
+  for (let index = 0; index < segmentCount; index += 1) {
+    const before = get(index - 1);
+    const start = get(index);
+    const end = get(index + 1);
+    const after = get(index + 2);
+    const c1x = start.xPercent + (end.xPercent - before.xPercent) / 6;
+    const c1y = start.yPercent + (end.yPercent - before.yPercent) / 6;
+    const c2x = end.xPercent - (after.xPercent - start.xPercent) / 6;
+    const c2y = end.yPercent - (after.yPercent - start.yPercent) / 6;
+    commands.push(`C ${c1x} ${c1y} ${c2x} ${c2y} ${end.xPercent} ${end.yPercent}`);
+  }
+  if (closed) commands.push("Z");
+  return commands.join(" ");
+}
+
+function SkyMarkerGlyph({ kind, label, phase = 0.5, waxing = true }: { kind: SkyMarkerKind; label?: string; phase?: number; waxing?: boolean }) {
+  const markerId = useId().replace(/:/g, "");
   const art = (() => {
     switch (kind) {
-      case "sun": return <><circle className="disc" cx="16" cy="16" r="7" /><circle className="corona" cx="16" cy="16" r="11" /><path d="M16 1.8v4M16 26.2v4M1.8 16h4M26.2 16h4M5.9 5.9l2.9 2.9M23.2 23.2l2.9 2.9M26.1 5.9l-2.9 2.9M8.8 23.2l-2.9 2.9" /></>;
-      case "moon": return <><circle className="moon-disc" cx="16" cy="16" r="9" /><ellipse className="moon-shadow" cx={16 - (phase - 0.5) * 6} cy="16" rx={Math.max(2, Math.min(12, 2 + phase * 10))} ry="9" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="19" r="1" /></>;
-      case "saturn": return <><ellipse className="planet-disc" cx="16" cy="16" rx="6" ry="5.6" /><path className="planet-band" d="M4 19.3c2.3 3.6 10.6 3.1 18.1-.3 7-3.2 8.2-6.9 5.5-7.8-2.2-.7-6.1.8-9.7 2.7M12.2 19.8c-4.4.9-7.6.5-8.1-1.1-.5-1.5 2.4-4.4 7.4-6.8" /></>;
-      case "jupiter": return <><circle className="planet-disc" cx="16" cy="16" r="9" /><path className="planet-band" d="M8.1 11.5h15.8M7.1 15.4h17.8M8.1 20.3h15.8" /><ellipse cx="20.3" cy="17.7" rx="2.2" ry="1" /></>;
-      case "venus": return <><circle className="planet-disc" cx="16" cy="16" r="8" /><path className="planet-shade" d="M18.8 8.6c-5.4 1.4-7.4 8-3.6 12.1 1.1 1.2 2.4 2 4 2.4" /></>;
-      case "mercury": return <><circle className="planet-disc" cx="16" cy="16" r="7" /><path className="planet-shade" d="M17.8 9.2c-4.2 1-6.1 5.7-4.2 9.5 1 1.9 2.5 3.2 4.5 3.8" /></>;
-      case "mars": return <><circle className="planet-disc" cx="16" cy="16" r="7.6" /><path className="planet-detail" d="M10.3 13.2c3.1-1.8 7.2-1.3 9.9 1.2M13 21c1.7-1 4-1.1 5.9-.2" /></>;
-      case "uranus": return <><circle className="planet-disc" cx="16" cy="16" r="7.6" /><ellipse className="planet-band" cx="16" cy="16" rx="11" ry="4" /></>;
-      case "neptune": return <><circle className="planet-disc" cx="16" cy="16" r="7.6" /><path className="planet-detail" d="M8.9 13.4h14.2M9.4 19h13.2" /></>;
-      case "pluto": return <><circle className="planet-disc" cx="16" cy="16" r="5.4" /><path className="planet-detail" d="M13 13c2.4-1.4 5-.5 6.3 1.5" /></>;
+      case "sun": return <><defs><radialGradient id={`${markerId}-sun`} cx="38%" cy="34%" r="68%"><stop offset="0" stopColor="#fff8c8" /><stop offset="0.42" stopColor="#ffd968" /><stop offset="1" stopColor="#f29d2e" /></radialGradient></defs><circle className="solar-atmosphere" cx="16" cy="16" r="13" /><circle className="solar-corona" cx="16" cy="16" r="10" /><circle className="solar-disc" cx="16" cy="16" r="7.2" style={{ fill: `url(#${markerId}-sun)` }} /><g className="solar-faculae"><circle cx="12.5" cy="13" r=".55" /><circle cx="18.8" cy="16.2" r=".42" /><circle cx="15.3" cy="19.4" r=".34" /></g></>;
+      case "moon": return <><defs><clipPath id={`${markerId}-moon`}><circle cx="16" cy="16" r="9" /></clipPath><clipPath id={`${markerId}-phase`}><path d={lunarLightPath(phase, waxing)} /></clipPath></defs><circle className="moon-night" cx="16" cy="16" r="9.35" /><g clipPath={`url(#${markerId}-moon)`}><image className="moon-texture moon-texture-muted" href="/moon/nasa-lroc-color-1k.jpg" x="7" y="7" width="18" height="18" preserveAspectRatio="xMidYMid slice" /><path className="moon-lit-base" d={lunarLightPath(phase, waxing)} /><image className="moon-texture" href="/moon/nasa-lroc-color-1k.jpg" x="7" y="7" width="18" height="18" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${markerId}-phase)`} /></g><circle className="moon-rim" cx="16" cy="16" r="9" /></>;
+      case "saturn": return <><ellipse className="saturn-ring-back" cx="16" cy="16" rx="13" ry="4.5" transform="rotate(-12 16 16)" /><circle className="saturn-disc" cx="16" cy="16" r="6.4" /><path className="saturn-band" d="M10.1 14.2c3.8 1 7.9 1 11.8-.1M10 17.4c3.8 1.1 8 1 12-.2" /><path className="saturn-ring-front" d="M3.5 17.3c2.4 4.2 11.3 4.7 19.3 1.2 4.7-2 7-4.9 5.6-6.5" /></>;
+      case "jupiter": return <><circle className="jupiter-disc" cx="16" cy="16" r="9" /><path className="jupiter-zone jupiter-zone-one" d="M8.6 10.8c4.8 1.1 9.9 1.2 14.8.1" /><path className="jupiter-zone jupiter-zone-two" d="M7.3 14.4c5.7 1.5 11.7 1.5 17.4 0M7.7 19c5.4-1 10.9-.9 16.4.2" /><ellipse className="jupiter-spot" cx="20.4" cy="17.1" rx="2.1" ry="1.15" /></>;
+      case "venus": return <><circle className="venus-disc" cx="16" cy="16" r="8" /><path className="venus-cloud" d="M10.2 12.4c3.4-2 7.8-2 11.3.1M9 16.5c4 1.4 8.6 1.5 13.9.1M11 20.4c3.1-1.2 6.7-1.2 9.8 0" /><path className="planet-shade" d="M18.7 8.5c-5.2 1.5-7.2 7.8-3.6 12 1.2 1.4 2.7 2.2 4.4 2.5" /></>;
+      case "mercury": return <><circle className="mercury-disc" cx="16" cy="16" r="7.2" /><circle className="mercury-crater" cx="12.4" cy="13" r="1.5" /><circle className="mercury-crater" cx="18.8" cy="18" r="1.1" /><path className="planet-shade" d="M17.9 9c-4.5.9-6.6 5.8-4.5 9.8 1 2 2.7 3.3 4.9 3.8" /></>;
+      case "mars": return <><circle className="mars-disc" cx="16" cy="16" r="7.7" /><path className="mars-terrain" d="M9.5 13c2.6-2.4 5.4-.5 7-1.4 2.2-1.2 4.5.1 6 2.1M12.1 20.8c1.9-1.4 4.4-1.6 6.7-.6" /><path className="mars-cap" d="M12.6 9.5c2.2-.9 4.7-.9 6.8.1" /></>;
+      case "uranus": return <><circle className="uranus-disc" cx="16" cy="16" r="7.8" /><path className="uranus-band" d="M10 11.7c4 1.2 8 1.2 12 0M9.2 16c4.5 1 9 1 13.6 0M10 20.3c4 1 8 1 12 0" /></>;
+      case "neptune": return <><circle className="neptune-disc" cx="16" cy="16" r="7.8" /><path className="neptune-band" d="M9.2 13.2c4.4 1.1 9 1.1 13.6 0M10 18.4c4 1 8 1 12 0" /><ellipse className="neptune-storm" cx="19.5" cy="16.5" rx="1.5" ry=".8" /></>;
+      case "pluto": return <><circle className="pluto-disc" cx="16" cy="16" r="5.4" /><path className="pluto-detail" d="M12.6 14.2c1.9-1.8 4.7-1.8 6.7 0M13.3 18.5c1.5 1 3.4 1.1 5 .2" /></>;
+      case "space-station": return <><path className="station-truss" d="M3 16h26M12 12h8v8h-8z" /><path className="station-array" d="M4 11h6v10H4zM22 11h6v10h-6zM14 8h4v4M16 20v4" /></>;
+      case "tiangong": return <><path className="station-core" d="M14 8h4v16h-4zM9 13h14v6H9z" /><path className="station-array" d="M2.5 12h6v8h-6zM23.5 12h6v8h-6zM8.5 16h15" /></>;
+      case "starlink-train": return <><path className="train-path" d="M4 22 28 9" /><rect x="5" y="19" width="4" height="3" rx=".7" /><rect x="12" y="15" width="4" height="3" rx=".7" /><rect x="19" y="11" width="4" height="3" rx=".7" /><rect x="26" y="7" width="3" height="3" rx=".7" /></>;
       case "satellite": return <><path d="m12 12 8 8M10 15l-4 4 7 7 4-4M15 10l4-4 7 7-4 4" /><circle cx="16" cy="16" r="3" /></>;
       case "radiant": return <><circle cx="16" cy="16" r="4" /><path d="M16 3v8M16 21v8M3 16h8M21 16h8M6.8 6.8l5.6 5.6M19.6 19.6l5.6 5.6M25.2 6.8l-5.6 5.6M12.4 19.6l-5.6 5.6" /></>;
-      case "cluster": return <><circle cx="10" cy="17" r="2" /><circle cx="16" cy="10" r="2.4" /><circle cx="21" cy="18" r="2" /><circle cx="14" cy="23" r="1.5" /><circle cx="23" cy="9" r="1.2" /></>;
-      case "deep-sky": return <><ellipse cx="16" cy="16" rx="11" ry="6" /><ellipse cx="16" cy="16" rx="5" ry="10" /><circle cx="16" cy="16" r="1.5" /></>;
+      case "open-cluster": return <><circle cx="10" cy="17" r="1.8" /><circle cx="16" cy="10" r="2.2" /><circle cx="21" cy="18" r="1.8" /><circle cx="14" cy="23" r="1.3" /><circle cx="23" cy="9" r="1" /></>;
+      case "globular-cluster": return <><circle className="cluster-halo" cx="16" cy="16" r="9" /><circle cx="16" cy="16" r="3" /><path d="M16 5v22M5 16h22" /></>;
+      case "nebula": return <><path className="nebula-cloud" d="M5 18c2-7 8-11 14-9 4 1 8 5 8 9-1 5-6 8-11 7C10 27 3 24 5 18Z" /><path d="M9 19c3-5 8-7 14-5M11 22c4 1 8 0 11-3" /></>;
+      case "galaxy": return <><ellipse className="galaxy-halo" cx="16" cy="16" rx="12" ry="5.5" transform="rotate(-18 16 16)" /><path d="M6 20c5-8 16-9 21-3M8 14c5 6 14 7 19 1" /><circle cx="16" cy="16" r="1.8" /></>;
+      case "star": return <><circle className="named-star" cx="16" cy="16" r="4.2" /><path d="M16 3v8M16 21v8M3 16h8M21 16h8M7.5 7.5l5 5M19.5 19.5l5 5M24.5 7.5l-5 5M12.5 19.5l-5 5" /></>;
+      case "constellation": return <><circle className="constellation-focus" cx="16" cy="16" r="7" /><path className="constellation-focus-stars" d="M16 5v5M16 22v5M5 16h5M22 16h5M11 11l10 10M21 11 11 21" /><circle cx="16" cy="16" r="1.8" /></>;
+      case "deep-sky": return <><ellipse cx="16" cy="16" rx="10.5" ry="6" /><circle cx="16" cy="16" r="2" /></>;
       default: return <><circle className="planet-disc" cx="16" cy="16" r="7" /><path d="M8 16h16M16 8v16" /></>;
     }
   })();
@@ -349,10 +409,12 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
     const labels = expectedContext.labels.flatMap((label) => { const p = projectEnuDirection(label.direction, displayPose, displayProjection); return p.inField ? [{ ...label, ...p }] : []; });
     const objects = expectedContext.objects.flatMap((object) => { const p = projectEnuDirection(object.direction, displayPose, displayProjection); return p.inField ? [{ ...object, ...p }] : []; });
     const figures = expectedContext.figures.flatMap((figure) => {
-      const points = figure.directions.map((direction) => projectEnuDirection(direction, displayPose, displayProjection)).filter((p) => p.inField);
-      if (points.length < 3) return [];
-      const c = points.reduce((sum, p) => ({ x: sum.x + p.xPercent, y: sum.y + p.yPercent }), { x: 0, y: 0 }); c.x /= points.length; c.y /= points.length;
-      return [{ ...figure, points: [...points].sort((a, b) => Math.atan2(a.yPercent - c.y, a.xPercent - c.x) - Math.atan2(b.yPercent - c.y, b.xPercent - c.x)) }];
+      const paths = figure.paths.flatMap((path) => {
+        const points = path.directions.map((direction) => projectEnuDirection(direction, displayPose, displayProjection));
+        if (points.length < 2 || points.every((point) => !point.inFront)) return [];
+        return [{ ...path, points }];
+      });
+      return paths.length > 0 ? [{ ...figure, paths }] : [];
     });
     const milkyWay = expectedContext.milkyWay.flatMap((line) => { const start = projectEnuDirection(line.start, displayPose, displayProjection); const end = projectEnuDirection(line.end, displayPose, displayProjection); return start.inFront && end.inFront ? [{ ...line, start, end }] : []; });
     return { stars, lines, labels, objects, figures, milkyWay };
@@ -361,7 +423,13 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
   const displayedContext = useMemo(() => {
     if (!projectedContext) return null;
     const stars = projectedContext.stars.filter((star) => star.magnitude <= density.magnitudeLimit);
-    const constellationLabels = projectedContext.labels.map((label) => ({
+    let retainedDeepSky = 0;
+    const objects = projectedContext.objects.filter((object) => {
+      if (!["deep-sky", "galaxy", "nebula", "open-cluster", "globular-cluster"].includes(object.marker)) return true;
+      retainedDeepSky += 1;
+      return retainedDeepSky <= density.maxDeepSkyObjects;
+    });
+    const constellationLabels = projectedContext.labels.filter((label) => !label.primary).map((label) => ({
       key: `constellation-${label.symbol}`,
       xPercent: label.xPercent,
       yPercent: label.yPercent,
@@ -375,25 +443,32 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
         yPercent: star.yPercent,
         priority: star.inTargetConstellation ? 35 : 20 - star.magnitude,
       }));
+    const objectLabels = objects.map((object) => ({
+      key: `object-${object.id}`,
+      xPercent: object.xPercent,
+      yPercent: object.yPercent,
+      priority: ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto", "space-station", "tiangong", "starlink-train"].includes(object.marker) ? 70 : 12,
+    }));
+    const targetProjection = targetPosition
+      ? projectEnuDirection(horizontalToEnu(targetPosition), displayPose, displayProjection)
+      : null;
+    const selectedTargetBlocker = targetProjection?.inField
+      ? [{ key: "selected-target-blocker", xPercent: targetProjection.xPercent, yPercent: targetProjection.yPercent, priority: 1_000 }]
+      : [];
     const visibleLabelKeys = selectNonCollidingSkyLabels(
-      [...constellationLabels, ...starLabels],
-      density.maxLabels,
+      [...selectedTargetBlocker, ...objectLabels, ...constellationLabels, ...starLabels],
+      density.maxLabels + selectedTargetBlocker.length,
+      { horizontalPercent: 18, verticalPercent: 9 },
     );
-    let retainedDeepSky = 0;
-    const objects = projectedContext.objects.filter((object) => {
-      if (object.marker !== "deep-sky" && object.marker !== "cluster") return true;
-      retainedDeepSky += 1;
-      return retainedDeepSky <= density.maxDeepSkyObjects;
-    });
     return {
       ...projectedContext,
       stars: stars.map((star) => ({ ...star, showLabel: visibleLabelKeys.has(`star-${star.id}`) })),
-      labels: projectedContext.labels.filter((label) => visibleLabelKeys.has(`constellation-${label.symbol}`)),
+      labels: projectedContext.labels.filter((label) => !label.primary && visibleLabelKeys.has(`constellation-${label.symbol}`)),
       figures: density.showSelectedFigure ? projectedContext.figures.filter((figure) => figure.primary) : [],
       milkyWay: density.showMilkyWay ? projectedContext.milkyWay : [],
-      objects,
+      objects: objects.map((object) => ({ ...object, showLabel: visibleLabelKeys.has(`object-${object.id}`) })),
     };
-  }, [density, projectedContext]);
+  }, [density, displayPose, displayProjection, projectedContext, targetPosition]);
 
   const usesMagnetic = orientationTelemetry?.magneticHeadingDeg != null && !calibration;
   const quality: PointingQuality = calibration ? sensorQuality === "poor" ? "fair" : sensorQuality : usesMagnetic ? "poor" : sensorQuality;
@@ -410,9 +485,18 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
       ? "Enable pointing to follow your phone"
       : guidance?.instruction ?? "Point your phone to explore";
   const targetMarker = selectedTarget ? skyMarkerKindForTarget(selectedTarget) : null;
-  const moonPhase = useMemo(() => { try { return Illumination(Body.Moon, astronomyNow).phase_fraction; } catch { return 0.5; } }, [astronomyNow]);
+  const moonPhase = useMemo(() => lunarPhaseAt(astronomyNow), [astronomyNow]);
   const phase = skyPhase(expectedContext?.sunAltitudeDeg ?? null);
   const effectiveProjection = effectiveCameraProjection(displayProjection);
+  const selectedTrail = useMemo(() => {
+    if (targetMarker !== "starlink-train" || selectedTarget?.source.kind !== "sampled") return [];
+    const visiblePoints = selectedTarget.source.path.points.filter((point) => point.altitudeDeg > 0);
+    const stride = Math.max(1, Math.ceil(visiblePoints.length / 18));
+    return visiblePoints
+      .filter((_, index) => index % stride === 0)
+      .map((point) => ({ ...point, ...projectEnuDirection(horizontalToEnu(point), displayPose, displayProjection) }))
+      .filter((point) => point.inFront && point.xPercent >= -15 && point.xPercent <= 115 && point.yPercent >= -15 && point.yPercent <= 115);
+  }, [displayPose, displayProjection, selectedTarget, targetMarker]);
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
     window.requestAnimationFrame(() => searchTrigger.current?.focus());
@@ -429,7 +513,16 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
   const chooseTarget = (entry: SkySearchEntry) => {
     setSelectedTarget(entry.target);
     const position = positionForSkyFinderTarget(entry.target, observer, astronomyNow);
-    if (position && navigationMode === "explore") setManualCentre({ altitudeDeg: Math.max(-12, position.altitudeDeg), azimuthDeg: position.azimuthDeg });
+    if (navigationMode === "explore") {
+      if (position) {
+        setManualCentre({ altitudeDeg: Math.max(-12, position.altitudeDeg), azimuthDeg: position.azimuthDeg });
+      } else if (entry.target.source.kind === "sampled") {
+        const bestPathPoint = [...entry.target.source.path.points]
+          .filter((point) => point.altitudeDeg > 0)
+          .sort((left, right) => right.relative - left.relative || right.altitudeDeg - left.altitudeDeg)[0];
+        if (bestPathPoint) setManualCentre({ altitudeDeg: bestPathPoint.altitudeDeg, azimuthDeg: bestPathPoint.azimuthDeg });
+      }
+    }
     closeSearch(); setQuery("");
   };
   const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => { if (navigationMode !== "explore") return; drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, centre: manualCentre }; event.currentTarget.setPointerCapture(event.pointerId); };
@@ -483,6 +576,7 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
       data-observer-longitude={observer.longitudeDeg.toFixed(7)}
       data-astronomy-utc={astronomyNow.toISOString()}
       data-selected-target={selectedTarget?.id}
+      data-target-recommended-at={selectedTarget?.recommendedAtUtc}
       data-target-altitude={targetPosition?.altitudeDeg.toFixed(3)}
       data-target-azimuth={targetPosition?.azimuthDeg.toFixed(3)}
       data-expected-stars={displayedContext?.stars.length ?? 0}
@@ -494,6 +588,7 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
       data-camera-horizontal-fov={effectiveProjection.horizontalFovDeg.toFixed(3)}
       data-camera-vertical-fov={effectiveProjection.verticalFovDeg.toFixed(3)}
       data-camera-crop-axis={effectiveProjection.cropAxis}
+      data-milky-way-source="nasa-svs-deep-star-maps-2020"
       data-heading-reference={orientationTelemetry?.magneticHeadingDeg != null ? calibration ? "magnetic-calibrated" : "magnetic-uncorrected" : "event-alpha"}
       aria-label="Sky"
     >
@@ -514,22 +609,29 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
         <video ref={video} className="tk-finder-camera" autoPlay muted playsInline aria-hidden />
         <div className="tk-finder-sky" aria-hidden />
         <div className="tk-finder-shade" aria-hidden />
+        <CelestialMilkyWay
+          observer={observer}
+          at={astronomyNow}
+          pose={displayPose}
+          projection={displayProjection}
+          visible={density.showMilkyWay}
+        />
 
         {displayedContext ? (
           <div className="tk-finder-expected-field" aria-hidden>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs><filter id="sky-milky-blur"><feGaussianBlur stdDeviation="2.6" /></filter></defs>
-              <g className="tk-finder-milky-way" filter="url(#sky-milky-blur)">
-                {displayedContext.milkyWay.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} />)}
+              <g className="tk-finder-starlink-trail" data-active={selectedTrail.length > 1 ? "true" : undefined}>
+                {selectedTrail.length > 1 ? <polyline points={selectedTrail.map((point) => `${point.xPercent},${point.yPercent}`).join(" ")} /> : null}
+                {selectedTrail.map((point, index) => <circle key={`${point.atUtc}-${index}`} cx={point.xPercent} cy={point.yPercent} r={index % 3 === 0 ? 0.72 : 0.48} />)}
               </g>
               <g className="tk-finder-constellation-figures">
-                {displayedContext.figures.map((figure) => <polygon key={figure.symbol} points={figure.points.map((point) => `${point.xPercent},${point.yPercent}`).join(" ")} data-primary="true" />)}
+                {displayedContext.figures.flatMap((figure) => figure.paths.map((path) => {
+                  const commands = skyFigurePathData(path.points, path.closed);
+                  return <path key={`${figure.symbol}-${path.id}`} d={commands} data-primary="true" data-role={path.role} data-constellation={figure.symbol} />;
+                }))}
               </g>
               <g className="tk-finder-constellation-lines">
                 {displayedContext.lines.map((line) => <line key={line.id} x1={line.start.xPercent} y1={line.start.yPercent} x2={line.end.xPercent} y2={line.end.yPercent} data-primary={line.primary ? "true" : undefined} data-constellation={line.constellation} data-start-star={line.startStarId} data-end-star={line.endStarId} />)}
-              </g>
-              <g className="tk-finder-constellation-labels">
-                {displayedContext.labels.map((label) => <text key={label.symbol} x={label.xPercent} y={label.yPercent} data-primary={label.primary ? "true" : undefined}>{label.name}</text>)}
               </g>
             </svg>
             {displayedContext.stars.map((star) => (
@@ -537,16 +639,25 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
                 key={star.id}
                 className="tk-finder-star"
                 data-target-constellation={star.inTargetConstellation ? "true" : undefined}
+                data-brightness={star.magnitude <= 0.7 ? "beacon" : star.magnitude <= 2 ? "bright" : "field"}
+                data-magnitude={star.magnitude.toFixed(2)}
                 style={{ left: `${star.xPercent}%`, top: `${star.yPercent}%`, "--star-size": `${star.radiusPx}px`, "--star-color": star.color, "--star-opacity": Math.max(0.08, (0.28 + star.luminance * 0.72) * Math.max(0.24, Math.min(1, (star.direction.up + 0.18) / 0.7))) } as CSSProperties}
               >
                 <i />
                 {star.showLabel && star.label ? <small>{star.label}</small> : null}
               </span>
             ))}
+            {displayedContext.labels.map((label) => (
+              <span
+                key={label.symbol}
+                className="tk-finder-constellation-label"
+                style={{ left: `${label.xPercent}%`, top: `${label.yPercent}%` }}
+              >{label.name}</span>
+            ))}
             {displayedContext.objects.map((object) => (
               <span key={object.id} className="tk-finder-object" style={{ left: `${object.xPercent}%`, top: `${object.yPercent}%` }}>
-                <SkyMarkerGlyph kind={object.marker} phase={moonPhase} />
-                <small>{object.title}</small>
+                <SkyMarkerGlyph kind={object.marker} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} />
+                {object.showLabel ? <small>{object.title}</small> : null}
               </span>
             ))}
           </div>
@@ -569,10 +680,10 @@ export function SkyFinder({ target, references, stations = [], observer, clock, 
         {navigationMode === "explore" && cameraPhase !== "active" ? <div className="tk-sky-zoom" onPointerDown={(event) => event.stopPropagation()}><button type="button" onClick={() => setZoom((value) => Math.min(2.8, value * 1.22))} aria-label="Zoom in"><ZoomIn size={18} aria-hidden /></button><button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.22))} aria-label="Zoom out"><ZoomOut size={18} aria-hidden /></button></div> : null}
         <div className="tk-finder-sky-context" aria-hidden><span>{navigationMode === "point" ? "Point" : "Explore"} · {expectedContext?.constellation?.name ?? "Current sky"}</span><strong>{cardinal(viewCentre.azimuthDeg)} · {Math.round(viewCentre.altitudeDeg)}°</strong></div>
         <div className="tk-finder-horizon" aria-hidden><span>{Math.round(viewCentre.azimuthDeg)}°</span><strong>{cardinal(viewCentre.azimuthDeg)}</strong></div>
-        {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : `${selectedTarget.title} is below the horizon`}</strong></span>{aboveHorizon && alignment.aligned ? <em>On target</em> : nextRiseUtc ? <em>Rises {formatClockTime(nextRiseUtc, clock)}</em> : null}</div> : <div className="tk-sky-browse-hint"><strong>{navigationMode === "point" ? "Point your phone around you" : "Explore the sky"}</strong><span>{navigationMode === "point" ? "Rendered Sky · Camera optional" : "Drag to look around · pinch or use zoom"}</span></div>}
-        {aboveHorizon && projectedTarget?.inField && selectedTarget ? <div className="tk-finder-lock" data-shape={selectedTarget.shape} data-marker={targetMarker} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><em>{alignment.aligned ? `${selectedTarget.title} is here` : selectedTarget.title}</em></div> : null}
-        {aboveHorizon && edgeCue && selectedTarget ? <div className="tk-finder-edge-cue" style={{ left: `${edgeCue.xPercent}%`, top: `${edgeCue.yPercent}%` }} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={moonPhase} /><span>{guidanceTitle}</span></div> : null}
-        {selectedTarget ? <div className="tk-finder-target-card"><span><small>{targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : "Position unavailable"}</small><strong>{selectedTarget.appearance}</strong></span><b>{aboveHorizon ? skyTargetEquipmentLabel(selectedTarget) : nextRiseUtc ? `Rises ${formatClockTime(nextRiseUtc, clock)}` : "Below horizon"}</b></div> : null}
+        {selectedTarget ? <div className="tk-finder-guidance" aria-live="polite"><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><span><small>{selectedTarget.title}</small><strong>{aboveHorizon ? guidanceTitle : `${selectedTarget.title} is below the horizon`}</strong></span>{aboveHorizon && alignment.aligned ? <em>On target</em> : nextRiseUtc ? <em>Rises {formatClockTime(nextRiseUtc, clock)}</em> : null}</div> : <div className="tk-sky-browse-hint"><strong>{navigationMode === "point" ? "Point your phone around you" : "Explore the sky"}</strong><span>{navigationMode === "point" ? "Rendered Sky · Camera optional" : "Drag to look around · pinch or use zoom"}</span></div>}
+        {aboveHorizon && projectedTarget?.inField && selectedTarget ? <div className="tk-finder-lock" data-shape={selectedTarget.shape} data-marker={targetMarker} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><em>{alignment.aligned ? `${selectedTarget.title} is here` : selectedTarget.title}</em></div> : null}
+        {aboveHorizon && edgeCue && selectedTarget ? <div className="tk-finder-edge-cue" style={{ left: `${edgeCue.xPercent}%`, top: `${edgeCue.yPercent}%` }} aria-hidden><SkyMarkerGlyph kind={targetMarker!} phase={Number(moonPhase.illuminatedFraction)} waxing={moonPhase.waxing} /><span>{guidanceTitle}</span></div> : null}
+        {selectedTarget ? <div className="tk-finder-target-card"><span><small>{targetPosition ? `${cardinal(targetPosition.azimuthDeg)} · ${describeTargetAltitude(targetPosition.altitudeDeg)}` : "Position unavailable"}</small><strong>{compactSkyTargetAppearance(selectedTarget, targetMarker!)}</strong></span><b>{aboveHorizon ? skyTargetEquipmentLabel(selectedTarget) : nextRiseUtc ? `Rises ${formatClockTime(nextRiseUtc, clock)}` : "Below horizon"}</b></div> : null}
         {message ? <p className="tk-sky-toast" role="status">{message}</p> : null}
         {diagnosticsEnabled ? <aside className="tk-finder-developer" aria-label="AR projection diagnostics"><header><strong>AR diagnostics</strong><span>Local developer view · not consumer UI</span></header><dl><div><dt>Target</dt><dd>{selectedTarget?.title ?? "None"}</dd></div><div><dt>UTC</dt><dd>{astronomyNow.toISOString()}</dd></div><div><dt>Observer</dt><dd>{observer.latitudeDeg.toFixed(5)}, {observer.longitudeDeg.toFixed(5)}</dd></div><div><dt>RA / Dec</dt><dd>{targetSolution?.equatorial ? `${targetSolution.equatorial.raHours.toFixed(5)}h / ${targetSolution.equatorial.decDeg.toFixed(4)}°` : "Not applicable"}</dd></div><div><dt>Expected Az / Alt</dt><dd>{targetPosition ? `${targetPosition.azimuthDeg.toFixed(3)}° / ${targetPosition.altitudeDeg.toFixed(3)}°` : "Unavailable"}</dd></div><div><dt>Local ENU</dt><dd>{targetSolution ? `${targetSolution.enu.east.toFixed(5)}, ${targetSolution.enu.north.toFixed(5)}, ${targetSolution.enu.up.toFixed(5)}` : "Unavailable"}</dd></div><div><dt>Device heading</dt><dd>{pointing ? `${pointing.azimuthDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Pitch / roll</dt><dd>{orientationTelemetry ? `${orientationTelemetry.betaDeg.toFixed(2)}° / ${orientationTelemetry.gammaDeg.toFixed(2)}°` : "Manual"}</dd></div><div><dt>Quaternion</dt><dd>{pose ? `${pose.x.toFixed(5)}, ${pose.y.toFixed(5)}, ${pose.z.toFixed(5)}, ${pose.w.toFixed(5)}` : "Manual view pose"}</dd></div><div><dt>Magnetic heading</dt><dd>{orientationTelemetry?.magneticHeadingDeg != null ? `${orientationTelemetry.magneticHeadingDeg.toFixed(2)}°` : "Unavailable"}</dd></div><div><dt>True-north correction</dt><dd>{calibration ? `${calibration.azimuthOffsetDeg.toFixed(2)}°` : "Unavailable in browser API"}</dd></div><div><dt>Screen orientation</dt><dd>{screenAngle()}°</dd></div><div><dt>Camera FOV</dt><dd>{effectiveProjection.horizontalFovDeg.toFixed(2)}° × {effectiveProjection.verticalFovDeg.toFixed(2)}°</dd></div><div><dt>Video / viewport</dt><dd>{cameraProjection.sourceWidthPx}×{cameraProjection.sourceHeightPx} / {cameraProjection.viewportWidthPx}×{cameraProjection.viewportHeightPx}</dd></div><div><dt>Crop</dt><dd>{effectiveProjection.cropAxis} · {(effectiveProjection.visibleFraction * 100).toFixed(1)}%</dd></div><div><dt>Projected X / Y</dt><dd>{projectedTarget ? `${projectedTarget.xPercent.toFixed(2)}% / ${projectedTarget.yPercent.toFixed(2)}%` : "Unavailable"}</dd></div><div><dt>Navigation</dt><dd>{navigationMode} · {pointActive ? "pose active" : "manual pose"}</dd></div><div><dt>Density</dt><dd>{density.tier} · mag ≤ {density.magnitudeLimit.toFixed(2)}</dd></div></dl></aside> : null}
       </div>

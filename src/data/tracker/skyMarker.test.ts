@@ -41,7 +41,7 @@ describe("Sky noteworthy-object marker classification", () => {
       id: "star-sirius",
       title: "Sirius",
       source: { kind: "equatorial", rightAscensionHours: 6.7525, declinationDeg: -16.7161 },
-    })).toBe("deep-sky");
+    })).toBe("star");
   });
 
   it("does not turn a deep-sky name containing a planet into that planet", () => {
@@ -51,6 +51,32 @@ describe("Sky noteworthy-object marker classification", () => {
       title: "Saturn Nebula",
       shape: "region",
       source: { kind: "equatorial", rightAscensionHours: 21.0679, declinationDeg: -11.3633 },
-    })).toBe("deep-sky");
+    })).toBe("nebula");
+  });
+
+  it.each([
+    ["ISS", "space-station"],
+    ["Tiangong", "tiangong"],
+    ["Starlink train", "starlink-train"],
+  ] as const)("distinguishes %s from an ordinary satellite", (title, marker) => {
+    expect(skyMarkerKindForTarget({
+      ...bodyTarget("Saturn"),
+      id: title.toLowerCase().replaceAll(" ", "-"),
+      title,
+      source: {
+        kind: "sampled",
+        path: { kind: "target", points: [], riseUtc: null, culminationUtc: null, setUtc: null, windowStartUtc: null, windowEndUtc: null },
+      },
+    })).toBe(marker);
+  });
+
+  it("uses a quiet region marker for a selected constellation", () => {
+    expect(skyMarkerKindForTarget({
+      ...bodyTarget("Saturn"),
+      id: "constellation-ori",
+      title: "Orion",
+      shape: "region",
+      source: { kind: "equatorial", rightAscensionHours: 5.58, declinationDeg: 4.5 },
+    })).toBe("constellation");
   });
 });

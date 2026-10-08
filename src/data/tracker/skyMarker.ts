@@ -11,9 +11,17 @@ export type SkyMarkerKind =
   | "neptune"
   | "pluto"
   | "moon"
+  | "space-station"
+  | "tiangong"
+  | "starlink-train"
   | "satellite"
   | "radiant"
-  | "cluster"
+  | "open-cluster"
+  | "globular-cluster"
+  | "nebula"
+  | "galaxy"
+  | "star"
+  | "constellation"
   | "deep-sky"
   | "planet";
 
@@ -35,9 +43,17 @@ export function skyMarkerKindForTarget(target: SkyFinderTarget): SkyMarkerKind {
   if (body === "neptune" || title === "neptune") return "neptune";
   if (body === "pluto" || title === "pluto") return "pluto";
   if (body === "moon" || title === "moon") return "moon";
-  if (target.source.kind === "sampled" || /\biss\b|satellite/.test(identity)) return "satellite";
+  if (/starlink.*train|train.*starlink/.test(identity)) return "starlink-train";
+  if (/tiangong/.test(identity)) return "tiangong";
+  if (/\biss\b|international space station/.test(identity)) return "space-station";
+  if (target.source.kind === "tle" || target.source.kind === "sampled" || /satellite/.test(identity)) return "satellite";
   if (target.shape === "radiant") return "radiant";
-  if (target.shape === "cluster") return "cluster";
+  if (target.id.startsWith("constellation-")) return "constellation";
+  if (/globular|\bm\s?(?:13|15|22|92)\b/.test(identity)) return "globular-cluster";
+  if (target.shape === "cluster" || /pleiades|hyades|open cluster|double cluster/.test(identity)) return "open-cluster";
+  if (/nebula|\bm\s?(?:1|8|16|27|42|57)\b/.test(identity)) return "nebula";
+  if (/galaxy|andromeda|whirlpool|sombrero|\bm\s?(?:31|51|81|82|104)\b/.test(identity)) return "galaxy";
+  if (/^star-|\b(?:sirius|vega|arcturus|capella|rigel|betelgeuse|altair|deneb|polaris)\b/.test(identity)) return "star";
   if (target.source.kind === "body") return "planet";
   return "deep-sky";
 }

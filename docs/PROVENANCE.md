@@ -90,12 +90,18 @@ Vite override, and generic Space-Track/GCAT historical import authority are remo
 developer acquisitions may still exist in a private working directory, but production code cannot
 load them and they are excluded from tracked source, archives, and bundles.
 
-Tracker's rendered Sky adds no acquired image, texture, historical constellation plate, or new
-dependency. Its optional constellation apparition is project-authored runtime geometry anchored to
-the already-inventoried BSD-3-Clause d3-celestial figure endpoints. Its Milky Way spine is a
-project-authored mathematical display derived from the standard J2000 galactic transformation. The
-existing BSC5P, Astronomy Engine, satellite.js, deep-sky, and constellation provenance entries remain
-the applicable authorities.
+Tracker's rendered Sky adds one acquired production texture and no new dependency: NASA SVS Deep
+Star Maps 2020's celestial-coordinate Milky Way background. It intentionally omits the bright
+Hipparcos/Tycho foreground and is projected as a 72 × 36 celestial mesh beneath the authoritative
+BSC5P foreground stars rather than as a screen-space image. The exact SVS asset, public-domain usage
+basis, requested NASA/Gaia credit, checksum, and processing are inventoried.
+
+The optional Orion and Aquarius figures are original project-authored vectors anchored to real
+BSC5P stars in the already-inventoried BSD-3-Clause d3-celestial figures. Jamieson's 1822 atlas and
+the c. 1825 *Urania's Mirror* Aquarius card were consulted as public-domain visual references. Their
+exact source pages and downloaded research checksums are inventoried, but neither scan is committed,
+bundled, traced, or reproduced. The existing BSC5P, Astronomy Engine, satellite.js, deep-sky, Moon,
+and constellation data entries remain the applicable positional and scientific authorities.
 
 ## Automated Safeguards
 

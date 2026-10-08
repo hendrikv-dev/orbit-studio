@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "inventoryId": "orbit-studio-release-1-provenance",
-  "auditedAt": "2026-07-29",
+  "auditedAt": "2026-10-07",
   "statusVocabulary": {
     "verified": "Authoritative rights evidence supports the recorded use.",
     "unresolved": "Authoritative evidence does not establish the recorded use.",
@@ -36,6 +36,7 @@
       "api.weather.gov",
       "apps.apple.com",
       "arxiv.org",
+      "archive.org",
       "assets.science.nasa.gov",
       "atmosphere.copernicus.eu",
       "build.protomaps.com",
@@ -840,14 +841,14 @@
         "src/data/constellations/constellationLines.d3Celestial.json": "97bcec91f0233c93a26d1da1f17a793276b38958adbb912b887eb4e29f11ad0f",
         "src/data/constellations/constellationFigureStars.bsc5p.json": "3f10ef82946b55c9efd9b6f4ac8a34e634c2b75552ec806040b6dcd09f47b442",
         "src/data/constellations/LICENSE-BSD-3-CLAUSE.txt": "221e8ff1505d1e70f60234e7d809c67a8729b78ac27ae8645e3e15abbb22b612",
-        "src/data/constellations/README.md": "d75d50dae4ff5596ae83d27bc951675d41247feaa17bcf6205850aebbb98cb0f"
+        "src/data/constellations/README.md": "c7ca69a12c35fe1264d16fa4bcbdd749f279433bba375959bc2df4cd92cb4790"
       },
       "processing": [
         "The upstream GeoJSON is retained byte-for-byte except for a final POSIX newline.",
         "The deterministic BSC5P generator maps all 893 coordinates to real HR stars; maximum endpoint separation is 0.008397 degrees and the mapping is checksummed.",
         "Runtime code advances those same stars by their proper motion and projects fixed local ENU vectors through the stabilized device pose.",
         "These conventional line figures are orientation aids, not IAU constellation boundaries. BSC5P remains the star catalogue and Tracker's ranked SkyFinderTarget collection remains the notable-object authority.",
-        "Sky's optional translucent apparition is original project-authored runtime geometry derived from the projected endpoint stars; no historical or third-party illustration asset is included."
+        "Sky's Orion and Aquarius apparition paths are original project-authored vectors whose control points are weighted blends of the projected endpoint stars. Public-domain historical atlases informed recognisable posture, but no scan pixels, tracing, typography, grid, or page decoration are included."
       ],
       "rights": {
         "verification": "verified",
@@ -865,6 +866,132 @@
         "inclusionStatus": "retained",
         "release1Included": true,
         "restrictions": "Retain the BSD 3-Clause copyright notice and disclaimer. Do not describe the figures as IAU boundaries or as visually detected camera features."
+      }
+    },
+    {
+      "id": "nasa-svs-deep-star-maps-milky-way-2020",
+      "category": "image-texture",
+      "repositoryPaths": [
+        "public/sky/nasa-svs-milkyway-2020-celestial.jpg"
+      ],
+      "productionBundlePaths": [
+        "sky/nasa-svs-milkyway-2020-celestial.jpg"
+      ],
+      "originalSource": {
+        "title": "Deep Star Maps 2020: Milky Way background in celestial coordinates",
+        "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k_print.jpg",
+        "publicationUrl": "https://svs.gsfc.nasa.gov/4851/",
+        "publisher": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+        "contributors": [
+          "Ernie Wright (USRA), visualizer",
+          "ESA/Gaia/DPAC, Gaia DR2"
+        ],
+        "version": "SVS visualization 4851, milkyway_2020_4k_print.jpg, released 2020-09-09; page updated 2022-08-12",
+        "retrievedAt": "2026-10-07",
+        "originalSha256": "1ebe95804f5f0e6e23f77488aaa33fdb4aaef3fd336821fb41b261ddeaee2df0"
+      },
+      "localSha256": {
+        "public/sky/nasa-svs-milkyway-2020-celestial.jpg": "1ebe95804f5f0e6e23f77488aaa33fdb4aaef3fd336821fb41b261ddeaee2df0"
+      },
+      "processing": [
+        "Downloaded the 1024 by 512 JPEG from the official NASA SVS asset URL without resizing, cropping, recolouring, or recompression.",
+        "The source is the celestial-coordinate plate carrée Milky Way background centred at 0h right ascension with right ascension increasing left. It intentionally omits the bright Hipparcos and Tycho foreground-star layer.",
+        "CelestialMilkyWay samples the image as a 72 by 36 quadrilateral mesh. Every mesh vertex is converted from J2000 right ascension and declination to the observer's fixed ENU vector, then projected through the same Point, Explore, and camera pose as BSC5P stars.",
+        "The texture is rendered beneath Tracker's authoritative BSC5P foreground stars. It is celestial context rather than a photometric measurement, live image, or screen-space background."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "NASA SVS states that all SVS content is public domain unless otherwise noted and may be downloaded, used, and redistributed for any purpose; this item carries no contrary note. NASA Images and Media Usage Guidelines also apply.",
+        "evidenceUrls": [
+          "https://svs.gsfc.nasa.gov/4851/",
+          "https://svs.gsfc.nasa.gov/help/",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        ],
+        "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Visualization by Ernie Wright (USRA). Gaia DR2: ESA/Gaia/DPAC.",
+        "sourceRedistribution": "source-safe",
+        "deployedRedistribution": "deployment-safe",
+        "modification": "unmodified-asset-celestial-mesh-runtime-projection"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "Retain the requested NASA/Gaia credit, do not imply NASA endorsement, do not present the texture as a live sky image, and keep authoritative bright catalog stars separate."
+      }
+    },
+    {
+      "id": "jamieson-celestial-atlas-1822-visual-reference",
+      "category": "historical-visual-reference",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "A Celestial Atlas",
+        "url": "https://archive.org/download/celestial-atlas/Celestial%20Atlas.pdf",
+        "publicationUrl": "https://commons.wikimedia.org/wiki/File:Celestial_Atlas-_Alexander_Jamieson_(1822)_(IA_celestial-atlas).pdf",
+        "publisher": "Alexander Jamieson; digitized by the Internet Archive and described by Wikimedia Commons",
+        "version": "1822 work; Wikimedia Commons file revision 2026-09-21, oldid 1279001923",
+        "retrievedAt": "2026-10-07",
+        "originalSha256": "493008dbe1014485bbb29a089c4e09c7a215f168b6c3c4f7af5b0c941b5c7235"
+      },
+      "localSha256": {},
+      "processing": [
+        "The PDF was downloaded to a private temporary research directory and inspected only for recognisable constellation posture.",
+        "No PDF, scan pixels, tracing, paper, border, typography, grid, star label, or page decoration is committed or deployed.",
+        "Production Orion artwork is an original modern vector family whose control points are weighted blends of real BSC5P anchors in the d3-celestial Orion figure."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The source-description page marks the 1822 work public domain in its country of origin and the United States and identifies it with Creative Commons Public Domain Mark 1.0.",
+        "evidenceUrls": [
+          "https://commons.wikimedia.org/wiki/File:Celestial_Atlas-_Alexander_Jamieson_(1822)_(IA_celestial-atlas).pdf",
+          "https://creativecommons.org/publicdomain/mark/1.0/"
+        ],
+        "attribution": "Visual reference: Alexander Jamieson, A Celestial Atlas (1822), public domain; scan source Internet Archive via Wikimedia Commons.",
+        "sourceRedistribution": "source-safe-reference-only",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "visual-reference-only-no-reproduction"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The downloaded scan remains outside the repository and deployment. Replacing the original project vector with scan-derived pixels requires a new asset review."
+      }
+    },
+    {
+      "id": "uranias-mirror-aquarius-visual-reference",
+      "category": "historical-visual-reference",
+      "repositoryPaths": [],
+      "productionBundlePaths": [],
+      "originalSource": {
+        "title": "Aquarius card from Urania's Mirror",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Aquariusurania.jpg",
+        "publicationUrl": "https://commons.wikimedia.org/wiki/File:Aquariusurania.jpg",
+        "publisher": "Urania's Mirror, published by Samuel Leigh c. 1825; author identified by the Royal Astronomical Society as probably Richard Rouse Bloxam",
+        "version": "c. 1825 work; Wikimedia Commons file revision 2010-08-21, description oldid 1016919196",
+        "retrievedAt": "2026-10-07",
+        "originalSha256": "5c549c0cfe9d2a6e245407b3e1156ce567b634d9da959147bc178082b984bb06"
+      },
+      "localSha256": {},
+      "processing": [
+        "The JPEG was downloaded to a private temporary research directory and inspected only for the water-bearer and stream concept.",
+        "No JPEG pixels, tracing, paper, border, typography, grid, star label, or page decoration is committed or deployed.",
+        "Production Aquarius artwork is an original modern vector family whose control points are weighted blends of real BSC5P anchors in the d3-celestial Aquarius figure."
+      ],
+      "rights": {
+        "verification": "verified",
+        "licenseOrBasis": "The source-description page marks the c. 1825 work public domain and identifies it with Creative Commons Public Domain Mark 1.0.",
+        "evidenceUrls": [
+          "https://commons.wikimedia.org/wiki/File:Aquariusurania.jpg",
+          "https://creativecommons.org/publicdomain/mark/1.0/"
+        ],
+        "attribution": "Visual reference: Urania's Mirror, Aquarius card (c. 1825), public domain; source Wikimedia Commons.",
+        "sourceRedistribution": "source-safe-reference-only",
+        "deployedRedistribution": "not-in-production-bundle",
+        "modification": "visual-reference-only-no-reproduction"
+      },
+      "release": {
+        "inclusionStatus": "retained",
+        "release1Included": true,
+        "restrictions": "The downloaded scan remains outside the repository and deployment. Replacing the original project vector with scan-derived pixels requires a new asset review."
       }
     },
     {

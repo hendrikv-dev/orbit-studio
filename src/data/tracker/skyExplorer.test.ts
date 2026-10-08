@@ -78,5 +78,6 @@ describe("Sky 2.0 browse catalogue", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ title: "Tiangong", kind: "station" });
     expect(entries[0].target.source.kind).toBe("tle");
+    expect(Number.isNaN(Date.parse(entries[0].target.recommendedAtUtc))).toBe(false);
   });
 });

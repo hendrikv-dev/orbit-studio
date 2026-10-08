@@ -217,7 +217,8 @@ export function stationSearchEntries(
     const nextPassText = nextPass
       ? ` Next path above 10° starts ${clock ? formatClockTime(nextPass.startUtc, clock) : nextPass.startUtc.slice(11, 16) + " UTC"} and peaks ${Math.round(nextPass.peakAltitudeDeg)}° high. Visibility still depends on illumination and brightness.`
       : " No path above 10° is predicted in the next 24 hours.";
-    const target = baseTarget(
+    const target = {
+      ...baseTarget(
       `station-${station.id}`,
       station.id === "iss" ? "ISS" : station.name,
       at,
@@ -225,7 +226,12 @@ export function stationSearchEntries(
       {
         appearance: `${station.name} at its propagated current position.${nextPassText}`,
       },
-    );
+      ),
+      // A station is rendered at the current propagated position. This instant
+      // is metadata for review/planning only and points at the same TLE path's
+      // best upcoming geometry rather than inventing a second position model.
+      recommendedAtUtc: nextPass?.bestUtc ?? at.toISOString(),
+    };
     return [{
       id: target.id,
       title: target.title,

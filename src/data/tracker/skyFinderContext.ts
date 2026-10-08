@@ -7,6 +7,10 @@ import {
   type EnuDirection,
 } from "../../astronomy/topocentricSky";
 import constellationFigures from "../constellations/constellationFigureStars.bsc5p.json";
+import {
+  constellationArtworkFor,
+  type ConstellationArtworkPath,
+} from "../constellations/constellationArtwork";
 import brightStars from "../stars/bsc5pBrightStars.json";
 import {
   positionForSkyFinderTarget,
@@ -68,7 +72,7 @@ export interface ExpectedSkyLabel {
 export interface ExpectedSkyFigure {
   symbol: string;
   name: string;
-  directions: EnuDirection[];
+  paths: ConstellationArtworkPath[];
   primary: boolean;
 }
 
@@ -286,14 +290,15 @@ export function expectedSkyContext(
     .flatMap((star) => {
       const enu = direction(star);
       if (enu.up < -0.18 || dot(enu, centreDirection) < candidateCosine) return [];
-      const luminance = Math.max(0.18, Math.min(1, Math.pow(2.512, -star.magnitude) * 0.95));
+      const prominence = Math.max(0, Math.min(1, (6.5 - star.magnitude) / 8));
+      const luminance = 0.1 + Math.pow(prominence, 1.28) * 0.9;
       return [{
         id: star.id,
         name: star.name,
         designation: star.designation,
         label: friendlyStarLabel(star),
         direction: enu,
-        radiusPx: Math.max(1.05, Math.min(5.2, 4.9 - (star.magnitude + 1.5) * 0.48)),
+        radiusPx: 0.72 + Math.pow(prominence, 1.62) * 6.3,
         luminance,
         color: starColorFromBv(star.colorIndexBv),
         magnitude: star.magnitude,
@@ -353,15 +358,11 @@ export function expectedSkyContext(
     .slice(0, 5);
 
   const figures = labels.flatMap((label) => {
-    const directionsForFigure = labelDirections.get(label.symbol) ?? [];
-    const unique = [...new Map(directionsForFigure.map((value) => [
-      `${value.east.toFixed(7)}:${value.north.toFixed(7)}:${value.up.toFixed(7)}`,
-      value,
-    ])).values()];
-    return unique.length >= 3 ? [{
+    const artwork = constellationArtworkFor(label.symbol, (starId) => directions.get(starId) ?? null);
+    return artwork ? [{
       symbol: label.symbol,
       name: label.name,
-      directions: unique,
+      paths: artwork.paths,
       primary: label.primary,
     }] : [];
   });
@@ -383,6 +384,11 @@ export function expectedSkyContext(
     // body with different IDs (for example `planet-saturn` and `body-saturn`).
     // Keep the selected lock as the sole rendering authority for that object.
     .filter((candidate) => !target || !sameCelestialIdentity(candidate, target))
+    // A body-region recommendation is an observing event, not another body
+    // at the event centre. Its member bodies are already rendered from their
+    // own ephemerides, so an ambient event glyph would duplicate truth and
+    // create a misleading collision during conjunctions.
+    .filter((candidate) => candidate.source.kind !== "body-region")
     .flatMap((candidate) => {
       if (seenObjects.has(candidate.id)) return [];
       seenObjects.add(candidate.id);

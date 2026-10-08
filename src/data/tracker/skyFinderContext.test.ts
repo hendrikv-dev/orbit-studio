@@ -43,6 +43,13 @@ describe("expected Sky Finder context", () => {
     const pose = devicePoseLookingAt(centre!);
     expect(context.stars.some((star) => projectEnuDirection(star.direction, pose).inField)).toBe(true);
     expect(context.lines.every((line) => line.startStarId > 0 && line.endStarId > 0)).toBe(true);
+    expect(context.figures.find((figure) => figure.symbol === "Ori")?.paths).toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: "outline" }), expect.objectContaining({ role: "wash" })]),
+    );
+    const brightest = context.stars.reduce((best, star) => star.magnitude < best.magnitude ? star : best);
+    const faintest = context.stars.reduce((worst, star) => star.magnitude > worst.magnitude ? star : worst);
+    expect(brightest.radiusPx).toBeGreaterThan(faintest.radiusPx * 2);
+    expect(brightest.luminance).toBeGreaterThan(faintest.luminance);
   });
 
   it("keeps sampled moving targets honest by omitting an invented constellation", () => {
@@ -89,5 +96,21 @@ describe("expected Sky Finder context", () => {
 
     expect(context.objects.some((object) => object.title === "Saturn")).toBe(false);
     expect(context.stars.length).toBeGreaterThan(0);
+  });
+
+  it("does not invent an event-centre object for a body-region recommendation", () => {
+    const observer = { latitudeDeg: 34.0522, longitudeDeg: -118.2437 };
+    const at = new Date(ORION_NEBULA.recommendedAtUtc);
+    const centre = positionForSkyFinderTarget(ORION_NEBULA, observer, at)!;
+    const conjunction: SkyFinderTarget = {
+      ...ORION_NEBULA,
+      id: "venus-mercury-conjunction",
+      title: "Venus and Mercury",
+      source: { kind: "body-region", bodies: ["Venus", "Mercury"] },
+    };
+
+    const context = expectedSkyContext(ORION_NEBULA, observer, at, centre, [conjunction]);
+
+    expect(context.objects.some((object) => object.id === conjunction.id)).toBe(false);
   });
 });

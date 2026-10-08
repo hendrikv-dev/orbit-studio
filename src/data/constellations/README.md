@@ -20,9 +20,27 @@ The production star population remains the separately documented BSC5P
 subset. This file contributes only conventional figure segments and never
 replaces the star catalogue, the target catalogue, or the application clock.
 
-Sky's optional translucent constellation apparition is original project-owned
-display geometry computed from these projected endpoints at runtime. It is not
-an extracted historical plate, a copied illustration, or an additional
-third-party asset. The generated polygon is an atmospheric learning aid; the
-real endpoint stars and conventional line segments remain the positional
-authority.
+Sky's optional translucent constellation figures are original project-owned
+vector paths in `constellationArtwork.ts`. Every control point is a weighted
+blend of named BSC5P anchors that already belong to the corresponding
+d3-celestial figure, so the artwork follows the same real-star projection in
+Point, Explore, and camera modes. The real endpoint stars and conventional line
+segments remain the positional authority.
+
+The first reviewed figures are Orion and Aquarius. Their recognisable posture
+was informed by, but not traced from or copied from, these public-domain works:
+
+- Alexander Jamieson, *A Celestial Atlas* (1822), Wikimedia Commons / Internet
+  Archive file `Celestial Atlas- Alexander Jamieson (1822) (IA
+  celestial-atlas).pdf`, retrieved 2026-10-07, SHA-256
+  `493008dbe1014485bbb29a089c4e09c7a215f168b6c3c4f7af5b0c941b5c7235`.
+- *Urania's Mirror* (c. 1825), Aquarius card, Wikimedia Commons file
+  `Aquariusurania.jpg`, retrieved 2026-10-07, SHA-256
+  `5c549c0cfe9d2a6e245407b3e1156ce567b634d9da959147bc178082b984bb06`.
+
+Both source-description pages identify the underlying works with Public Domain
+Mark 1.0. The downloaded scans are research references only: no scan pixels,
+paper, borders, typography, grid, labels, or page decoration are shipped. The
+production vectors use one modern pale-line/wash system and are strengthened
+only when their constellation is selected; unreviewed constellations continue
+to use their real-star figure lines without invented artwork.
