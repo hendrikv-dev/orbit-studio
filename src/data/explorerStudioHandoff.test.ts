@@ -20,7 +20,7 @@ describe("Explorer Studio handoff", () => {
     expect(studio.satellites[0].visualization.showGroundTrack).toBe(true);
   });
 
-  it("opens a selected satellite as a single editable Playground orbit", () => {
+  it("does not import a selected Explorer satellite implicitly", () => {
     const explorer = createExplorerScenario(explorerSnapshots[explorerSnapshots.length - 1]);
     const selected = explorer.satellites.find(
       (satellite) => satellite.id === "explorer-iss",
@@ -31,14 +31,12 @@ describe("Explorer Studio handoff", () => {
       selectedObjectId: selected.id,
     });
 
-    expect(explorer.satellites.length).toBeGreaterThan(5);
+    expect(studio.environment).toBe("playground");
     expect(studio.satellites).toHaveLength(1);
-    expect(studio.satellites[0].id).toBe(selected.id);
-    expect(studio.satellites[0].editorMode).toBe("keplerian");
-    expect(studio.satellites[0].visualization.showTrail).toBe(true);
-    expect(studio.satellites[0].visualization.showGroundTrack).toBe(true);
-    expect(studio.satellites[0].constellationId).toBeNull();
+    expect(studio.satellites[0].name).toBe("Satellite 1");
+    expect(studio.satellites[0].id).not.toBe(selected.id);
     expect(studio.satellites[0].catalogMetadata).toBeUndefined();
+    expect(studio.catalogLayers).toHaveLength(0);
   });
 
   it("uses the clean Playground for non-satellite Explorer selections", () => {

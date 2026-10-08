@@ -1,25 +1,156 @@
+import React, { useEffect } from "react";
+import { signalAppReady } from "../../lib/appReady";
 import { ArrowRight, ExternalLink } from "lucide-react";
+import { orbitStudioRepositoryUrl, orbitStudioSponsorUrl } from "../../lib/projectLinks";
 import "./orbit-studio-home.css";
 
 interface OrbitStudioHomeProps {
   onOpenExplorer: () => void;
   onOpenPlayground: () => void;
-  /** Direct URL to a hosted payment page such as Stripe, Ko-fi, or GitHub Sponsors. */
+  onOpenTracker: () => void;
+  /** Overrides the default GitHub Sponsors destination. */
   supportUrl?: string;
 }
 
-const repositoryUrl = "https://github.com/hendrikv-dev/orbit-studio";
-const docsUrl = `${repositoryUrl}#readme`;
+const repositoryUrl = orbitStudioRepositoryUrl;
+const docsUrl = `${repositoryUrl}/blob/main/README.md`;
 const dataUrl = `${repositoryUrl}/blob/main/docs/sources.md`;
 const issuesUrl = `${repositoryUrl}/issues`;
 const licenseUrl = `${repositoryUrl}/blob/main/LICENSE`;
 
+/**
+ * One product in the list.
+ *
+ * Every field is required, which is the point: a product with no image or no
+ * stated job cannot be added half-finished and left looking broken next to the
+ * others. Tracker spent a release in exactly that state — a card with no
+ * preview, sitting alone on a second grid row.
+ */
+export interface HomeProduct {
+  id: string;
+  name: string;
+  /** What the product does, in one concrete sentence. */
+  job: string;
+  /** One supporting sentence. */
+  note: string;
+  logoSrc: string;
+  /**
+   * Rendered logo height.
+   *
+   * All three are the same lockup — icon at the left, "ORBIT STUDIO" over the
+   * product name at the right — so a shared height puts the three icons and the
+   * three wordmarks at the same size, whatever each asset's overall width. The
+   * per-product number only compensates for differing transparent padding.
+   */
+  logoHeight: number;
+  imageSrc: string;
+  imageAlt: string;
+  onOpen: () => void;
+}
+
+/**
+ * The product list, rendered as rows rather than as a grid.
+ *
+ * A grid of cards has to be told how many columns it has, and it looks wrong
+ * the moment the product count stops being a multiple of that number: three
+ * products in a two-column grid left Tracker hanging alone on its own row, and
+ * a fourth product would do the same thing to a three-column one. A list has no
+ * such arithmetic. Adding a product adds a row, at any count, at every width.
+ *
+ * Exported so a test can mount it with a fourth product and prove that claim
+ * without a fourth product existing in the real interface.
+ */
+export function OrbitStudioProductList({ products }: { products: HomeProduct[] }) {
+  return (
+    <ul className="orbit-home-products">
+      {products.map((product) => (
+        <li key={product.id} className="orbit-home-product">
+          <div className="orbit-home-product-copy">
+            <img
+              className="orbit-home-product-logo"
+              src={product.logoSrc}
+              alt={product.name}
+              style={{ height: `${product.logoHeight}px` }}
+            />
+            {/*
+              The heading carries the only interactive element in the row, and
+              its ::after covers the whole row. That gives one focus stop per
+              product and a fully clickable row without nesting a control inside
+              a control — an image button beside a text button meant two tab
+              stops that did the same thing.
+            */}
+            <h2 className="orbit-home-product-job">
+              <button type="button" className="orbit-home-product-open" onClick={product.onOpen}>
+                {product.job}
+              </button>
+            </h2>
+            <p className="orbit-home-product-note">{product.note}</p>
+            <span className="orbit-home-product-cta" aria-hidden="true">
+              Open {product.name.replace("Orbit Studio ", "")}
+              <ArrowRight size={16} />
+            </span>
+          </div>
+          <div className="orbit-home-product-visual">
+            <img src={product.imageSrc} alt={product.imageAlt} loading="lazy" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function OrbitStudioHome({
   onOpenExplorer,
   onOpenPlayground,
+  onOpenTracker,
   supportUrl,
 }: OrbitStudioHomeProps) {
-  const donationUrl = supportUrl?.trim();
+  // A static page: nothing renders asynchronously, so it is ready on mount.
+  useEffect(() => { signalAppReady(); }, []);
+
+  const sponsorUrl = supportUrl?.trim() || orbitStudioSponsorUrl;
+
+  const products: HomeProduct[] = [
+    {
+      id: "tracker",
+      name: "Orbit Studio Tracker",
+      job: "See what is worth observing from where you are.",
+      note: "Pick a place and a date, and get timing, direction and conditions for what is up.",
+      // The horizontal lockup, matching Explorer's and Playground's. The other
+      // Tracker asset stacks the mark above the wordmark, which made this row's
+      // logo half again as tall as its siblings' and threw the list out of
+      // alignment. Named "dark" for the background it is drawn on, not its ink.
+      logoSrc: "/brand/orbit-studio-tracker-logo-dark.png",
+      // About 7% transparent padding top and bottom, unlike its siblings.
+      logoHeight: 69,
+      imageSrc: "/home/tracker-home.webp",
+      imageAlt:
+        "Orbit Studio Tracker showing the Big Sur coast, with hillshaded terrain of the Santa Lucia range and a selected observing location marked",
+      onOpen: onOpenTracker,
+    },
+    {
+      id: "explorer",
+      name: "Orbit Studio Explorer",
+      job: "Explore the public orbital catalog over time.",
+      note: "Search cataloged objects from the beginning of spaceflight to today.",
+      logoSrc: "/brand/orbit-studio-explorer-logo.png",
+      logoHeight: 64,
+      imageSrc: "/home/explorer-home.webp",
+      imageAlt: "Earth surrounded by cataloged orbital objects in Orbit Studio Explorer",
+      onOpen: onOpenExplorer,
+    },
+    {
+      id: "playground",
+      name: "Orbit Studio Playground",
+      job: "See how orbital elements shape an orbit.",
+      note: "Adjust the six classical orbital elements and watch the orbit respond.",
+      logoSrc: "/brand/orbit-studio-playground-logo.png",
+      logoHeight: 64,
+      imageSrc: "/home/playground-home.webp",
+      imageAlt: "A satellite orbit displayed around Earth in Orbit Studio Playground",
+      onOpen: onOpenPlayground,
+    },
+  ];
 
   return (
     <main className="orbit-home">
@@ -34,118 +165,53 @@ export function OrbitStudioHome({
           <a href={repositoryUrl} target="_blank" rel="noreferrer">
             GitHub <ExternalLink aria-hidden="true" size={13} />
           </a>
-          {donationUrl && (
-            <a className="orbit-home-support-link" href="#support">Support</a>
-          )}
         </nav>
       </header>
 
-      <section className="orbit-home-hero" id="top" aria-labelledby="orbit-home-title">
-        <h1 id="orbit-home-title">Welcome to Orbit Studio</h1>
-        <p>A free, open-source platform for exploring orbital data and building space simulations.</p>
+      <section className="orbit-home-intro" id="top" aria-labelledby="orbit-home-title">
+        <h1 id="orbit-home-title">Orbit Studio</h1>
+        {/*
+          No suite-wide licence claim here.
+
+          This said "Open-source tools for…", which is a statement about all
+          three products made in one sentence, and it stopped being true when
+          Tracker stopped being open source. Where a product's licence is worth
+          saying, it is said on that product's own row — which is also the only
+          place it can be said accurately.
+        */}
+        <p>
+          Tools for exploring orbital data, understanding orbital mechanics, and planning what to
+          observe from Earth.
+        </p>
       </section>
 
-      <section className="orbit-home-apps" aria-label="Available Orbit Studio environments">
-        <article className="orbit-home-card orbit-home-card-explorer">
-          <div className="orbit-home-card-copy">
-            <img
-              className="orbit-home-app-logo"
-              src="/brand/orbit-studio-explorer-logo.png"
-              alt="Orbit Studio Explorer"
-            />
-            <h2>Explore the public orbital catalog over time.</h2>
-            <p>Search cataloged objects from the beginning of spaceflight to today.</p>
-            <button type="button" onClick={onOpenExplorer}>
-              Open Explorer <ArrowRight aria-hidden="true" size={18} />
-            </button>
-          </div>
-          <button
-            className="orbit-home-preview-button"
-            type="button"
-            aria-label="Open Orbit Studio Explorer"
-            onClick={onOpenExplorer}
-          >
-            <img
-              src="/home/explorer-home.webp"
-              alt="Earth surrounded by cataloged orbital objects in Orbit Studio Explorer"
-            />
-          </button>
-        </article>
-
-        <article className="orbit-home-card orbit-home-card-playground">
-          <div className="orbit-home-card-copy">
-            <img
-              className="orbit-home-app-logo"
-              src="/brand/orbit-studio-playground-logo.png"
-              alt="Orbit Studio Playground"
-            />
-            <h2>See how orbital elements shape an orbit.</h2>
-            <p>Adjust the six classical orbital elements and watch the orbit respond.</p>
-            <button type="button" onClick={onOpenPlayground}>
-              Open Playground <ArrowRight aria-hidden="true" size={18} />
-            </button>
-          </div>
-          <button
-            className="orbit-home-preview-button"
-            type="button"
-            aria-label="Open Orbit Studio Playground"
-            onClick={onOpenPlayground}
-          >
-            <img
-              src="/home/playground-home.webp"
-              alt="A satellite orbit displayed around Earth in Orbit Studio Playground"
-            />
-          </button>
-        </article>
+      <section className="orbit-home-catalogue" aria-label="Orbit Studio tools">
+        <OrbitStudioProductList products={products} />
       </section>
 
       <section className="orbit-home-about" aria-labelledby="orbit-home-about-title">
-        <div className="orbit-home-about-copy">
-          <h2 id="orbit-home-about-title">About Orbit Studio</h2>
-          <p>
-            Orbit Studio is an independent project. The source is available to inspect, adapt,
-            and use as a foundation for your own work.
-          </p>
-        </div>
-
-        <div className="orbit-home-resource-list" aria-label="Project resources">
-          <a href={docsUrl} target="_blank" rel="noreferrer">
-            <strong>Documentation</strong>
-            <span>Run the project and learn how the current environments work.</span>
-          </a>
-          <a href={dataUrl} target="_blank" rel="noreferrer">
-            <strong>Data &amp; methods</strong>
-            <span>Review sources, attribution, reconstruction methods, and known limits.</span>
-          </a>
-          <a href={repositoryUrl} target="_blank" rel="noreferrer">
-            <strong>View source</strong>
-            <span>Study the code or use it as a starting point for another project.</span>
-          </a>
-          <a href={issuesUrl} target="_blank" rel="noreferrer">
-            <strong>Report an issue</strong>
-            <span>Share a reproducible problem with the official repository.</span>
-          </a>
-        </div>
+        <h2 id="orbit-home-about-title">About Orbit Studio</h2>
+        <p>
+          Orbit Studio is an independent project. Each tool states where its data comes from and
+          what it cannot answer, and the source of all three is public to read and check. Explorer
+          and Playground are open source and can be adapted and reused; Tracker's own code is not
+          offered for reuse.
+        </p>
       </section>
 
-      {donationUrl && (
-        <section className="orbit-home-support" id="support" aria-labelledby="orbit-home-support-title">
-          <div>
-            <h2 id="orbit-home-support-title">Support Orbit Studio</h2>
-            <p>Contributions help fund hosting, data processing, and continued development.</p>
-          </div>
-          <a className="orbit-home-primary-link" href={donationUrl} target="_blank" rel="noreferrer">
-            Donate <ExternalLink aria-hidden="true" size={15} />
-          </a>
-        </section>
-      )}
-
+      {/*
+        The header already carries Docs, Data & methods and GitHub. Repeating
+        them here as cards and again in the footer meant three routes to the
+        same three pages, and left a fifth card hanging alone on a second row.
+        What remains is only what the header does not offer.
+      */}
       <footer className="orbit-home-footer">
-        <span>Orbit Studio</span>
-        <a href={docsUrl} target="_blank" rel="noreferrer">Docs</a>
-        <a href={dataUrl} target="_blank" rel="noreferrer">Data sources</a>
-        <a href={repositoryUrl} target="_blank" rel="noreferrer">GitHub</a>
-        <a href={licenseUrl} target="_blank" rel="noreferrer">License</a>
+        <span className="orbit-home-footer-name">Orbit Studio</span>
+        <nav aria-label="Project links">
+          <a href={licenseUrl} target="_blank" rel="noreferrer">License</a>
+          <a href={issuesUrl} target="_blank" rel="noreferrer">Report an issue</a>
+          <a href={sponsorUrl} target="_blank" rel="noreferrer">Support</a>
+        </nav>
       </footer>
     </main>
   );

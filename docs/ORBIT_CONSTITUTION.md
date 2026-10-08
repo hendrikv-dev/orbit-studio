@@ -17,6 +17,50 @@ When goals conflict, scientific honesty, lawful data use, accessibility, and use
 constraints. Visual polish, density, convenience, and performance must be optimized within those
 constraints, not traded against them silently.
 
+## Audience
+
+Orbit Studio is for **students and educators in aerospace and the space industry**. Every
+product decision is judged against whether it helps someone learn the subject or teach it.
+This audience is shared by every tool; no tool serves a different one.
+
+It is not a professional operations product. The distinction is purpose, not subject
+matter: operational decision support — conjunction assessment for maneuver decisions,
+fleet management, mission operations — is out of scope, while the same underlying
+phenomena are in scope wherever they help someone learn. Predicting when the ISS passes
+over a school is teaching; screening a fleet for avoidance maneuvers is operations.
+"An operator would want this" is not by itself a reason to build anything.
+
+## Tools
+
+Orbit Studio is composed of **tools**. A tool is the top-level unit of the product and
+the set is open: new tools may be added when they serve the audience above and can state
+their epistemic contract. Three are defined.
+
+- **Explorer** — what is and was real. Never presents hypothetical simulation as
+  historical reality.
+- **Playground** — what is possible. Everything in it is explicitly the user's own
+  construction.
+- **Tracker** — what can I see from my location, when can I see it, and how do I see it.
+  Predictions, carrying their reliability with them.
+
+**Environment is not a synonym for tool, and it is not a smaller number.** It describes
+the epistemic pairing of Explorer and Playground, which are divided by whether their
+content is real or constructed. Tracker's content is neither: it is predicted. Calling
+Explorer and Playground environments is a statement about those two tools and says
+nothing about how many tools Orbit Studio may have.
+
+## Product Boundaries Are Not Implementation Boundaries
+
+What is a tool, what belongs in which tool, and who a tool serves are product decisions.
+They are not inferred from bundle structure, renderer architecture, module dependencies,
+data sources, or shared libraries.
+
+Implementation properties are consequences of product decisions and evidence about their
+cost. They are never the argument. A capability that needs its own bundle, its own
+renderer and its own data feed may still be one tool among several; a capability that
+shares every dependency may still belong to a different product. Cite implementation
+facts as cost, never as boundary.
+
 ## 1. Scientific Claims Must Be Bounded
 
 Every physical claim must be supported by evidence and a model valid for the claimed quantity,

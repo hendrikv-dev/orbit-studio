@@ -1,0 +1,715 @@
+/**
+ * Sky access: whether the weather will let you see the thing at all.
+ *
+ * The follow-on specification is explicit that this stays a separate input from
+ * the phenomenon itself, and that both survive into the result:
+ *
+ * > Combine them into a viewing recommendation, but retain both components so
+ * > the product can explain whether a weak recommendation comes from the
+ * > phenomenon or the clouds.
+ *
+ * So nothing here touches `Qualities`. A `ConditionSnapshot` describes the sky
+ * over the observer, an `Opportunity` describes what is up there, and
+ * `viewability()` combines them into a band while keeping both halves
+ * addressable. That separation is what makes "the Perseids are excellent and
+ * the sky is shut" expressible at all, and it is the difference between a
+ * product that explains itself and one that just scores lower.
+ *
+ * ## No percentages
+ *
+ * The specification forbids an exact chance until it has been calibrated
+ * against real observation outcomes, and nothing here has been. The output is a
+ * band, and the bands are wide on purpose.
+ */
+
+/** What the sky looks like, in the vocabulary the interface uses. */
+export type SkyCondition =
+  /**
+   * No forecast reached this instant. Distinct from every other value because
+   * the alternative is drawing one: the fallback used to report `clear`, so an
+   * unfetched forecast rendered a sun icon beside the words "conditions
+   * unavailable". Absence has to be its own state or it gets rounded to the
+   * nearest thing that is.
+   */
+  | "unknown"
+  | "clear"
+  | "somewhat-cloudy"
+  | "cloudy"
+  | "overcast"
+  | "foggy"
+  | "precipitating"
+  | "smoky"
+  | "very-smoky";
+
+/**
+ * One instant of weather, normalised away from any provider's schema.
+ *
+ * Optional fields are genuinely optional: a provider that cannot supply smoke
+ * leaves it null and the model runs without it, rather than a zero standing in
+ * and quietly promising a transparent sky.
+ */
+export interface ConditionSnapshot {
+  atUtc: string;
+  /** Total cloud cover, 0–100. Required. */
+  cloudCoverPercent: number;
+  /** Air temperature at this instant, °C, or null when the provider omitted it. */
+  temperatureC: number | null;
+  /** When the forecast was issued, so freshness can be judged. */
+  issuedUtc: string;
+  /** True/false where reported; null is not silently treated as dry. */
+  precipitating: boolean | null;
+  /** Horizontal visibility in metres, where the provider reports it. */
+  visibilityM: number | null;
+  /** Low, middle and high cloud fractions, 0–100, where reported. */
+  lowCloudPercent: number | null;
+  midCloudPercent: number | null;
+  highCloudPercent: number | null;
+  /** Relative humidity, 0–100. A supporting transparency signal only. */
+  relativeHumidityPercent: number | null;
+  /**
+   * Column-integrated smoke, mg/m². Smoke aloft cuts astronomical contrast even
+   * when the ground-level air is fine, so it is kept separate from the surface
+   * measure below rather than folded into one "smoke" number.
+   */
+  smokeColumnMgM2: number | null;
+  /** Near-surface smoke as PM2.5, µg/m³. A health signal, not a sky one. */
+  surfacePm25 : number | null;
+  /**
+   * Aerosol optical depth at 550 nm, dimensionless, where an aerosol model
+   * covers this location.
+   *
+   * The one atmospheric quantity here that converts directly into what an
+   * observer loses: transmission is `e^(-tau)`, so tau is magnitudes of
+   * extinction divided by 1.086. Kept separate from the two smoke fields above
+   * because it is a different measurement of a different thing, and averaging
+   * it into them would destroy the only one that answers the observing
+   * question.
+   */
+  aerosolOpticalDepth?: number | null;
+  /** Which adapter produced this, for attribution and for the details view. */
+  source: string;
+}
+
+/** Where a forecast came from, and what it costs to ask. */
+export interface WeatherSourceInfo {
+  id: string;
+  name: string;
+  attribution: string;
+  /**
+   * Whether asking this provider costs the operator money. The free-user path
+   * may only use `public-no-fee` sources (§9 of the follow-on specification),
+   * and this field is what makes that rule checkable rather than a convention.
+   */
+  cost: "public-no-fee" | "cost-bearing";
+  /** Region the adapter serves, for choosing between them. */
+  coverage: "global" | "united-states";
+}
+
+/* ------------------------------------------------------------- vocabulary */
+
+/** Above this, cloud is the story regardless of anything else. */
+const OVERCAST_PERCENT = 80;
+const CLOUDY_PERCENT = 50;
+const SOMEWHAT_CLOUDY_PERCENT = 20;
+
+/** Column smoke thresholds, mg/m². Coarse, and deliberately so. */
+const SMOKY_COLUMN = 20;
+const VERY_SMOKY_COLUMN = 100;
+
+/** Below this visibility, fog is what you will be looking at. */
+const FOG_VISIBILITY_M = 1000;
+
+export interface ConditionReading {
+  condition: SkyCondition;
+  /** The label, which names both states where both apply. */
+  label: string;
+  /**
+   * The same sky as a noun phrase, for sentences rather than chips.
+   *
+   * A label is written to sit beside a temperature — "Rain or snow · 8°C" — and
+   * reads as nonsense the moment a sentence puts a noun after it: "rain or snow
+   * skies make seeing them unlikely". The two forms are different jobs.
+   */
+  phrase: string;
+  /**
+   * True where smoke is the reason an otherwise open sky will disappoint. The
+   * interface uses this to give smoke visual precedence, because "clear" and
+   * "clear but smoky" are different evenings and the ordinary cloud icon
+   * cannot say so.
+   */
+  smokeDominant: boolean;
+}
+
+/**
+ * The sky in one word, or two where two are true.
+ *
+ * Order matters: precipitation and fog beat everything because they end the
+ * evening, smoke is checked before cloud because a clear-but-smoky sky reads as
+ * clear to a cloud-only model, and cloud is the fallback.
+ */
+export function readCondition(snapshot: ConditionSnapshot): ConditionReading {
+  const smoke = snapshot.smokeColumnMgM2;
+  const verySmoky = smoke !== null && smoke >= VERY_SMOKY_COLUMN;
+  const smoky = smoke !== null && smoke >= SMOKY_COLUMN;
+
+  if (snapshot.precipitating === true) {
+    return {
+      condition: "precipitating",
+      label: "Rain or snow",
+      phrase: "rain or snow",
+      smokeDominant: false,
+    };
+  }
+  if (snapshot.visibilityM !== null && snapshot.visibilityM < FOG_VISIBILITY_M) {
+    return { condition: "foggy", label: "Fog", phrase: "fog", smokeDominant: false };
+  }
+
+  const cloud = snapshot.cloudCoverPercent;
+  const cloudWord =
+    cloud >= OVERCAST_PERCENT
+      ? "Overcast"
+      : cloud >= CLOUDY_PERCENT
+        ? "Cloudy"
+        : cloud >= SOMEWHAT_CLOUDY_PERCENT
+          ? "Somewhat cloudy"
+          : "Clear";
+  const cloudPhrase =
+    cloud >= OVERCAST_PERCENT
+      ? "an overcast sky"
+      : cloud >= CLOUDY_PERCENT
+        ? "cloud"
+        : cloud >= SOMEWHAT_CLOUDY_PERCENT
+          ? "patchy cloud"
+          : "a clear sky";
+
+  if (verySmoky || smoky) {
+    const heavy = verySmoky ? "very smoky" : "smoky";
+    // Smoke takes precedence only where the sky is otherwise worth having. Under
+    // an overcast there is nothing for smoke to spoil, and saying so would be
+    // piling on.
+    const dominant = cloud < CLOUDY_PERCENT;
+    return {
+      condition: verySmoky ? "very-smoky" : "smoky",
+      label: dominant ? `${cloudWord} but ${heavy}` : `${cloudWord}, ${heavy}`,
+      phrase: verySmoky ? "heavy smoke" : "smoke",
+      smokeDominant: dominant,
+    };
+  }
+
+  return {
+    condition:
+      cloud >= OVERCAST_PERCENT
+        ? "overcast"
+        : cloud >= CLOUDY_PERCENT
+          ? "cloudy"
+          : cloud >= SOMEWHAT_CLOUDY_PERCENT
+            ? "somewhat-cloudy"
+            : "clear",
+    label: cloudWord,
+    phrase: cloudPhrase,
+    smokeDominant: false,
+  };
+}
+
+/* ------------------------------------------------------------- sky access */
+
+/**
+ * How much a phenomenon needs a genuinely transparent sky.
+ *
+ * The follow-on specification asks weather to be used per phenomenon rather
+ * than uniformly, and this is the axis that differs: the Moon is visible
+ * through cloud that would end a meteor watch, and smoke that barely dims
+ * Jupiter can hide every faint meteor of the night.
+ */
+export type TransparencyDemand = "low" | "medium" | "high";
+
+/**
+ * Sky access, 0–1, for a phenomenon with a given appetite for transparency.
+ *
+ * These are judgement curves. They are not fitted to observation outcomes,
+ * which is exactly why the output of `viewability` is a band and not a
+ * percentage.
+ */
+export function skyAccess(
+  snapshot: ConditionSnapshot,
+  demand: TransparencyDemand,
+): number {
+  if (snapshot.precipitating === true) return 0;
+  if (snapshot.visibilityM !== null && snapshot.visibilityM < FOG_VISIBILITY_M) return 0;
+
+  const open = Math.max(0, 1 - snapshot.cloudCoverPercent / 100);
+
+  // A demanding target loses more to the same cloud: gaps in broken cloud are
+  // enough to catch a bright planet and not enough to watch a meteor shower.
+  const cloudTerm =
+    demand === "high" ? Math.pow(open, 1.6) : demand === "medium" ? Math.pow(open, 1.2) : open;
+
+  let smokeTerm = 1;
+
+  // Aerosol first, because it is measured in exactly the currency this function
+  // trades in: light that does not arrive. A demanding target loses the whole
+  // extinction; a bright one barely notices it.
+  const opticalDepth = snapshot.aerosolOpticalDepth;
+  if (opticalDepth !== null && opticalDepth !== undefined) {
+    const magnitudes = 1.0857362 * opticalDepth;
+    const weight = demand === "high" ? 0.55 : demand === "medium" ? 0.32 : 0.12;
+    // Two magnitudes of aerosol extinction is a sky nobody is observing faint
+    // things through, and is the point the term saturates.
+    smokeTerm *= 1 - weight * Math.min(1, magnitudes / 2);
+  }
+
+  const smoke = snapshot.smokeColumnMgM2;
+  if (smoke !== null) {
+    // Smoke does not block, it dims. So it scales what is left rather than
+    // gating it, and it costs a faint target far more than a bright one.
+    const severity = Math.min(1, smoke / VERY_SMOKY_COLUMN);
+    const weight = demand === "high" ? 0.65 : demand === "medium" ? 0.4 : 0.15;
+    smokeTerm *= 1 - weight * severity;
+  }
+
+  return Math.max(0, Math.min(1, cloudTerm * smokeTerm));
+}
+
+export type ViewabilityBand = "excellent" | "good" | "possible" | "unlikely" | "unknown";
+
+/**
+ * Freshness of the forecast, kept independent of the band itself.
+ *
+ * The specification asks for "an independent forecast-confidence or freshness
+ * state", and it has to be independent: a confident forecast of cloud and a
+ * stale forecast of clear sky are both "unlikely to be excellent", for
+ * completely different reasons, and collapsing them would hide which.
+ */
+export type ForecastFreshness = "current" | "ageing" | "stale";
+
+/**
+ * Whether environmental evidence exists and can support a recommendation.
+ * This is categorical on purpose: provider failure and absence must never be
+ * converted into a numeric score that looks like verified clear weather.
+ */
+export type EnvironmentalEvidenceStatus =
+  | "available"
+  | "stale"
+  | "unavailable"
+  | "request-failed"
+  | "not-supported";
+
+export interface EnvironmentalEvidence {
+  status: EnvironmentalEvidenceStatus;
+  snapshots: ConditionSnapshot[];
+  source: WeatherSourceInfo | null;
+  message: string | null;
+}
+
+export function environmentalEvidence(
+  snapshots: ConditionSnapshot[],
+  now: Date,
+  source: WeatherSourceInfo | null = null,
+): EnvironmentalEvidence {
+  if (snapshots.length === 0) {
+    return { status: "unavailable", snapshots: [], source, message: "No forecast reached this observing period." };
+  }
+  const stale = snapshots.every((snapshot) => forecastFreshness(snapshot, now) === "stale");
+  return {
+    status: stale ? "stale" : "available",
+    snapshots,
+    source,
+    message: stale ? "The available forecast is out of date." : null,
+  };
+}
+
+export function unavailableEnvironmentalEvidence(
+  status: Exclude<EnvironmentalEvidenceStatus, "available" | "stale">,
+  message: string,
+  source: WeatherSourceInfo | null = null,
+): EnvironmentalEvidence {
+  return { status, snapshots: [], source, message };
+}
+
+export interface Viewability {
+  band: ViewabilityBand;
+  /** Sky access alone, 0–1; null means it was not measured. */
+  access: number | null;
+  reading: ConditionReading;
+  freshness: ForecastFreshness;
+  evidenceStatus: EnvironmentalEvidenceStatus;
+  /**
+   * Set where the sky is genuinely the reason the evening is worse than it
+   * could be — not merely worse than perfect. Without the floor this fires on
+   * any cloud at all, and "it is the sky that is in the way" then sits next to
+   * a badge reading *good* under light cloud, which reads as a fault in the
+   * product rather than a fact about the night.
+   */
+  limitedBySky: boolean;
+}
+
+const FRESH_HOURS = 3;
+const AGEING_HOURS = 12;
+
+/** Below this, the sky is worth naming as the constraint. Above it, it is not. */
+const SKY_CLEARLY_LIMITING = 0.55;
+
+export function forecastFreshness(snapshot: ConditionSnapshot, now: Date): ForecastFreshness {
+  const ageHours = (now.getTime() - Date.parse(snapshot.issuedUtc)) / 3_600_000;
+  if (ageHours <= FRESH_HOURS) return "current";
+  if (ageHours <= AGEING_HOURS) return "ageing";
+  return "stale";
+}
+
+/**
+ * The viewing recommendation for one instant.
+ *
+ * `phenomenonStrength` is the ranking's own strength for the opportunity, and
+ * it is passed in rather than recomputed so the two cannot drift. The band is
+ * driven by whichever of the two is worse, because the evening is limited by
+ * whichever it is — and `limitedBySky` records which, so the interface can say
+ * "the shower is fine, the sky is not" instead of just ranking it lower.
+ */
+export function viewability(
+  snapshot: ConditionSnapshot,
+  demand: TransparencyDemand,
+  phenomenonStrength: number,
+  now: Date,
+  evidenceStatus: "available" | "stale" = "available",
+): Viewability {
+  const access = skyAccess(snapshot, demand);
+  const reading = readCondition(snapshot);
+  const freshness = forecastFreshness(snapshot, now);
+
+  // Normalised against the ranking's own hero floor, so "worth going out for"
+  // means the same thing in both halves of the product.
+  const phenomenon = Math.min(1, phenomenonStrength / 0.6);
+  const limiting = Math.min(access, phenomenon);
+
+  const band: ViewabilityBand =
+    limiting >= 0.7 ? "excellent" : limiting >= 0.45 ? "good" : limiting >= 0.2 ? "possible" : "unlikely";
+
+  return {
+    band,
+    access,
+    reading,
+    freshness,
+    evidenceStatus,
+    limitedBySky: access < phenomenon && access < SKY_CLEARLY_LIMITING,
+  };
+}
+
+/* ------------------------------------------------------------ best window */
+
+/**
+ * One sampled moment of how good the phenomenon itself is, 0–1 of its own best.
+ *
+ * `altitudeDeg` and `azimuthDeg` are the target's actual horizontal coordinates
+ * at that instant. They were being computed and thrown away: the profile kept
+ * only the normalised quality, so the interface had the geometry available
+ * nowhere and had to re-describe it in prose — "face south, about 48° up" —
+ * which a drawing then could not reconstruct without parsing English back into
+ * numbers it had already had.
+ *
+ * They are optional because not every phenomenon is a body at a place. A meteor
+ * shower's profile is a rate curve, and its geometry is a radiant that belongs
+ * in its own field rather than being forced into these two. Absent means "this
+ * event does not have a single target position", not "unknown".
+ */
+export interface OpportunitySample {
+  atUtc: string;
+  relative: number;
+  /** Degrees above the horizon; negative below it. */
+  altitudeDeg?: number;
+  /** Degrees clockwise from north. */
+  azimuthDeg?: number;
+}
+
+export interface BestWindow {
+  startUtc: string;
+  endUtc: string;
+  /** The single best instant inside it. */
+  peakUtc: string;
+  viewability: Viewability;
+  /**
+   * True where the recommended window is not where the phenomenon is strongest
+   * — a clear gap after the peak, rather than the peak itself. The interface
+   * says so, because being sent out at a time that is not the advertised
+   * maximum needs a reason.
+   */
+  movedByWeather: boolean;
+  /**
+   * True where the window collapsed to less than MINIMUM_WINDOW_MINUTES.
+   *
+   * It happens honestly: an object low in the west after dusk can have exactly
+   * one sample clear the threshold before it sets, and there is no interval to
+   * report. The caller must render an instant rather than a range, because
+   * "9:43–9:43 PM" is not a window — it is a bug wearing a window's clothes.
+   */
+  brief: boolean;
+}
+
+/**
+ * What a viewing recommendation looks like with no forecast behind it.
+ *
+ * The band still reflects the phenomenon, because "the sky is unknown" is not a
+ * reason to stop recommending anything — provider failure degrades to an
+ * unadjusted recommendation rather than hiding the event. What it must not do
+ * is imply the sky was checked.
+ */
+function UNKNOWN_CONDITIONS(
+  status: Exclude<EnvironmentalEvidenceStatus, "available" | "stale">,
+): Viewability {
+  return {
+    band: "unknown",
+    access: null,
+    reading: {
+      condition: "unknown",
+      label:
+        status === "request-failed"
+          ? "Forecast request failed"
+          : status === "not-supported"
+            ? "Forecast not supported"
+            : "Conditions unavailable",
+      phrase: "an unknown sky",
+      smokeDominant: false,
+    },
+    freshness: "stale",
+    evidenceStatus: status,
+    limitedBySky: false,
+  };
+}
+
+/** Windows shorter than this are not worth sending anyone outside for. */
+const MINIMUM_WINDOW_MINUTES = 20;
+
+/**
+ * When to actually go outside, given both halves.
+ *
+ * This is the piece that earns the weather integration. The nominal peak is
+ * where the phenomenon is best; the recommendation is where the *product* of
+ * the phenomenon and the sky is best, and when clouds clear an hour after
+ * maximum those are not the same time. Recommending the peak into an overcast,
+ * with a clear sky an hour later, is the specific failure this exists to
+ * prevent.
+ */
+export function bestViewingWindow(
+  profile: OpportunitySample[],
+  input: ConditionSnapshot[] | EnvironmentalEvidence,
+  demand: TransparencyDemand,
+  phenomenonStrength: number,
+  now: Date,
+): BestWindow | null {
+  if (profile.length === 0) return null;
+  const evidence: EnvironmentalEvidence = Array.isArray(input)
+    ? environmentalEvidence(input, now)
+    : input;
+  const conditions = evidence.snapshots;
+  const weatherUsable = evidence.status === "available" || evidence.status === "stale";
+
+  // Never recommend a moment that has already gone.
+  //
+  // The observation period runs sunset to sunrise, so someone opening Tracker
+  // at 3am is correctly placed in the night that is ending — but the best
+  // moment of that night may be five hours behind them. Sydney at 03:15 local
+  // was being told to go outside at 17:41 the previous evening, and no
+  // forecast existed for it either, because forecasts do not cover the past.
+  //
+  // Only applied when `now` falls inside the profile. Browsing a past night
+  // deliberately still works, and a future night is untouched.
+  const first = Date.parse(profile[0].atUtc);
+  const last = Date.parse(profile[profile.length - 1].atUtc);
+  const inProgress = now.getTime() > first && now.getTime() < last;
+  const remaining = inProgress
+    ? profile.filter((sample) => Date.parse(sample.atUtc) >= now.getTime())
+    : profile;
+  if (remaining.length === 0) return null;
+
+  const scored = remaining.map((sample) => {
+    const snapshot = weatherUsable ? nearestSnapshot(conditions, sample.atUtc) : null;
+    const access = snapshot ? skyAccess(snapshot, demand) : 1;
+    return { sample, snapshot, access, combined: sample.relative * access };
+  });
+
+  const best = scored.reduce((top, entry) => (entry.combined > top.combined ? entry : top));
+  if (best.combined <= 0) return null;
+
+  // Grow outwards while the moment is still worth being outside for, so the
+  // answer is an interval rather than an instant. Someone told to go out at
+  // 23:40 needs to know whether 23:20 also works.
+  const threshold = best.combined * 0.6;
+  const index = scored.indexOf(best);
+  let start = index;
+  let end = index;
+  while (start > 0 && scored[start - 1].combined >= threshold) start -= 1;
+  while (end < scored.length - 1 && scored[end + 1].combined >= threshold) end += 1;
+
+  const startUtc = scored[start].sample.atUtc;
+  const endUtc = scored[end].sample.atUtc;
+  // This check used to be an empty if-block: it measured the span, carried a
+  // comment saying an instant should be reported instead, and then did nothing
+  // at all. MINIMUM_WINDOW_MINUTES was declared and never enforced, so a
+  // single-sample window reached the interface as "9:43–9:43 PM".
+  const brief =
+    (Date.parse(endUtc) - Date.parse(startUtc)) / 60_000 < MINIMUM_WINDOW_MINUTES;
+
+  const peakBySkyIgnored = remaining.reduce((top, sample) =>
+    sample.relative > top.relative ? sample : top,
+  );
+
+  return {
+    startUtc,
+    endUtc,
+    peakUtc: best.sample.atUtc,
+    brief,
+    viewability: best.snapshot
+      ? viewability(
+          best.snapshot,
+          demand,
+          phenomenonStrength,
+          now,
+          evidence.status === "stale" ? "stale" : "available",
+        )
+      : UNKNOWN_CONDITIONS(
+          weatherUsable
+            ? "unavailable"
+            : evidence.status === "request-failed" || evidence.status === "not-supported"
+              ? evidence.status
+              : "unavailable",
+        ),
+    movedByWeather:
+      weatherUsable &&
+      Math.abs(Date.parse(best.sample.atUtc) - Date.parse(peakBySkyIgnored.atUtc)) > 30 * 60_000,
+  };
+}
+
+/**
+ * True where a phenomenon's useful time tonight is entirely behind the
+ * observer.
+ *
+ * `bestViewingWindow` returning null is ambiguous on its own — it means either
+ * "rained off" or "already set" — and the two need different words. Without
+ * this, an opportunity whose window had passed fell back to displaying its own
+ * best moment, which is how Venus came to be recommended for 07:41 to someone
+ * standing outside at 17:19.
+ *
+ * ## Why the period is a parameter
+ *
+ * Two situations produce a profile that is entirely in the past and they mean
+ * opposite things:
+ *
+ * - The reader is browsing an earlier date. Nothing has been *missed*; the
+ *   whole night is historical and every event on it is equally over. Marking
+ *   them "Already set" would be noise on every row.
+ * - The reader is in tonight, and this particular event has finished. That is
+ *   exactly what needs saying.
+ *
+ * Without the period those are indistinguishable, so the original guard treated
+ * both as "not passed" — and a lunar eclipse, whose profile is a short window
+ * rather than the whole night, therefore stayed at the top of Best tonight for
+ * hours after it ended, telling the reader to look south-east at a time that
+ * had gone. A planet never showed the bug because its profile spans the night,
+ * so `now` was still inside it.
+ *
+ * Passing the period is what separates them. It stays optional because callers
+ * that genuinely have no period — the unit tests for the ambiguous case, and
+ * any caller looking at a bare profile — should keep the conservative answer.
+ */
+export function hasPassedTonight(
+  profile: OpportunitySample[],
+  now: Date,
+  period?: { startUtc: string; endUtc: string },
+): boolean {
+  if (profile.length === 0) return false;
+  const last = Date.parse(profile[profile.length - 1].atUtc);
+  const first = Date.parse(profile[0].atUtc);
+  if (now.getTime() <= first) return false;
+  if (now.getTime() >= last) {
+    if (!period) return false;
+    // Inside the night being shown, so this really has been missed rather than
+    // being one row of a night the reader is reading about.
+    return (
+      now.getTime() >= Date.parse(period.startUtc) && now.getTime() <= Date.parse(period.endUtc)
+    );
+  }
+  return !profile.some(
+    (sample) => Date.parse(sample.atUtc) >= now.getTime() && sample.relative > 0,
+  );
+}
+
+/**
+ * The largest gap between an instant and a forecast sample that still counts as
+ * describing it.
+ *
+ * Ninety minutes is a different part of the night: cloud can arrive and clear
+ * inside it. The bound is what makes `nearestSnapshot` a lookup rather than an
+ * extrapolation — without it, "nearest" is satisfied by *any* sample, including
+ * one from a different day, because there is always a nearest.
+ */
+export const MAX_SNAPSHOT_GAP_MINUTES = 90;
+
+/**
+ * The forecast nearest an instant, or null where none is close enough.
+ *
+ * The distance cap is the whole of the function's honesty. A caller asking
+ * about a date the provider does not cover — most obviously a date in the past,
+ * for which no provider returns anything — must get null, not the closest
+ * sample the provider happened to send. Returning tonight's cloud cover for an
+ * event last August would be arithmetically correct and a fabrication.
+ */
+export function nearestSnapshot(
+  conditions: ConditionSnapshot[],
+  atUtc: string,
+): ConditionSnapshot | null {
+  if (conditions.length === 0) return null;
+  const target = Date.parse(atUtc);
+  if (Number.isNaN(target)) return null;
+  let best: ConditionSnapshot | null = null;
+  let bestGap = Infinity;
+  for (const snapshot of conditions) {
+    const gap = Math.abs(Date.parse(snapshot.atUtc) - target);
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = snapshot;
+    }
+  }
+  return bestGap <= MAX_SNAPSHOT_GAP_MINUTES * 60_000 ? best : null;
+}
+
+/* ----------------------------------------------------------- the one line */
+
+function clock(iso: string): string {
+  return iso.slice(11, 16);
+}
+
+/**
+ * The single actionable sentence the specification asks for near the primary
+ * action — "Clouds open after 11:40 — try then", not a forecast card.
+ *
+ * Poor conditions stay passive here (§ acceptance 11): the line says what to do
+ * about the sky, never that the evening is a write-off.
+ */
+export function actionLine(window: BestWindow, temperatureC: number | null): string {
+  const { reading, band } = window.viewability;
+  const temperature = temperatureC === null ? "" : ` · ${Math.round(temperatureC)}°C`;
+  const span = `${clock(window.startUtc)}–${clock(window.endUtc)} UTC`;
+  const opens = band === "excellent" || band === "good";
+
+  if (reading.condition === "unknown") {
+    // Nothing is known about the sky, so the line says when the *phenomenon* is
+    // best and claims nothing else.
+    return `Best for the ${span} window${temperature}. No forecast available for here.`;
+  }
+
+  if (window.movedByWeather) {
+    // "When the sky opens" is only true if it actually does. Moving to the
+    // least bad hour of an overcast night is still worth saying, but saying it
+    // in those words next to a chip reading "overcast" and "unlikely" is a
+    // promise the same screen immediately contradicts.
+    return opens
+      ? `Best chance tonight: ${span}, when the sky opens${temperature}.`
+      : `Clearest stretch tonight: ${span}${temperature}.`;
+  }
+  if (opens) {
+    return `${reading.label} for ${span}${temperature}.`;
+  }
+  if (reading.smokeDominant) {
+    return `${reading.label} around ${clock(window.peakUtc)} UTC${temperature} — faint detail will be harder to pick out.`;
+  }
+  return `Best chance tonight: ${span}${temperature}.`;
+}

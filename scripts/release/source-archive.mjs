@@ -168,6 +168,31 @@ function archivePathFailure(relativePath, inventory) {
   return null;
 }
 
+/**
+ * Whether an archive entry is a Git LFS pointer rather than the file itself.
+ *
+ * Worth checking separately from the content comparison, because the two can
+ * agree while both being wrong. `git archive` only materialises a filtered path
+ * when git-lfs is actually installed on the machine building the archive; where
+ * it is not, the archive gets the pointer, the verification reads the same
+ * pointer back, and a tarball that cannot rebuild the product passes as a
+ * faithful copy of the source. The comparison proves the archive matches the
+ * tree — this proves the tree it matches was resolved.
+ *
+ * Matched structurally rather than by substring, so prose about the pointer
+ * format — this comment included, were it ever archived as data — is not
+ * mistaken for one.
+ */
+export function isGitLfsPointer(content) {
+  if (!Buffer.isBuffer(content) || content.length === 0 || content.length > 1024) return false;
+  const text = content.toString("utf8");
+  return (
+    text.startsWith("version https://git-lfs.github.com/spec/v1") &&
+    /\noid sha256:[0-9a-f]{64}\n/.test(text) &&
+    /\nsize \d+\n?$/.test(text)
+  );
+}
+
 export function validateSourceArchiveEntries({
   entries,
   expectedPaths,
@@ -213,6 +238,9 @@ export function validateSourceArchiveEntries({
     }
     if (expectedEntry && !expectedEntry.content.equals(entry.content)) {
       failures.push(`archive-entry-content-mismatch:${relativePath}`);
+    }
+    if (entry.kind === "file" && isGitLfsPointer(entry.content)) {
+      failures.push(`archive-entry-lfs-pointer:${relativePath}`);
     }
     if (
       entry.kind === "symlink" &&
@@ -269,6 +297,31 @@ export function validateSourceArchiveEntries({
   };
 }
 
+/**
+ * How to read the content the archive should contain for one tracked blob.
+ *
+ * `git archive` writes what a checkout would contain: it runs the smudge side
+ * of any `filter` attribute, so a Git LFS path is materialised into the archive
+ * rather than left as its pointer. That is the right archive to publish — a
+ * source tarball carrying a 134-byte pointer in place of the satellite
+ * authority cannot rebuild anything.
+ *
+ * The verification beside it has to ask the same question. Reading the raw
+ * object with `cat-file blob` bypasses the filter and answers with the pointer,
+ * so every filtered path compared a pointer against its own content and failed
+ * as `archive-entry-content-mismatch`. `--filters` is the same read with the
+ * checkout conversion applied, and it is a no-op for every unfiltered path.
+ *
+ * Symlinks keep the raw read. Their blob *is* the target path, `git archive`
+ * stores them as links rather than materialising them, and running a content
+ * filter over a path name would be meaningless.
+ */
+export function expectedContentArgs(kind, entryPath, objectId) {
+  return kind === "symlink"
+    ? ["cat-file", "blob", objectId]
+    : ["cat-file", "--filters", `--path=${entryPath}`, objectId];
+}
+
 export async function verifySourceArchive({
   archivePath,
   repositoryRoot = defaultProjectRoot,
@@ -292,11 +345,13 @@ export async function verifySourceArchive({
     if (tabIndex < 0) throw new Error(`Unexpected git ls-tree record: ${record}`);
     const [mode, type, objectId] = record.slice(0, tabIndex).split(" ");
     if (type !== "blob") continue;
+    const entryPath = record.slice(tabIndex + 1);
+    const kind = mode === "120000" ? "symlink" : "file";
     expectedEntries.push({
-      path: record.slice(tabIndex + 1),
-      kind: mode === "120000" ? "symlink" : "file",
+      path: entryPath,
+      kind,
       content: Buffer.from(
-        await git(resolvedRoot, ["cat-file", "blob", objectId], "buffer"),
+        await git(resolvedRoot, expectedContentArgs(kind, entryPath, objectId), "buffer"),
       ),
     });
   }

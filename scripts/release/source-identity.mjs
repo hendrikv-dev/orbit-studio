@@ -99,6 +99,46 @@ export async function readSourceIdentity(projectRoot) {
   };
 }
 
+/**
+ * Whether a review state certifies the current satellite catalog.
+ *
+ * The release rule this serves is that nothing shipped may carry the locally
+ * acquired catalog: a state that rendered it must say so, and say it rendered
+ * the release-safe public GCAT membership with no current records.
+ *
+ * That rule was written when every review state came from Explorer, so it was
+ * applied to all of them. Tracker's review states then arrived carrying no
+ * catalog metadata at all — correctly, because Tracker never loads that catalog
+ * — and a rule that asked every state for a catalog identity had no way to say
+ * so except to fail them.
+ *
+ * The fix is not to exempt a product. It is to make each state declare what it
+ * is, and to hold it to the rule that follows from the declaration:
+ *
+ * - `current-catalog` — the state rendered the catalog, and must prove it was
+ *   the release-safe one. This is the original rule, unchanged.
+ * - `none` — the state never loaded it, and must therefore carry *no* catalog
+ *   identity. Declaring "none" buys no leniency: it forbids the metadata rather
+ *   than excusing its absence, so a state cannot quietly ship a local catalog
+ *   under a disclaimer.
+ *
+ * The declaration comes from the scenario registry and is stamped by the review
+ * runner after a scenario's own state is spread, so it is never something a
+ * captured surface can choose for itself. A package with no catalog-bearing
+ * state at all fails too, because otherwise the whole review could opt out.
+ */
+export const CATALOG_AUTHORITIES = ["current-catalog", "none"];
+
+/** Whether a state's datasets make any claim about the current catalog. */
+function carriesCatalogIdentity(datasets) {
+  if (!datasets || typeof datasets !== "object") return false;
+  return (
+    datasets.currentCatalogMode !== undefined ||
+    datasets.currentCatalogRecordCount !== undefined ||
+    datasets.catalogVersion !== undefined
+  );
+}
+
 export function validateReleaseSource({
   identity,
   reviewDocument,
@@ -158,14 +198,29 @@ export function validateReleaseSource({
   }
   if (!Array.isArray(reviewDocument?.states) || reviewDocument.states.length === 0) {
     failures.push("review-states-missing");
-  } else if (
-    reviewDocument.states.some(
-      (state) =>
-        state.datasets?.currentCatalogMode !== "release-public-gcat" ||
-        state.datasets?.currentCatalogRecordCount !== 0,
-    )
-  ) {
-    failures.push("review-state-current-catalog-unsafe");
+  } else {
+    const states = reviewDocument.states;
+    if (states.some((state) => !CATALOG_AUTHORITIES.includes(state.catalogAuthority))) {
+      failures.push("review-state-catalog-authority-missing");
+    }
+    const catalogBearing = states.filter((state) => state.catalogAuthority === "current-catalog");
+    if (catalogBearing.length === 0) failures.push("review-catalog-states-missing");
+    if (
+      catalogBearing.some(
+        (state) =>
+          state.datasets?.currentCatalogMode !== "release-public-gcat" ||
+          state.datasets?.currentCatalogRecordCount !== 0,
+      )
+    ) {
+      failures.push("review-state-current-catalog-unsafe");
+    }
+    if (
+      states.some(
+        (state) => state.catalogAuthority === "none" && carriesCatalogIdentity(state.datasets),
+      )
+    ) {
+      failures.push("review-state-catalog-authority-mismatch");
+    }
   }
   const latestPublicStates = reviewDocument?.states?.filter(
     (state) => state.dataCoverage?.status === "latest-public-catalog",

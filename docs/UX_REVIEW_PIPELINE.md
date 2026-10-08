@@ -24,53 +24,38 @@ The command builds the production application, launches an isolated Vite preview
 registered scenario in headless Chromium, writes the review package, closes Chromium and the preview
 server, and exits. It does not require an existing development server or human input.
 
-The runner holds an exclusive `.orbit-review.lock/` while it owns the shared `review/` output.
-A concurrent invocation fails before cleanup so it cannot remove or mix another run's evidence. If
-a terminated process leaves the ignored lock behind, first verify that no review process is active,
-then remove only `.orbit-review.lock/` before retrying.
+The runner holds an exclusive `.orbit-review.lock/` while it creates one append-only external run.
+A concurrent invocation fails before capture so it cannot mix evidence. If a terminated process
+leaves the ignored lock behind, first verify that no review process is active, then remove only
+`.orbit-review.lock/` before retrying.
 
 ## Review package
 
-The generated `review/` directory is intentionally ignored by Git and contains:
+Review evidence never lives in the repository. By default the runner writes to the
+`orbit-studio-reviews` sibling of the checkout; `ORBIT_REVIEW_OUTPUT_DIR` selects another external
+root. Each invocation creates a new timestamped directory rather than overwriting history:
 
 ```text
-review/
-  ATTRIBUTION.md
-  THIRD_PARTY_NOTICES.md
-  review.json
-  REVIEW_NOTES.md
-  timeline.mp4
-  timeline.csv
-  provenance/
-    inventory.json
-  screenshots/
-    startup.webp
-    explore-featured.webp
-    explore-constellations.webp
-    selected-starlink-overview.webp
-    selected-starlink-data.webp
-    display-settings.webp
-    search-jwst.webp
-    selected-jwst-overview.webp
-    selected-jwst-data.webp
-    1957.webp
-    1965.webp
-    1980.webp
-    1990.webp
-    2000.webp
-    2015.webp
-    current.webp
-    leo.webp
-    geo.webp
-    milestone-1957.webp
-    milestone-1961.webp
-    milestone-1969.webp
-    milestone-1978.webp
-    milestone-1990.webp
-    milestone-1998.webp
-    milestone-2015.webp
-    milestone-2019.webp
+../orbit-studio-reviews/
+  runs/
+    review-<UTC timestamp>/
+      ATTRIBUTION.md
+      THIRD_PARTY_NOTICES.md
+      review.json
+      REVIEW_NOTES.md
+      timeline.mp4
+      timeline.csv
+      provenance/inventory.json
+      screenshots/*.webp
 ```
+
+`npm run release:verify` uses `ORBIT_REVIEW_RUN_DIR` when it names an exact external run. Otherwise
+it deterministically selects the newest timestamped run under the same configured external root.
+The selected directory is resolved through the filesystem and rejected if it is the repository, a
+repository descendant, or a symlink back into source. Discovery does not certify the evidence: the
+existing release validator still requires the exact clean commit and source-tree digest, build and
+schema identity, complete artifacts, release-safe catalog state, passed milestone/determinism/
+population validations, matching provenance/notices, and an empty browser-diagnostics list.
 
 `review.json` is populated through the opt-in application review bridge, not OCR. Each captured state
 records the canonical simulation UTC, selected timeline UTC and year, alignment status, complete
@@ -125,6 +110,35 @@ unchanged.
 The runner in `scripts/review/run-review.mjs` owns the invariant pipeline: build, preview lifecycle,
 browser configuration, state settling, WebP capture, MP4 encoding, metadata generation, and cleanup.
 Workspace-specific behavior lives in `scripts/review/scenarios/`.
+
+Tracker's empty-night recovery has its own `tracker-recovery` scenario rather than being inferred
+from the general Tracker tour. It supplies a provider-shaped all-night cloud forecast plus fresh,
+high-confidence obstruction evidence for each exact target direction, then exercises later-tonight,
+tomorrow, bounded-horizon Upcoming fallback, observer invalidation, and forecast invalidation through
+the production planner. The fixture is installed before navigation and exists only in that review
+context; ordinary Tracker URLs cannot activate it.
+
+Recovery screenshots use a 390 × 844 phone viewport. Their ordered recommendation identities must
+begin with the future opportunity (a forecast-backed chance or an anticipation-worthy Upcoming
+event), followed by the compact current-night context. The fallback check deliberately includes an
+earlier routine lunar phase and proves that the stronger authoritative conjunction is promoted
+instead.
+
+Each recovery capture records `recoveryReason`, `recoveryKind`, `recoveryDate`, `recoveryTarget`,
+`recoveryText`, the shell and recovery observer identities, the current-night plan identity, the
+recovery planning-request key, and the complete ordered recommendation identities. Fixture provenance is
+stored with the captured state so a controlled cloud field cannot be mistaken for live weather.
+
+The main Tracker scenario proves Map in north-up 2D, the same state on the real DEM with a 55–70°
+3D pitch, and Tonight with the full production ranking and Upcoming gateway. It captures object
+detail both collapsed and expanded. Desktop states prove that Sky, Find in Sky and generic
+object-map actions are absent. A 390 × 844 phone and an iPadOS-style tablet at 820 × 1180 and
+1180 × 820 prove that direct Sky navigation and the original **Find in Sky** tap enter Point on an
+orientation-capable handheld without requesting camera access. Separate frames prove explicit
+Explore, Recenter, camera-off Point, automatic wide/normal density and the absence of a celestial
+Layers control. A sensorless tablet proves the same rendered sphere, search, target entry and manual
+Explore remain available with no protected API call. Camera-active captures are separate,
+fixture-labelled evidence and do not claim a physical target lock.
 
 A scenario exports:
 
@@ -184,7 +198,9 @@ and agree with visible runtime and renderer state. Any changed reviewed workflow
 by an updated or new deterministic scenario. A package generated before the final material change is
 stale and must not be used as completion evidence.
 
-For a release candidate, run `npm run release:verify` after `npm run review`. It rejects a repository
+For a release candidate, run `npm run release:verify` after `npm run review`, preserving the same
+`ORBIT_REVIEW_OUTPUT_DIR` when a non-default root is used, or set `ORBIT_REVIEW_RUN_DIR` to the exact
+generated run. It rejects a repository
 boundary other than the dedicated Orbit Studio root, dirty or untracked source, an unavailable or
 mismatched revision, source-digest drift, missing review artifacts, failed milestone or determinism
 validations, missing scenarios or states, browser warnings or errors, missing provenance artifacts,

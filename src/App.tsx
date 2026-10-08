@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { List, Menu, Pause, Play, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Orbit, Pause, Play } from "lucide-react";
+import { PlaybackSpeedSlider } from "./components/PlaybackSpeedSlider";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ExplorerView } from "./components/explorer/ExplorerView";
 import { OrbitStudioHome } from "./components/home/OrbitStudioHome";
 import { OrbitAppMenu, ShowInterfaceButton } from "./components/layout/OrbitAppMenu";
 import { OrbitControlsPanel } from "./components/OrbitControlsPanel";
-import { PlaygroundSatelliteColumn } from "./components/PlaygroundSatelliteColumn";
 import {
   createExplorerCurrentSnapshot,
   createExplorerScenario,
@@ -16,13 +16,16 @@ import {
 } from "./data/explorerCatalog";
 import { createPlaygroundScenario } from "./lib/scenario";
 import { SimulationScene } from "./rendering/SimulationScene";
-import { useSimulationStore } from "./state/useSimulationStore";
+import {
+  getSimulationStoreForEnvironment,
+  setActiveSimulationEnvironment,
+  useSimulationStore,
+} from "./state/useSimulationStore";
 import { readStudioPlaybackTimeIso } from "./state/studioPlaybackClock";
 import { isOrbitStudioReviewMode } from "./review/reviewBridge";
 
 type ProductMode = "home" | "explorer" | "playground";
-type PlaygroundMobileSurface = "objects" | "orbit" | "playback" | null;
-const playgroundMobileTimeScales = [1, 10, 100, 1000, 2500];
+type PlaygroundMobileSurface = "orbit" | null;
 const KONAMI_SEQUENCE = [
   "ArrowUp",
   "ArrowUp",
@@ -92,7 +95,7 @@ function initialExplorerSnapshot(): ExplorerSnapshot {
   }
 
   return createExplorerCurrentSnapshot(
-    useSimulationStore.getState().scenario.simulationTimeUtc,
+    getSimulationStoreForEnvironment("explorer").getState().scenario.simulationTimeUtc,
   );
 }
 
@@ -105,12 +108,23 @@ function readInitialProductMode(): ProductMode {
   return "home";
 }
 
-function replaceAppQuery(mode: ProductMode): void {
-  if (typeof window === "undefined") return;
+function appQueryHref(mode: ProductMode): string {
   const url = new URL(window.location.href);
   if (mode === "home") url.searchParams.delete("app");
   else url.searchParams.set("app", mode);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/**
+ * Switching apps has to leave a history entry behind, otherwise Back walks off
+ * the site instead of returning to the previous app. Repeating the active mode
+ * still replaces, so re-tapping the current app cannot stack duplicate entries.
+ */
+function recordAppQuery(mode: ProductMode): void {
+  if (typeof window === "undefined") return;
+  const href = appQueryHref(mode);
+  if (mode === readInitialProductMode()) window.history.replaceState({ app: mode }, "", href);
+  else window.history.pushState({ app: mode }, "", href);
 }
 
 function developmentCelestialPlaybackPaused(): boolean {
@@ -121,8 +135,52 @@ function developmentCelestialPlaybackPaused(): boolean {
   );
 }
 
+function resetPlaygroundStoreNow(): void {
+  const store = getSimulationStoreForEnvironment("playground").getState();
+  const scenario = createPlaygroundScenario(new Date(readStudioPlaybackTimeIso()));
+
+  store.loadScenario(scenario);
+  store.setPlaying(true);
+  store.setFocusMode(false);
+  store.setPanelCollapsed("left", false);
+  store.setPanelCollapsed("right", false);
+  store.setVisibilityFilter("selectedOnly", false);
+  store.setVisibilityFilter("payloads", true);
+  store.setVisibilityFilter("debris", false);
+  store.setVisibilityFilter("rocketBodies", false);
+  store.setVisibilityFilter("constellations", false);
+  store.setVisibilityFilter("stations", false);
+  store.setVisibilityFilter("regions", false);
+  store.setVisibilityFilter("catalog", false);
+  store.setLabelMode("hidden");
+  store.setCoverageSetting("enabled", false);
+  store.setRenderSetting("showCoverageLayer", false);
+  store.setRenderSetting("showLatLonGrid", false);
+  store.setRenderSetting("showEciGrid", false);
+  store.setRenderSetting("showEcefGrid", false);
+  store.setRenderSetting("showGeoValidationOverlay", false);
+  store.setRenderSetting("showStarOcclusionDiagnostics", false);
+  store.setRenderSetting("showAtmosphere", true);
+}
+
+function isCleanPlaygroundScenario(): boolean {
+  const scenario = getSimulationStoreForEnvironment("playground").getState().scenario;
+  return (
+    scenario.environment === "playground" &&
+    scenario.catalogLayers.length === 0 &&
+    scenario.constellations.length === 0 &&
+    scenario.satellites.every((satellite) => satellite.catalogMetadata === undefined)
+  );
+}
+
 export function App() {
-  const [productMode, setProductMode] = useState<ProductMode>(readInitialProductMode);
+  const [productMode, setProductMode] = useState<ProductMode>(() => {
+    const initialMode = readInitialProductMode();
+    if (initialMode === "playground") resetPlaygroundStoreNow();
+    return initialMode;
+  });
+  setActiveSimulationEnvironment(productMode === "explorer" ? "explorer" : "playground");
+
   const [activeSnapshot, setActiveSnapshot] = useState<ExplorerSnapshot>(
     initialExplorerSnapshot,
   );
@@ -134,7 +192,6 @@ export function App() {
   const [playgroundSceneSession, setPlaygroundSceneSession] = useState(0);
   const [playgroundMobileSurface, setPlaygroundMobileSurface] =
     useState<PlaygroundMobileSurface>(null);
-  const [playgroundMobileMenuOpen, setPlaygroundMobileMenuOpen] = useState(false);
   const [auroraModeEnabled, setAuroraModeEnabled] = useState(false);
   const [auroraToast, setAuroraToast] = useState<string | null>(null);
   const auroraModeEnabledRef = useRef(false);
@@ -241,12 +298,12 @@ export function App() {
   useLayoutEffect(() => {
     if (productMode !== "playground") return;
 
-    // Playground always starts from a neutral authored sample. It must not inherit
-    // an arbitrary catalog selection such as Vanguard 1 from Explorer.
-    loadScenario(createPlaygroundScenario(new Date(readStudioPlaybackTimeIso())));
+    // Repair any restored or legacy shared-store state before Playground renders.
+    // Playground never accepts catalog-backed Explorer objects implicitly.
+    if (!isCleanPlaygroundScenario()) resetPlaygroundStoreNow();
     configurePlayground();
     setPlaygroundSceneSession((session) => session + 1);
-  }, [configurePlayground, loadScenario, productMode]);
+  }, [configurePlayground, productMode]);
 
   const selectExplorerSnapshot = useCallback((snapshot: ExplorerSnapshot) => {
     // Re-selecting the active milestone must still reset playback to its canonical UTC.
@@ -254,39 +311,44 @@ export function App() {
     setActiveSnapshot({ ...snapshot });
   }, []);
 
-  const openExplorer = useCallback(() => {
-    replaceAppQuery("explorer");
-    setProductMode("explorer");
+  // Shared by the in-app buttons and by history navigation, so a mode reached
+  // through Back is set up exactly like one reached by clicking.
+  const applyProductMode = useCallback((mode: ProductMode) => {
+    if (mode === "playground") resetPlaygroundStoreNow();
+    setProductMode(mode);
     setInterfaceVisible(true);
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
-    configureExplorer(1);
-  }, [configureExplorer]);
-
-  const openStudio = useCallback(() => {
-    replaceAppQuery("playground");
-    setProductMode("playground");
-    setInterfaceVisible(true);
-    setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
-  const openHome = useCallback(() => {
-    replaceAppQuery("home");
-    setProductMode("home");
-    setInterfaceVisible(true);
-    setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
-  }, []);
+  const goToProductMode = useCallback(
+    (mode: ProductMode) => {
+      recordAppQuery(mode);
+      applyProductMode(mode);
+    },
+    [applyProductMode],
+  );
 
-  const openPlaygroundMobileSurface = useCallback((surface: Exclude<PlaygroundMobileSurface, null>) => {
-    setPlaygroundMobileSurface(surface);
-    setPlaygroundMobileMenuOpen(false);
-  }, []);
+  useEffect(() => {
+    const handlePopState = () => applyProductMode(readInitialProductMode());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [applyProductMode]);
+
+  const openExplorer = useCallback(() => goToProductMode("explorer"), [goToProductMode]);
+  const openStudio = useCallback(() => goToProductMode("playground"), [goToProductMode]);
+  const openHome = useCallback(() => goToProductMode("home"), [goToProductMode]);
+  /**
+   * Tracker has its own entry point rather than a product mode, so reaching it
+   * is a navigation. The homepage already did this inline; the app menu needs
+   * the same route.
+   */
+  const openTracker = useCallback(
+    () => window.location.assign(`${window.location.pathname}?app=tracker`),
+    [],
+  );
 
   const closePlaygroundMobileSurface = useCallback(() => {
     setPlaygroundMobileSurface(null);
-    setPlaygroundMobileMenuOpen(false);
   }, []);
 
   const showAuroraToast = useCallback((message: string) => {
@@ -370,6 +432,22 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [interfaceVisible, productMode]);
 
+  useEffect(() => {
+    if (productMode !== "playground") return undefined;
+
+    const handlePageShow = () => {
+      // Safari can restore an earlier JavaScript heap through its page cache.
+      // Reassert the environment boundary instead of reviving Explorer state.
+      if (!isCleanPlaygroundScenario()) {
+        resetPlaygroundStoreNow();
+        setPlaygroundSceneSession((session) => session + 1);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [productMode]);
+
   const auroraToastElement = <AuroraToast message={auroraToast} />;
 
   if (productMode === "home") {
@@ -377,6 +455,9 @@ export function App() {
       <OrbitStudioHome
         onOpenExplorer={openExplorer}
         onOpenPlayground={openStudio}
+        // A real navigation: Tracker is a separate bundle entry, so it cannot be
+        // reached by changing state inside this one.
+        onOpenTracker={openTracker}
         supportUrl={import.meta.env.VITE_SUPPORT_URL}
       />
     );
@@ -406,9 +487,7 @@ export function App() {
       <main
       className={`app-shell studio-mode-shell playground-shell ${
         interfaceVisible ? "" : "playground-ui-hidden"
-      } playground-mobile-surface-${playgroundMobileSurface ?? "none"} ${
-        playgroundMobileMenuOpen ? "playground-mobile-menu-open" : ""
-      }`}
+      } playground-mobile-surface-${playgroundMobileSurface ?? "none"}`}
     >
       <AppErrorBoundary
         variant="renderer"
@@ -449,97 +528,45 @@ export function App() {
               onOpenExplorer={openExplorer}
               onOpenHome={openHome}
               onOpenPlayground={openStudio}
+              onOpenTracker={openTracker}
             />
           </div>
-          <div className="playground-mobile-mode-menu">
+          <button
+            aria-expanded={playgroundMobileSurface === "orbit"}
+            aria-label={
+              playgroundMobileSurface === "orbit"
+                ? "Close Playground orbit controls"
+                : "Open Playground orbit controls"
+            }
+            className={`playground-mobile-orbit-trigger ${
+              playgroundMobileSurface === "orbit" ? "active" : ""
+            }`}
+            type="button"
+            onClick={() =>
+              setPlaygroundMobileSurface((surface) =>
+                surface === "orbit" ? null : "orbit",
+              )
+            }
+          >
+            <Orbit size={20} />
+          </button>
+          <div className="playground-playback-dock" aria-label="Playground playback controls">
             <button
-              aria-expanded={playgroundMobileMenuOpen}
-              aria-label="Open Playground menu"
-              className={playgroundMobileMenuOpen ? "active" : ""}
+              aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
+              aria-pressed={isPlaying}
+              className={`playground-playback-dock-toggle ${isPlaying ? "running" : ""}`}
               type="button"
-              onClick={() => {
-                setPlaygroundMobileMenuOpen((current) => !current);
-                setPlaygroundMobileSurface(null);
-              }}
+              onClick={() => setPlaying(!isPlaying)}
             >
-              <Menu size={16} />
+              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
             </button>
-            {playgroundMobileMenuOpen && playgroundMobileSurface === null && (
-              <div className="playground-mobile-mode-menu-panel" aria-label="Playground modes">
-                <button type="button" onClick={() => openPlaygroundMobileSurface("objects")}>
-                  <List size={15} />
-                  <span>Objects</span>
-                </button>
-                <button type="button" onClick={() => openPlaygroundMobileSurface("orbit")}>
-                  <SlidersHorizontal size={15} />
-                  <span>Orbit</span>
-                </button>
-                <button type="button" onClick={() => openPlaygroundMobileSurface("playback")}>
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>Playback</span>
-                </button>
-              </div>
-            )}
+            <PlaybackSpeedSlider
+              className="playground-playback-dock-slider"
+              value={playgroundTimeScale}
+              onChange={setTimeScale}
+              label="Playground playback speed"
+            />
           </div>
-          {playgroundMobileSurface === null && !playgroundMobileMenuOpen && (
-            <div className="playground-mobile-playback-pill" aria-label="Compact Playground playback">
-              <button
-                aria-label={isPlaying ? "Pause Playground playback" : "Start Playground playback"}
-                className={isPlaying ? "running" : ""}
-                type="button"
-                onClick={() => setPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              </button>
-              <button
-                aria-label="Open Playground playback controls"
-                type="button"
-                onClick={() => openPlaygroundMobileSurface("playback")}
-              >
-                {playgroundTimeScale.toLocaleString()}x
-              </button>
-            </div>
-          )}
-          {playgroundMobileSurface === "playback" && (
-            <aside className="playground-mobile-playback-sheet" aria-label="Playground playback controls">
-              <div className="playground-mobile-sheet-heading">
-                <strong>Playback</strong>
-                <button type="button" aria-label="Close playback controls" onClick={closePlaygroundMobileSurface}>
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="playground-mobile-playback-actions">
-                <button
-                  className={`playback-toggle ${isPlaying ? "running" : ""}`}
-                  type="button"
-                  onClick={() => setPlaying(!isPlaying)}
-                >
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>{isPlaying ? "Pause" : "Play"}</span>
-                </button>
-                <button
-                  className={playgroundIsReverse ? "active" : ""}
-                  type="button"
-                  onClick={() => setReverse(!playgroundIsReverse)}
-                >
-                  <RotateCcw size={15} />
-                  <span>Reverse</span>
-                </button>
-              </div>
-              <div className="playground-mobile-speed-options" aria-label="Playback speed">
-                {playgroundMobileTimeScales.map((scale) => (
-                  <button
-                    className={playgroundTimeScale === scale ? "active" : ""}
-                    key={scale}
-                    type="button"
-                    onClick={() => setTimeScale(scale)}
-                  >
-                    {scale.toLocaleString()}x
-                  </button>
-                ))}
-              </div>
-            </aside>
-          )}
           <OrbitControlsPanel
             onOpenExplorer={openExplorer}
             onMobileClose={closePlaygroundMobileSurface}

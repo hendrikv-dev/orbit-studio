@@ -7,7 +7,9 @@ Use this checklist for a public Orbit Studio release candidate.
 - [ ] Working tree contains no `node_modules`, caches, local catalogs, credentials, or old ZIP handoffs.
 - [ ] No duplicate generated review archives are packaged.
 - [ ] Approved brand assets and current app captures are present.
-- [ ] `npm run release:verify` passes from the exact source revision being released.
+- [ ] `npm run review` writes a fresh package outside the repository; retain its printed run path.
+- [ ] `npm run release:verify` passes from the exact clean source revision using that external run
+      (`ORBIT_REVIEW_RUN_DIR`) or the newest run under the same external review root.
 - [ ] `npm run source:archive` creates the public source archive.
 
 ## Runtime

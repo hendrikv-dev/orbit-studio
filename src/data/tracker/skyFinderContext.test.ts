@@ -1,0 +1,116 @@
+import { describe, expect, it } from "vitest";
+
+import { positionForSkyFinderTarget, type SkyFinderTarget } from "./skyFinder";
+import { expectedSkyContext } from "./skyFinderContext";
+import { solarSystemTargets } from "./skyExplorer";
+import { devicePoseLookingAt, projectEnuDirection } from "../../astronomy/topocentricSky";
+
+const ORION_NEBULA: SkyFinderTarget = {
+  id: "deep-sky-orion-nebula",
+  title: "Orion Nebula",
+  shape: "region",
+  angularRadiusDeg: 0.55,
+  alignmentToleranceDeg: 5,
+  source: { kind: "equatorial", rightAscensionHours: 5.588, declinationDeg: -5.391 },
+  recommendedAtUtc: "2026-01-15T05:00:00.000Z",
+  equipment: "binoculars",
+  appearance: "A pale mist around Orion's sword under a dark sky.",
+  observableTonight: true,
+  visualVerification: "not-attempted",
+};
+
+describe("expected Sky Finder context", () => {
+  it("identifies the target's real IAU constellation and projects catalog stars", () => {
+    const observer = { latitudeDeg: 34.0522, longitudeDeg: -118.2437 };
+    const at = new Date(ORION_NEBULA.recommendedAtUtc);
+    const centre = positionForSkyFinderTarget(ORION_NEBULA, observer, at);
+    expect(centre).not.toBeNull();
+
+    const nearbyJupiter: SkyFinderTarget = {
+      ...ORION_NEBULA,
+      id: "jupiter",
+      title: "Jupiter",
+      shape: "point",
+      source: { kind: "equatorial", rightAscensionHours: 5.68, declinationDeg: -4.8 },
+    };
+    const context = expectedSkyContext(ORION_NEBULA, observer, at, centre!, [nearbyJupiter]);
+    expect(context.constellation).toEqual({ symbol: "Ori", name: "Orion" });
+    expect(context.stars.length).toBeGreaterThan(5);
+    expect(context.stars.some((star) => star.inTargetConstellation)).toBe(true);
+    expect(context.lines.some((line) => line.constellation === "Ori" && line.primary)).toBe(true);
+    expect(context.labels).toContainEqual(expect.objectContaining({ symbol: "Ori", name: "Orion" }));
+    expect(context.objects).toContainEqual(expect.objectContaining({ id: "jupiter", marker: "jupiter" }));
+    const pose = devicePoseLookingAt(centre!);
+    expect(context.stars.some((star) => projectEnuDirection(star.direction, pose).inField)).toBe(true);
+    expect(context.lines.every((line) => line.startStarId > 0 && line.endStarId > 0)).toBe(true);
+    expect(context.figures.find((figure) => figure.symbol === "Ori")?.paths).toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: "outline" }), expect.objectContaining({ role: "wash" })]),
+    );
+    const brightest = context.stars.reduce((best, star) => star.magnitude < best.magnitude ? star : best);
+    const faintest = context.stars.reduce((worst, star) => star.magnitude > worst.magnitude ? star : worst);
+    expect(brightest.radiusPx).toBeGreaterThan(faintest.radiusPx * 2);
+    expect(brightest.luminance).toBeGreaterThan(faintest.luminance);
+  });
+
+  it("keeps sampled moving targets honest by omitting an invented constellation", () => {
+    const target: SkyFinderTarget = {
+      ...ORION_NEBULA,
+      id: "iss",
+      title: "ISS",
+      shape: "point",
+      source: {
+        kind: "sampled",
+        path: {
+          kind: "target",
+          points: [
+            { atUtc: "2026-01-15T05:00:00.000Z", altitudeDeg: 35, azimuthDeg: 120, relative: 0.8 },
+            { atUtc: "2026-01-15T05:05:00.000Z", altitudeDeg: 50, azimuthDeg: 180, relative: 1 },
+          ],
+          riseUtc: null,
+          culminationUtc: null,
+          setUtc: null,
+          windowStartUtc: null,
+          windowEndUtc: null,
+        },
+      },
+    };
+    const context = expectedSkyContext(
+      target,
+      { latitudeDeg: 34.0522, longitudeDeg: -118.2437 },
+      new Date("2026-01-15T05:02:00.000Z"),
+      { altitudeDeg: 44, azimuthDeg: 156 },
+    );
+    expect(context.constellation).toBeNull();
+    expect(context.stars.length).toBeGreaterThan(0);
+    expect(context.lines.length).toBeGreaterThan(0);
+  });
+
+  it("does not render a browse-catalog body underneath the selected target lock", () => {
+    const observer = { latitudeDeg: 45.5152, longitudeDeg: -122.6784 };
+    const at = new Date("2026-09-03T05:00:00.000Z");
+    const catalogSaturn = solarSystemTargets(at).find((target) => target.title === "Saturn")!;
+    const selectedSaturn = { ...catalogSaturn, id: "planet-saturn" };
+    const centre = positionForSkyFinderTarget(selectedSaturn, observer, at)!;
+
+    const context = expectedSkyContext(selectedSaturn, observer, at, centre);
+
+    expect(context.objects.some((object) => object.title === "Saturn")).toBe(false);
+    expect(context.stars.length).toBeGreaterThan(0);
+  });
+
+  it("does not invent an event-centre object for a body-region recommendation", () => {
+    const observer = { latitudeDeg: 34.0522, longitudeDeg: -118.2437 };
+    const at = new Date(ORION_NEBULA.recommendedAtUtc);
+    const centre = positionForSkyFinderTarget(ORION_NEBULA, observer, at)!;
+    const conjunction: SkyFinderTarget = {
+      ...ORION_NEBULA,
+      id: "venus-mercury-conjunction",
+      title: "Venus and Mercury",
+      source: { kind: "body-region", bodies: ["Venus", "Mercury"] },
+    };
+
+    const context = expectedSkyContext(ORION_NEBULA, observer, at, centre, [conjunction]);
+
+    expect(context.objects.some((object) => object.id === conjunction.id)).toBe(false);
+  });
+});

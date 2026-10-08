@@ -15,7 +15,7 @@ import { Matrix4, Quaternion, Vector3 } from "three";
 export const CELESTIAL_MODEL_ID = "Astronomy Engine 2.1.19";
 export const CELESTIAL_MODEL_SUPPORTED_START_ISO = "1600-01-01T00:00:00.000Z";
 export const CELESTIAL_MODEL_SUPPORTED_END_ISO = "2200-01-01T00:00:00.000Z";
-export const STAR_CATALOG_ID = "HYG Database v4.1, V<=5.1";
+export const STAR_CATALOG_ID = "Yale Bright Star Catalog BSC5P via NASA HEASARC, reported V<=6.5";
 export const STAR_CATALOG_EPOCH = "J2000.0";
 export const STAR_CATALOG_FRAME = "ICRS-compatible J2000 mean equator/equinox (EQJ)";
 

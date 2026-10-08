@@ -78,6 +78,33 @@ export async function existingCurrentTreePaths(
   return paths;
 }
 
+/**
+ * Bundle paths an inventory entry claims by pattern rather than by name.
+ *
+ * Vite content-hashes the assets it emits, so a webfont arrives as
+ * `space-mono-latin-400-normal-Rg4St2Dn.woff2` and is called something else the
+ * next time anything upstream of it changes. An exact path cannot describe that
+ * file; a pattern can, and `assets/space-mono-*.woff2` still says precisely
+ * which font is being accounted for.
+ *
+ * `*` deliberately does not cross a `/`. A pattern classifies files beside each
+ * other, never a whole tree, so nobody can silently account for a directory by
+ * writing one line.
+ */
+export function bundlePathPatterns(inventory) {
+  return inventory.items.flatMap((item) =>
+    item.productionBundlePaths.filter((bundlePath) => bundlePath.includes("*")),
+  );
+}
+
+export function matchesBundlePattern(relativePath, pattern) {
+  const expression = pattern
+    .split("*")
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[^/]*");
+  return new RegExp(`^${expression}$`).test(relativePath);
+}
+
 function expectedExactBundlePaths(inventory) {
   const paths = new Set([
     "ATTRIBUTION.md",
@@ -291,6 +318,20 @@ async function validateTrackedFiles(inventory, failures) {
       failures.push(`included-item-deployment-redistribution-unsafe:${item.id}`);
     }
 
+    /* Artifacts the deployment fetches from somewhere else. They are described
+       here but not expected on disk or in the bundle, so their absence is not a
+       finding — but the claim has to be true, or it becomes a way to excuse a
+       file that is committed after all. */
+    for (const sourcePath of item.externallyDeliveredPaths ?? []) {
+      classified.add(sourcePath);
+      if (trackedPaths.includes(sourcePath)) {
+        failures.push(`externally-delivered-artifact-is-tracked:${sourcePath}`);
+      }
+      if (item.repositoryPaths.includes(sourcePath)) {
+        failures.push(`provenance-path-owned-twice:${sourcePath}`);
+      }
+    }
+
     for (const sourcePath of item.repositoryPaths) {
       if (classified.has(sourcePath)) failures.push(`provenance-path-owned-twice:${sourcePath}`);
       classified.add(sourcePath);
@@ -385,6 +426,7 @@ async function validateProductionBundle(inventory, failures) {
     path.relative(distRoot, filePath).replaceAll(path.sep, "/")
   );
   const expectedExact = expectedExactBundlePaths(inventory);
+  const patterns = bundlePathPatterns(inventory);
   const classifiedExtensions = new Set(
     inventory.controls.trackedArtifactExtensionsRequiringClassification,
   );
@@ -398,7 +440,8 @@ async function validateProductionBundle(inventory, failures) {
     const extension = path.extname(relativePath).toLowerCase();
     if (
       classifiedExtensions.has(extension) &&
-      !expectedExact.has(relativePath)
+      !expectedExact.has(relativePath) &&
+      !patterns.some((pattern) => matchesBundlePattern(relativePath, pattern))
     ) {
       failures.push(`bundle-artifact-unclassified:${relativePath}`);
     }
@@ -429,6 +472,15 @@ async function validateProductionBundle(inventory, failures) {
   for (const relativePath of expectedExact) {
     if (!relativePaths.includes(relativePath)) {
       failures.push(`required-bundle-artifact-missing:${relativePath}`);
+    }
+  }
+
+  /* A pattern cannot name the file it expects, but it can still insist that
+     something answered to it. Without this, an entry claiming a font by pattern
+     would keep passing after the font stopped being bundled at all. */
+  for (const pattern of patterns) {
+    if (!relativePaths.some((relativePath) => matchesBundlePattern(relativePath, pattern))) {
+      failures.push(`required-bundle-pattern-unmatched:${pattern}`);
     }
   }
 
@@ -498,8 +550,51 @@ async function main() {
   await validateHumanNotices(inventory, dependencyAudit, treeFailures);
   const bundleFileCount = await validateProductionBundle(inventory, bundleFailures);
 
-  const uniqueTreeFailures = [...new Set(treeFailures)].sort();
-  const uniqueBundleFailures = [...new Set(bundleFailures)].sort();
+  const allFailures = [...new Set([...treeFailures, ...bundleFailures])];
+
+  /*
+    Known, deliberate obligations are reported and not failed on.
+
+    Every entry in `acceptedProvenanceFindings` names a finding the project has
+    decided to carry, with a reason and the date it was accepted. They are not
+    suppressions: each of these items still passes the source and deployment
+    redistribution controls, which are the checks that govern whether a thing may
+    ship at all. What is open in each case is the strength of the evidence behind
+    it — an agreement not yet sought, a header a browser cannot send, a list not
+    yet retrieved — and a gate that fails forever on a state somebody chose stops
+    telling anyone anything.
+
+    Two rules keep the list honest. Anything not listed still fails, so a new
+    problem is never absorbed into the baseline. And a listed finding that no
+    longer occurs fails too, so an entry cannot outlive the condition that
+    justified it: fix the underlying obligation and the build tells you to delete
+    the excuse.
+  */
+  const accepted = inventory.controls.acceptedProvenanceFindings ?? [];
+  const acceptedFindings = new Set(accepted.map((entry) => entry.finding));
+  const stale = accepted
+    .map((entry) => entry.finding)
+    .filter((finding) => !allFailures.includes(finding));
+
+  const unexpectedTree = treeFailures.filter((failure) => !acceptedFindings.has(failure));
+  const unexpectedBundle = bundleFailures.filter((failure) => !acceptedFindings.has(failure));
+  const carried = allFailures.filter((failure) => acceptedFindings.has(failure)).sort();
+
+  const uniqueTreeFailures = [...new Set([...unexpectedTree, ...stale.map((f) => `accepted-finding-no-longer-occurs:${f}`)])].sort();
+  const uniqueBundleFailures = [...new Set(unexpectedBundle)].sort();
+
+  if (carried.length > 0) {
+    console.log(
+      `[provenance:accepted] ${carried.length} known ${
+        carried.length === 1 ? "finding" : "findings"
+      }, recorded with a reason and a date in provenance/inventory.json:`,
+    );
+    for (const finding of carried) {
+      const entry = accepted.find((candidate) => candidate.finding === finding);
+      console.log(`- ${finding} (accepted ${entry.acceptedOn})`);
+    }
+  }
+
   if (uniqueTreeFailures.length > 0) {
     console.error("[provenance:tree] Current-tree audit failed:");
     uniqueTreeFailures.forEach((failure) => console.error(`- ${failure}`));

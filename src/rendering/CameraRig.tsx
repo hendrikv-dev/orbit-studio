@@ -72,6 +72,7 @@ interface CameraRigProps {
   selectedSatellite?: SatelliteModel;
   selectedOrbitFrame?: SelectedOrbitFrame | null;
   selectedOrbitDistanceScale?: number;
+  preserveCameraOnOrbitEdit?: boolean;
   focusFrame?: CameraFocusFrame | null;
   defaultFrame?: CameraHomeFrame;
   simulationTime: string;
@@ -131,9 +132,10 @@ function anchoredMaxDistanceKm(framingRadiusKm?: number): number {
   );
 }
 
-function shouldFrameSelectedOrbit({
+export function shouldFrameSelectedOrbit({
   cameraPosition,
   controlsTarget,
+  preserveCameraOnOrbitEdit,
   initialized,
   orbitDistance,
   orbitFrame,
@@ -145,6 +147,7 @@ function shouldFrameSelectedOrbit({
 }: {
   cameraPosition: Vector3;
   controlsTarget: Vector3;
+  preserveCameraOnOrbitEdit: boolean;
   initialized: boolean;
   orbitDistance: number;
   orbitFrame: SelectedOrbitFrame;
@@ -170,6 +173,8 @@ function shouldFrameSelectedOrbit({
     return true;
   }
 
+  if (preserveCameraOnOrbitEdit) return false;
+
   const currentDistance = cameraPosition.distanceTo(controlsTarget);
   const targetDrift = controlsTarget.distanceTo(orbitFrame.target);
 
@@ -187,6 +192,7 @@ export function CameraRig({
   selectedSatellite,
   selectedOrbitFrame,
   selectedOrbitDistanceScale = 1,
+  preserveCameraOnOrbitEdit = false,
   focusFrame,
   defaultFrame,
   simulationTime,
@@ -203,7 +209,8 @@ export function CameraRig({
   const lastFollowTargetIdRef = useRef<string | null>(null);
   const lastFollowPositionRef = useRef<Vector3 | null>(null);
   const transitionRef = useRef<CameraTransition | null>(null);
-  const { camera, invalidate, size } = useThree();
+  const { camera, gl, invalidate, size } = useThree();
+  const reviewEnabled = useMemo(() => new URLSearchParams(window.location.search).get("review") === "1", []);
   const narrowViewport = size.width < 744 || (size.width < 960 && size.height < 520);
   const portraitPhoneViewport = size.width < 744 && size.height >= size.width;
   const viewportSizeKey = narrowViewport
@@ -316,6 +323,7 @@ export function CameraRig({
       shouldFrameSelectedOrbit({
         cameraPosition: camera.position,
         controlsTarget: controls?.target?.clone() ?? target.clone(),
+        preserveCameraOnOrbitEdit,
         initialized: initializedRef.current,
         orbitDistance: orbitAwareDistance!,
         orbitFrame: selectedOrbitFrame,
@@ -414,6 +422,7 @@ export function CameraRig({
     focusFramingRadiusKm,
     missionFrame,
     selectedOrbitDistanceScale,
+    preserveCameraOnOrbitEdit,
     selectedOrbitFrame,
     selectedPosition,
     defaultFrame,
@@ -499,6 +508,21 @@ export function CameraRig({
     lastFollowPositionRef.current = currentSelectedPosition.clone();
     controlsRef.current.target.copy(currentSelectedPosition);
     controlsRef.current.update();
+  });
+
+  // Review observes the actual camera/controls, including edits and user drags.
+  // It does not select a different camera policy or drive the scene.
+  useFrame(() => {
+    if (!reviewEnabled) return;
+    gl.domElement.dataset.cameraState = JSON.stringify({
+      position: camera.position.toArray(),
+      quaternion: camera.quaternion.toArray(),
+      target: controlsRef.current?.target.toArray() ?? null,
+      mode: cameraMode,
+      follow: followSelectedObject,
+      satelliteId: selectedSatellite?.id ?? null,
+      elements: selectedSatellite?.keplerian ?? null,
+    });
   });
 
   return (

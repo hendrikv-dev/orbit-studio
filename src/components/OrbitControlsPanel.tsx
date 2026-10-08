@@ -4,6 +4,7 @@ import {
   Eye,
   EyeOff,
   Palette,
+  Orbit,
   Pause,
   Play,
   Plus,
@@ -12,6 +13,7 @@ import {
   StepBack,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useMobileSheetDrag } from "../lib/useMobileSheetDrag";
 import { EARTH_RADIUS_KM } from "../physics/constants";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
 import { useSimulationStore } from "../state/useSimulationStore";
@@ -52,7 +54,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function isMobileViewport(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 743px)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches;
 }
 
 function formatSliderValue(value: number, precision: number, unit?: string): string {
@@ -147,6 +149,7 @@ export function OrbitControlsPanel({
   onMobileClose,
 }: OrbitControlsPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const mobileSheetDrag = useMobileSheetDrag(() => onMobileClose?.());
   const [selectorOpen, setSelectorOpen] = useState(false);
   const scenario = useSidebarScenario();
   const selectedSatelliteId = useSimulationStore((state) => state.selectedSatelliteId);
@@ -195,10 +198,21 @@ export function OrbitControlsPanel({
     <section
       className={`orbit-controls-panel ${collapsed ? "collapsed" : ""}`}
       aria-label="Orbit controls"
+      style={mobileSheetDrag.sheetStyle}
     >
       <div className="orbit-controls-heading">
+        <button
+          aria-label="Close orbit controls"
+          className="explorer-mobile-sheet-handle playground-mobile-sheet-handle"
+          title="Close orbit controls. Drag down or tap to close."
+          type="button"
+          {...mobileSheetDrag.dragHandleProps}
+          onClick={() => onMobileClose?.()}
+        >
+          <span aria-hidden="true" />
+        </button>
         <div>
-          <span>Playground Orbit</span>
+          <span>Orbit controls</span>
           <strong>{satellite.name}</strong>
         </div>
         <button
@@ -215,7 +229,7 @@ export function OrbitControlsPanel({
             setCollapsed(!collapsed);
           }}
         >
-          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          <Orbit size={18} />
         </button>
       </div>
 
