@@ -6,6 +6,17 @@ The project uses a lightweight changelog format inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Tracker: NASA meteor replacement
+- Replace the twelve-shower working-list transcription with a minimal, offline-normalized NASA
+  public-use dataset. CP 2011 supplies explicit J2000 geocentric radiant anchors; the 2026 MEO
+  forecast supplies seven annual maxima, with separately identified handbook/methods/overview
+  values for uncovered fields. Calendar bounds are explicitly converted, not claimed as published
+  solar-longitude endpoints. Source-backed numerical corrections intentionally change some dates,
+  rates and radiant directions; first-party activity widths remain separate model parameters.
+- Correct the existing fixed-J2000/of-date ecliptic mix-up and make the meteor-potential map use
+  the same radiant authority. Preserve recommendation, event and Sky interfaces. Remove the
+  meteor redistribution exception; unrelated provider exceptions are not resolved by this pass.
+
 ### Pre-split baseline cleanup
 - **Release verification now follows the external evidence boundary.** The production review already
   wrote append-only runs outside the repository, but the final verifier still looked for a retired

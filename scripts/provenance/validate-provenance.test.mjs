@@ -72,7 +72,8 @@ afterEach(async () => {
 describe("the accepted-findings baseline", { timeout: 120_000 }, () => {
   it("passes on the tree as it stands", async () => {
     const { code, output } = await validate();
-    expect(output).toContain("[provenance:accepted] 5 known findings");
+    // NASA closes the meteor exception; the four provider exceptions remain.
+    expect(output).toContain("[provenance:accepted] 4 known findings");
     if (builtBundle) {
       expect(code).toBe(0);
       return;

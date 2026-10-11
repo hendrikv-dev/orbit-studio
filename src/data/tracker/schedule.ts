@@ -3,6 +3,7 @@ import { skyConditionsAt } from "./nakedEye";
 import { satelliteOpportunities } from "./satellites";
 import type { Deployment, IssEphemeris } from "./satelliteSources";
 import { meteorNight } from "./meteorActivity";
+import { METEOR_SHOWER_SNAPSHOT } from "./meteorShowers";
 import type { MeteorNight } from "./meteorActivity";
 import type { ObservationPeriod } from "./observationPeriod";
 import { trackerObservationPeriod } from "./observationPeriod";
@@ -46,7 +47,9 @@ import { tonightsOpportunities } from "./phenomena";
  * not a number buried in a component.
  */
 export const DEFAULT_HORIZON_NIGHTS = 30;
-export const TRACKER_PLAN_MODEL_VERSION = "phase-1-2026-08-19";
+// Derived planning identities must distinguish the replacement dataset/model
+// from plans calculated using the retired transcription and radiant frames.
+export const TRACKER_PLAN_MODEL_VERSION = `phase-1-2026-08-19+nasa-radiants-${METEOR_SHOWER_SNAPSHOT.snapshotDate}`;
 
 const MS_PER_DAY = 86_400_000;
 

@@ -458,7 +458,7 @@ export async function captureStates({ browser, origin, shotsDir, only = null }) 
   console.log("\nDiscoverability under cloud");
   {
     /** A meteor-shower peak: time-critical. Portland, the 2027 Perseids. */
-    const PEAK = "&date=2027-08-12&show=meteor-shower-PER-2027-08-12";
+    const PEAK = "&date=2027-08-13&show=meteor-shower-PER-2027-08-13";
 
     // Closed sky, fixtured: overcast observed and 95% forecast all night.
     const closed = await open(browser, {

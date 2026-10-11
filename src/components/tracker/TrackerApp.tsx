@@ -3833,7 +3833,7 @@ function TrackerScreen() {
             conditions={conditions}
             conditionsCaption={conditionsCaption(
               sources,
-              heroEvent?.entry?.opportunity.kind === "satellite"
+              heroEvent?.entry && (heroEvent.entry.opportunity.kind === "satellite" || heroEvent.entry.opportunity.kind === "meteors")
                 ? heroEvent.entry.opportunity.limitations
                 : [],
             )}

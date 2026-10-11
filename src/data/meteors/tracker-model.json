@@ -1,0 +1,5 @@
+{
+  "format": "tracker-meteor-model/1",
+  "description": "First-party approximate core FWHM days. Preserved editorial model parameters, not NASA measurements or an adopted CMOR activity profile. No external table is used as fallback.",
+  "peakWidthDays": {"QUA":0.35,"LYR":1,"ETA":9,"CAP":8,"SDA":12,"PER":2,"ORI":5,"STA":25,"NTA":25,"LEO":1,"GEM":1.2,"URS":0.5}
+}

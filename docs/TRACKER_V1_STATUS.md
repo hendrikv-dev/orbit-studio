@@ -333,19 +333,19 @@ Ranked by how much they could mislead someone:
    stated in the interface as a missing input rather than assumed away, but it is
    the largest gap between the estimate and any particular evening.
 2. **Cloud is not modelled.** Same treatment, same reason.
-3. **Peak widths in the shower catalogue are editorial**, not IMO values, and are
-   labelled as such in `src/data/tracker/meteorShowers.ts`. They were tuned so
-   the activity profile reproduces the published curves; that tuning is the
-   evidence for them, and it is not the same as a source.
+3. **Peak widths in the shower catalogue are first-party coarse model parameters**,
+   isolated in `src/data/meteors/tracker-model.json`; they are not NASA measurements.
+   No empirical fit or observational validation is claimed. See `meteor-data.md`.
 4. **The moonlight and twilight penalties are calibrations**, fitted to stated
    anchors rather than taken from a published photometric model. The anchors are
    asserted in the tests so a later change has to face them.
-5. **Rights for the meteor dataset are unregistered.** The parameters were
-   transcribed rather than retrieved, so there is no upstream artifact to
-   checksum and no licence was read. `provenance/inventory.json` records this as
-   `unresolved`, and provenance validation fails on it deliberately. Resolving it
-   means retrieving the IAU MDC and IMO lists from their publication URLs under
-   their stated terms.
+5. **Meteor redistribution authority was replaced in the NASA replacement pass.**
+   The old working-list transcription is no longer production data. Five NASA
+   NTRS public-use publications supply the minimal twelve-row replacement;
+   checksums, exact tables, frame and normalization semantics are recorded in
+   `meteor-data.md` and `src/data/meteors/nasa-snapshot.json`. The unresolved meteor
+   inventory exception is removed. This does not resolve unrelated provider terms
+   or establish observational accuracy for the coarse activity/radiant model.
 
 ---
 

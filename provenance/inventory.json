@@ -76,6 +76,7 @@
       "mapterhorn.com",
       "mmccants.org",
       "noirlab.edu",
+      "ntrs.nasa.gov",
       "open-meteo.com",
       "opendatacommons.org",
       "openfontlicense.org",
@@ -276,11 +277,6 @@
       }
     ],
     "acceptedProvenanceFindings": [
-      {
-        "finding": "included-item-rights-unresolved:meteor-stream-parameters-2026-08-16",
-        "acceptedOn": "2026-09-04",
-        "reason": "The parameters are measurements of natural phenomena and are safe to redistribute in both source and deployment, which the two redistribution controls check separately and pass. What is open is the basis: neither the IMO working list nor the IAU MDC list has been retrieved from its publication URL and checksummed. Resolving it needs no agreement and no server, only that retrieval."
-      },
       {
         "finding": "included-item-rights-unresolved:tracker-basemap-tiles",
         "acceptedOn": "2026-09-04",
@@ -1237,40 +1233,52 @@
       }
     },
     {
-      "id": "meteor-stream-parameters-2026-08-16",
+      "id": "nasa-meteor-parameters-2026",
       "category": "meteor-stream-parameters",
       "repositoryPaths": [
-        "src/data/tracker/meteorShowers.ts"
+        "src/data/tracker/meteorShowers.ts",
+        "src/data/meteors/nasa-snapshot.json",
+        "src/data/meteors/showers.json",
+        "src/data/meteors/tracker-model.json",
+        "scripts/build-nasa-meteor-showers.mjs"
       ],
       "productionBundlePaths": [
         "assets/TrackerApp-*.js"
       ],
       "originalSource": {
-        "title": "IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers",
-        "url": "https://www.imo.net/resources/calendar/",
-        "publicationUrl": "https://www.ta3.sk/IAUC22DB/MDC2007/",
-        "publisher": "International Meteor Organization; IAU Meteor Data Center",
-        "version": "Transcribed working-list parameters, snapshot dated 2026-08-16",
-        "retrievedAt": "2026-08-16"
+        "title": "NASA public-use meteor nomenclature, handbook and MEO forecasts",
+        "url": "https://ntrs.nasa.gov/citations/20110016582",
+        "publicationUrl": "https://ntrs.nasa.gov/citations/20250009524",
+        "publisher": "NASA NTRS; Meteoroid Environment Office; Jopek/Jenniskens nomenclature paper",
+        "version": "CP2011 Table1; handbook2019 Table2; methods2017 Tables2/3; overview2021 p17; forecast2026 Table3",
+        "retrievedAt": "2026-10-11"
       },
       "localSha256": {
-        "src/data/tracker/meteorShowers.ts": "39344b784246c9b1a75b7c5465330a0e279122dc3837a8978924e099824aae06"
+        "src/data/tracker/meteorShowers.ts": "362a0cc594f58ef310c0263c4fe83612e4858847ab5374e9bacfd44a3d247fd1",
+        "src/data/meteors/nasa-snapshot.json": "59ccf7c1e543156d871918f25b61feeb4334168316cc8a26d712c04b7007e6aa",
+        "src/data/meteors/showers.json": "7d4389674a954ffd23ecf99083f546604e48c908eae47b86253cbb3ec166655a",
+        "src/data/meteors/tracker-model.json": "9d99c2482588700c1f32545a24c75f6a04df32166297b2fd5257fc48facd7363",
+        "scripts/build-nasa-meteor-showers.mjs": "7f9ce9010bbf2171c80a066d1b15c17cbc1652c2863ccf13a418789aa599f5c8"
       },
       "processing": [
-        "Twelve established showers are recorded with IAU stream number and code, parent body, solar longitude of maximum, activity interval in solar longitude, J2000 radiant at maximum, geocentric velocity, population index and nominal zenithal hourly rate.",
-        "The values were transcribed into a TypeScript module rather than retrieved as a file. There is therefore no upstream artifact to checksum and no originalSha256 is claimed; the recorded localSha256 pins the transcription, not the source.",
-        "peakWidthDays is not an IMO quantity and is not attributed to one. It is an editorial approximation of each peak's full width at half maximum, adjusted so the activity profile in src/data/tracker/meteorActivity.ts reproduces the published character of each shower. src/data/tracker/meteorShowers.ts states this in the module header.",
-        "Per R9.4, evidence class varies within a record: stream identity and elements are catalog, radiant position and peak date for a given year are analytic, and the nominal zenithal hourly rate is a forecast regardless of arriving in a catalog.",
-        "Per R9.3, the snapshot is replaced deliberately and never automatically, and a replacement records what changed."
+        "Only twelve consumed meteor rows are retained. Exact field sources, table/page/row mappings and acquired PDF checksums are in nasa-snapshot.json and docs/meteor-data.md. Unconsumed IAU numbers/parents are omitted.",
+        "CP2011 Table1 explicitly labels geocentric radiant RA/Dec AND anchor solar longitude J2000. Runtime fixed-ECL radiant drift and EQJ/EQD rotation retain those source semantics.",
+        "Seven 2026 peak UT/ZHR values come from forecast Table3. Other peak calendar dates use handbook/overview at explicitly normalized noon UTC; other ZHR and population indices use NASA typical characteristics. Not an annual outburst forecast outside2026.",
+        "NASA-published calendar activity bounds are deterministically converted in fixed2026 with Astronomy Engine to apparent solar-longitude endpoints; those derived angles were not published by NASA. Last calendar day is included through following UTC midnight.",
+        "Handbook speeds are geocentric; CAP/STA/NTA MEO speeds refer to100km altitude and are not relabeled asymptotic speeds. Spacecraft fluxes are not used as visual observer rates.",
+        "tracker-model.json contains unchanged first-party editorial core widths, not NASA data. No CMOR profile coefficients adopted. Generator is offline and has no legacy fallback. Update deliberately with provenance/regression review."
       ],
       "rights": {
-        "verification": "unresolved",
-        "licenseOrBasis": "Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.",
+        "verification": "verified",
+        "licenseOrBasis": "Each exact NASA NTRS source states Public distribution / Public Use Permitted; forecast2026 and overview2021 additionally state Work of the US Gov. Numerical subset only, with source attribution; no full documents or third-party media bundled. Tracker model parameters are first-party.",
         "evidenceUrls": [
-          "https://www.imo.net/resources/calendar/",
-          "https://www.ta3.sk/IAUC22DB/MDC2007/"
+          "https://ntrs.nasa.gov/citations/20110016582",
+          "https://ntrs.nasa.gov/citations/20250009524",
+          "https://ntrs.nasa.gov/citations/20200000049",
+          "https://ntrs.nasa.gov/citations/20170004446",
+          "https://ntrs.nasa.gov/citations/20210017329"
         ],
-        "attribution": "Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.",
+        "attribution": "NASA NTRS CP2011 Jopek/Jenniskens Table1; NASA MEO 2026 meteor forecast; NASA meteoroid handbook; Moorhead/Cooke/Campbell-Brown forecasting methods; NASA MEO 2021 overview. No NASA endorsement.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
         "modification": "permitted-with-attribution"
@@ -1278,7 +1286,7 @@
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed."
+        "restrictions": "ZHR is a reference maximum, not a predicted observer count. Calendar-derived endpoints and typical annual recurrences remain model-derived. Widths remain first-party editorial. Do not adopt spacecraft particle flux/radar profiles as visual rates. No legacy working-list fallback."
       }
     },
     {

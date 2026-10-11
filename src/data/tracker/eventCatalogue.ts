@@ -83,7 +83,9 @@ export function upcomingLunarEclipses(from: Date, count = 6): CatalogueEvent[] {
  * Meteor shower maxima, one per shower per year.
  *
  * `showerPeakTime` solves for the solar longitude of maximum, so these are the
- * real peaks rather than the calendar dates a table would carry.
+ * recurrences of the normalized NASA reference peak, not independently issued
+ * forecasts for every year. Calendar-only source dates are normalized to noon
+ * UTC in 2026; the data provenance retains that uncertainty.
  */
 export function upcomingMeteorShowers(from: Date, count = 8): CatalogueEvent[] {
   const out: CatalogueEvent[] = [];

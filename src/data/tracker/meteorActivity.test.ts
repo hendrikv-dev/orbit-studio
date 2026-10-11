@@ -22,15 +22,15 @@ const night = (place: { lat: number; lon: number }, when: string) =>
   meteorNight(place.lat, place.lon, trackerObservationPeriod(place.lat, place.lon, at(when)));
 
 describe("when a shower peaks", () => {
-  // Peaks are checked against the dates the IMO publishes for 2026. These are
+  // Peaks are checked against NASA forecast Table 3 / handbook Table 2 dates.
   // external facts, not this file's own output, which is the only kind of test
   // that can catch the model being confidently wrong.
   it.each([
     ["QUA", "2026-01-03"],
     ["LYR", "2026-04-22"],
     ["ETA", "2026-05-06"],
-    ["PER", "2026-08-12"],
-    ["ORI", "2026-10-21"],
+    ["PER", "2026-08-13"],
+    ["ORI", "2026-10-22"],
     ["LEO", "2026-11-17"],
     ["GEM", "2026-12-14"],
     ["URS", "2026-12-22"],
@@ -60,12 +60,11 @@ describe("the activity profile", () => {
   const zhrDaysFromPeak = (days: number) =>
     zhrAtSolarLongitude(perseids, perseids.peakSolarLongitudeDeg + days * 0.9856);
 
-  // Checked against the published Perseid profile: roughly 55 an hour a day
-  // from maximum, 10 at five days, a couple at ten. A single exponential fitted
-  // to the peak width gave 3 an hour at five days — it would have told people
-  // to stay in on nights that are genuinely good.
-  it("tracks the published Perseid curve into the wings", () => {
-    expect(zhrDaysFromPeak(0)).toBeCloseTo(100, 0);
+  // Regression bounds for the retained first-party coarse core/base model.
+  // These wings are not a NASA-published profile or independent observations.
+  it("preserves the coarse Perseid wings with the NASA reference maximum", () => {
+    // NASA 2026 forecast Table 3 explicitly corrects the maximum to 92.
+    expect(zhrDaysFromPeak(0)).toBeCloseTo(92, 0);
     expect(zhrDaysFromPeak(-1)).toBeGreaterThan(40);
     expect(zhrDaysFromPeak(-1)).toBeLessThan(70);
     expect(zhrDaysFromPeak(-5)).toBeGreaterThan(6);

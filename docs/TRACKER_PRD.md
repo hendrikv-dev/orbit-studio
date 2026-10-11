@@ -520,9 +520,11 @@ them.
 - **R9.1** — Meteor stream elements are vendored, not fetched, and are treated as a
   `catalog` evidence class per **§3** — a source record with its own epoch, not an
   analytic result.
-- **R9.2** — The dataset is the **IAU Meteor Data Center** established-shower list, with
-  the **IMO** working list of visual shower parameters for peak dates and nominal rates.
-  Both are pinned to a dated snapshot, checksummed, and registered in
+- **R9.2** — The dataset is the minimal **NASA NTRS public-use** twelve-shower subset:
+  CP2011 J2000 radiant anchors, the2026 MEO forecast, meteoroid handbook and
+  MEO forecasting/overview characteristics. Per-field provenance and explicit
+  calendar-to-solar-longitude normalization are recorded in `docs/meteor-data.md`.
+  Inputs and generated output are pinned, checksummed, and registered in
   `provenance/inventory.json` with rights basis and attribution, in the same manner as
   GCAT and the NASA fragmentation reference.
 - **R9.3** — Snapshot policy: the vendored copy is replaced deliberately, never
@@ -533,7 +535,7 @@ them.
   several of each.** Coming from an authoritative static table does not make a value an
   analytic certainty, and one uncertain attribute does not make the whole object a
   forecast. Within a single shower:
-  - stream identity and orbital elements — `catalog`, from the IAU MDC snapshot
+  - stream identity and published J2000 radiant anchors — `catalog`, from NASA CP2011
   - radiant position and peak date — `analytic`, computed for the observer and year
   - radiant altitude, darkness and Moon conditions tonight — `analytic`
   - nominal ZHR — `forecast`, regardless of arriving in a catalog
@@ -546,7 +548,7 @@ them.
 |---|---|---|
 | Astronomy Engine | Analytic astronomy | MIT; already vendored |
 | Yale BSC5P via NASA/GSFC HEASARC | Star field | HEASARC official free-use policy; exact query and checksums recorded; acknowledgement requested |
-| IAU MDC + IMO | Meteor stream elements (**phase 1**) | Vendored static snapshot, not fetched. Pinned, checksummed and registered in provenance; attribution required. See R9.1–R9.4 |
+| NASA NTRS / MEO | Meteor stream parameters (**phase 1**) | Minimal public-use numerical subset, offline normalized; exact table/row/field mapping and checksums. See R9.1–R9.4 and meteor-data.md |
 | CelesTrak | Orbital elements (phase 3) | GP data no more than once per 2-hour cycle; stop on any non-200 and escalate; IP blocking for abuse; caching proxy expected — **this alone forecloses direct browser fetches and therefore requires a backend** |
 | Space-Track | Orbital elements (alternative) | Redistribution to third parties prohibited without express approval (Public Law 108-136 §913). Compute from it; do not mirror it |
 | NOAA SWPC | Aurora (phase 4) | US Government, public domain; OVATION refreshed every 5 min, useful horizon 30–90 min |

@@ -1,6 +1,6 @@
 import { Body, Equator, Illumination, MakeTime, Observer, SiderealTime } from "astronomy-engine";
 import { subsolarPoint, sunAltitudeAt } from "./daylight";
-import { solarLongitudeDeg, zhrAtSolarLongitude } from "./meteorActivity";
+import { radiantEquatorialOfDate, solarLongitudeDeg, zhrAtSolarLongitude } from "./meteorActivity";
 import type { MeteorShower } from "./meteorShowers";
 
 /**
@@ -106,15 +106,15 @@ function skyAt(at: Date, shower: MeteorShower): SampleSky {
   const moon = Equator(Body.Moon, time, new Observer(0, 0, 0), true, true);
   const sublunarLon = (((moon.ra - gstHours) * 15 + 540) % 360) - 180;
   const solarLongitude = solarLongitudeDeg(at);
+  const radiant = radiantEquatorialOfDate(shower, at);
   return {
     subsolar: subsolarPoint(at),
     sublunar: { latitudeDeg: moon.dec, longitudeDeg: sublunarLon },
     moonIlluminated: Illumination(Body.Moon, time).phase_fraction,
     gstDeg: gstHours * 15,
-    // The radiant is the published one at maximum. Its nightly drift is small
-    // against the resolution of everything else here and is not modelled.
-    radiantRaDeg: shower.radiantRaDeg,
-    radiantDecDeg: shower.radiantDecDeg,
+    // Same J2000 anchor -> drift -> EQD path as nightly recommendations/Sky.
+    radiantRaDeg: radiant.raHours * 15,
+    radiantDecDeg: radiant.decDeg,
     zhrFraction: Math.max(
       0,
       zhrAtSolarLongitude(shower, solarLongitude) / Math.max(1, shower.nominalZhr),

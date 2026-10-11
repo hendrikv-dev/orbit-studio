@@ -10,9 +10,11 @@ import {
   Observer,
   RotateVector,
   Rotation_ECL_EQJ,
+  Rotation_EQJ_ECL,
   Rotation_EQJ_EQD,
   SearchSunLongitude,
   SunPosition,
+  SphereFromVector,
   VectorFromSphere,
 } from "astronomy-engine";
 import type { ObservationPeriod } from "./observationPeriod";
@@ -219,34 +221,30 @@ export function showerPeakTime(shower: MeteorShower, near: Date): Date | null {
 /**
  * Where the radiant is on the sky at `at`, equinox of date.
  *
- * The stored radiant is its position at maximum. Away from maximum it is
+ * The stored radiant is its position at the published J2000 solar longitude.
+ * Away from that anchor it is
  * advanced by the change in solar longitude, holding ecliptic latitude fixed:
  * a stream's radiant keeps a nearly constant `λ − λ☉`, because the drift is
  * dominated by Earth's own motion around the Sun.
  */
-function radiantEquatorialOfDate(
+export function radiantEquatorialOfDate(
   shower: MeteorShower,
-  peak: Date,
   at: Date,
 ): { raHours: number; decDeg: number } {
   const time = MakeTime(at);
 
-  // Everything below is done in the J2000 ecliptic so the two solar longitudes
-  // are differenced in one frame. Their *difference* over a few weeks is the
-  // same in J2000 as it is in the equinox of date; precession does not
-  // accumulate meaningfully across a shower's activity period.
+  // CP Table 1 supplies the anchor radiant AND solar longitude in J2000.
+  // Ecliptic() returns true ecliptic OF DATE, so it cannot be used here.
   const radiantVectorJ2000 = VectorFromSphere(
     { lat: shower.radiantDecDeg, lon: shower.radiantRaDeg, dist: 1 },
-    MakeTime(peak),
+    time,
   );
-  const radiantEcliptic = Ecliptic(radiantVectorJ2000);
-
-  const sunAtPeak = Ecliptic(GeoVector(Body.Sun, MakeTime(peak), false)).elon;
-  const sunNow = Ecliptic(GeoVector(Body.Sun, time, false)).elon;
-  const drift = angularDifferenceDeg(sunNow, sunAtPeak);
+  const radiantEcliptic = SphereFromVector(RotateVector(Rotation_EQJ_ECL(), radiantVectorJ2000));
+  const sunNow = SphereFromVector(RotateVector(Rotation_EQJ_ECL(), GeoVector(Body.Sun, time, false))).lon;
+  const drift = angularDifferenceDeg(sunNow, shower.radiantSolarLongitudeJ2000Deg);
 
   const drifted = VectorFromSphere(
-    { lat: radiantEcliptic.elat, lon: radiantEcliptic.elon + drift, dist: 1 },
+    { lat: radiantEcliptic.lat, lon: radiantEcliptic.lon + drift, dist: 1 },
     time,
   );
   const equatorialJ2000 = RotateVector(Rotation_ECL_EQJ(), drifted);
@@ -531,7 +529,7 @@ export function meteorNight(
       if (!peak) continue;
       const zhr = zhrAtSolarLongitude(shower, solarLongitude);
       if (zhr <= 0) continue;
-      const radiant = radiantEquatorialOfDate(shower, peak, at);
+      const radiant = radiantEquatorialOfDate(shower, at);
       const { altitudeDeg } = altitudeAzimuth(observer, at, radiant.raHours, radiant.decDeg);
       showerPerHour += observedHourlyRate(zhr, altitudeDeg, shower.populationIndex, sky);
     }
@@ -555,7 +553,11 @@ export function meteorNight(
     }
   }
 
-  const limitations: string[] = [];
+  const limitations: string[] = [
+    midPeriod.getUTCFullYear() === 2026
+      ? "Shower rates use NASA reference maxima and a coarse activity model, not a guaranteed count."
+      : "Shower rates use a fixed NASA-backed annual profile; this is not an outburst forecast for this year.",
+  ];
   const contributions: ShowerContribution[] = [];
 
   if (best && bestAt) {
@@ -565,7 +567,7 @@ export function meteorNight(
       if (!peak) continue;
       const zhr = zhrAtSolarLongitude(shower, solarLongitude);
       if (zhr <= 0) continue;
-      const radiant = radiantEquatorialOfDate(shower, peak, bestAt);
+      const radiant = radiantEquatorialOfDate(shower, bestAt);
       const { altitudeDeg, azimuthDeg } = altitudeAzimuth(
         observer,
         bestAt,

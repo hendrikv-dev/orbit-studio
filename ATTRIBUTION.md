@@ -390,27 +390,30 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/TrackerApp-*.js`
 - Restrictions and notes: Only the specific values Tracker uses may be quoted, with attribution. The compilation must not be committed or redistributed, and the pinned checksum must not be updated without reviewing what changed.
 
-## IMO working list of visual meteor showers, with stream identity and numbering from the IAU Meteor Data Center list of established showers
+## NASA public-use meteor nomenclature, handbook and MEO forecasts
 
-- Inventory ID: `meteor-stream-parameters-2026-08-16`
+- Inventory ID: `nasa-meteor-parameters-2026`
 - Category: meteor-stream-parameters
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: International Meteor Organization; IAU Meteor Data Center
-- Version or snapshot: Transcribed working-list parameters, snapshot dated 2026-08-16
-- Retrieval date: 2026-08-16
-- Authoritative source: https://www.ta3.sk/IAUC22DB/MDC2007/
-- Authoritative source: https://www.imo.net/resources/calendar/
-- Rights basis: Not established by this entry. The individual parameters are measurements of natural phenomena and are widely reproduced across published sources, but no licence grant was retrieved for the IMO working list or the IAU MDC list, and neither publisher's terms were read as part of this transcription. Resolving this means retrieving each list from its publication URL under its stated terms, checksumming the retrieved artifact, and recording the licence found there.
-- Rights evidence: https://www.imo.net/resources/calendar/
-- Rights evidence: https://www.ta3.sk/IAUC22DB/MDC2007/
-- Attribution: Meteor stream parameters after the IMO working list of visual meteor showers and the IAU Meteor Data Center list of established showers.
+- Publisher or rights holder: NASA NTRS; Meteoroid Environment Office; Jopek/Jenniskens nomenclature paper
+- Version or snapshot: CP2011 Table1; handbook2019 Table2; methods2017 Tables2/3; overview2021 p17; forecast2026 Table3
+- Retrieval date: 2026-10-11
+- Authoritative source: https://ntrs.nasa.gov/citations/20250009524
+- Authoritative source: https://ntrs.nasa.gov/citations/20110016582
+- Rights basis: Each exact NASA NTRS source states Public distribution / Public Use Permitted; forecast2026 and overview2021 additionally state Work of the US Gov. Numerical subset only, with source attribution; no full documents or third-party media bundled. Tracker model parameters are first-party.
+- Rights evidence: https://ntrs.nasa.gov/citations/20110016582
+- Rights evidence: https://ntrs.nasa.gov/citations/20250009524
+- Rights evidence: https://ntrs.nasa.gov/citations/20200000049
+- Rights evidence: https://ntrs.nasa.gov/citations/20170004446
+- Rights evidence: https://ntrs.nasa.gov/citations/20210017329
+- Attribution: NASA NTRS CP2011 Jopek/Jenniskens Table1; NASA MEO 2026 meteor forecast; NASA meteoroid handbook; Moorhead/Cooke/Campbell-Brown forecasting methods; NASA MEO 2021 overview. No NASA endorsement.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
 - Modification status: permitted-with-attribution
-- Repository paths: `src/data/tracker/meteorShowers.ts`
+- Repository paths: `src/data/tracker/meteorShowers.ts`, `src/data/meteors/nasa-snapshot.json`, `src/data/meteors/showers.json`, `src/data/meteors/tracker-model.json`, `scripts/build-nasa-meteor-showers.mjs`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: Nominal zenithal hourly rates are reference values for a stream at maximum under a 6.5-magnitude sky, not a prediction of any observer's count, and must never be presented as one. The editorial peak widths must stay labelled as editorial. The rights basis above is unresolved and this entry must not be marked verified until an artifact is retrieved and checksummed.
+- Restrictions and notes: ZHR is a reference maximum, not a predicted observer count. Calendar-derived endpoints and typical annual recurrences remain model-derived. Widths remain first-party editorial. Do not adopt spacecraft particle flux/radar profiles as visual rates. No legacy working-list fallback.
 
 ## Blue Marble: Next Generation with Topography and Bathymetry, January
 

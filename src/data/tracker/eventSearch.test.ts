@@ -78,7 +78,7 @@ describe("what an event does at the reader's own coordinates", () => {
   });
 
   it("grades a shower where it is observable and refuses to where it is not", () => {
-    const perseids = eventFor("meteor-shower-PER-2027-08-12");
+    const perseids = eventFor("meteor-shower-PER-2027-08-13");
     const north = localRelation(perseids, TROUTDALE);
     expect(north?.visible).toBe(true);
     expect(north?.label).toMatch(/here$/);
@@ -98,7 +98,7 @@ describe("what an event does at the reader's own coordinates", () => {
    * verdict with no strength to grade.
    */
   it("exposes a shower's strength as text distinct from viability", () => {
-    const perseids = eventFor("meteor-shower-PER-2027-08-12");
+    const perseids = eventFor("meteor-shower-PER-2027-08-13");
     const north = localRelation(perseids, TROUTDALE)!;
     expect(north.visible).toBe(true);
     expect(north.strength).toBeDefined();

@@ -90,14 +90,14 @@ describe("framing an event", () => {
    * frame becomes the reader's own share of the band.
    */
   it("frames a global shower around the reader", () => {
-    const target = cameraForEvent(overlayFor("meteor-shower-PER-2027-08-12"), TROUTDALE, -122.4);
+    const target = cameraForEvent(overlayFor("meteor-shower-PER-2027-08-13"), TROUTDALE, -122.4);
     expect(span(target)).toBeLessThan(60);
     expect(target!.bounds.west).toBeLessThan(TROUTDALE.longitudeDeg);
     expect(target!.bounds.east).toBeGreaterThan(TROUTDALE.longitudeDeg);
   });
 
   it("still frames a shower when nobody has chosen a place", () => {
-    const target = cameraForEvent(overlayFor("meteor-shower-PER-2027-08-12"), null, 0);
+    const target = cameraForEvent(overlayFor("meteor-shower-PER-2027-08-13"), null, 0);
     expect(target).not.toBeNull();
     expect(target!.maxZoom).toBeLessThan(4);
   });
@@ -106,7 +106,7 @@ describe("framing an event", () => {
     for (const id of [
       "solar-eclipse-2027-08-02",
       "lunar-eclipse-2027-08-17",
-      "meteor-shower-PER-2027-08-12",
+      "meteor-shower-PER-2027-08-13",
     ]) {
       const target = cameraForEvent(overlayFor(id), TROUTDALE, -122.4)!;
       expect(target.bounds.south).toBeGreaterThanOrEqual(-85);

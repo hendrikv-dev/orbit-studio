@@ -940,8 +940,8 @@ async function main() {
      * layer off must not disturb the astronomy the reader is looking at.
      */
     const withEvent = new URL(page.url());
-    withEvent.searchParams.set("show", "meteor-shower-PER-2027-08-12");
-    withEvent.searchParams.set("date", "2027-08-12");
+    withEvent.searchParams.set("show", "meteor-shower-PER-2027-08-13");
+    withEvent.searchParams.set("date", "2027-08-13");
     await page.goto(withEvent.toString(), { waitUntil: "domcontentloaded" });
     await settled(page, 1500);
     await page.waitForTimeout(8000);
@@ -1156,7 +1156,7 @@ async function main() {
     await seed(context);
     const page = await context.newPage();
     await page.goto(
-      `${TRACKER}&at=45.5,-122.7&z=4&date=2027-08-12&show=meteor-shower-PER-2027-08-12&layers=twilight`,
+      `${TRACKER}&at=45.5,-122.7&z=4&date=2027-08-13&show=meteor-shower-PER-2027-08-13&layers=twilight`,
       { waitUntil: "domcontentloaded" },
     );
     await settled(page, 2500);
@@ -1988,7 +1988,7 @@ async function main() {
     await cloudMask(context, { acm: 3, series: [3, 3, 3, 3], ...cloudNow });
     const page = await cloudPage(context);
     await page.goto(
-      `${TRACKER}&at=45.5,-122.7&z=7&layers=cloud&date=2027-08-12&show=meteor-shower-PER-2027-08-12`,
+      `${TRACKER}&at=45.5,-122.7&z=7&layers=cloud&date=2027-08-13&show=meteor-shower-PER-2027-08-13`,
       { waitUntil: "domcontentloaded" },
     );
     await openCloud(page);
