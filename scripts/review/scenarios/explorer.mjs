@@ -175,6 +175,10 @@ export function playbackMotionValidation(speed, timeScale, samples) {
     (sample) => sample.positionDigest && Number.isFinite(Date.parse(sample.simulationTime)),
   );
   if (usable.length < 4) failures.push("insufficient-motion-samples");
+  if (usable.some((sample) => !Number.isFinite(sample.bufferLagMs) ||
+      !Number.isFinite(Date.parse(sample.rendererSimulationTime)))) {
+    failures.push("invalid-renderer-timing");
+  }
   const uniqueDigests = new Set(usable.map((sample) => sample.positionDigest));
   const requiredDistinctDigests = Math.min(3, usable.length);
   if (uniqueDigests.size < requiredDistinctDigests) failures.push("frozen-position-buffer");
@@ -200,7 +204,34 @@ export function playbackMotionValidation(speed, timeScale, samples) {
     rendererDiagnosticsObservationIntervalWallMs,
     timeScale * rendererDiagnosticsObservationIntervalWallMs,
   );
-  if (maximumBufferLagMs > allowedBufferLagMs) failures.push("stale-render-buffer");
+  const schedulerGaps = usable.filter((sample, index) => index > 0 &&
+    sample.wallTimeMs - usable[index - 1].wallTimeMs >
+      rendererDiagnosticsObservationIntervalWallMs &&
+    sample.maximumFrameGapMs > rendererDiagnosticsObservationIntervalWallMs);
+  // A raw sample is not excused by a slow timer alone. Require an independently
+  // observed frame stall and a single bounded reacquisition showing real buffer
+  // advancement. Every normal sample, and the resumed sample, retains the same
+  // lag ceiling. Repeated gaps are inadequate evidence, never a passing run.
+  if (schedulerGaps.length > 1) failures.push("interrupted-motion-observation");
+  const recoveredSchedulerSamples = schedulerGaps.filter((sample) => {
+    const resumed = sample.resumption;
+    return resumed && !resumed.timedOut && resumed.elapsedMs >= 0 &&
+      resumed.elapsedMs <= rendererDiagnosticsObservationIntervalWallMs &&
+      resumed.frameAdvance >= 2 &&
+      Date.parse(resumed.rendererSimulationTime) > Date.parse(sample.rendererSimulationTime) &&
+      Number.isFinite(resumed.bufferLagMs) && Math.abs(resumed.bufferLagMs) <= allowedBufferLagMs &&
+      Number.isFinite(Date.parse(resumed.simulationTime)) &&
+      resumed.renderedInstanceCount === resumed.expectedRenderedInstanceCount;
+  });
+  if (schedulerGaps.some((sample) => !recoveredSchedulerSamples.includes(sample))) {
+    failures.push("scheduler-resumption-unverified");
+  }
+  const uninterruptedSamples = usable.filter((sample) => !schedulerGaps.includes(sample));
+  if (uninterruptedSamples.length < 4) failures.push("insufficient-uninterrupted-samples");
+  const maximumVerifiedBufferLagMs = Math.max(0,
+    ...usable.map((sample) => Math.abs(recoveredSchedulerSamples.includes(sample)
+      ? sample.resumption.bufferLagMs : sample.bufferLagMs)));
+  if (maximumVerifiedBufferLagMs > allowedBufferLagMs) failures.push("stale-render-buffer");
 
   return {
     speed,
@@ -210,6 +241,9 @@ export function playbackMotionValidation(speed, timeScale, samples) {
     requiredDistinctDigestCount: requiredDistinctDigests,
     observedTimeScale,
     maximumBufferLagMs,
+    maximumVerifiedBufferLagMs,
+    schedulerGapCount: schedulerGaps.length,
+    recoveredSchedulerSampleCount: recoveredSchedulerSamples.length,
     allowedBufferLagMs,
     pass: failures.length === 0,
     failures,

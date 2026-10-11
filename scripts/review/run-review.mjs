@@ -10,6 +10,7 @@ import { assertOutsideRepository, resolveReviewRoot } from "./review-location.mj
 import { acquireReviewLock } from "./review-lock.mjs";
 import { reviewPlaybackSpeedLabel, reviewPlaybackTimeScales } from "./playback-speeds.mjs";
 import { reviewScenarios } from "./scenarios/index.mjs";
+import { collectPlaybackSamples } from "./playback-sampler.mjs";
 
 const scenarioOptionIndex = process.argv.indexOf("--scenario");
 const requestedScenarioIds =
@@ -352,28 +353,7 @@ function createScenarioTools(page, scenarioId, extras = {}) {
   // twice per second. Keep the observation window long enough to collect three independent
   // rendered digests even when timer callbacks are delayed under constrained conditions.
   const samplePlaybackMotion = async ({ durationMs = 4_000, sampleIntervalMs = 100 } = {}) =>
-    page.evaluate(async ({ durationMs: duration, sampleIntervalMs: interval }) => {
-      const bridge = window.__ORBIT_STUDIO_REVIEW__;
-      if (!bridge) throw new Error("Orbit Studio review bridge is unavailable.");
-      bridge.setPlayback(true);
-      const samples = [];
-      const startedAt = performance.now();
-      while (performance.now() - startedAt <= duration) {
-        const state = bridge.getState();
-        samples.push({
-          wallTimeMs: performance.now(),
-          simulationTime: state.simulationTime,
-          rendererSimulationTime: state.renderer.simulationTime,
-          bufferLagMs: state.renderer.bufferLagMs,
-          positionDigest: state.renderer.positionDigest,
-          renderedInstanceCount: state.renderer.renderedInstanceCount,
-          expectedRenderedInstanceCount: state.renderer.expectedRenderedInstanceCount,
-        });
-        await new Promise((resolve) => setTimeout(resolve, interval));
-      }
-      bridge.setPlayback(false);
-      return samples;
-    }, { durationMs, sampleIntervalMs });
+    page.evaluate(collectPlaybackSamples, { durationMs, sampleIntervalMs });
 
   const setRegimeFilter = async (filter) => {
     await page.evaluate((value) => {

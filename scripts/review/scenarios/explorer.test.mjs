@@ -392,4 +392,70 @@ describe("moving playback validation", () => {
       failures: ["stale-render-buffer"],
     });
   });
+
+  const interruptedSamples = () => [0, 200, 400, 1350, 1550, 1750, 1950].map((wall, index) => ({
+    wallTimeMs: wall,
+    simulationTime: new Date(wall).toISOString(),
+    rendererSimulationTime: new Date(wall - (index === 3 ? 838 : 100)).toISOString(),
+    bufferLagMs: index === 3 ? 838 : 100,
+    maximumFrameGapMs: index === 3 ? 950 : 200,
+    positionDigest: `digest-${index}`,
+    renderedInstanceCount: 100,
+    expectedRenderedInstanceCount: 100,
+    ...(index === 3 ? { resumption: {
+      elapsedMs: 200, frameAdvance: 2,
+      simulationTime: new Date(wall + 200).toISOString(),
+      rendererSimulationTime: new Date(wall + 100).toISOString(),
+      bufferLagMs: 100, renderedInstanceCount: 100, expectedRenderedInstanceCount: 100,
+    } } : {}),
+  }));
+
+  it("retains a stall's raw lag but verifies one bounded resumed render at the unchanged ceiling", () => {
+    expect(playbackMotionValidation("1x", 1, interruptedSamples())).toMatchObject({
+      pass: true, maximumBufferLagMs: 838, maximumVerifiedBufferLagMs: 100,
+      allowedBufferLagMs: 500, schedulerGapCount: 1, recoveredSchedulerSampleCount: 1,
+    });
+  });
+
+  it.each([501, 838])("fails sustained %i ms backlog after normal frame scheduling resumes", (lag) => {
+    const interrupted = interruptedSamples();
+    interrupted[3].resumption.bufferLagMs = lag;
+    expect(playbackMotionValidation("1x", 1, interrupted).failures)
+      .toContain("stale-render-buffer");
+  });
+
+  it("fails a single over-ceiling sample during uninterrupted scheduling", () => {
+    const uninterrupted = interruptedSamples();
+    uninterrupted[3].maximumFrameGapMs = 200;
+    expect(playbackMotionValidation("1x", 1, uninterrupted).failures)
+      .toContain("stale-render-buffer");
+  });
+
+  it.each(["missing", "timeout", "no-frame", "frozen", "population"])(
+    "refuses %s resumption evidence", (kind) => {
+      const interrupted = interruptedSamples();
+      const resumed = interrupted[3].resumption;
+      if (kind === "missing") delete interrupted[3].resumption;
+      if (kind === "timeout") resumed.elapsedMs = 501;
+      if (kind === "no-frame") resumed.frameAdvance = 1;
+      if (kind === "frozen") resumed.rendererSimulationTime = interrupted[3].rendererSimulationTime;
+      if (kind === "population") resumed.renderedInstanceCount = 99;
+      expect(playbackMotionValidation("1x", 1, interrupted).pass).toBe(false);
+    },
+  );
+
+  it("does not hide a stale sample after a recovered stall", () => {
+    const interrupted = interruptedSamples();
+    interrupted[4].bufferLagMs = 501;
+    expect(playbackMotionValidation("1x", 1, interrupted).failures)
+      .toContain("stale-render-buffer");
+  });
+
+  it("refuses repeated interruptions instead of retrying until a pass", () => {
+    const interrupted = interruptedSamples();
+    interrupted[5].wallTimeMs += 950;
+    interrupted[5].maximumFrameGapMs = 950;
+    expect(playbackMotionValidation("1x", 1, interrupted).failures)
+      .toContain("interrupted-motion-observation");
+  });
 });

@@ -167,6 +167,18 @@ diagnostics observation interval in wall time at any speed; this keeps the gate 
 observer's production cadence while still rejecting a frozen or persistently stale renderer. This
 moving test covers failures that fixed-time determinism cannot detect.
 
+The moving sampler also records timer delay, state-read cost, animation-frame count/gaps,
+browser long tasks, and simulation/renderer advancement. A wall sampling gap over 500 ms
+is not alone grounds to disregard lag. If a simultaneous animation-frame gap exceeds
+500 ms, the harness preserves the raw sample and reacquires **once** after two frame
+callbacks (one completed rendering opportunity), bounded to 500 ms wall time. That
+resumption must advance the actual renderer UTC, preserve population, and satisfy the
+unchanged speed-scaled 500 ms lag ceiling. Otherwise review fails. A stale sample under
+normal scheduling still fails immediately; repeated interruptions or fewer than four
+uninterrupted samples also fail. Reports retain the raw maximum separately from the
+verified maximum and include every resumption observation. This diagnoses interrupted
+observation, not real-world performance or the cause of an older uninstrumented sample.
+
 The Explorer interaction scenario also opens Featured Objects and Major Constellations, selects
 Starlink as a system, exercises both detail tabs, opens the reorganized Display panel, and repeats
 the search-to-details flow for Webb. These captures prevent a scientifically consistent scene from
