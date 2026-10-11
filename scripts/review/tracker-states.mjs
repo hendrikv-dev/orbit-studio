@@ -179,8 +179,8 @@ async function open(browser, { viewport, satellites = "unavailable", cloud = nul
 /**
  * Curated objects that genuinely fail a naked-eye rule.
  *
- * Magnitudes from the showpieces catalogue: M27 at 7.4, M81 at 6.92, M92 at
- * 6.52, M15 at 6.3, NGC7009 at 8.0. Pleiades is 1.2 and is deliberately not
+ * Magnitudes from the permissive showpieces catalogue: M27 at 8.1, M81 at 6.8,
+ * M92 at 6.5, M15 at 6.4, NGC7009 at 8.0. Pleiades is 1.2 and is deliberately not
  * here — it is naked-eye visible, so its presence on a Telescope rail proves
  * nothing about the rule.
  */

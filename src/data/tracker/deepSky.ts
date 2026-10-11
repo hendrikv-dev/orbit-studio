@@ -3,6 +3,7 @@ import showpieces from "../deep-sky/showpieces.json";
 import { hasCataloguedImagery } from "./imagery";
 import type { Opportunity } from "./opportunity";
 import type { OpportunitySample } from "./conditions";
+import { deepSkyAngularRadius } from "./deepSkyExtent";
 import { compassPoint } from "./meteorActivity";
 
 /**
@@ -13,7 +14,7 @@ import { compassPoint } from "./meteorActivity";
  * Because Tracker's question is "what is particularly worth observing from here
  * tonight", and a catalogue answers a different one. The selection is editorial
  * and lives in `scripts/build-deep-sky-showpieces.mjs`; every number in it comes
- * from OpenNGC, so nothing shipped here is remembered or estimated.
+ * from the reviewed NASA/Wikidata snapshot; unknown extent stays unknown.
  *
  * ## Why they only appear under the right rule
  *
@@ -203,10 +204,9 @@ export function deepSkyOpportunities(
         shape: object.type.toLowerCase().includes("cluster") ? "cluster" : "region",
         rightAscensionHours: object.rightAscensionDeg / 15,
         declinationDeg: object.declinationDeg,
-        // Half the catalogue major axis is the target radius. Keep a modest
-        // region for objects whose source has no footprint rather than
-        // pretending their centre is a naked-eye point.
-        angularRadiusDeg: Math.max(0.35, (object.majorAxisArcmin ?? 42) / 120),
+        // Null size is unknown. Sky uses its existing fixed screen-space marker.
+        angularRadiusDeg: deepSkyAngularRadius(object.majorAxisArcmin),
+        majorAxisArcmin: object.majorAxisArcmin,
       },
       profile,
       /**

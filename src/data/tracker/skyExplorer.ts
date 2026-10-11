@@ -7,6 +7,7 @@ import starsJson from "../stars/bsc5pBrightStars.json";
 import { crewedStationPassPredictions } from "./satellites";
 import { segmentFor, type CrewedStationEphemeris } from "./satelliteSources";
 import type { SkyFinderTarget } from "./skyFinder";
+import { deepSkyAngularRadius } from "./deepSkyExtent";
 
 interface FigureRecord {
   id: string;
@@ -289,7 +290,7 @@ export function skySearchCatalog(at: Date, extras: readonly SkySearchEntry[] = [
       { kind: "equatorial", rightAscensionHours: object.rightAscensionDeg / 15, declinationDeg: object.declinationDeg },
       {
         shape: object.type.includes("cluster") ? "cluster" : "region",
-        angularRadiusDeg: Math.max(0.35, (object.majorAxisArcmin ?? 42) / 120),
+        angularRadiusDeg: deepSkyAngularRadius(object.majorAxisArcmin),
         alignmentToleranceDeg: 6,
         equipment: object.equipment,
         appearance: object.appearance,

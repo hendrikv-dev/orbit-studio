@@ -46,6 +46,7 @@
       "celestrak.org",
       "commons.wikimedia.org",
       "creativecommons.org",
+      "data.nasa.gov",
       "dataspace.copernicus.eu",
       "docs.airnowapi.org",
       "docs.api.met.no",
@@ -121,6 +122,8 @@
       "www.gps.gov",
       "www.imo.net",
       "www.nasa.gov",
+      "www.wikidata.org",
+      "www.usa.gov",
       "www.naturalearthdata.com",
       "www.nesdis.noaa.gov",
       "www.openstreetmap.org",
@@ -1936,11 +1939,12 @@
       }
     },
     {
-      "id": "openngc-deep-sky-showpieces",
+      "id": "permissive-deep-sky-showpieces",
       "category": "astronomical-catalog-data",
       "repositoryPaths": [
         "src/data/deep-sky/showpieces.json",
-        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt",
+        "src/data/deep-sky/permissive-snapshot.json",
+        "src/data/deep-sky/RIGHTS.md",
         "src/data/deep-sky/README.md",
         "scripts/build-deep-sky-showpieces.mjs"
       ],
@@ -1948,43 +1952,48 @@
         "assets/TrackerApp-*.js"
       ],
       "originalSource": {
-        "title": "OpenNGC",
-        "url": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
-        "publicationUrl": "https://github.com/mattiaverga/OpenNGC",
-        "publisher": "Mattia Verga",
-        "version": "master, database_files/NGC.csv and database_files/addendum.csv",
-        "retrievedAt": "2026-09-01",
-        "originalSha256": "be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae"
+        "title": "NASA HEASARC / Hubble Caldwell and Wikidata CC0 deep-sky showpieces",
+        "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+        "publicationUrl": "https://data.nasa.gov/dataset/messier-nebulae",
+        "publisher": "NASA HEASARC; NASA Hubble; Wikidata contributors; Orbit Studio editorial identity/prose",
+        "version": "HEASARC TDAT 2022-02-03; exact Wikidata revisions and NASA Caldwell 6/55 values in permissive-snapshot.json",
+        "retrievedAt": "2026-10-10"
       },
       "localSha256": {
-        "scripts/build-deep-sky-showpieces.mjs": "728d98efe2ac2b30b63e8d25fc4d4a0ab7d583fd31584debddef681830fd38e5",
-        "src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
-        "src/data/deep-sky/README.md": "a39abfd41f8064870a5ee5c6f8958397b81bea2e7ab6ed70199426e85e3354bb",
-        "src/data/deep-sky/showpieces.json": "3967dd4b8e7aa64363d708a82493a1fb48ce3e8f03b207083e4b5a3ceb48e3b3"
+        "src/data/deep-sky/showpieces.json": "e4d0e60413657b93179185ad2980824a19a45a03cfc0a589a5f7ab3acffad85b",
+        "src/data/deep-sky/permissive-snapshot.json": "f829089783cb9bce3d5d9d45bc718dd0519dc448a5b21f62aad22984b8ef1e3d",
+        "src/data/deep-sky/RIGHTS.md": "73de1b3e246a690066b55348bbd2a547ae7d3e4cf310589541ba82a35ece0338",
+        "src/data/deep-sky/README.md": "928900f2d44ad7228bc744d2b354dfb00ebab915f353a92239c913310a309efd",
+        "scripts/build-deep-sky-showpieces.mjs": "1b29d87bbf974cc4b054623aa4c866e9cb87cdbcb58b9a505b93a7b76ee28110"
       },
       "processing": [
-        "scripts/build-deep-sky-showpieces.mjs fetches OpenNGC's NGC.csv and addendum.csv, records the SHA-256 of each, and selects twenty-six objects named explicitly in the generator. The addendum is read as well because the Messier list is not a subset of the NGC: the Pleiades is Melotte 22 and has no NGC number.",
-        "Selection is the only editorial step. Every position, magnitude and size in the generated file is OpenNGC's; nothing is remembered or estimated. Sexagesimal right ascension and declination are converted to degrees and rounded to five decimals.",
-        "Each object's equipment tier is derived from its own visual magnitude by one rule applied uniformly: V <= 4.5 the unaided eye, V <= 7.0 binoculars, otherwise a telescope. Objects with no recorded visual magnitude are dropped rather than assigned a tier by judgement, which excludes the Rosette, the Veil and the North America Nebula.",
-        "One sentence per object describing what an observer actually sees is Orbit Studio's own text and is not derived from OpenNGC.",
-        "Output is sorted by magnitude then identifier, so the same source produces the same bytes."
+        "The minimal 26-object snapshot retains only selected NASA Messier fields and CC0 Wikidata claims with exact revisions, qualifier semantics, source input checksums and mappings. NASA Caldwell 55/6 supply apparent magnitudes 8.0/8.2 for NGC7009/NGC6543, not central-star measurements.",
+        "All scientific numerical fields are independently acquired from the recorded sources. Offline generation validates identities, finite coordinates, magnitude, extent and uniform equipment tiers; no network or alternate catalog input exists.",
+        "Stable identities, common names/designations, editorial taxonomy and original observing descriptions are first-party product material. NGC752's extent-specific wide-field equipment advice is replaced by a neutral cluster description because its angular extent is unknown. No equipment tier changes.",
+        "Six non-Messier major axes and the Eagle Nebula extent are explicitly null. No invented generic extent, no extent-based ranking or advisory. M16 cluster extent is not a nebula extent. Fixed screen-space selection remains available.",
+        "Output is sorted by magnitude and stable identifier; acquisition and source dates are fixed inputs, not wall-clock generation. Every intentional old/new difference is recorded in the external review package."
       ],
       "rights": {
         "verification": "verified",
-        "licenseOrBasis": "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).",
+        "licenseOrBasis": "NASA Messier government-work resource designation / HEASARC free-use policy; NASA public Caldwell numerical information; Wikidata structured data CC0-1.0; first-party editorial identities/prose.",
         "evidenceUrls": [
-          "https://github.com/mattiaverga/OpenNGC#license",
-          "https://creativecommons.org/licenses/by-sa/4.0/"
+          "https://data.nasa.gov/dataset/messier-nebulae",
+          "https://www.usa.gov/government-works",
+          "https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html",
+          "https://www.nasa.gov/collaborating-with-nasa/strategic-partnerships/",
+          "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+          "https://www.wikidata.org/wiki/Wikidata:Licensing",
+          "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
         ],
-        "attribution": "OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.",
+        "attribution": "NASA HEASARC Messier and NASA Hubble Caldwell catalogs; Wikidata structured CC0 claims. No NASA endorsement; no third-party NASA-page media copied.",
         "sourceRedistribution": "source-safe",
         "deployedRedistribution": "deployment-safe",
-        "modification": "permitted-share-alike"
+        "modification": "Selected normalized numerical/structured records; source semantics and provenance retained."
       },
       "release": {
         "inclusionStatus": "retained",
         "release1Included": true,
-        "restrictions": "The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary."
+        "restrictions": "Retain source provenance/voluntary credit. No contributed images, charts or prose included. Historical frozen source is not relicensed."
       }
     },
     {

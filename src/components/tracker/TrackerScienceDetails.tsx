@@ -12,6 +12,14 @@ export function TrackerScienceDetails({
   opportunity: Opportunity;
   clock: PlaceClock;
 }) {
+  if (opportunity.kind === "deep-sky" && opportunity.finder?.majorAxisArcmin !== undefined) {
+    return (
+      <dl className="tracker-science-details" aria-label="Deep-sky catalog details">
+        <div><dt>Angular size</dt><dd>{opportunity.finder.majorAxisArcmin === null
+          ? "Unavailable" : `${opportunity.finder.majorAxisArcmin}′ major axis`}</dd></div>
+      </dl>
+    );
+  }
   const science = opportunity.science;
   if (!science) return null;
 

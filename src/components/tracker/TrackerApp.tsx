@@ -115,6 +115,7 @@ import {
 import { TrackerConjunctionScene } from "./viz/TrackerConjunctionScene";
 import { TrackerOverlay } from "./TrackerOverlay";
 import { useTrackerMapHistory } from "./useTrackerMapHistory";
+import { TrackerScienceDetails } from "./TrackerScienceDetails";
 import { TrackerMapCanvas } from "./map/TrackerMapCanvas";
 import {
   MAP_LAYER_IDS,
@@ -3826,6 +3827,9 @@ function TrackerScreen() {
             presentation={heroPresentation ?? heroEvent.presentation}
             media={heroEvent.media}
             visualization={visualization}
+            catalogDetails={heroEvent.entry?.opportunity.kind === "deep-sky"
+              ? <TrackerScienceDetails opportunity={heroEvent.entry.opportunity} clock={clock} />
+              : null}
             conditions={conditions}
             conditionsCaption={conditionsCaption(
               sources,

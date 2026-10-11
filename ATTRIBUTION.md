@@ -667,27 +667,32 @@ scientific reference outputs, and dependency code remain governed by their recor
 - Production paths: `assets/*.js`, `assets/*.css`
 - Restrictions and notes: node_modules is excluded. Dependency changes require an intentional lockfile and notice update.
 
-## OpenNGC
+## NASA HEASARC / Hubble Caldwell and Wikidata CC0 deep-sky showpieces
 
-- Inventory ID: `openngc-deep-sky-showpieces`
+- Inventory ID: `permissive-deep-sky-showpieces`
 - Category: astronomical-catalog-data
 - Release status: retained
 - Release 1.0 included: yes
-- Publisher or rights holder: Mattia Verga
-- Version or snapshot: master, database_files/NGC.csv and database_files/addendum.csv
-- Retrieval date: 2026-09-01
-- Authoritative source: https://github.com/mattiaverga/OpenNGC
-- Authoritative source: https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv
-- Rights basis: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
-- Rights evidence: https://github.com/mattiaverga/OpenNGC#license
-- Rights evidence: https://creativecommons.org/licenses/by-sa/4.0/
-- Attribution: OpenNGC by Mattia Verga, licensed CC BY-SA 4.0; Orbit Studio curated twenty-six-object subset with derived equipment tiers.
+- Publisher or rights holder: NASA HEASARC; NASA Hubble; Wikidata contributors; Orbit Studio editorial identity/prose
+- Version or snapshot: HEASARC TDAT 2022-02-03; exact Wikidata revisions and NASA Caldwell 6/55 values in permissive-snapshot.json
+- Retrieval date: 2026-10-10
+- Authoritative source: https://data.nasa.gov/dataset/messier-nebulae
+- Authoritative source: https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html
+- Rights basis: NASA Messier government-work resource designation / HEASARC free-use policy; NASA public Caldwell numerical information; Wikidata structured data CC0-1.0; first-party editorial identities/prose.
+- Rights evidence: https://data.nasa.gov/dataset/messier-nebulae
+- Rights evidence: https://www.usa.gov/government-works
+- Rights evidence: https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html
+- Rights evidence: https://www.nasa.gov/collaborating-with-nasa/strategic-partnerships/
+- Rights evidence: https://www.nasa.gov/nasa-brand-center/images-and-media/
+- Rights evidence: https://www.wikidata.org/wiki/Wikidata:Licensing
+- Rights evidence: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+- Attribution: NASA HEASARC Messier and NASA Hubble Caldwell catalogs; Wikidata structured CC0 claims. No NASA endorsement; no third-party NASA-page media copied.
 - Public source redistribution: source-safe
 - Public deployment redistribution: deployment-safe
-- Modification status: permitted-share-alike
-- Repository paths: `src/data/deep-sky/showpieces.json`, `src/data/deep-sky/LICENSE-CC-BY-SA-4.0.txt`, `src/data/deep-sky/README.md`, `scripts/build-deep-sky-showpieces.mjs`
+- Modification status: Selected normalized numerical/structured records; source semantics and provenance retained.
+- Repository paths: `src/data/deep-sky/showpieces.json`, `src/data/deep-sky/permissive-snapshot.json`, `src/data/deep-sky/RIGHTS.md`, `src/data/deep-sky/README.md`, `scripts/build-deep-sky-showpieces.mjs`
 - Production paths: `assets/TrackerApp-*.js`
-- Restrictions and notes: The curated subset remains under CC BY-SA 4.0; retain attribution, licence link and change description. Kept outside the paths reserved in LICENSES.md so that a share-alike dataset is not swept into an all-rights-reserved boundary.
+- Restrictions and notes: Retain source provenance/voluntary credit. No contributed images, charts or prose included. Historical frozen source is not relicensed.
 
 ## OpenWeather API placeholder
 

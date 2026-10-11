@@ -44,6 +44,8 @@ interface Props {
   media: HeroMedia;
   /** Whatever belongs in the fixed slot for this phenomenon. */
   visualization: ReactNode;
+  /** Selected catalog facts, shown only within advanced disclosure. */
+  catalogDetails?: ReactNode;
   conditions: ConditionCard[];
   conditionsCaption?: string | null;
   /** The forecast state behind the row, for the review harness and for tests. */
@@ -68,6 +70,7 @@ export function PhenomenonPage({
   presentation,
   media,
   visualization,
+  catalogDetails,
   conditions,
   conditionsCaption,
   evidenceStatus,
@@ -123,6 +126,7 @@ export function PhenomenonPage({
           </button>
         </div>
         <div className="tk-detail-more-grid">
+          {catalogDetails}
           <aside className="tk-viz-slot" aria-label="Sky and event evidence">
             {visualization}
           </aside>

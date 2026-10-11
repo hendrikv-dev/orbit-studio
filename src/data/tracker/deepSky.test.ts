@@ -24,7 +24,7 @@ describe("the deep-sky showpieces", () => {
     const found = deepSkyOpportunities(PORTLAND.lat, PORTLAND.lon, NIGHT);
     const byId = new Map(found.map((entry) => [entry.id, entry]));
     // The Pleiades has no NGC number, so it only exists here because the
-    // generator reads OpenNGC's addendum as well as its NGC file.
+    // reviewed snapshot explicitly includes its Messier identity.
     expect(byId.get("deep-sky-m45")?.guidance.equipment).toBe("eyes");
     expect(byId.get("deep-sky-m42")?.guidance.equipment).toBe("eyes");
     expect(byId.get("deep-sky-m1")?.guidance.equipment).toBe("telescope");

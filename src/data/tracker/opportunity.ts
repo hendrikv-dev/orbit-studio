@@ -341,6 +341,8 @@ export interface Opportunity {
     rightAscensionHours: number;
     declinationDeg: number;
     angularRadiusDeg: number;
+    /** Catalogued major axis; null explicitly means unavailable. */
+    majorAxisArcmin?: number | null;
   };
   alsoWith?: {
     equipment: Equipment;

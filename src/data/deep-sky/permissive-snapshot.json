@@ -1,0 +1,2339 @@
+{
+  "format": "tracker-permissive-deep-sky-input/1",
+  "retrievedAt": "2026-10-10",
+  "identityPolicy": "Stable product identities and original Orbit Studio observing prose; classifications retained as editorial product taxonomy. Scientific numbers independently acquired from recorded replacement sources.",
+  "objects": [
+    {
+      "id": "m45",
+      "name": "Pleiades",
+      "designation": "M45 · Mel022",
+      "type": "open cluster",
+      "rightAscensionDeg": 56.7498173397294,
+      "declinationDeg": 24.1166301744015,
+      "visualMagnitude": 1.2,
+      "majorAxisArcmin": 110,
+      "equipment": "eyes",
+      "appearance": "A knot of six or seven blue stars close together, obvious the moment you notice it."
+    },
+    {
+      "id": "m44",
+      "name": "Beehive",
+      "designation": "M44 · NGC2632",
+      "type": "open cluster",
+      "rightAscensionDeg": 130.024823359936,
+      "declinationDeg": 19.983376124005,
+      "visualMagnitude": 3.1,
+      "majorAxisArcmin": 95,
+      "equipment": "eyes",
+      "appearance": "A loose scatter of stars that looks like a smudge until you look slightly away from it."
+    },
+    {
+      "id": "m7",
+      "name": "Ptolemy's Cluster",
+      "designation": "M7 · NGC6475",
+      "type": "open cluster",
+      "rightAscensionDeg": 268.474796397144,
+      "declinationDeg": -34.8166649071761,
+      "visualMagnitude": 3.3,
+      "majorAxisArcmin": 80,
+      "equipment": "eyes",
+      "appearance": "A big, bright, loose cluster low in the summer south, catalogued by Ptolemy in the second century."
+    },
+    {
+      "id": "m31",
+      "name": "Andromeda Galaxy",
+      "designation": "M31 · NGC0224",
+      "type": "galaxy",
+      "rightAscensionDeg": 10.6748316278991,
+      "declinationDeg": 41.2666012792813,
+      "visualMagnitude": 3.4,
+      "majorAxisArcmin": 178,
+      "equipment": "eyes",
+      "appearance": "The furthest thing the unaided eye can reach: another galaxy, two and a half million light years off."
+    },
+    {
+      "id": "ngc0869",
+      "name": "h Persei Cluster",
+      "designation": "NGC0869",
+      "type": "open cluster",
+      "rightAscensionDeg": 34.75,
+      "declinationDeg": 57.1283,
+      "visualMagnitude": 3.7,
+      "majorAxisArcmin": null,
+      "equipment": "eyes",
+      "appearance": "Two rich clusters side by side in one field, which almost nothing else in the sky does."
+    },
+    {
+      "id": "ngc0884",
+      "name": "chi Persei Cluster",
+      "designation": "NGC0884",
+      "type": "open cluster",
+      "rightAscensionDeg": 35.5958,
+      "declinationDeg": 57.125,
+      "visualMagnitude": 3.8,
+      "majorAxisArcmin": null,
+      "equipment": "eyes",
+      "appearance": "The second half of the Double Cluster, and the richer of the pair in a small telescope."
+    },
+    {
+      "id": "m42",
+      "name": "Great Orion Nebula",
+      "designation": "M42 · NGC1976",
+      "type": "cluster and nebula",
+      "rightAscensionDeg": 83.8498489322818,
+      "declinationDeg": -5.45000710825151,
+      "visualMagnitude": 4,
+      "majorAxisArcmin": 66,
+      "equipment": "eyes",
+      "appearance": "A glowing cloud with four young stars at its heart, the nearest place stars are being born."
+    },
+    {
+      "id": "m6",
+      "name": "Butterfly Cluster",
+      "designation": "M6 · NGC6405",
+      "type": "open cluster",
+      "rightAscensionDeg": 265.024800092512,
+      "declinationDeg": -32.2166609156803,
+      "visualMagnitude": 4.2,
+      "majorAxisArcmin": 15,
+      "equipment": "eyes",
+      "appearance": "A cluster whose brighter stars really do suggest a butterfly's open wings."
+    },
+    {
+      "id": "m35",
+      "name": "M35",
+      "designation": "M35 · NGC2168",
+      "type": "open cluster",
+      "rightAscensionDeg": 92.2248120747663,
+      "declinationDeg": 24.3333359525121,
+      "visualMagnitude": 5.1,
+      "majorAxisArcmin": 28,
+      "equipment": "binoculars",
+      "appearance": "A field of a few hundred stars, all much the same brightness, filling a low-power eyepiece."
+    },
+    {
+      "id": "ngc0752",
+      "name": "NGC0752",
+      "designation": "NGC0752",
+      "type": "open cluster",
+      "rightAscensionDeg": 29.4208,
+      "declinationDeg": 37.785,
+      "visualMagnitude": 5.7,
+      "majorAxisArcmin": null,
+      "equipment": "binoculars",
+      "appearance": "An open cluster seen as a loose scatter of stars."
+    },
+    {
+      "id": "m13",
+      "name": "Hercules Globular Cluster",
+      "designation": "M13 · NGC6205",
+      "type": "globular cluster",
+      "rightAscensionDeg": 250.424888802049,
+      "declinationDeg": 36.4666889418769,
+      "visualMagnitude": 5.9,
+      "majorAxisArcmin": 17,
+      "equipment": "binoculars",
+      "appearance": "A ball of several hundred thousand stars; in a telescope the edges begin to break into points."
+    },
+    {
+      "id": "m8",
+      "name": "Lagoon Nebula",
+      "designation": "M8 · NGC6523",
+      "type": "nebula",
+      "rightAscensionDeg": 270.949812101726,
+      "declinationDeg": -24.3833344258246,
+      "visualMagnitude": 5.8,
+      "majorAxisArcmin": 90,
+      "equipment": "binoculars",
+      "appearance": "A bright nebula split by a dark lane, with a cluster embedded in it."
+    },
+    {
+      "id": "m16",
+      "name": "Eagle Nebula",
+      "designation": "M16 · NGC6611",
+      "type": "nebula",
+      "rightAscensionDeg": 274.699825761574,
+      "declinationDeg": -13.7833387812712,
+      "visualMagnitude": 6,
+      "majorAxisArcmin": null,
+      "equipment": "binoculars",
+      "appearance": "The cluster and nebula whose dust pillars are the most reproduced image in astronomy."
+    },
+    {
+      "id": "m22",
+      "name": "M22",
+      "designation": "M22 · NGC6656",
+      "type": "globular cluster",
+      "rightAscensionDeg": 279.099813530476,
+      "declinationDeg": -23.9000105000965,
+      "visualMagnitude": 5.1,
+      "majorAxisArcmin": 24,
+      "equipment": "binoculars",
+      "appearance": "One of the closest globular clusters, and one of the few that resolves in binoculars."
+    },
+    {
+      "id": "m15",
+      "name": "M15",
+      "designation": "M15 · NGC7078",
+      "type": "globular cluster",
+      "rightAscensionDeg": 322.499851048557,
+      "declinationDeg": 12.1666138569551,
+      "visualMagnitude": 6.4,
+      "majorAxisArcmin": 12,
+      "equipment": "binoculars",
+      "appearance": "A very dense globular with a bright, almost stellar core."
+    },
+    {
+      "id": "ngc0457",
+      "name": "Owl Cluster",
+      "designation": "NGC0457",
+      "type": "open cluster",
+      "rightAscensionDeg": 19.8958,
+      "declinationDeg": 58.2867,
+      "visualMagnitude": 6.4,
+      "majorAxisArcmin": null,
+      "equipment": "binoculars",
+      "appearance": "A cluster with two bright stars at one end that everyone sees as eyes."
+    },
+    {
+      "id": "m92",
+      "name": "M92",
+      "designation": "M92 · NGC6341",
+      "type": "globular cluster",
+      "rightAscensionDeg": 259.274903655422,
+      "declinationDeg": 43.1333457339053,
+      "visualMagnitude": 6.5,
+      "majorAxisArcmin": 11,
+      "equipment": "binoculars",
+      "appearance": "A compact northern globular, often skipped because it stands beside a more famous one."
+    },
+    {
+      "id": "m81",
+      "name": "Bode's Galaxy",
+      "designation": "M81 · NGC3031",
+      "type": "galaxy",
+      "rightAscensionDeg": 148.899752044048,
+      "declinationDeg": 69.0667237128426,
+      "visualMagnitude": 6.8,
+      "majorAxisArcmin": 26,
+      "equipment": "binoculars",
+      "appearance": "A bright spiral galaxy, and one of the few that shows structure in a modest telescope."
+    },
+    {
+      "id": "m27",
+      "name": "Dumbbell Nebula",
+      "designation": "M27 · NGC6853",
+      "type": "planetary nebula",
+      "rightAscensionDeg": 299.899866010068,
+      "declinationDeg": 22.7166334537909,
+      "visualMagnitude": 8.1,
+      "majorAxisArcmin": 8,
+      "equipment": "telescope",
+      "appearance": "A planetary nebula bright enough to show its shape rather than just its presence."
+    },
+    {
+      "id": "ngc7009",
+      "name": "Saturn Nebula",
+      "designation": "NGC7009",
+      "type": "planetary nebula",
+      "rightAscensionDeg": 316.0450638961328,
+      "declinationDeg": -11.363494946749,
+      "visualMagnitude": 8,
+      "majorAxisArcmin": null,
+      "equipment": "telescope",
+      "appearance": "A small planetary nebula with faint extensions that suggested a ringed planet."
+    },
+    {
+      "id": "m82",
+      "name": "Cigar Galaxy",
+      "designation": "M82 · NGC3034",
+      "type": "galaxy",
+      "rightAscensionDeg": 148.949749359345,
+      "declinationDeg": 69.6833903519747,
+      "visualMagnitude": 8.4,
+      "majorAxisArcmin": 11,
+      "equipment": "telescope",
+      "appearance": "An edge-on galaxy crossed by dust, being torn about by the one beside it."
+    },
+    {
+      "id": "m51",
+      "name": "Whirlpool Galaxy",
+      "designation": "M51 · NGC5194",
+      "type": "galaxy",
+      "rightAscensionDeg": 202.474869661311,
+      "declinationDeg": 47.2000614736795,
+      "visualMagnitude": 8.1,
+      "majorAxisArcmin": 11,
+      "equipment": "telescope",
+      "appearance": "Two galaxies caught mid-collision, with the spiral arms still traceable."
+    },
+    {
+      "id": "m1",
+      "name": "Crab Nebula",
+      "designation": "M1 · NGC1952",
+      "type": "supernova remnant",
+      "rightAscensionDeg": 83.6248155099598,
+      "declinationDeg": 22.016659260946,
+      "visualMagnitude": 8.4,
+      "majorAxisArcmin": 6,
+      "equipment": "telescope",
+      "appearance": "What is left of a star seen to explode in 1054, and the first object in Messier's list."
+    },
+    {
+      "id": "m104",
+      "name": "Sombrero Galaxy",
+      "designation": "M104 · NGC4594",
+      "type": "galaxy",
+      "rightAscensionDeg": 189.999839928082,
+      "declinationDeg": -11.6166010865071,
+      "visualMagnitude": 8.3,
+      "majorAxisArcmin": 9,
+      "equipment": "telescope",
+      "appearance": "An edge-on galaxy with a dust lane across a bright bulge, which is where the hat comes from."
+    },
+    {
+      "id": "m57",
+      "name": "Ring Nebula",
+      "designation": "M57 · NGC6720",
+      "type": "planetary nebula",
+      "rightAscensionDeg": 283.399884012544,
+      "declinationDeg": 33.0333178814218,
+      "visualMagnitude": 9,
+      "majorAxisArcmin": 1,
+      "equipment": "telescope",
+      "appearance": "A small, distinct smoke ring — the classic first planetary nebula for a new telescope."
+    },
+    {
+      "id": "ngc6543",
+      "name": "Cat's Eye Nebula",
+      "designation": "NGC6543",
+      "type": "planetary nebula",
+      "rightAscensionDeg": 269.639184383106,
+      "declinationDeg": 66.6329858227251,
+      "visualMagnitude": 8.2,
+      "majorAxisArcmin": null,
+      "equipment": "telescope",
+      "appearance": "A bright, compact planetary nebula with a visibly blue-green cast."
+    }
+  ],
+  "sources": [
+    {
+      "id": "m45",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 45",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "56.7498173397294",
+        "dec": "24.1166301744015",
+        "vmag": "1.2",
+        "vmag_uncert": "",
+        "dimension": "110",
+        "object_type": "OC",
+        "constell": "TAU"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m44",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 44",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "130.024823359936",
+        "dec": "19.983376124005",
+        "vmag": "3.1",
+        "vmag_uncert": "",
+        "dimension": "95",
+        "object_type": "OC",
+        "constell": "CNC"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m7",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 7",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "268.474796397144",
+        "dec": "-34.8166649071761",
+        "vmag": "3.3",
+        "vmag_uncert": "",
+        "dimension": "80",
+        "object_type": "OC",
+        "constell": "SCO"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m31",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 31",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "10.6748316278991",
+        "dec": "41.2666012792813",
+        "vmag": "3.4",
+        "vmag_uncert": "",
+        "dimension": "178X63",
+        "object_type": "S",
+        "constell": "AND"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "ngc0869",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q482454",
+      "revision": 2532181231,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q482454.json?revision=2532181231",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "dc11fd2ce63e1239a24ab33f0efc50f2fd41ac3c767f660e3395d4b1a8996cdd",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "0a910e0198072cbc9f84f7b5a3e4958c733cb62b",
+            "datavalue": {
+              "value": {
+                "amount": "+34.7500",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q482454$1b4e222c-1e5f-4424-921c-63c5f473b768",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "9f275b821a02dd3f127be5e28d005bdb862d253c",
+            "datavalue": {
+              "value": {
+                "amount": "+57.1283",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q482454$96117135-e293-4be8-832f-d9f8957e0cf8",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q482454$fda0efd8-ea9c-4ddc-b981-a976add68b08",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "baaa6e65b9adfa36b236f6480d6d287ae01bb7c1",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 10511,
+                "id": "Q10511"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q482454$8B4D080B-1765-480C-9AAB-988DF4B4A5A1",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P1215": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P1215",
+            "hash": "70e66ab6e05af566c0a30c267a555ce537e06feb",
+            "datavalue": {
+              "value": {
+                "amount": "+3.7",
+                "unit": "1"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "qualifiers": {
+            "P1227": [
+              {
+                "snaktype": "value",
+                "property": "P1227",
+                "hash": "f1ef366f6a9ffa5e219708261342578fc1af1951",
+                "datavalue": {
+                  "value": {
+                    "entity-type": "item",
+                    "numeric-id": 4892529,
+                    "id": "Q4892529"
+                  },
+                  "type": "wikibase-entityid"
+                },
+                "datatype": "wikibase-item"
+              }
+            ]
+          },
+          "qualifiers-order": [
+            "P1227"
+          ],
+          "id": "Q482454$c2cf9067-f335-473b-ad5d-51583f4e1ea9",
+          "rank": "preferred",
+          "references": [
+            {
+              "hash": "8ba559d5760a03bedaaacc3c347bbfe4981560bf",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "841e49b3de3de902c9097967877cb9ff42610752",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 654724,
+                        "id": "Q654724"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    },
+    {
+      "id": "ngc0884",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q33571",
+      "revision": 2550344320,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q33571.json?revision=2550344320",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "c3d091211274adc67de9f398647d3f100479291029c69674ac94aa6b5253102a",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "7f91aa0f80d67917fb21332a7b94f91cba2d0d13",
+            "datavalue": {
+              "value": {
+                "amount": "+35.5958",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q33571$72d5b9c9-87db-4c07-9596-edd51e3fe5a1",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "c24633cb41aa9f638255d99bc1ba72466ac392f7",
+            "datavalue": {
+              "value": {
+                "amount": "+57.1250",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q33571$c7fa5a42-dd8d-4383-8e0e-ba947de8c77b",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q33571$34f8acd5-06e6-4d6c-b845-b9086296dc7e",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "baaa6e65b9adfa36b236f6480d6d287ae01bb7c1",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 10511,
+                "id": "Q10511"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q33571$8B2B28B8-8BEB-44E4-95EB-8D54B8937FF6",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P1215": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P1215",
+            "hash": "a5cacdd3ee036bf6995d5d39e081266e93e6bf4e",
+            "datavalue": {
+              "value": {
+                "amount": "+3.8",
+                "unit": "1"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "qualifiers": {
+            "P1227": [
+              {
+                "snaktype": "value",
+                "property": "P1227",
+                "hash": "f1ef366f6a9ffa5e219708261342578fc1af1951",
+                "datavalue": {
+                  "value": {
+                    "entity-type": "item",
+                    "numeric-id": 4892529,
+                    "id": "Q4892529"
+                  },
+                  "type": "wikibase-entityid"
+                },
+                "datatype": "wikibase-item"
+              }
+            ]
+          },
+          "qualifiers-order": [
+            "P1227"
+          ],
+          "id": "Q33571$b52e4f66-44bd-4485-8fa3-2ec78bb445f4",
+          "rank": "preferred",
+          "references": [
+            {
+              "hash": "8ba559d5760a03bedaaacc3c347bbfe4981560bf",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "841e49b3de3de902c9097967877cb9ff42610752",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 654724,
+                        "id": "Q654724"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    },
+    {
+      "id": "m42",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 42",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "83.8498489322818",
+        "dec": "-5.45000710825151",
+        "vmag": "4",
+        "vmag_uncert": "*",
+        "dimension": "66X60",
+        "object_type": "DI",
+        "constell": "ORI"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m6",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 6",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "265.024800092512",
+        "dec": "-32.2166609156803",
+        "vmag": "4.2",
+        "vmag_uncert": "",
+        "dimension": "15",
+        "object_type": "OC",
+        "constell": "SCO"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m35",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 35",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "92.2248120747663",
+        "dec": "24.3333359525121",
+        "vmag": "5.1",
+        "vmag_uncert": "",
+        "dimension": "28",
+        "object_type": "OC",
+        "constell": "GEM"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "ngc0752",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q725479",
+      "revision": 2529080092,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q725479.json?revision=2529080092",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "b8fdb704356df2d72fc41d084ae6f9b1401268da1bed94e267355c56b98a3fe6",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "8c23241e18388d33bf958eea548688a2ba16beb7",
+            "datavalue": {
+              "value": {
+                "amount": "+29.4208",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q725479$34bc2417-0088-427e-a036-e0965b31a38b",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "41f2ef00a592f7f5da65180ed77a22541baa7ae6",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "fca4e08b09de665a247ebdc56e4f61fd084a3aba",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 56881939,
+                        "id": "Q56881939"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "b4204a90db36bc9257ed69e2fc3d006999d6dd98",
+            "datavalue": {
+              "value": {
+                "amount": "+37.7850",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q725479$80ac08a3-4fb0-4064-891d-601c8ed2b882",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "41f2ef00a592f7f5da65180ed77a22541baa7ae6",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "fca4e08b09de665a247ebdc56e4f61fd084a3aba",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 56881939,
+                        "id": "Q56881939"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q725479$b6ee0c88-6596-4d7e-8d3b-fd94e216cccd",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "41f2ef00a592f7f5da65180ed77a22541baa7ae6",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "fca4e08b09de665a247ebdc56e4f61fd084a3aba",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 56881939,
+                        "id": "Q56881939"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "30a96d8bf7ed963e96d57b26b554bcd34dc87834",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 9256,
+                "id": "Q9256"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q725479$40EA2B5C-6C2A-4E73-9A9D-9F1B5FEC0A03",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P1215": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P1215",
+            "hash": "0b6b9c201c933149f4321ae4fad51e4c789a7afe",
+            "datavalue": {
+              "value": {
+                "amount": "+5.7",
+                "unit": "1"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "qualifiers": {
+            "P1227": [
+              {
+                "snaktype": "value",
+                "property": "P1227",
+                "hash": "f1ef366f6a9ffa5e219708261342578fc1af1951",
+                "datavalue": {
+                  "value": {
+                    "entity-type": "item",
+                    "numeric-id": 4892529,
+                    "id": "Q4892529"
+                  },
+                  "type": "wikibase-entityid"
+                },
+                "datatype": "wikibase-item"
+              }
+            ]
+          },
+          "qualifiers-order": [
+            "P1227"
+          ],
+          "id": "Q725479$d9230e0d-d483-460d-817d-6468fe8f5582",
+          "rank": "preferred",
+          "references": [
+            {
+              "hash": "8ba559d5760a03bedaaacc3c347bbfe4981560bf",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "841e49b3de3de902c9097967877cb9ff42610752",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 654724,
+                        "id": "Q654724"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    },
+    {
+      "id": "m13",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 13",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "250.424888802049",
+        "dec": "36.4666889418769",
+        "vmag": "5.9",
+        "vmag_uncert": "",
+        "dimension": "17",
+        "object_type": "GB",
+        "constell": "HER"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m8",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 8",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "270.949812101726",
+        "dec": "-24.3833344258246",
+        "vmag": "5.8",
+        "vmag_uncert": ":",
+        "dimension": "90X40",
+        "object_type": "DI",
+        "constell": "SGR"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m16",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 16",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "274.699825761574",
+        "dec": "-13.7833387812712",
+        "vmag": "6",
+        "vmag_uncert": "",
+        "dimension": "7",
+        "object_type": "OC",
+        "constell": "SER"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "not used: cluster extent differs from selected nebula"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m22",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 22",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "279.099813530476",
+        "dec": "-23.9000105000965",
+        "vmag": "5.1",
+        "vmag_uncert": "",
+        "dimension": "24",
+        "object_type": "GB",
+        "constell": "SGR"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m15",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 15",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "322.499851048557",
+        "dec": "12.1666138569551",
+        "vmag": "6.4",
+        "vmag_uncert": "",
+        "dimension": "12",
+        "object_type": "GB",
+        "constell": "PEG"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "ngc0457",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q730450",
+      "revision": 2293483271,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q730450.json?revision=2293483271",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "a7ffbe9886b9eee814d3c8845de090571491a57593bf35d43cd3fe62727e1a12",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "e54f13edcf0c6aed91d10b9f07365476931e43d3",
+            "datavalue": {
+              "value": {
+                "amount": "+19.8958",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q730450$5df37619-ae34-41a4-9949-8a1205986187",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "7dbc026de18df020576135974eea35eea8e85421",
+            "datavalue": {
+              "value": {
+                "amount": "+58.2867",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q730450$c2d07f5b-ea07-4676-9130-d12ca0c5b768",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q730450$75280276-067f-4849-845e-6ee3cf7716c9",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "3bdee1f77d13344b1b803703a173143fa2b1105b",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "c644a4dafd9351b4a0e8235b1e7b58d167a82303",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 29542588,
+                        "id": "Q29542588"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "2a61d7e51a534127f19b60a85dc1e7d59691638d",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 10464,
+                "id": "Q10464"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q730450$E40BA0BE-F640-42EE-947D-361F5691708A",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P1215": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P1215",
+            "hash": "d73b712fe63e092a4ae55ed98848a3aa92536732",
+            "datavalue": {
+              "value": {
+                "amount": "+6.4",
+                "unit": "1"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "qualifiers": {
+            "P1227": [
+              {
+                "snaktype": "value",
+                "property": "P1227",
+                "hash": "f1ef366f6a9ffa5e219708261342578fc1af1951",
+                "datavalue": {
+                  "value": {
+                    "entity-type": "item",
+                    "numeric-id": 4892529,
+                    "id": "Q4892529"
+                  },
+                  "type": "wikibase-entityid"
+                },
+                "datatype": "wikibase-item"
+              }
+            ]
+          },
+          "qualifiers-order": [
+            "P1227"
+          ],
+          "id": "Q730450$d3084755-47a3-4c3d-8a92-1d9e8876b545",
+          "rank": "preferred",
+          "references": [
+            {
+              "hash": "8ba559d5760a03bedaaacc3c347bbfe4981560bf",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "841e49b3de3de902c9097967877cb9ff42610752",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 654724,
+                        "id": "Q654724"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    },
+    {
+      "id": "m92",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 92",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "259.274903655422",
+        "dec": "43.1333457339053",
+        "vmag": "6.5",
+        "vmag_uncert": "",
+        "dimension": "11",
+        "object_type": "GB",
+        "constell": "HER"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m81",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 81",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "148.899752044048",
+        "dec": "69.0667237128426",
+        "vmag": "6.8",
+        "vmag_uncert": "",
+        "dimension": "26X14",
+        "object_type": "S",
+        "constell": "UMA"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m27",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 27",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "299.899866010068",
+        "dec": "22.7166334537909",
+        "vmag": "8.1",
+        "vmag_uncert": ":",
+        "dimension": "8X4",
+        "object_type": "PL",
+        "constell": "VUL"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "ngc7009",
+      "field": "visualMagnitude",
+      "provider": "NASA Hubble Caldwell catalog",
+      "catalogId": "Caldwell 55",
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-55/",
+      "retrievedAt": "2026-10-10",
+      "value": 8,
+      "mapping": "Apparent Magnitude of the nebula, not stellar photometry",
+      "rights": "NASA public numerical information; no images, charts or prose reproduced",
+      "rightsUrl": "https://www.nasa.gov/collaborating-with-nasa/strategic-partnerships/"
+    },
+    {
+      "id": "ngc7009",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q15831",
+      "revision": 2520256670,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q15831.json?revision=2520256670",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "9630b493ebc3f69616e6eafb18cf241ecff80a557f8731b99e2e1b916aa32298",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "297d003832906ea22a99af93db72a6c18fa36562",
+            "datavalue": {
+              "value": {
+                "amount": "+316.04506389613280",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q15831$4f782f96-391c-4809-8c36-73d251adc71f",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "74b870dc6a984a7a3f2c141cf741d8d55fc09690",
+            "datavalue": {
+              "value": {
+                "amount": "-11.36349494674900",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q15831$38a009b0-0d96-4372-bd73-419e3d51cb42",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q15831$0b2c62de-6c69-469f-8059-c97d57767b70",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "ea19830e3adf25a8b66343795b61232a6f2d89c0",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 10576,
+                "id": "Q10576"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q15831$13BAB400-6041-4A2D-9E69-E7D70268A269",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    },
+    {
+      "id": "m82",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 82",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "148.949749359345",
+        "dec": "69.6833903519747",
+        "vmag": "8.4",
+        "vmag_uncert": "",
+        "dimension": "11X5",
+        "object_type": "IR",
+        "constell": "UMA"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m51",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 51",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "202.474869661311",
+        "dec": "47.2000614736795",
+        "vmag": "8.1",
+        "vmag_uncert": "",
+        "dimension": "11X8",
+        "object_type": "S",
+        "constell": "CVN"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m1",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 1",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "83.6248155099598",
+        "dec": "22.016659260946",
+        "vmag": "8.4",
+        "vmag_uncert": ":",
+        "dimension": "6X4",
+        "object_type": "DI",
+        "constell": "TAU"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m104",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 104",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "189.999839928082",
+        "dec": "-11.6166010865071",
+        "vmag": "8.3",
+        "vmag_uncert": "",
+        "dimension": "9X4",
+        "object_type": "S",
+        "constell": "VIR"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "m57",
+      "provider": "NASA HEASARC",
+      "url": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/messier.html",
+      "catalogId": "M 57",
+      "equinox": "J2000",
+      "retrievedAt": "2026-10-10",
+      "catalogLastModified": "2022-02-03",
+      "inputSha256": "1127c32408d74e8463e471e31debd56c3277a3667e1253f13b1187933bb7ca1c",
+      "fields": {
+        "ra": "283.399884012544",
+        "dec": "33.0333178814218",
+        "vmag": "9",
+        "vmag_uncert": ":",
+        "dimension": "1",
+        "object_type": "PL",
+        "constell": "LYR"
+      },
+      "mapping": {
+        "ra": "rightAscensionDeg",
+        "dec": "declinationDeg",
+        "vmag": "visualMagnitude",
+        "dimension": "maximum axis, arcminutes"
+      },
+      "rights": "U.S. government-work resource designation",
+      "rightsUrl": "https://data.nasa.gov/dataset/messier-nebulae"
+    },
+    {
+      "id": "ngc6543",
+      "field": "visualMagnitude",
+      "provider": "NASA Hubble Caldwell catalog",
+      "catalogId": "Caldwell 6",
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-6/",
+      "retrievedAt": "2026-10-10",
+      "value": 8.2,
+      "mapping": "Apparent Magnitude of the nebula, not stellar photometry",
+      "rights": "NASA public numerical information; no images, charts or prose reproduced",
+      "rightsUrl": "https://www.nasa.gov/collaborating-with-nasa/strategic-partnerships/"
+    },
+    {
+      "id": "ngc6543",
+      "provider": "Wikidata structured entity data",
+      "itemId": "Q15829",
+      "revision": 2550124787,
+      "url": "https://www.wikidata.org/wiki/Special:EntityData/Q15829.json?revision=2550124787",
+      "retrievedAt": "2026-10-10",
+      "inputSha256": "7f99d35be00b2fb0d09ecaf0e0a4565cdd3b8646d94b77264b8e7e056c8d7789",
+      "rights": "CC0-1.0",
+      "rightsUrl": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "claims": {
+        "P6257": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6257",
+            "hash": "b1bc9c9cb258373694124b211b47045605fb8528",
+            "datavalue": {
+              "value": {
+                "amount": "+269.63918438310600",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q15829$27ac3f49-8721-485a-b418-4b0fd5f9883b",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6258": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6258",
+            "hash": "1174dbad49bdf5923a22f87ff01966f7e2cbde4b",
+            "datavalue": {
+              "value": {
+                "amount": "+66.63298582272510",
+                "unit": "http://www.wikidata.org/entity/Q28390"
+              },
+              "type": "quantity"
+            },
+            "datatype": "quantity"
+          },
+          "type": "statement",
+          "id": "Q15829$fbddb95d-134d-452e-ba39-a6310c0664c6",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P6259": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P6259",
+            "hash": "d2f39bbfbd81abac3a15296d0303a591b039faae",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 1264450,
+                "id": "Q1264450"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "Q15829$7ab15874-f6d6-4568-8412-281cc1aa682b",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "b64af6c056b6c5f6a7ea17156dcd718d4744bbf8",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "d17c7381d33a52742a63941e02c4babc38800c67",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 51905050,
+                        "id": "Q51905050"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        },
+        "P59": {
+          "mainsnak": {
+            "snaktype": "value",
+            "property": "P59",
+            "hash": "cc3684154c53aa542c47f9cdd347d4929ef2a69c",
+            "datavalue": {
+              "value": {
+                "entity-type": "item",
+                "numeric-id": 8675,
+                "id": "Q8675"
+              },
+              "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+          },
+          "type": "statement",
+          "id": "q15829$8AF213E8-6059-443E-A6CE-BB83563DD160",
+          "rank": "normal",
+          "references": [
+            {
+              "hash": "eedd662cbc889e46d17821464d4af8748a120b6c",
+              "snaks": {
+                "P248": [
+                  {
+                    "snaktype": "value",
+                    "property": "P248",
+                    "hash": "14031601a768211108be06131dba431ef5845c0c",
+                    "datavalue": {
+                      "value": {
+                        "entity-type": "item",
+                        "numeric-id": 1662358,
+                        "id": "Q1662358"
+                      },
+                      "type": "wikibase-entityid"
+                    },
+                    "datatype": "wikibase-item"
+                  }
+                ]
+              },
+              "snaks-order": [
+                "P248"
+              ]
+            }
+          ]
+        }
+      },
+      "mapping": {
+        "P6257": "rightAscensionDeg",
+        "P6258": "declinationDeg",
+        "P6259": "J2000 equinox",
+        "P1215": "visualMagnitude only when qualified V (Q4892529)",
+        "P59": "constellation evidence, not a new runtime field"
+      },
+      "extent": "No verified directly usable major-axis value; null per user authorization"
+    }
+  ]
+}
